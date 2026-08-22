@@ -35,6 +35,14 @@ supabase db seed       # بذر قواعد اللعبة الـ11 + الـ12 شا
 
 3. وجّه محاكي `src/data/store.tsx` لعميل `@supabase/supabase-js` — الدوال في `src/data/engine.ts` مناظرة اسمًا وسلوكًا لكل RPC: `student_check_in_v2`, `start_session_v2`, `close_session_v2`, `award_kudos`, `admin_update_rule`, `issue_certificates_v2`... التبديل استبدال تنفيذ المحاكي بنداء `supabase.rpc(name, params)` دون لمس الشاشات.
 
+## التحقق من الجودة
+
+```bash
+npm run typecheck     # TypeScript strict — صفر أخطاء
+npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (549 مفتاح)
+npm run test:engine   # 49 اختبار سلوكي لقلب اللعبة (حضور/Idempotency/ستريك/كوتا/شهادات/دوري)
+```
+
 ## البنية
 
 ```

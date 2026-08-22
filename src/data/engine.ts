@@ -353,16 +353,29 @@ export function evaluateStreakWeek(db: Db, userId: string, weekStart: number): S
   const unsettled = weekSessions.some((s) => s.status !== 'closed');
   const rows = closed.map((s) => attendanceOf(db, s.id, userId));
   const honored = rows.filter((r) => r && r.status !== 'absent').length;
+  const absents = closed.filter((s) => {
+    const r = attendanceOf(db, s.id, userId);
+    return !r || r.status === 'absent';
+  });
+
+  // حالات الأسبوع النهائية لاصقة: الكرون السيرفري يقفل كل أسبوع مرة واحدة،
+  // والمحاكي يقيّم عند كل غلق جلسة — فنمنع التدهور والعدّ المزدوج لنفس الأسبوع.
+  // الترقية الوحيدة المسموحة: frozen/broken ← kept عند زوال كل الغيابات (عذر مقبول/تصحيح).
+  const prev = db.streakWeeks.find((r) => r.userId === userId && r.weekStart === weekStart);
+  if (prev && prev.status !== 'tracking' && prev.status !== 'pending') {
+    if (prev.status === 'kept' || absents.length > 0) return prev.status;
+    g.currentStreakWeeks += 1;
+    g.longestStreakWeeks = Math.max(g.longestStreakWeeks, g.currentStreakWeeks);
+    if (prev.freezeUsed && g.freezesHeld < maxFreeze) g.freezesHeld += 1; // استرداد الدرع المستهلك
+    upsertStreakRow(db, { userId, weekStart, status: 'kept', sessionsTotal: closed.length, sessionsHonored: honored, freezeUsed: false });
+    return 'kept';
+  }
 
   if (unsettled || closed.length === 0) {
     upsertStreakRow(db, { userId, weekStart, status: 'tracking', sessionsTotal: weekSessions.length || closed.length, sessionsHonored: honored, freezeUsed: false });
     return 'tracking';
   }
 
-  const absents = closed.filter((s) => {
-    const r = attendanceOf(db, s.id, userId);
-    return !r || r.status === 'absent';
-  });
   const hasPendingExcuse = absents.some((s) =>
     db.excuses.some((e) => e.sessionId === s.id && e.userId === userId && e.status === 'pending'),
   );
