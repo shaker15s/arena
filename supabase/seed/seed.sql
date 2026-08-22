@@ -1,0 +1,33 @@
+-- ═══════════════════════════════════════════════════════════════════
+-- مسار 3.0 — Seed: قواعد اللعبة الافتراضية + كتالوج الشارات الـ 12
+-- (وثيقة 04 §8 + §4) — بيانات بذر مراجعَة.
+-- ═══════════════════════════════════════════════════════════════════
+
+insert into gamification_rules (key, value) values
+  ('points.present', '10'),
+  ('points.late', '7'),
+  ('attendance.late_window_min', '15'),
+  ('certificate.min_attendance_pct', '75'),
+  ('kudos.monthly_quota_per_instructor', '200'),
+  ('streak.freeze_max_hold', '2'),
+  ('league.promotion_pct', '15'),
+  ('league.relegation_pct', '15'),
+  ('points.month_bonus', '50'),
+  ('points.course_complete', '100'),
+  ('points.rating', '5')
+on conflict (key) do nothing;
+
+insert into badges (code, name_ar, name_en, desc_ar, desc_en, rarity, icon) values
+  ('first_step', 'البداية الصح', 'Right Start', 'أول حضور في تاريخك على مسار', 'Your first ever attendance', 'common', 'footsteps'),
+  ('consistent', 'المواظب', 'Consistent', '4 محاضرات متتالية في كورس واحد', '4 consecutive sessions in one course', 'common', 'calendar'),
+  ('early_bird', 'الطائر المبكر', 'Early Bird', '10 حضورات قبل بدء الجلسة', '10 check-ins before session start', 'rare', 'sunny'),
+  ('perfection', 'الكمال', 'Perfection', 'شهر ميلادي حضور 100% بلا غياب', 'A calendar month at 100% attendance', 'epic', 'diamond'),
+  ('super_streak', 'السوبر ستريك', 'Super Streak', '8 أسابيع التزام متتالية', '8 consecutive committed weeks', 'epic', 'flame'),
+  ('month_star', 'نجم الشهر', 'Star of the Month', 'أعلى نقاط شهر على مستوى فرعك', 'Top monthly points in your branch', 'epic', 'star'),
+  ('top_scorer', 'المتصدر', 'Top Scorer', 'صدارة الدوري الأسبوعي في أي مرة', 'Topping a weekly league any time', 'common', 'trophy'),
+  ('climber', 'الصاعد', 'Climber', 'الصعود لفئة دوري أعلى', 'Promoting to a higher league tier', 'rare', 'trending-up'),
+  ('cert_hunter', 'صائد الشهادات', 'Certificate Hunter', 'أول شهادة مصدرة لك', 'Your first issued certificate', 'rare', 'ribbon'),
+  ('pro_expert', 'الخبير المحترف', 'Pro Expert', '3 شهادات مكتملة', '3 completed certificates', 'epic', 'medal'),
+  ('honest_reviewer', 'المقيّم الأمين', 'Honest Reviewer', 'تقييم 3 كورسات بعد إتمامها', 'Rating 3 completed courses', 'common', 'chatbubble-ellipses'),
+  ('season_legend', 'أسطورة الموسم', 'Season Legend', 'إنهاء موسم بأعلى نقاط الفرع', 'Top branch points across a season', 'legendary', 'crown')
+on conflict (code) do nothing;
