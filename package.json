@@ -6,6 +6,8 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
+    "export:web": "expo export --platform web --output-dir dist",
+    "preview": "node scripts/serve-dist.js",
     "typecheck": "tsc --noEmit",
     "parity": "node scripts/check-i18n-parity.js",
     "test:engine": "tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/engine.test.js"

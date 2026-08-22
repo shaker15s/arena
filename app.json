@@ -11,7 +11,11 @@
     "newArchEnabled": true,
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "lang": "ar",
+      "name": "مسار — Masär",
+      "description": "منظومة تنظيم مراكز التدريب: حضور ذكي بـQR دوّار، جيميفيكيشن كامل، وشهادات قابلة للتحقق.",
+      "themeColor": "#4F46E5"
     },
     "experiments": {
       "typedRoutes": false
