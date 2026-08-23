@@ -1,8 +1,326 @@
+-- MASAR 3.2 — ترقية مشروع Supabase الحالي من خلال SQL Editor
+-- شغّل الملف كاملًا كـ Query واحدة. لا تشغّل 0001 على المشروع القديم.
+-- السكربت لا يمسح المستخدمين أو بيانات المؤسسة الحالية.
+
+BEGIN;
+
+DO $$
+DECLARE
+  v_missing TEXT;
+BEGIN
+  SELECT string_agg(name, ', ' ORDER BY name) INTO v_missing
+  FROM unnest(ARRAY[
+    'profiles','branches','committees','courses','batches','enrollments','sessions',
+    'attendance','point_events','streak_weeks','gamification','gamification_rules',
+    'badges','user_badges','league_weeks','certificates','excuses','course_ratings',
+    'instructor_ratings','organization_ratings','audit_log','kudos_quotas',
+    'notifications','private_notes'
+  ]) AS required(name)
+  WHERE to_regclass('public.' || name) IS NULL;
+
+  IF v_missing IS NOT NULL THEN
+    RAISE EXCEPTION 'المخطط القديم ناقص جداول مطلوبة: %', v_missing;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='profiles' AND column_name='id'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id'
+  ) THEN
+    RAISE EXCEPTION 'نسخة profiles القديمة غير متوافقة: يجب أن تحتوي id و user_id';
+  END IF;
+END $$;
+
+
+-- ==================== shared helpers ====================
+-- MASAR 3.2 — shared database helpers.
+-- Security-sensitive user workflows are defined in 0005 with explicit grants.
+
+CREATE OR REPLACE FUNCTION public.rule_num(p_key TEXT)
+RETURNS NUMERIC
+LANGUAGE sql STABLE SET search_path = public, pg_temp
+AS $$
+  SELECT CASE jsonb_typeof(value)
+    WHEN 'object' THEN NULLIF(value->>'value','')::NUMERIC
+    WHEN 'number' THEN (value #>> '{}')::NUMERIC
+    ELSE NULL
+  END
+  FROM public.gamification_rules
+  WHERE key=p_key
+$$;
+
+REVOKE ALL ON FUNCTION public.rule_num(TEXT) FROM PUBLIC, anon, authenticated;
+
+
+-- ==================== reference data ====================
+-- ═══════════════════════════════════════════════════════════════════
+-- مسار 3.0 — Seed: قواعد اللعبة الافتراضية + كتالوج الشارات الـ 12
+-- (وثيقة 04 §8 + §4) — بيانات بذر مراجعَة.
+-- ═══════════════════════════════════════════════════════════════════
+
+insert into gamification_rules (key, value) values
+  ('points.present', '{"value":10}'),
+  ('points.late', '{"value":7}'),
+  ('attendance.late_window_min', '{"value":15}'),
+  ('certificate.min_attendance_pct', '{"value":75}'),
+  ('kudos.monthly_quota_per_instructor', '{"value":200}'),
+  ('streak.freeze_max_hold', '{"value":2}'),
+  ('streak.min_sessions_week', '{"value":1}'),
+  ('league.promotion_pct', '{"value":15}'),
+  ('league.relegation_pct', '{"value":15}'),
+  ('points.month_bonus', '{"value":50}'),
+  ('points.course_complete', '{"value":100}'),
+  ('points.rating', '{"value":5}')
+on conflict (key) do nothing;
+
+insert into badges (code, name_ar, name_en, desc_ar, desc_en, rarity, icon) values
+  ('first_step', 'البداية الصح', 'Right Start', 'أول حضور في تاريخك على مسار', 'Your first ever attendance', 'common', 'footsteps'),
+  ('consistent', 'المواظب', 'Consistent', '4 محاضرات متتالية في كورس واحد', '4 consecutive sessions in one course', 'common', 'calendar'),
+  ('early_bird', 'الطائر المبكر', 'Early Bird', '10 حضورات قبل بدء الجلسة', '10 check-ins before session start', 'rare', 'sunny'),
+  ('perfection', 'الكمال', 'Perfection', 'شهر ميلادي حضور 100% بلا غياب', 'A calendar month at 100% attendance', 'epic', 'diamond'),
+  ('super_streak', 'السوبر ستريك', 'Super Streak', '8 أسابيع التزام متتالية', '8 consecutive committed weeks', 'epic', 'flame'),
+  ('month_star', 'نجم الشهر', 'Star of the Month', 'أعلى نقاط شهر على مستوى فرعك', 'Top monthly points in your branch', 'epic', 'star'),
+  ('top_scorer', 'المتصدر', 'Top Scorer', 'صدارة الدوري الأسبوعي في أي مرة', 'Topping a weekly league any time', 'common', 'trophy'),
+  ('climber', 'الصاعد', 'Climber', 'الصعود لفئة دوري أعلى', 'Promoting to a higher league tier', 'rare', 'trending-up'),
+  ('cert_hunter', 'صائد الشهادات', 'Certificate Hunter', 'أول شهادة مصدرة لك', 'Your first issued certificate', 'rare', 'ribbon'),
+  ('pro_expert', 'الخبير المحترف', 'Pro Expert', '3 شهادات مكتملة', '3 completed certificates', 'epic', 'medal'),
+  ('honest_reviewer', 'المقيّم الأمين', 'Honest Reviewer', 'تقييم 3 كورسات بعد إتمامها', 'Rating 3 completed courses', 'common', 'chatbubble-ellipses'),
+  ('season_legend', 'أسطورة الموسم', 'Season Legend', 'إنهاء موسم بأعلى نقاط الفرع', 'Top branch points across a season', 'legendary', 'crown')
+on conflict (code) do nothing;
+
+
+-- ==================== auth, storage, realtime ====================
+-- ═══════════════════════════════════════════════════════════════
+-- MASAR 3.2 — Google auth bootstrap, initial RLS, storage and realtime.
+-- Applied after the canonical 0001 baseline; 0005 replaces these initial policies.
+-- ═══════════════════════════════════════════════════════════════
+
+-- ───────────────────────────────────────────────────────────────
+-- 1) دوال مساعدة: ربط auth.uid() ببروفايل المستخدم
+--    (كل الجداول تشير إلى profiles.id وليس إلى auth.users.id)
+-- ───────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.my_profile_id()
+RETURNS UUID
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1 $$;
+
+CREATE OR REPLACE FUNCTION public.my_role()
+RETURNS TEXT
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT role FROM public.profiles WHERE user_id = auth.uid() LIMIT 1 $$;
+
+CREATE OR REPLACE FUNCTION public.is_staff()
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT COALESCE(public.my_role() IN ('volunteer', 'supervisor', 'admin'), FALSE) $$;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT COALESCE(public.my_role() IN ('supervisor', 'admin'), FALSE) $$;
+
+-- ───────────────────────────────────────────────────────────────
+-- 2) إنشاء البروفايل تلقائيًا بعد الدخول بجوجل
+--    (يلتقط الاسم والصورة من بيانات Google، وأول مستخدم يصبح أدمن)
+-- ───────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_profile_id UUID;
+  v_role TEXT;
+BEGIN
+  -- Serialize the one-time first-admin decision to prevent concurrent signups
+  -- from creating more than one bootstrap administrator.
+  PERFORM pg_advisory_xact_lock(hashtextextended('masar-first-admin', 0));
+  SELECT CASE
+    WHEN COALESCE(NEW.raw_app_meta_data->>'masar_bootstrap_admin','false')='true'
+      AND NOT EXISTS (SELECT 1 FROM public.profiles WHERE role='admin')
+    THEN 'admin' ELSE 'student' END
+  INTO v_role;
+
+  INSERT INTO public.profiles (user_id, email, full_name, avatar_url, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture'),
+    v_role
+  )
+  ON CONFLICT (user_id) DO UPDATE
+    SET email = EXCLUDED.email,
+        full_name = COALESCE(NULLIF(public.profiles.full_name, ''), EXCLUDED.full_name),
+        avatar_url = COALESCE(public.profiles.avatar_url, EXCLUDED.avatar_url)
+  RETURNING id INTO v_profile_id;
+
+  INSERT INTO public.gamification (user_id)
+  VALUES (v_profile_id)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ───────────────────────────────────────────────────────────────
+-- 3) سياسات RLS صحيحة (السياسات القديمة كانت تقارن auth.uid()
+--    بأعمدة تشير إلى profiles.id فتمنع كل الكتابة)
+-- ───────────────────────────────────────────────────────────────
+DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname FROM pg_policies
+    WHERE schemaname = 'public'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
+  END LOOP;
+END $$;
+
+-- profiles
+CREATE POLICY p_profiles_read ON public.profiles FOR SELECT USING (TRUE);
+CREATE POLICY p_profiles_insert_self ON public.profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY p_profiles_update_self ON public.profiles FOR UPDATE
+  USING (auth.uid() = user_id OR public.is_admin())
+  WITH CHECK (auth.uid() = user_id OR public.is_admin());
+
+-- المرجعيات العامة (قراءة للجميع، كتابة للطاقم)
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['branches','committees','courses','batches','sessions','badges','gamification_rules'] LOOP
+    EXECUTE format('CREATE POLICY p_%1$s_read ON public.%1$I FOR SELECT USING (TRUE)', t);
+    EXECUTE format('CREATE POLICY p_%1$s_write ON public.%1$I FOR ALL USING (public.is_staff()) WITH CHECK (public.is_staff())', t);
+  END LOOP;
+END $$;
+
+-- enrollments: الطالب يسجّل نفسه، الطاقم يدير الكل
+CREATE POLICY p_enroll_read ON public.enrollments FOR SELECT USING (TRUE);
+CREATE POLICY p_enroll_self ON public.enrollments FOR ALL
+  USING (user_id = public.my_profile_id() OR public.is_staff())
+  WITH CHECK (user_id = public.my_profile_id() OR public.is_staff());
+
+-- attendance: الطالب يقرأ سجله ويسجّل حضوره، الطاقم يعدّل
+CREATE POLICY p_att_read ON public.attendance FOR SELECT
+  USING (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_att_self_insert ON public.attendance FOR INSERT
+  WITH CHECK (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_att_staff_write ON public.attendance FOR UPDATE
+  USING (public.is_staff()) WITH CHECK (public.is_staff());
+
+-- دفتر النقاط والجيميفيكيشن
+CREATE POLICY p_points_read ON public.point_events FOR SELECT USING (TRUE);
+CREATE POLICY p_points_write ON public.point_events FOR INSERT
+  WITH CHECK (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_streak_read ON public.streak_weeks FOR SELECT USING (TRUE);
+CREATE POLICY p_streak_write ON public.streak_weeks FOR ALL
+  USING (user_id = public.my_profile_id() OR public.is_staff())
+  WITH CHECK (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_gamif_read ON public.gamification FOR SELECT USING (TRUE);
+CREATE POLICY p_gamif_write ON public.gamification FOR ALL
+  USING (user_id = public.my_profile_id() OR public.is_staff())
+  WITH CHECK (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_ubadges_read ON public.user_badges FOR SELECT USING (TRUE);
+CREATE POLICY p_ubadges_write ON public.user_badges FOR ALL
+  USING (user_id = public.my_profile_id() OR public.is_staff())
+  WITH CHECK (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_league_read ON public.league_weeks FOR SELECT USING (TRUE);
+CREATE POLICY p_league_write ON public.league_weeks FOR ALL
+  USING (public.is_staff() OR user_id = public.my_profile_id())
+  WITH CHECK (public.is_staff() OR user_id = public.my_profile_id());
+
+-- الشهادات: تحقق عام + إصدار من الطاقم
+CREATE POLICY p_cert_read ON public.certificates FOR SELECT USING (TRUE);
+CREATE POLICY p_cert_write ON public.certificates FOR ALL
+  USING (public.is_staff()) WITH CHECK (public.is_staff());
+
+-- الأعذار
+CREATE POLICY p_excuse_read ON public.excuses FOR SELECT
+  USING (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_excuse_insert ON public.excuses FOR INSERT
+  WITH CHECK (user_id = public.my_profile_id());
+CREATE POLICY p_excuse_review ON public.excuses FOR UPDATE
+  USING (public.is_staff()) WITH CHECK (public.is_staff());
+
+-- التقييمات (قراءة عامة، كتابة لصاحبها)
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['course_ratings','instructor_ratings','organization_ratings'] LOOP
+    EXECUTE format('CREATE POLICY p_%1$s_read ON public.%1$I FOR SELECT USING (TRUE)', t);
+    EXECUTE format('CREATE POLICY p_%1$s_write ON public.%1$I FOR ALL USING (user_id = public.my_profile_id()) WITH CHECK (user_id = public.my_profile_id())', t);
+  END LOOP;
+END $$;
+
+-- سجل العمليات + كوتا الكودوس + الملاحظات الخاصة
+CREATE POLICY p_audit_read ON public.audit_log FOR SELECT USING (public.is_admin());
+CREATE POLICY p_audit_write ON public.audit_log FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY p_kudos_rw ON public.kudos_quotas FOR ALL
+  USING (instructor_id = public.my_profile_id() OR public.is_admin())
+  WITH CHECK (instructor_id = public.my_profile_id() OR public.is_admin());
+CREATE POLICY p_notes_rw ON public.private_notes FOR ALL
+  USING (instructor_id = public.my_profile_id() OR public.is_admin())
+  WITH CHECK (instructor_id = public.my_profile_id() OR public.is_admin());
+
+-- الإشعارات
+CREATE POLICY p_notif_read ON public.notifications FOR SELECT
+  USING (user_id = public.my_profile_id() OR public.is_staff());
+CREATE POLICY p_notif_write ON public.notifications FOR INSERT
+  WITH CHECK (public.is_staff() OR user_id = public.my_profile_id());
+CREATE POLICY p_notif_update ON public.notifications FOR UPDATE
+  USING (user_id = public.my_profile_id()) WITH CHECK (user_id = public.my_profile_id());
+
+-- ───────────────────────────────────────────────────────────────
+-- 4) تخزين صور المستخدمين (bucket: avatars)
+-- ───────────────────────────────────────────────────────────────
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', TRUE)
+ON CONFLICT (id) DO UPDATE SET public = TRUE;
+
+DROP POLICY IF EXISTS "avatars public read" ON storage.objects;
+CREATE POLICY "avatars public read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "avatars owner write" ON storage.objects;
+CREATE POLICY "avatars owner write" ON storage.objects
+  FOR ALL TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text)
+  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ───────────────────────────────────────────────────────────────
+-- 5) قاعدة لعبة جديدة: الحد الأدنى لجلسات الأسبوع للحفاظ على الستريك
+-- ───────────────────────────────────────────────────────────────
+INSERT INTO public.gamification_rules (key, value)
+VALUES ('streak.min_sessions_week', '{"value": 1}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
+-- ───────────────────────────────────────────────────────────────
+-- 6) الزمن الحقيقي (Realtime) للجداول الحية
+-- ───────────────────────────────────────────────────────────────
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['sessions','attendance','notifications','excuses','enrollments','point_events'] LOOP
+    BEGIN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+  END LOOP;
+END $$;
+
+
+-- ==================== hardened RPCs and RLS ====================
 -- MASAR 3.2 — production hardening and real workflows
 -- Apply after 001_complete_schema.sql and 0004_real_auth_and_policies.sql.
 -- This migration deliberately moves security-sensitive business logic into atomic RPCs.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -1158,4 +1476,310 @@ DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.support_requests;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+
+
+-- ==================== automation and cron ====================
+-- MASAR 3.2 — schema-compatible automatic settlement and notification jobs.
+-- Supabase projects must have pg_cron available (enabled below).
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS dedupe_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS notifications_dedupe_uidx
+  ON public.notifications(dedupe_key) WHERE dedupe_key IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS league_user_week_uidx
+  ON public.league_weeks(user_id,week_start);
+
+-- Close abandoned live sessions after their duration plus a one-hour grace
+-- period. Missing active students are recorded absent in the same transaction.
+CREATE OR REPLACE FUNCTION public.auto_close_stale_sessions()
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+DECLARE r RECORD; v_closed INTEGER:=0;
+BEGIN
+  FOR r IN
+    SELECT s.id,s.batch_id FROM public.sessions s
+    WHERE s.status='live' AND s.started_at IS NOT NULL
+      AND s.started_at + make_interval(mins=>s.duration_min+60) < now()
+    FOR UPDATE SKIP LOCKED
+  LOOP
+    INSERT INTO public.attendance(session_id,user_id,status,note)
+    SELECT r.id,e.user_id,'absent','أُغلقت الجلسة تلقائيًا'
+    FROM public.enrollments e
+    WHERE e.batch_id=r.batch_id AND e.status='active'
+    ON CONFLICT(session_id,user_id) DO NOTHING;
+    UPDATE public.sessions SET status='closed',closed_at=now(),qr_seed=NULL,
+      report=COALESCE(report,jsonb_build_object(
+        'done','','planned','','challenges','أُغلقت تلقائيًا بعد انتهاء المهلة',
+        'submittedAt',floor(extract(epoch FROM now())*1000)
+      )) WHERE id=r.id;
+    IF NOT EXISTS(SELECT 1 FROM public.sessions WHERE batch_id=r.batch_id AND status<>'closed') THEN
+      UPDATE public.batches b SET status='completed',updated_at=now()
+      WHERE b.id=r.batch_id
+        AND EXISTS(SELECT 1 FROM public.enrollments e WHERE e.batch_id=b.id AND e.status='active')
+        AND (SELECT count(*) FROM public.sessions s WHERE s.batch_id=b.id)=(
+          SELECT c.sessions_count FROM public.courses c WHERE c.id=b.course_id
+        );
+    END IF;
+    INSERT INTO public.audit_log(actor_id,action,target,payload)
+    VALUES(NULL,'auto_close_session',r.id::text,jsonb_build_object('batch_id',r.batch_id));
+    v_closed:=v_closed+1;
+  END LOOP;
+  RETURN v_closed;
+END;
+$$;
+
+-- Reconcile the previous Cairo/Sunday week. Pending excuses remain pending;
+-- accepted late reviews can promote a frozen/broken week to kept exactly once.
+CREATE OR REPLACE FUNCTION public.settle_previous_streak_week()
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_today DATE:=(now() AT TIME ZONE 'Africa/Cairo')::DATE;
+  v_current_sunday DATE; v_week DATE; v_next DATE;
+  v_min INTEGER:=COALESCE(public.rule_num('streak.min_sessions_week'),1)::INTEGER;
+  v_max_freeze INTEGER:=COALESCE(public.rule_num('streak.freeze_max_hold'),2)::INTEGER;
+  r RECORD; v_old TEXT; v_old_freeze BOOLEAN; v_new TEXT; v_freeze BOOLEAN; v_changed INTEGER:=0;
+  v_held INTEGER; v_current INTEGER;
+BEGIN
+  v_current_sunday:=v_today-extract(dow FROM v_today)::INTEGER;
+  v_week:=v_current_sunday-7;
+  v_next:=v_week+7;
+  FOR r IN
+    SELECT e.user_id,
+      count(DISTINCT s.id)::INTEGER AS total,
+      count(DISTINCT s.id) FILTER(WHERE a.status IS NOT NULL AND a.status<>'absent')::INTEGER AS honored,
+      count(DISTINCT s.id) FILTER(WHERE a.status IS NULL OR a.status='absent')::INTEGER AS absent,
+      bool_or(ex.status='pending') AS has_pending
+    FROM public.enrollments e
+    JOIN public.sessions s ON s.batch_id=e.batch_id AND s.status='closed'
+      AND (s.starts_at AT TIME ZONE 'Africa/Cairo')::DATE>=v_week
+      AND (s.starts_at AT TIME ZONE 'Africa/Cairo')::DATE<v_next
+    LEFT JOIN public.attendance a ON a.session_id=s.id AND a.user_id=e.user_id
+    LEFT JOIN public.excuses ex ON ex.session_id=s.id AND ex.user_id=e.user_id
+    WHERE e.status='active'
+    GROUP BY e.user_id
+  LOOP
+    IF r.total=0 THEN CONTINUE; END IF;
+    SELECT status,freeze_used INTO v_old,v_old_freeze FROM public.streak_weeks
+      WHERE user_id=r.user_id AND week_start=v_week FOR UPDATE;
+    INSERT INTO public.gamification(user_id) VALUES(r.user_id) ON CONFLICT(user_id) DO NOTHING;
+    SELECT COALESCE(freezes_held,0),COALESCE(current_streak_weeks,0) INTO v_held,v_current
+    FROM public.gamification WHERE user_id=r.user_id FOR UPDATE;
+
+    IF r.absent=0 AND r.honored>=LEAST(v_min,r.total) THEN v_new:='kept'; v_freeze:=FALSE;
+    ELSIF COALESCE(r.has_pending,FALSE) THEN v_new:='pending'; v_freeze:=FALSE;
+    ELSIF v_held>0 THEN v_new:='frozen'; v_freeze:=TRUE;
+    ELSE v_new:='broken'; v_freeze:=FALSE;
+    END IF;
+
+    IF v_old='kept' OR (v_old IN ('frozen','broken') AND v_new<>'kept') THEN CONTINUE; END IF;
+    IF v_new='kept' AND v_old IS DISTINCT FROM 'kept' THEN
+      IF v_old='frozen' AND COALESCE(v_old_freeze,FALSE) AND v_held<v_max_freeze THEN v_held:=v_held+1; END IF;
+      v_current:=v_current+1;
+      UPDATE public.gamification SET current_streak_weeks=v_current,
+        longest_streak_weeks=GREATEST(longest_streak_weeks,v_current),
+        freezes_held=LEAST(v_held + CASE WHEN v_current%4=0 AND v_held<v_max_freeze THEN 1 ELSE 0 END,v_max_freeze),
+        updated_at=now() WHERE user_id=r.user_id;
+    ELSIF v_new='frozen' AND v_old IS DISTINCT FROM 'frozen' THEN
+      UPDATE public.gamification SET freezes_held=GREATEST(0,freezes_held-1),updated_at=now() WHERE user_id=r.user_id;
+    ELSIF v_new='broken' AND v_old IS DISTINCT FROM 'broken' THEN
+      UPDATE public.gamification SET current_streak_weeks=0,updated_at=now() WHERE user_id=r.user_id;
+    END IF;
+
+    INSERT INTO public.streak_weeks(user_id,week_start,status,sessions_total,sessions_honored,freeze_used)
+    VALUES(r.user_id,v_week,v_new,r.total,r.honored,v_freeze)
+    ON CONFLICT(user_id,week_start) DO UPDATE SET status=EXCLUDED.status,
+      sessions_total=EXCLUDED.sessions_total,sessions_honored=EXCLUDED.sessions_honored,freeze_used=EXCLUDED.freeze_used;
+    INSERT INTO public.notifications(user_id,title,body,type,dedupe_key)
+    VALUES(r.user_id,
+      CASE v_new WHEN 'kept' THEN 'تم حفظ الستريك 🔥' WHEN 'pending' THEN 'الستريك قيد المراجعة'
+        WHEN 'frozen' THEN 'تم استخدام مُجمّد الستريك 🛡️' ELSE 'ابدأ ستريك جديد هذا الأسبوع' END,
+      'تمت تسوية أسبوع '||v_week::text,'streak','streak:'||v_week||':'||r.user_id||':'||v_new)
+    ON CONFLICT(dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+    PERFORM public.evaluate_user_badges(r.user_id);
+    v_changed:=v_changed+1;
+  END LOOP;
+  RETURN v_changed;
+END;
+$$;
+
+-- Snapshot the previous league week and atomically update tiers. Small pools do
+-- not move tiers; this avoids arbitrary promotion/relegation in new branches.
+CREATE OR REPLACE FUNCTION public.close_previous_league_week()
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_today DATE:=(now() AT TIME ZONE 'Africa/Cairo')::DATE; v_sunday DATE; v_week DATE; v_next DATE;
+  v_prom NUMERIC:=COALESCE(public.rule_num('league.promotion_pct'),15);
+  v_rel NUMERIC:=COALESCE(public.rule_num('league.relegation_pct'),15);
+  r RECORD; v_outcome TEXT; v_new_tier TEXT; v_count INTEGER:=0;
+BEGIN
+  v_sunday:=v_today-extract(dow FROM v_today)::INTEGER; v_week:=v_sunday-7; v_next:=v_week+7;
+  IF EXISTS(SELECT 1 FROM public.league_weeks WHERE week_start=v_week) THEN RETURN 0; END IF;
+  FOR r IN
+    WITH scores AS (
+      SELECT p.id AS user_id,p.branch_id,p.joined_at,g.league_tier,
+        COALESCE(sum(pe.points) FILTER(WHERE pe.created_at >= (v_week::timestamp AT TIME ZONE 'Africa/Cairo')
+          AND pe.created_at < (v_next::timestamp AT TIME ZONE 'Africa/Cairo')),0)::INTEGER AS xp
+      FROM public.profiles p JOIN public.gamification g ON g.user_id=p.id
+      LEFT JOIN public.point_events pe ON pe.user_id=p.id
+      WHERE p.role='student' AND p.status='active'
+      GROUP BY p.id,p.branch_id,p.joined_at,g.league_tier
+    ), ranked AS (
+      SELECT *,row_number() OVER(PARTITION BY branch_id,league_tier ORDER BY xp DESC,joined_at,user_id) AS pos,
+        count(*) OVER(PARTITION BY branch_id,league_tier) AS pool
+      FROM scores
+    ) SELECT * FROM ranked
+  LOOP
+    v_outcome:='stayed'; v_new_tier:=r.league_tier;
+    IF r.pool>=5 AND r.xp>0 AND r.pos<=GREATEST(1,ceil(r.pool*v_prom/100.0)) THEN
+      v_new_tier:=CASE r.league_tier WHEN 'bronze' THEN 'silver' WHEN 'silver' THEN 'gold'
+        WHEN 'gold' THEN 'ruby' WHEN 'ruby' THEN 'master' ELSE 'master' END;
+      IF v_new_tier<>r.league_tier THEN v_outcome:='promoted'; END IF;
+    ELSIF r.pool>=5 AND r.pos>r.pool-GREATEST(1,ceil(r.pool*v_rel/100.0)) THEN
+      v_new_tier:=CASE r.league_tier WHEN 'master' THEN 'ruby' WHEN 'ruby' THEN 'gold'
+        WHEN 'gold' THEN 'silver' WHEN 'silver' THEN 'bronze' ELSE 'bronze' END;
+      IF v_new_tier<>r.league_tier THEN v_outcome:='relegated'; END IF;
+    END IF;
+    INSERT INTO public.league_weeks(user_id,week_start,tier,xp_week,final_rank,outcome)
+    VALUES(r.user_id,v_week,r.league_tier,r.xp,r.pos,v_outcome);
+    UPDATE public.gamification SET league_tier=v_new_tier,updated_at=now() WHERE user_id=r.user_id;
+    IF r.pos=1 AND r.xp>0 THEN
+      INSERT INTO public.user_badges(user_id,badge_code)
+      SELECT r.user_id,'top_scorer' WHERE EXISTS(SELECT 1 FROM public.badges WHERE code='top_scorer' AND active)
+      ON CONFLICT(user_id,badge_code) DO NOTHING;
+      IF FOUND THEN
+        INSERT INTO public.notifications(user_id,title,body,type,dedupe_key)
+        VALUES(r.user_id,'شارة جديدة 🎉','المتصدر','badge','badge:'||r.user_id||':top_scorer')
+        ON CONFLICT(dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+      END IF;
+    END IF;
+    IF v_outcome='promoted' THEN
+      INSERT INTO public.user_badges(user_id,badge_code)
+      SELECT r.user_id,'climber' WHERE EXISTS(SELECT 1 FROM public.badges WHERE code='climber' AND active)
+      ON CONFLICT(user_id,badge_code) DO NOTHING;
+      IF FOUND THEN
+        INSERT INTO public.notifications(user_id,title,body,type,dedupe_key)
+        VALUES(r.user_id,'شارة جديدة 🎉','الصاعد','badge','badge:'||r.user_id||':climber')
+        ON CONFLICT(dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+      END IF;
+    END IF;
+    IF v_outcome<>'stayed' THEN
+      INSERT INTO public.notifications(user_id,title,body,type,dedupe_key)
+      VALUES(r.user_id,CASE WHEN v_outcome='promoted' THEN 'تمت ترقيتك في الدوري 🎉' ELSE 'بدأ أسبوع دوري جديد' END,
+        'ترتيب الأسبوع السابق: '||r.pos,'league','league:'||v_week||':'||r.user_id)
+      ON CONFLICT(dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+    END IF;
+    v_count:=v_count+1;
+  END LOOP;
+  RETURN v_count;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.settle_previous_month_bonus()
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_month DATE:=(date_trunc('month',now() AT TIME ZONE 'Africa/Cairo')-interval '1 month')::DATE;
+  v_next DATE:=(date_trunc('month',now() AT TIME ZONE 'Africa/Cairo'))::DATE;
+  v_points INTEGER:=COALESCE(public.rule_num('points.month_bonus'),50)::INTEGER; r RECORD; v_count INTEGER:=0;
+BEGIN
+  FOR r IN
+    SELECT e.user_id,count(DISTINCT s.id) AS total,
+      count(DISTINCT s.id) FILTER(WHERE a.status IS NULL OR a.status='absent') AS absent
+    FROM public.enrollments e JOIN public.sessions s ON s.batch_id=e.batch_id AND s.status='closed'
+      AND (s.starts_at AT TIME ZONE 'Africa/Cairo')::DATE>=v_month
+      AND (s.starts_at AT TIME ZONE 'Africa/Cairo')::DATE<v_next
+    LEFT JOIN public.attendance a ON a.session_id=s.id AND a.user_id=e.user_id
+    WHERE e.status='active' GROUP BY e.user_id
+  LOOP
+    IF r.total>0 AND r.absent=0 AND v_points>0 THEN
+      INSERT INTO public.point_events(user_id,points,reason_code,ref_type,idempotency_key)
+      VALUES(r.user_id,v_points,'month.bonus','admin','month.bonus:'||r.user_id||':'||to_char(v_month,'YYYY-MM'))
+      ON CONFLICT(idempotency_key) DO NOTHING;
+      IF FOUND THEN v_count:=v_count+1; END IF;
+    END IF;
+    PERFORM public.evaluate_user_badges(r.user_id);
+  END LOOP;
+  WITH scores AS (
+    SELECT p.id AS user_id,p.branch_id,COALESCE(sum(pe.points),0) AS points
+    FROM public.profiles p JOIN public.point_events pe ON pe.user_id=p.id
+      AND pe.created_at >= (v_month::timestamp AT TIME ZONE 'Africa/Cairo')
+      AND pe.created_at < (v_next::timestamp AT TIME ZONE 'Africa/Cairo')
+    WHERE p.role='student' AND p.status='active' AND p.branch_id IS NOT NULL
+    GROUP BY p.id,p.branch_id
+  ), ranked AS (
+    SELECT *,row_number() OVER(PARTITION BY branch_id ORDER BY points DESC,user_id) AS pos FROM scores
+  ), awarded AS (
+    INSERT INTO public.user_badges(user_id,badge_code)
+    SELECT user_id,'month_star' FROM ranked
+    WHERE pos=1 AND points>0 AND EXISTS(SELECT 1 FROM public.badges WHERE code='month_star' AND active)
+    ON CONFLICT(user_id,badge_code) DO NOTHING RETURNING user_id
+  )
+  INSERT INTO public.notifications(user_id,title,body,type,dedupe_key)
+  SELECT user_id,'شارة جديدة 🎉','نجم الشهر','badge','badge:'||user_id||':month_star' FROM awarded
+  ON CONFLICT(dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+  RETURN v_count;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.enqueue_session_reminders()
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+DECLARE v_count INTEGER;
+BEGIN
+  WITH targets AS (
+    SELECT s.id AS session_id,e.user_id,s.title,s.starts_at FROM public.sessions s
+    JOIN public.enrollments e ON e.batch_id=s.batch_id AND e.status='active'
+    WHERE s.status='scheduled' AND s.starts_at BETWEEN now()+interval '20 minutes' AND now()+interval '50 minutes'
+    UNION
+    SELECT s.id,b.instructor_id,s.title,s.starts_at FROM public.sessions s JOIN public.batches b ON b.id=s.batch_id
+    WHERE b.instructor_id IS NOT NULL AND s.status='scheduled'
+      AND s.starts_at BETWEEN now()+interval '20 minutes' AND now()+interval '50 minutes'
+  ), added AS (
+    INSERT INTO public.notifications(user_id,title,body,type,dedupe_key)
+    SELECT user_id,'تذكير بموعد الجلسة',COALESCE(title,'جلسة تدريبية')||' تبدأ خلال أقل من ساعة','session',
+      'session-reminder:'||session_id||':'||user_id FROM targets
+    ON CONFLICT(dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING RETURNING 1
+  ) SELECT count(*) INTO v_count FROM added;
+  RETURN v_count;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.auto_close_stale_sessions() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.settle_previous_streak_week() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.close_previous_league_week() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.settle_previous_month_bonus() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.enqueue_session_reminders() FROM PUBLIC, anon, authenticated;
+
+DO $$ DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT jobid FROM cron.job WHERE jobname IN (
+    'masar-auto-close','masar-streak-settlement','masar-league-close','masar-month-bonus','masar-session-reminders'
+  ) LOOP PERFORM cron.unschedule(r.jobid); END LOOP;
+END $$;
+SELECT cron.schedule('masar-auto-close','*/15 * * * *','SELECT public.auto_close_stale_sessions()');
+SELECT cron.schedule('masar-streak-settlement','15 * * * *','SELECT public.settle_previous_streak_week()');
+SELECT cron.schedule('masar-league-close','35 */2 * * *','SELECT public.close_previous_league_week()');
+SELECT cron.schedule('masar-month-bonus','45 */2 * * *','SELECT public.settle_previous_month_bonus()');
+SELECT cron.schedule('masar-session-reminders','*/10 * * * *','SELECT public.enqueue_session_reminders()');
+
+
+
+-- النسخة القديمة كانت تظهر شارة موسم بلا نطاق موسم حقيقي.
+UPDATE public.badges SET active=FALSE WHERE code='season_legend';
+
 COMMIT;
+
+-- نتيجة سريعة بعد نجاح الترقية
+SELECT
+  (SELECT count(*) FROM public.badges) AS badges,
+  (SELECT count(*) FROM public.gamification_rules) AS rules,
+  (SELECT count(*) FROM cron.job WHERE jobname LIKE 'masar-%') AS cron_jobs,
+  EXISTS(SELECT 1 FROM pg_extension WHERE extname='pg_cron') AS pg_cron_enabled;
