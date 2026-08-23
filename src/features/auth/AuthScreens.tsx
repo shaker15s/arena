@@ -1,51 +1,79 @@
 /**
- * features/auth — F1: Onboarding (3 سلايدز) → الترحيب → OTP → إكمال الملف.
- * Passwordless بالكامل + «تجربة سريعة» بشخصيات جاهزة للديمو + دخول الجهات للتحقق.
+ * features/auth — F1: Onboarding → الترحيب → OTP → إكمال الملف.
+ * تصميم Apple Liquid Glass + أنيميشنات سلسة.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, IDS } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Avatar, Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
+import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { radii, spacing } from '../../design/tokens';
 import { easing, isReducedMotion } from '../../design/motion';
 
 // ───────────────────────────── Onboarding ─────────────────────────────
 
-const SLIDES: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string; bg: string }> = [
-  { icon: 'calendar', title: 'onboarding.o1Title', body: 'onboarding.o1Body', bg: '#8B5CF6' },
-  { icon: 'qr-code', title: 'onboarding.o2Title', body: 'onboarding.o2Body', bg: '#14B8A6' },
-  { icon: 'trophy', title: 'onboarding.o3Title', body: 'onboarding.o3Body', bg: '#F59E0B' },
+const SLIDES: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string; from: string; to: string }> = [
+  { icon: 'calendar', title: 'onboarding.o1Title', body: 'onboarding.o1Body', from: '#007AFF', to: '#5856D6' },
+  { icon: 'qr-code', title: 'onboarding.o2Title', body: 'onboarding.o2Body', from: '#30D158', to: '#34C759' },
+  { icon: 'trophy', title: 'onboarding.o3Title', body: 'onboarding.o3Body', from: '#FF9F0A', to: '#FF3B30' },
 ];
 
 export function OnboardingScreen({ navigation }: any) {
   const [index, setIndex] = useState(0);
   const { t } = useI18n();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const slideAnim = useRef(new Animated.Value(1)).current;
-  const scrollRef = useRef<any>(null);
+  const iconScale = useRef(new Animated.Value(0.8)).current;
+  const iconOpacity = useRef(new Animated.Value(0)).current;
 
   const go = (i: number) => {
-    Animated.timing(slideAnim, { toValue: 0, duration: isReducedMotion() ? 100 : 160, useNativeDriver: true }).start(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue: 0, duration: isReducedMotion() ? 100 : 160, useNativeDriver: true }),
+      Animated.timing(iconOpacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+    ]).start(() => {
       setIndex(i);
-      Animated.timing(slideAnim, { toValue: 1, duration: isReducedMotion() ? 100 : 260, useNativeDriver: true }).start();
+      iconScale.setValue(0.6);
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 1, duration: isReducedMotion() ? 100 : 300, useNativeDriver: true }),
+        Animated.spring(iconScale, { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true }),
+        Animated.timing(iconOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
     });
   };
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(iconScale, { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true }),
+      Animated.timing(iconOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
   const slide = SLIDES[index];
   const isLast = index === SLIDES.length - 1;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 24, paddingHorizontal: spacing.s6 }}>
+      {/* Background decorative orb */}
+      <View style={{
+        position: 'absolute', top: -100, left: -80,
+        width: 350, height: 350, borderRadius: 175,
+        backgroundColor: isDark ? `${slide.from}08` : `${slide.from}0A`,
+      }} />
+
       <Row between center>
         <Row center gap={8}>
-          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: theme.brand, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="map" size={19} color="#fff" />
-          </View>
+          <LinearGradient
+            colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+            style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="map" size={20} color="#fff" />
+          </LinearGradient>
           <Txt variant="h3">مسار</Txt>
         </Row>
         <Pressable onPress={() => navigation.replace('Welcome')} style={{ padding: 10 }}>
@@ -54,25 +82,40 @@ export function OnboardingScreen({ navigation }: any) {
       </Row>
 
       <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Animated.View style={{ opacity: slideAnim, transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) }], alignItems: 'center', gap: 26 }}>
-          <View style={{
-            width: Math.min(220, width * 0.5), height: Math.min(220, width * 0.5), borderRadius: 60,
-            backgroundColor: slide.bg + '22', alignItems: 'center', justifyContent: 'center',
-            borderWidth: 2, borderColor: slide.bg + '44',
-          }}>
-            <Ionicons name={slide.icon} size={110} color={slide.bg} />
-          </View>
-          <View style={{ gap: 10, alignItems: 'center' }}>
+        <Animated.View style={{ opacity: slideAnim, transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) }], alignItems: 'center', gap: 28 }}>
+          {/* Icon circle with gradient */}
+          <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
+            <LinearGradient
+              colors={[slide.from + '20', slide.to + '15']}
+              style={{
+                width: Math.min(220, width * 0.5),
+                height: Math.min(220, width * 0.5),
+                borderRadius: 60,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: slide.from + '30',
+              }}
+            >
+              <Ionicons name={slide.icon} size={100} color={slide.from} />
+            </LinearGradient>
+          </Animated.View>
+
+          <View style={{ gap: 10, alignItems: 'center', marginTop: 8 }}>
             <Txt variant="h1" align="center">{t(slide.title as any)}</Txt>
-            <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 340 }}>{t(slide.body as any)}</Txt>
+            <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 340, paddingHorizontal: 8 }}>{t(slide.body as any)}</Txt>
           </View>
         </Animated.View>
       </View>
 
-      <View style={{ gap: 22 }}>
-        <Row center gap={6} style={{ justifyContent: 'center' }}>
+      <View style={{ gap: 24 }}>
+        {/* Dots */}
+        <Row center gap={8} style={{ justifyContent: 'center' }}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={{ height: 7, width: i === index ? 26 : 7, borderRadius: 4, backgroundColor: i === index ? theme.brand : theme.line }} />
+            <View key={i} style={{
+              height: 8, width: i === index ? 28 : 8, borderRadius: 4,
+              backgroundColor: i === index ? theme.brand : isDark ? 'rgba(120,120,128,0.3)' : 'rgba(120,120,128,0.15)',
+            }} />
           ))}
         </Row>
         <Btn
@@ -90,7 +133,7 @@ export function OnboardingScreen({ navigation }: any) {
 
 export function WelcomeScreen({ navigation }: any) {
   const { t, rtl } = useI18n();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { requestOtp, quickLogin } = useApp();
   const [phone, setPhone] = useState('');
@@ -109,27 +152,45 @@ export function WelcomeScreen({ navigation }: any) {
   };
 
   const personas = [
-    { id: IDS.omar, label: t('auth.tryOmar'), icon: 'school' as const },
-    { id: IDS.sara, label: t('auth.trySara'), icon: 'person' as const },
-    { id: IDS.mahmoud, label: t('auth.tryMahmoud'), icon: 'shield-checkmark' as const },
-    { id: IDS.admin, label: t('auth.tryAdmin'), icon: 'key' as const },
+    { id: IDS.omar, label: t('auth.tryOmar'), icon: 'school' as const, color: '#007AFF' },
+    { id: IDS.sara, label: t('auth.trySara'), icon: 'person' as const, color: '#30D158' },
+    { id: IDS.mahmoud, label: t('auth.tryMahmoud'), icon: 'shield-checkmark' as const, color: '#FF9F0A' },
+    { id: IDS.admin, label: t('auth.tryAdmin'), icon: 'key' as const, color: '#FF3B30' },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{ flex: 1, padding: spacing.s6, paddingTop: insets.top + 20 }}>
+      {/* Background orb */}
+      <View style={{
+        position: 'absolute', top: -60, right: -80,
+        width: 300, height: 300, borderRadius: 150,
+        backgroundColor: isDark ? 'rgba(0,122,255,0.05)' : 'rgba(0,122,255,0.03)',
+      }} />
+
+      <View style={{ flex: 1, padding: spacing.s6, paddingTop: insets.top + 24 }}>
         <FadeIn index={0}>
-          <View style={{ width: 72, height: 72, borderRadius: 21, backgroundColor: theme.brand, alignItems: 'center', justifyContent: 'center', shadowColor: theme.brand, shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }}>
-            <Ionicons name="map" size={38} color="#fff" />
-          </View>
+          <LinearGradient
+            colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+            style={{
+              width: 76, height: 76, borderRadius: 23,
+              alignItems: 'center', justifyContent: 'center',
+              shadowColor: theme.brand,
+              shadowOpacity: 0.35,
+              shadowRadius: 24,
+              shadowOffset: { width: 0, height: 10 },
+              elevation: 14,
+            }}
+          >
+            <Ionicons name="map" size={40} color="#fff" />
+          </LinearGradient>
         </FadeIn>
-        <Spacer size={18} />
+        <Spacer size={22} />
         <FadeIn index={1}>
           <Txt variant="display">{t('auth.welcomeTitle')}</Txt>
           <Spacer size={8} />
           <Txt variant="body" color={theme.textSecondary}>{t('auth.welcomeBody')}</Txt>
         </FadeIn>
-        <Spacer size={24} />
+        <Spacer size={28} />
         <FadeIn index={2}>
           <Input
             label={t('common.phone')}
@@ -142,11 +203,11 @@ export function WelcomeScreen({ navigation }: any) {
             maxLength={11}
           />
         </FadeIn>
-        <Spacer size={16} />
+        <Spacer size={18} />
         <FadeIn index={3}>
           <Btn title={t('auth.sendCode')} size="lg" full loading={loading} onPress={submit} icon="paper-plane" />
         </FadeIn>
-        <Spacer size={12} />
+        <Spacer size={14} />
         <FadeIn index={4}>
           <Pressable onPress={() => navigation.navigate('Verify')} style={{ alignSelf: 'center', padding: 8 }}>
             <Row center gap={6}>
@@ -158,10 +219,10 @@ export function WelcomeScreen({ navigation }: any) {
 
         <View style={{ flex: 1 }} />
 
-        {/* تجربة سريعة — شخصيات جاهزة للديمو */}
+        {/* تجربة سريعة — شخصيات جاهزة */}
         <FadeIn index={6}>
           <Card glass>
-            <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>
+            <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 12 }}>
               ⚡ {t('auth.quickTryTitle')}
             </Txt>
             <Row wrap gap={8}>
@@ -170,20 +231,22 @@ export function WelcomeScreen({ navigation }: any) {
                   key={p.id}
                   onPress={() => quickLogin(p.id)}
                   style={({ pressed }) => ({
-                    flexDirection: 'row', alignItems: 'center', gap: 7,
-                    backgroundColor: theme.brandSoft, borderRadius: radii.pill,
-                    paddingHorizontal: 13, paddingVertical: 9,
-                    opacity: pressed ? 0.85 : 1,
+                    flexDirection: 'row', alignItems: 'center', gap: 8,
+                    backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+                    borderRadius: radii.pill,
+                    paddingHorizontal: 14, paddingVertical: 10,
+                    opacity: pressed ? 0.7 : 1,
+                    transform: [{ scale: pressed ? 0.96 : 1 }],
                   })}
                 >
-                  <Ionicons name={p.icon} size={14} color={theme.brand} />
-                  <Txt variant="caption" color={theme.brand}>{p.label}</Txt>
+                  <Ionicons name={p.icon} size={14} color={p.color} />
+                  <Txt variant="caption" color={theme.text}>{p.label}</Txt>
                 </Pressable>
               ))}
             </Row>
           </Card>
         </FadeIn>
-        <Spacer size={10} />
+        <Spacer size={12} />
         <Txt variant="micro" color={theme.textMuted} align="center">
           {t('common.demoBanner')}
         </Txt>
@@ -196,7 +259,7 @@ export function WelcomeScreen({ navigation }: any) {
 
 export function OtpScreen({ navigation, route }: any) {
   const { t } = useI18n();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { verifyOtp, pendingOtp } = useApp();
   const phone: string = route?.params?.phone ?? '';
@@ -213,7 +276,6 @@ export function OtpScreen({ navigation, route }: any) {
     return () => clearInterval(timer);
   }, []);
 
-  // لصق الكود التجريبي تلقائيًا (الديمو) — يسهّل الفلو الذهبي
   useEffect(() => {
     const t1 = setTimeout(() => {
       if (pendingOtp) setCode(pendingOtp.code.split(''));
@@ -245,12 +307,10 @@ export function OtpScreen({ navigation, route }: any) {
     } else if (r.outcome === 'new') {
       navigation.navigate('CompleteProfile');
     }
-    // 'existing' → المخزن يحدّث الجلسة والملاحة تنتقل تلقائيًا
   };
 
   const setDigit = (i: number, v: string) => {
     const digits = v.replace(/[^\d]/g, '');
-    // دعم لصق كامل
     if (digits.length === 6) {
       setCode(digits.split(''));
       submit(digits);
@@ -268,16 +328,21 @@ export function OtpScreen({ navigation, route }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg, padding: spacing.s6, paddingTop: insets.top + 16 }}>
-      <Pressable onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => ({
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+        alignItems: 'center', justifyContent: 'center',
+        opacity: pressed ? 0.7 : 1,
+      })}>
         <Ionicons name="chevron-forward" size={22} color={theme.text} />
       </Pressable>
-      <Spacer size={26} />
+      <Spacer size={28} />
       <Txt variant="display">{t('auth.otpTitle')}</Txt>
       <Spacer size={8} />
       <Txt variant="body" color={theme.textSecondary}>{t('auth.otpBody')} {phone}</Txt>
-      <Spacer size={14} />
+      <Spacer size={16} />
       {demoCode ? (
-        <Card color={theme.brandSoft} style={{ alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14 }}>
+        <Card style={{ alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16, backgroundColor: theme.brandSoft, borderWidth: 0 }}>
           <Row center gap={8}>
             <Ionicons name="information-circle" size={16} color={theme.brand} />
             <Txt variant="caption" color={theme.brand}>{t('auth.otpDemoHint')}</Txt>
@@ -285,13 +350,15 @@ export function OtpScreen({ navigation, route }: any) {
           </Row>
         </Card>
       ) : null}
-      <Spacer size={26} />
+      <Spacer size={30} />
       <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, transform: [{ translateX: shakeAnim }] }}>
         {code.map((d, i) => (
           <View key={`${i}-${shake}`} style={{
-            width: 50, height: 60, borderRadius: 14, borderWidth: 2,
-            borderColor: d ? theme.brand : error ? theme.danger : theme.line,
-            backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center',
+            width: 52, height: 62, borderRadius: 16,
+            borderWidth: 2,
+            borderColor: d ? theme.brand : error ? theme.danger : isDark ? 'rgba(84,84,88,0.35)' : 'rgba(120,120,128,0.15)',
+            backgroundColor: isDark ? 'rgba(120,120,128,0.12)' : 'rgba(120,120,128,0.06)',
+            alignItems: 'center', justifyContent: 'center',
           }}>
             <OTPBox
               value={d}
@@ -303,10 +370,10 @@ export function OtpScreen({ navigation, route }: any) {
           </View>
         ))}
       </Animated.View>
-      {error ? <Txt variant="caption" color={theme.danger} style={{ marginTop: 10 }}>{error}</Txt> : null}
-      <Spacer size={26} />
+      {error ? <Txt variant="caption" color={theme.danger} style={{ marginTop: 12 }}>{error}</Txt> : null}
+      <Spacer size={30} />
       <Btn title={t('auth.verify')} size="lg" full loading={loading} onPress={() => submit()} />
-      <Spacer size={18} />
+      <Spacer size={20} />
       <Pressable disabled={seconds > 0} onPress={() => setSeconds(30)} style={{ alignSelf: 'center', padding: 8 }}>
         <Txt variant="caption" color={seconds > 0 ? theme.textMuted : theme.brand}>
           {seconds > 0 ? `${t('auth.resendIn')} ${seconds}` : t('auth.resend')}
@@ -328,7 +395,7 @@ function OTPBox({ value, onChange, onRef, themeText, autoFocus }: any) {
       autoFocus={autoFocus}
       style={{
         width: '100%', height: '100%', textAlign: 'center',
-        fontSize: 24, fontFamily: 'IBMPlexSansArabic_700Bold', color: themeText,
+        fontSize: 26, fontFamily: 'IBMPlexSansArabic_700Bold', color: themeText,
         ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as object : {}),
       }}
     />
@@ -339,7 +406,7 @@ function OTPBox({ value, onChange, onRef, themeText, autoFocus }: any) {
 
 export function CompleteProfileScreen({ navigation }: any) {
   const { t } = useI18n();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, completeProfile } = useApp();
   const [name, setName] = useState('');
@@ -357,35 +424,46 @@ export function CompleteProfileScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg, padding: spacing.s6, paddingTop: insets.top + 16 }}>
-      {/* شريط تقدم 3 خطوات */}
+      {/* Progress bar */}
       <Row gap={6}>
         {[1, 2, 3].map((i) => (
-          <View key={i} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: i <= 3 ? theme.brand : theme.line }} />
+          <View key={i} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: i <= 3 ? theme.brand : isDark ? 'rgba(84,84,88,0.3)' : 'rgba(120,120,128,0.12)' }} />
         ))}
       </Row>
-      <Spacer size={24} />
+      <Spacer size={26} />
       <Txt variant="display">{t('complete.title')}</Txt>
-      <Spacer size={20} />
-      <View style={{ alignSelf: 'center', marginBottom: 18 }}>
+      <Spacer size={22} />
+      <View style={{ alignSelf: 'center', marginBottom: 20 }}>
         <View style={{
-          width: 96, height: 96, borderRadius: 48, backgroundColor: theme.brandSoft,
-          alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.brand, borderStyle: 'dashed',
+          width: 100, height: 100, borderRadius: 50,
+          backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+          alignItems: 'center', justifyContent: 'center',
+          borderWidth: 2, borderColor: theme.brand, borderStyle: 'dashed',
         }}>
-          <Ionicons name="camera" size={34} color={theme.brand} />
+          <Ionicons name="camera" size={36} color={theme.brand} />
         </View>
-        <Txt variant="micro" color={theme.textMuted} align="center" style={{ marginTop: 6 }}>{t('complete.avatarHint')}</Txt>
+        <Txt variant="micro" color={theme.textMuted} align="center" style={{ marginTop: 8 }}>{t('complete.avatarHint')}</Txt>
       </View>
       <Input label={t('complete.fullName')} value={name} onChange={setName} placeholder={t('complete.fullNamePlaceholder')} icon="person" />
-      <Spacer size={16} />
-      <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>{t('complete.chooseBranch')}</Txt>
+      <Spacer size={18} />
+      <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>{t('complete.chooseBranch')}</Txt>
       <View style={{ gap: 10 }}>
         {db.branches.map((b) => {
           const active = branchId === b.id;
           return (
             <Pressable key={b.id} onPress={() => setBranchId(b.id)}>
-              <Card color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line }}>
-                <Row center gap={10}>
-                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? theme.brand : theme.textMuted} />
+              <Card style={{
+                backgroundColor: active ? theme.brandSoft : undefined,
+                borderColor: active ? theme.brand : isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
+              }}>
+                <Row center gap={12}>
+                  <View style={{
+                    width: 40, height: 40, borderRadius: 12,
+                    backgroundColor: active ? theme.brandSoft : isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? theme.brand : theme.textMuted} />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{b.name}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>{b.governorate}</Txt>
@@ -396,8 +474,8 @@ export function CompleteProfileScreen({ navigation }: any) {
           );
         })}
       </View>
-      {error ? <Txt variant="caption" color={theme.danger} style={{ marginTop: 8 }}>{error}</Txt> : null}
-      <Spacer size={14} />
+      {error ? <Txt variant="caption" color={theme.danger} style={{ marginTop: 10 }}>{error}</Txt> : null}
+      <Spacer size={16} />
       <Row center gap={8}>
         <Ionicons name="medal" size={16} color={theme.certGold} />
         <Txt variant="caption" color={theme.textSecondary}>{t('complete.welcomeBadge')}</Txt>

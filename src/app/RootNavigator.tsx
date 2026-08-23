@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
@@ -40,7 +41,7 @@ export function useTabs() {
 const Stack = createNativeStackNavigator<any>();
 const screenOpts = { headerShown: false, animation: 'slide_from_right' as const };
 
-// ─── شريط تبويب زجاجي مخصص + FAB مركزي ───
+// ─── تعريف التبويب ───
 export interface TabDef {
   key: string;
   label: string;
@@ -48,23 +49,31 @@ export interface TabDef {
   iconActive?: keyof typeof Ionicons.glyphMap;
 }
 
-function GlassTabBar({ tabs, active, onSelect, fab, badges }: {
+// ─── شريط تبويب زجاجي Apple-style + FAB مركزي ───
+function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
   tabs: TabDef[];
   active: string;
   onSelect: (key: string) => void;
   fab?: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void; label?: string };
   badges?: Record<string, number>;
 }) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+
   return (
     <View style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
-      paddingBottom: Math.max(insets.bottom, 10) + 6,
-      paddingTop: 10, paddingHorizontal: 10,
-      backgroundColor: theme.glass,
-      borderTopWidth: 1, borderTopColor: theme.line,
+      paddingBottom: Math.max(insets.bottom, 10) + 4,
+      paddingTop: 8, paddingHorizontal: 8,
     }}>
+      {/* Glass backdrop */}
+      <View style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: isDark ? 'rgba(22,22,24,0.92)' : 'rgba(249,249,249,0.92)',
+        borderTopWidth: 0.5,
+        borderTopColor: isDark ? 'rgba(84,84,88,0.25)' : 'rgba(60,60,67,0.12)',
+      }} />
+
       <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
         {tabs.map((t, i) => {
           const isActive = t.key === active;
@@ -77,38 +86,61 @@ function GlassTabBar({ tabs, active, onSelect, fab, badges }: {
                   <Pressable
                     onPress={fab.onPress}
                     style={({ pressed }) => ({
-                      width: 58, height: 58, borderRadius: 29,
-                      backgroundColor: theme.brand,
-                      alignItems: 'center', justifyContent: 'center',
-                      marginTop: -34,
-                      shadowColor: theme.brand, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
-                      elevation: 10,
-                      transform: [{ scale: pressed ? 0.93 : 1 }],
-                      borderWidth: 3, borderColor: theme.bg,
+                      marginTop: -30,
+                      opacity: pressed ? 0.85 : 1,
+                      transform: [{ scale: pressed ? 0.92 : 1 }],
                     })}
                   >
-                    <Ionicons name={fab.icon} size={26} color="#fff" />
+                    <LinearGradient
+                      colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+                      style={{
+                        width: 58, height: 58, borderRadius: 29,
+                        alignItems: 'center', justifyContent: 'center',
+                        shadowColor: theme.brand,
+                        shadowOpacity: 0.4,
+                        shadowRadius: 16,
+                        shadowOffset: { width: 0, height: 8 },
+                        elevation: 12,
+                      }}
+                    >
+                      <Ionicons name={fab.icon} size={26} color="#fff" />
+                    </LinearGradient>
                   </Pressable>
-                  {fab.label ? <Txt variant="micro" color={theme.textMuted} style={{ marginTop: 3 }}>{fab.label}</Txt> : null}
+                  {fab.label ? <Txt variant="micro" color={isActive ? theme.brand : theme.textMuted} style={{ marginTop: 2 }}>{fab.label}</Txt> : null}
                 </View>
               ) : null}
               <Pressable
                 onPress={() => onSelect(t.key)}
-                style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, gap: 3 }}
+                style={({ pressed }) => ({
+                  flex: 1, alignItems: 'center', justifyContent: 'center',
+                  paddingVertical: 6, gap: 2,
+                  opacity: pressed ? 0.6 : 1,
+                })}
               >
-                <View>
+                <View style={{ position: 'relative' }}>
                   <Ionicons
                     name={isActive ? (t.iconActive ?? t.icon) : t.icon}
                     size={23}
                     color={isActive ? theme.brand : theme.textMuted}
                   />
                   {badge && badge > 0 ? (
-                    <View style={{ position: 'absolute', top: -4, end: -10, backgroundColor: theme.danger, borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
+                    <View style={{
+                      position: 'absolute', top: -5, end: -10,
+                      backgroundColor: theme.danger, borderRadius: 8,
+                      minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center',
+                      paddingHorizontal: 3,
+                    }}>
                       <Txt variant="micro" color="#fff" style={{ fontSize: 9 }}>{badge > 9 ? '9+' : badge}</Txt>
                     </View>
                   ) : null}
                 </View>
-                <Txt variant="micro" color={isActive ? theme.brand : theme.textMuted}>{t.label}</Txt>
+                <Txt
+                  variant="micro"
+                  color={isActive ? theme.brand : theme.textMuted}
+                  style={{ fontSize: 10 }}
+                >
+                  {t.label}
+                </Txt>
               </Pressable>
             </React.Fragment>
           );
@@ -138,7 +170,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges }: {
             </View>
           ))}
         </View>
-        <GlassTabBar tabs={tabs} active={tab} onSelect={setTab} fab={fab} badges={badges} />
+        <AppleTabBar tabs={tabs} active={tab} onSelect={setTab} fab={fab} badges={badges} />
       </View>
     </TabsContext.Provider>
   );
@@ -296,7 +328,7 @@ export function RootNavigator() {
       background: theme.bg,
       card: theme.card,
       text: theme.text,
-      border: theme.line,
+      border: theme.separator,
       primary: theme.brand,
       notification: theme.brand,
     },
