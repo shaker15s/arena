@@ -71,7 +71,7 @@ export function NotificationsScreen({ navigation }: any) {
     );
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('notif.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 10, paddingBottom: 60 }}>
         {mine.length === 0 ? (

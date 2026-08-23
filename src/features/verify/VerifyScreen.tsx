@@ -35,20 +35,9 @@ export function VerifyScreen({ navigation, route }: any) {
   const found = result === 'found' ? lookupCertificate(db, serial) : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top }}>
+    <View style={{ flex: 1, paddingTop: insets.top }}>
       <Header title={t('verify.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 16 }}>
-        <FadeIn index={0}>
-          <Card glass>
-            <Row center gap={10}>
-              <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="shield-checkmark" size={24} color={theme.brand} />
-              </View>
-              <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('verify.body')}</Txt>
-            </Row>
-          </Card>
-        </FadeIn>
-
         <FadeIn index={1}>
           <Input
             value={serial}
@@ -66,10 +55,7 @@ export function VerifyScreen({ navigation, route }: any) {
             <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55' }}>
               <Row center gap={12}>
                 <Ionicons name="close-circle" size={40} color={theme.danger} />
-                <View style={{ flex: 1 }}>
-                  <Txt variant="h3" color={theme.danger}>{t('verify.notFound')}</Txt>
-                  <Txt variant="caption" color={theme.textSecondary}>{t('verify.notFoundBody')}</Txt>
-                </View>
+                <Txt variant="h3" color={theme.danger} style={{ flex: 1 }}>{t('verify.notFound')}</Txt>
               </Row>
             </Card>
           </FadeIn>

@@ -99,7 +99,7 @@ export function OrgWizardScreen({ navigation }: any) {
   const stepIcons: Array<keyof typeof Ionicons.glyphMap> = ['business', 'git-network', 'book', 'people', 'game-controller', 'rocket'];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <View style={{ paddingTop: insets.top + spacing.s3, paddingHorizontal: spacing.s5 }}>
         <Row between center>
           <Txt variant="h2">{t('wizard.title')} 🚀</Txt>
@@ -240,12 +240,6 @@ export function OrgWizardScreen({ navigation }: any) {
         {step === 5 ? (
           <FadeIn index={1}>
             <View style={{ gap: 10 }}>
-              <Card glass>
-                <Row center gap={8}>
-                  <Ionicons name="bulb" size={17} color={theme.certGold} />
-                  <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('wizard.s5Body')}</Txt>
-                </Row>
-              </Card>
               {RULE_DEFS.slice(0, 8).map((def) => {
                 const rule = db.rules.find((r) => r.key === def.key);
                 const value = rule?.value ?? def.def;
@@ -270,7 +264,6 @@ export function OrgWizardScreen({ navigation }: any) {
                 <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 16 }}>
                   <QRCode value={`masar://join?code=MSR-WZ`} size={140} />
                 </View>
-                <Txt variant="caption" color={theme.textSecondary} align="center">{t('wizard.doneBody')}</Txt>
                 <Tag label={courseTitle} color={theme.brand} bg={theme.brandSoft} icon="book" />
                 {instructorId ? <Tag label={profileOf(db, instructorId)?.fullName ?? ''} color={theme.success} bg={theme.successSoft} icon="person" /> : null}
               </Card>
@@ -298,7 +291,6 @@ export function OrgWizardScreen({ navigation }: any) {
         visible={doneOpen}
         onClose={() => { setDoneOpen(false); navigation.goBack(); }}
         title={t('wizard.doneTitle')}
-        subtitle={t('wizard.doneBody')}
         emoji="🚀"
       />
     </View>

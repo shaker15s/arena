@@ -3,15 +3,17 @@ import { Animated, Pressable, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
 import { Txt } from '../design/components';
+import { AppBackground } from '../design/glass';
 import { radii, spacing } from '../design/tokens';
 
-import { OnboardingScreen, WelcomeScreen, OtpScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
+import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
 import { VerifyScreen } from '../features/verify/VerifyScreen';
 import { TodayScreen } from '../features/today/TodayScreen';
 import { ExploreScreen, CourseDetailsScreen } from '../features/explore/ExploreScreens';
@@ -66,12 +68,17 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
       paddingBottom: Math.max(insets.bottom, 10) + 4,
       paddingTop: 8, paddingHorizontal: 8,
     }}>
-      {/* Glass backdrop */}
-      <View style={{
+      {/* Glass backdrop — Apple Liquid Glass */}
+      <BlurView
+        intensity={isDark ? 40 : 60}
+        tint={isDark ? 'dark' : 'light'}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <View pointerEvents="none" style={{
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: isDark ? 'rgba(22,22,24,0.92)' : 'rgba(249,249,249,0.92)',
+        backgroundColor: isDark ? 'rgba(22,22,24,0.55)' : 'rgba(255,255,255,0.5)',
         borderTopWidth: 0.5,
-        borderTopColor: isDark ? 'rgba(84,84,88,0.25)' : 'rgba(60,60,67,0.12)',
+        borderTopColor: theme.glassBorder,
       }} />
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
@@ -162,7 +169,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges }: {
   const ctx = useMemo(() => ({ tab, setTab }), [tab]);
   return (
     <TabsContext.Provider value={ctx}>
-      <View style={{ flex: 1 }}>
+      <AppBackground>
         <View style={{ flex: 1, paddingBottom: 80 + Math.max(insets.bottom, 10) * 0 }}>
           {Object.entries(renders).map(([key, render]) => (
             <View key={key} style={{ flex: 1, display: key === tab ? 'flex' : 'none' }}>
@@ -171,7 +178,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges }: {
           ))}
         </View>
         <AppleTabBar tabs={tabs} active={tab} onSelect={setTab} fab={fab} badges={badges} />
-      </View>
+      </AppBackground>
     </TabsContext.Provider>
   );
 }
@@ -308,17 +315,24 @@ function AuthStack() {
   return (
     <Stack.Navigator screenOptions={screenOpts} initialRouteName="Onboarding">
       <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ animation: 'fade' }} />
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Otp" component={OtpScreen} />
-      <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+      <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
+    </Stack.Navigator>
+  );
+}
+
+/** بعد الدخول بجوجل مباشرة: إكمال البيانات (موبايل/اسم/صورة/فرع) */
+function CompleteProfileStack() {
+  return (
+    <Stack.Navigator screenOptions={screenOpts}>
+      <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
     </Stack.Navigator>
   );
 }
 
 // ─── الجذر ───
 export function RootNavigator() {
-  const { user } = useApp();
+  const { user, needsProfile } = useApp();
   const { theme, isDark } = useTheme();
 
   const navTheme = useMemo(() => ({
@@ -336,7 +350,9 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer theme={navTheme}>
-      {!user ? (
+      {needsProfile ? (
+        <CompleteProfileStack />
+      ) : !user ? (
         <AuthStack />
       ) : user.role === 'student' ? (
         <StudentStack />

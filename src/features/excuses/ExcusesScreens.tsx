@@ -70,7 +70,7 @@ export function ExcusesScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('excuses.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Segmented
@@ -208,7 +208,7 @@ export function ExcusesInboxScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 120 }}>
         <Header title={t('inbox.title')} />
         <Segmented

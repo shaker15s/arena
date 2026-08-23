@@ -371,6 +371,20 @@ export function evaluateStreakWeek(db: Db, userId: string, weekStart: number): S
     return 'kept';
   }
 
+  // الهدف الأسبوعي: بمجرد تحقيق الحد الأدنى من الحضور بلا غياب يُحسم الأسبوع «محفوظ»
+  // فورًا (حالة لاصقة لا تتدهور) — حتى لو بقيت جلسات مجدولة في نفس الأسبوع.
+  const minPerWeek = Math.max(1, ruleValue(db, 'streak.min_sessions_week') || 1);
+  if (closed.length > 0 && absents.length === 0 && honored >= minPerWeek) {
+    g.currentStreakWeeks += 1;
+    g.longestStreakWeeks = Math.max(g.longestStreakWeeks, g.currentStreakWeeks);
+    if (g.currentStreakWeeks % 4 === 0 && g.freezesHeld < maxFreeze) {
+      g.freezesHeld += 1;
+      notify(db, userId, 'streak', 'كسبت مُجمّد ستريك جديد 🛡️', '4 أسابيع التزام متتالية — أحسنت!');
+    }
+    upsertStreakRow(db, { userId, weekStart, status: 'kept', sessionsTotal: closed.length, sessionsHonored: honored, freezeUsed: false });
+    return 'kept';
+  }
+
   if (unsettled || closed.length === 0) {
     upsertStreakRow(db, { userId, weekStart, status: 'tracking', sessionsTotal: weekSessions.length || closed.length, sessionsHonored: honored, freezeUsed: false });
     return 'tracking';

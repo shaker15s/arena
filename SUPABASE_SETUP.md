@@ -1,166 +1,81 @@
-# 🚀 دليل إعداد Supabase - Masar 3.0
+# إعداد Supabase لمسار 3.1
 
-## 📋 الخطوات المطلوبة
+## 1) إنشاء المشروع والمخطط
 
-### 1️⃣ إنشاء الجداول في Supabase Editor
+1. أنشئ مشروعًا على [supabase.com](https://supabase.com).
+2. من **SQL Editor** نفّذ الملفات بالترتيب:
+   1. `supabase/001_complete_schema.sql` (الجداول + الدوال الأساسية)
+   2. `supabase/migrations/0004_real_auth_and_policies.sql` (**إلزامي** — الدخول بجوجل + سياسات RLS الصحيحة + bucket الصور + Realtime)
+   3. `supabase/seed/seed.sql` (اختياري: الشارات وقواعد اللعبة الافتراضية)
 
-1. افتح مشروعك على Supabase: https://supabase.com/dashboard/
-2. اذهب إلى **SQL Editor** من القائمة الجانبية
-3. اضغط **New Query**
-4. انسخ كل المحتوى من ملف `supabase/001_complete_schema.sql`
-5. الصقه في SQL Editor
-6. اضغط **Run** (أو Ctrl+Enter)
+> بدون الملف الثاني ستفشل كل عمليات الكتابة، لأن سياسات RLS الأصلية كانت تقارن
+> `auth.uid()` بأعمدة تشير إلى `profiles.id`.
 
-⏱️ هذا سينشئ:
-- ✅ 25+ جدول (profiles, branches, courses, batches, sessions, attendance, ...)
-- ✅ كل الفهارس (indexes) للأداء
-- ✅ Row Level Security (RLS) policies
-- ✅ دوال RPC (check_in_session, get_user_gamification)
-- ✅ Triggers للتحديث التلقائي
-- ✅ بيانات افتراضية (8 فروع RTC, 6 كورسات, 12 شارة, 11 قاعدة لعبة)
+## 2) تفعيل الدخول بحساب Google
 
----
-
-### 2️⃣ تفعيل Google OAuth
-
-1. اذهب إلى **Authentication** → **Providers**
-2. اضغط على **Google**
-3. فعّل **Enable Google provider**
-4. ستحتاج:
-   - **Client ID** و **Client Secret** من Google Cloud Console
-   
-#### الحصول على Google OAuth Credentials:
-
-1. افتح https://console.cloud.google.com/
-2. أنشئ مشروع جديد أو استخدم الموجود
-3. اذهب إلى **APIs & Services** → **Credentials**
-4. اضغط **Create Credentials** → **OAuth Client ID**
-5. اختر **Web application**
-6. في **Authorized redirect URIs** أضف:
+1. **Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web)**.
+2. في **Authorized redirect URIs** أضف:
    ```
-   https://udqgaudtclkbaygftndx.supabase.co/auth/v1/callback
+   https://<PROJECT-REF>.supabase.co/auth/v1/callback
    ```
-7. اضغط **Create**
-8. انسخ **Client ID** و **Client Secret**
-9. الصقهم في Supabase
+3. انسخ `Client ID` و `Client Secret` إلى:
+   **Supabase → Authentication → Providers → Google** وفعّله.
+4. **Authentication → URL Configuration**:
+   - `Site URL`: رابط نسخة الويب (مثلاً `https://masar.example.com`).
+   - `Redirect URLs`: أضف كل ما يلي
+     ```
+     http://localhost:8081
+     https://masar.example.com
+     masar://auth/callback
+     exp://*
+     ```
+   (`masar` هو الـ scheme المعرَّف في `app.json`.)
 
----
+للبناء الأصلي (iOS/Android) أنشئ أيضًا OAuth clients خاصة بالمنصتين في Google Cloud
+باستخدام bundle identifier / package name وبصمة SHA-1.
 
-### 3️⃣ إعداد Storage (للمرفقات والأفاتار)
+## 3) متغيرات البيئة
 
-1. اذهب إلى **Storage**
-2. اضغط **New Bucket**
-3. اسم الـ bucket: `avatars`
-4. فعّل **Public bucket**
-5. اضغط **Create bucket**
+انسخ `.env.example` إلى `.env` واملأه:
 
-كرر الخطوات لـ:
-- `excuses` (لمرفقات الأعذار) - **Private**
-- `certificates` (للشهادات) - **Public**
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://<PROJECT-REF>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
 
----
+بدون هذه المفاتيح يعرض التطبيق شاشة «الإعداد مطلوب» ولا يعرض أي بيانات وهمية.
 
-### 4️⃣ التحقق من الإعدادات
+## 4) صور المستخدمين
 
-بعد تشغيل الـ SQL، تحقق من:
+المايجريشن ينشئ bucket باسم `avatars` (قراءة عامة، كتابة لصاحب المجلد فقط)،
+والمسار المستخدم: `avatars/<auth-user-id>/avatar_<timestamp>.jpg`.
 
-✅ **Tables** - يجب أن ترى 25+ جدول  
-✅ **Authentication** → **Users** - يجب أن تكون Google مفعّلة  
-✅ **RLS Policies** - كل جدول عليه سياسة  
-✅ **Functions** - يجب أن ترى `check_in_session` و `get_user_gamification`
+## 5) أول مستخدم = أدمن
 
----
+دالة `handle_new_user` تجعل **أول** حساب يسجّل الدخول أدمن (لأنه لا يوجد أدمن بعد)،
+وباقي الحسابات تُنشأ كطلاب. لترقية مستخدم لاحقًا:
 
-### 5️⃣ اختبار التطبيق
+```sql
+UPDATE public.profiles SET role = 'supervisor' WHERE email = 'someone@example.com';
+```
 
-1. شغّل التطبيق: `npm run dev`
-2. اضغط **تسجيل الدخول بـ Google**
-3. سجّل دخول بحساب `shakerabdallah66@gmail.com`
-4. يجب أن يظهر دورك **admin** تلقائياً
-5. أضف رقم موبايل من شاشة الملف الشخصي
+## 6) الوظائف المجدولة (اختياري لكن موصى به)
 
----
+فعّل امتداد `pg_cron` ثم طبّق `supabase/migrations/0003_cron_jobs.sql`
+(إقفال الجلسات المنسية كل 30 دقيقة + تصفية الستريك والدوري فجر كل أحد).
 
-## 🔐 الأدوار والصلاحيات
+## 7) تشغيل التطبيق
 
-### Admin (shakerabdallah66@gmail.com)
-- ✅ تحكم كامل في كل الفروع والكورسات
-- ✅ إدارة المدربين والمشرفين
-- ✅ تعديل قواعد اللعبة
-- ✅ إصدار الشهادات
-- ✅ رؤية كل التقارير والإحصائيات
+```bash
+npm install
+npm run web        # معاينة ويب
+npx expo start     # موبايل عبر Expo Go / development build
+```
 
-### Supervisor/مشرف
-- ✅ إدارة فرع واحد
-- ✅ تعيين المدربين
-- ✅ مراجعة الأعذار
-- ✅ إصدار شهادات الفرع
+## 8) فحوصات الجودة
 
-### Volunteer/مدرب
-- ✅ فتح الجلسات وتسجيل الحضور
-- ✅ تقديم الأعذار للطلاب
-- ✅ تقييم الطلاب (kudos)
-- ✅ كتابة تقارير الجلسات
-
-### Student/طالب
-- ✅ التسجيل في الكورسات
-- ✅ تسجيل الحضور بـ QR
-- ✅ رؤية النقاط والاستريك
-- ✅ تقديم الأعذار
-- ✅ تقييم الكورسات والمدربين
-
----
-
-## 📊 الجداول المهمة للإدمن
-
-### branches
-الفروع الحقيقية لـ RTC (تم إنشاء 8 فروع افتراضياً)
-
-### courses
-الكورسات المتاحة (تم إنشاء 6 كورسات افتراضياً)
-
-### gamification_rules
-قواعد اللعبة - يمكن تعديلها من لوحة التحكم:
-- `points.present`: نقاط الحضور في الموعد (افتراضي: 10)
-- `points.late`: نقاط الحضور متأخراً (افتراضي: 7)
-- `certificate.min_attendance_pct`: نسبة الحضور للشهادة (افتراضي: 75%)
-
-### audit_log
-سجل العمليات - لكل عملية حساسة (من غيّر قاعدة؟ من منح نقاط؟)
-
----
-
-## 🎯 الخطوات التالية للتشغيل
-
-1. ✅ **تم** إنشاء قاعدة البيانات
-2. ✅ **تم** تفعيل Google OAuth
-3. ⏳ **اختياري** رفع صور الكورسات في Storage
-4. ⏳ **اختياري** إضافة المزيد من الكورسات من لوحة التحكم
-5. ⏳ **اختياري** تعيين مشرفين لكل فرع
-6. ✅ **جاهز** للاختبار والإطلاق!
-
----
-
-## 🆘 حل المشاكل
-
-### المشكلة: "relation does not exist"
-**الحل**: تأكد من تشغيل ملف SQL بالكامل في Supabase Editor
-
-### المشكلة: "new row violates row-level security policy"
-**الحل**: تأكد من أن المستخدم مسجل دخول وحصل على profile تلقائياً
-
-### المشكلة: Google login لا يعمل
-**الحل**: تأكد من إضافة redirect URL الصحيح في Google Cloud Console
-
----
-
-## 📞 الدعم
-
-لو احتجت مساعدة:
-1. راجع logs في Supabase Dashboard → **Logs**
-2. تحقق من RLS policies
-3. تأكد من أن environment variables صحيحة في `.env`
-
----
-
-**التطبيق جاهز للإطلاق!** 🚀
+```bash
+npm run typecheck    # صفر أخطاء
+npm run parity       # تطابق مفاتيح العربية/الإنجليزية
+npm run test:engine  # 49 اختبار سلوكي لقلب النظام
+```

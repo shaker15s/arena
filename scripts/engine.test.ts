@@ -6,7 +6,7 @@ import {
   rpcIssueCertificates, rpcManualMark, rpcReviewExcuse, rpcStartSession, rpcSubmitExcuse,
   rpcUpdateRule, simulateWeekClose,
 } from '../src/data/engine';
-import { buildSeedDb, IDS } from '../src/data/seed';
+import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
 import { hashStr, monthKeyOf, weekStartOf } from '../src/shared/format';
 

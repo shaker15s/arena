@@ -594,8 +594,8 @@ export async function fetchAllUsers(): Promise<any[]> {
   return error ? [] : (data || []);
 }
 
-export async function fetchAllFeedback(): Promise<any[]> {
-  if (!SUPABASE_ENABLED) return [];
+export async function fetchAllFeedback(): Promise<{ course: any[]; instructor: any[]; organization: any[] }> {
+  if (!SUPABASE_ENABLED) return { course: [], instructor: [], organization: [] };
   const sb = getSupabase();
 
   // Course feedback

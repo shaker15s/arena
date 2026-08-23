@@ -47,7 +47,7 @@ export function WalletScreen({ navigation }: any) {
   const levelMeta = levels[level - 1];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('wallet.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         {/* البطاقة الكبرى — Gradient */}
@@ -175,7 +175,7 @@ export function LeagueScreen({ navigation }: any) {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('league.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         {/* درع الفئة */}
@@ -207,7 +207,6 @@ export function LeagueScreen({ navigation }: any) {
 
         {board === 'rising' ? (
           <>
-            <Txt variant="caption" color={theme.textMuted}>{t('league.risingHint')}</Txt>
             {rising.length === 0 ? <Empty emoji="🌱" title={t('league.firstWeek')} /> : rising.map(renderRow)}
           </>
         ) : league.rows.length === 0 ? (
@@ -250,7 +249,7 @@ export function AchievementsScreen({ navigation }: any) {
   const earnedCount = db.userBadges.filter((u) => u.userId === user.id).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('achievements.title')} subtitle={`${earnedCount}/${db.badges.length}`} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         <Row gap={8} wrap>
@@ -331,8 +330,18 @@ export function RulesGuideScreen({ navigation }: any) {
     { icon: 'heart', label: t('rules.kudosQuota'), value: `${rv('kudos.monthly_quota_per_instructor', 200)}`, color: theme.danger },
   ];
 
+  const streakRows: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color: string }> = [
+    { icon: 'flame', label: t('rules.streakSection'), value: `${rv('streak.min_sessions_week', 1)}`, color: theme.warn },
+    { icon: 'snow', label: t('rules.freezeMax'), value: `${rv('streak.freeze_max_hold', 2)}`, color: theme.info },
+  ];
+
+  const leagueRows: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color: string }> = [
+    { icon: 'trending-up', label: t('rules.leagueMove'), value: `${rv('league.promotion_pct', 15)}%`, color: theme.success },
+    { icon: 'trending-down', label: t('rules.leagueSection'), value: `${rv('league.relegation_pct', 15)}%`, color: theme.danger },
+  ];
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('rules.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <FadeIn index={0}>
@@ -357,22 +366,20 @@ export function RulesGuideScreen({ navigation }: any) {
         <FadeIn index={2}>
           <Txt variant="h3">{t('rules.streakSection')}</Txt>
           <Spacer size={8} />
-          <Card>
-            <Row center gap={6} style={{ marginBottom: 6 }}>
-              <Flame size={18} />
-              <Txt variant="bodyMed">🔥</Txt>
-            </Row>
-            <Txt variant="body" color={theme.textSecondary}>{t('rules.streakBody')}</Txt>
-            <Spacer size={8} />
-            <Txt variant="caption" color={theme.info}>{t('rules.freezeNote')}</Txt>
+          <Card noPad>
+            {streakRows.map((r, i) => (
+              <RuleLine key={r.label} {...r} last={i === streakRows.length - 1} />
+            ))}
           </Card>
         </FadeIn>
 
         <FadeIn index={3}>
           <Txt variant="h3">{t('rules.leagueSection')}</Txt>
           <Spacer size={8} />
-          <Card>
-            <Txt variant="body" color={theme.textSecondary}>{t('rules.leagueBody')}</Txt>
+          <Card noPad>
+            {leagueRows.map((r, i) => (
+              <RuleLine key={r.label} {...r} last={i === leagueRows.length - 1} />
+            ))}
           </Card>
         </FadeIn>
 

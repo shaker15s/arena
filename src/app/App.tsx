@@ -11,11 +11,15 @@ import {
   IBMPlexSansArabic_700Bold,
 } from '@expo-google-fonts/ibm-plex-sans-arabic';
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { ThemeProvider, useTheme } from '../design/theme';
 import { I18nProvider } from '../i18n';
 import { AppProvider, useApp } from '../data/store';
 import { RootNavigator } from './RootNavigator';
 import { Txt } from '../design/components';
+import { AppBackground } from '../design/glass';
+import { SUPABASE_ENABLED, exchangeUrlForSession } from '../data/supabase';
+import { useI18n } from '../i18n';
 
 /** S01 — Apple-style Splash: اللوجو يتجمع مع توهج ثم fade */
 function BootSplash() {
@@ -127,6 +131,21 @@ function ToastHost() {
   );
 }
 
+/** شاشة تظهر فقط لو مفاتيح Supabase ناقصة — بدل تشغيل بيانات وهمية */
+function SetupRequired() {
+  const { theme } = useTheme();
+  const { t } = useI18n();
+  return (
+    <AppBackground>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 }}>
+        <Ionicons name="construct" size={54} color={theme.warn} />
+        <Txt variant="h2" align="center">{t('common.setupRequired')}</Txt>
+        <Txt variant="body" color={theme.textSecondary} align="center">{t('auth.notConfigured')}</Txt>
+      </View>
+    </AppBackground>
+  );
+}
+
 function Shell() {
   const { ready } = useApp();
   const { theme, isDark } = useTheme();
@@ -137,7 +156,19 @@ function Shell() {
     IBMPlexSansArabic_700Bold,
   });
 
+  // التقاط رابط رجوع Google على الموبايل (deep link)
+  useEffect(() => {
+    if (Platform.OS === 'web' || !SUPABASE_ENABLED) return;
+    const handle = (url: string | null) => {
+      if (url && (url.includes('code=') || url.includes('access_token='))) void exchangeUrlForSession(url);
+    };
+    void Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener('url', ({ url }) => handle(url));
+    return () => sub.remove();
+  }, []);
+
   if (!fontsLoaded || !ready) return <BootSplash />;
+  if (!SUPABASE_ENABLED) return <SetupRequired />;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>

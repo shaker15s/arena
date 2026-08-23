@@ -7,9 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
-  attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
+  attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
   rpcAwardKudos, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
+import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -50,7 +51,7 @@ export function VolunteerTodayScreen({ navigation }: any) {
   })();
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('vtoday.title')} subtitle={`${t('dash.hello')} ${user.fullName.split(' ')[0]} 👋`} />
 
@@ -166,7 +167,7 @@ export function MyBatchesScreen({ navigation }: any) {
   const batches = instructorBatches(db, user.id);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
         <Header title={t('batches.title')} />
         {batches.map((b, i) => {
@@ -226,10 +227,38 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   const sessions = sessionsOfBatch(db, batch.id);
   const students = batchStudents(db, batch.id);
 
+  /** تصدير كشف الحضور الكامل (طلاب × جلسات) كملف CSV حقيقي */
+  const exportCsv = async () => {
+    const statusLabel: Record<string, string> = {
+      present: t('history.present'),
+      late: t('history.late'),
+      excused: t('history.excused'),
+      absent: t('history.absent'),
+    };
+    const header = [
+      t('common.name'), t('common.phone'),
+      ...sessions.map((s) => `${s.seq}. ${s.title}`),
+      `${t('issue.attendancePct')} %`,
+    ];
+    const body = students.map((st) => [
+      st.fullName,
+      st.phone,
+      ...sessions.map((s) => {
+        if (s.status !== 'closed') return '';
+        const rec = attendanceOf(db, s.id, st.id);
+        return statusLabel[rec?.status ?? 'absent'] ?? '';
+      }),
+      String(attendancePct(db, st.id, batch.id).pct),
+    ]);
+    const filename = `masar-${course.title.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    const ok = await saveCsv(filename, toCsv([header, ...body]));
+    toast(ok ? t('sess.exported') : t('common.errorTitle'), ok ? 'success' : 'error');
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={`${course.title} — ${t('sess.title')}`} back={() => navigation.goBack()} right={
-        <Btn title={t('sess.export')} size="sm" variant="ghost" icon="download" onPress={() => toast(t('sess.exported'), 'info')} />
+        <Btn title={t('sess.export')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
       } />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
         {/* الطلاب */}
@@ -351,7 +380,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
     : { icon: 'ellipse-outline', color: theme.line };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('student.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 60 }}>
         <FadeIn index={0}>

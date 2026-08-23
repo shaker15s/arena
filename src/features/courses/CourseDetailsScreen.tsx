@@ -65,7 +65,7 @@ export function CourseDetailsScreen({ route, navigation }: any) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={{ flex: 1 }}>
         <Header title="جاري التحميل..." back={() => navigation.goBack()} />
       </View>
     );
@@ -73,7 +73,7 @@ export function CourseDetailsScreen({ route, navigation }: any) {
 
   if (!course) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={{ flex: 1 }}>
         <Header title="خطأ" back={() => navigation.goBack()} />
         <Txt variant="body" align="center">لم يتم العثور على الكورس</Txt>
       </View>
@@ -83,7 +83,7 @@ export function CourseDetailsScreen({ route, navigation }: any) {
   const dayNames = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header Gradient */}
         <LinearGradient

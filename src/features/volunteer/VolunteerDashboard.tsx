@@ -191,7 +191,7 @@ export function VolunteerDashboard({ navigation }: any) {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title="لوحة المتطوع" />
 
       {/* Tab Selector */}
@@ -427,7 +427,7 @@ export function VolunteerDashboard({ navigation }: any) {
                 value={newCourseSessions}
                 onChange={setNewCourseSessions}
                 keyboardType="numeric"
-                icon="numbers"
+                icon="calculator"
               />
             </Card>
 

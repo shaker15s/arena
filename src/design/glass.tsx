@@ -6,9 +6,49 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated, Platform, Pressable, View, ViewStyle, StyleSheet,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
 import { radii, spacing } from './tokens';
+
+/**
+ * سطح زجاجي حقيقي (Apple Liquid Glass): ضبابية خلفية + طبقة لون شفافة
+ * + حد فاتح علوي. يُستخدم كأساس لكل البطاقات والأشرطة في التطبيق.
+ */
+export function GlassSurface({
+  children, style, radius = radii.card, tintColor, intensity = 40, borderless,
+}: {
+  children?: React.ReactNode;
+  style?: ViewStyle | ViewStyle[];
+  radius?: number;
+  tintColor?: string;
+  intensity?: number;
+  borderless?: boolean;
+}) {
+  const { theme, isDark } = useTheme();
+  return (
+    <View style={[{ borderRadius: radius, overflow: 'hidden' }, style]}>
+      <BlurView
+        intensity={intensity}
+        tint={isDark ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: tintColor ?? theme.glass,
+            borderRadius: radius,
+            borderWidth: borderless ? 0 : 1,
+            borderColor: theme.glassBorder,
+          },
+        ]}
+      />
+      {children}
+    </View>
+  );
+}
 
 // ═══════════════ Glass Background Gradient ═══════════════
 export function AppBackground({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {

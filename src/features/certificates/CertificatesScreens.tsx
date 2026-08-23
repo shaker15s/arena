@@ -23,11 +23,11 @@ export function CertificatesScreen({ navigation }: any) {
   const mine = db.certificates.filter((c) => c.userId === user.id).sort((a, b) => b.issuedAt - a.issuedAt);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('certs.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         {mine.length === 0 ? (
-          <Empty emoji="🎓" title={t('certs.emptyTitle')} body={t('certs.emptyBody')} />
+          <Empty emoji="🎓" title={t('certs.emptyTitle')} />
         ) : (
           mine.map((cert, i) => {
             const batch = batchOf(db, cert.batchId);
@@ -102,7 +102,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('certs.viewer')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 40 }}>
         <FadeIn index={0}>
@@ -156,15 +156,6 @@ export function CertificateViewerScreen({ route, navigation }: any) {
               </View>
             </Row>
           </View>
-        </FadeIn>
-
-        <FadeIn index={1}>
-          <Card glass>
-            <Row center gap={8}>
-              <Ionicons name="information-circle" size={16} color={theme.brand} />
-              <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('certs.verifyHint')}</Txt>
-            </Row>
-          </Card>
         </FadeIn>
 
         <FadeIn index={2}>

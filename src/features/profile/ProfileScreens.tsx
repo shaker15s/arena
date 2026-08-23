@@ -2,29 +2,29 @@
  * features/profile — S27 حسابي + الإعدادات (لغة/ثيم/قواعد/دعم/خروج).
  */
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
+import * as ImagePicker from 'expo-image-picker';
 import { balanceOf, levelOf } from '../../data/engine';
-import { useTheme } from '../../design/theme';
-import { ThemeName } from '../../design/tokens';
+import { ThemePref, useTheme } from '../../design/theme';
 import { Lang, useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
   Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
-import { formatDate } from '../../shared/format';
+import { formatDate, formatTime } from '../../shared/format';
 import { gamifOf } from '../../data/engine';
 
 export function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
-  const { theme, themeName, setTheme } = useTheme();
+  const { theme, preference, setTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { db, user, logout, resetDemo, online, setOnline, toast } = useApp();
+  const { db, user, logout, online, syncing, lastSyncAt, refresh, toast } = useApp();
   const [langSheet, setLangSheet] = useState(false);
   const [themeSheet, setThemeSheet] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -43,15 +43,22 @@ export function ProfileScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
+        refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
+      >
         <Header title={t('profile.title')} />
 
         {/* بطاقة الهوية */}
         <FadeIn index={0}>
           <Card style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
             <View style={{ borderWidth: 3, borderColor: levelMeta.color, borderRadius: 44, padding: 3 }}>
-              <Avatar name={user.fullName} color={user.avatarColor} size={76} />
+              {user.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: 76, height: 76, borderRadius: 38 }} />
+              ) : (
+                <Avatar name={user.fullName} color={user.avatarColor} size={76} />
+              )}
             </View>
             <Txt variant="h2" align="center">{user.fullName}</Txt>
             <Row center gap={8}>
@@ -80,47 +87,47 @@ export function ProfileScreen() {
         <FadeIn index={4}>
           <ListRow
             icon="color-palette" title={t('common.theme')}
-            right={<Tag label={t(themeName === 'light' ? 'common.themeLight' : themeName === 'dark' ? 'common.themeDark' : 'common.themeOled')} color={theme.brand} bg={theme.brandSoft} />}
+            right={<Tag label={t(preference === 'system' ? 'common.themeSystem' : preference === 'light' ? 'common.themeLight' : preference === 'dark' ? 'common.themeDark' : 'common.themeOled')} color={theme.brand} bg={theme.brandSoft} />}
             onPress={() => setThemeSheet(true)}
           />
         </FadeIn>
         <FadeIn index={5}>
-          <ListRow icon="finger-print" title={t('profile.biometric')} subtitle={t('profile.biometricSoon')} right={<CustomSwitch value={false} onChange={() => toast(t('common.comingInV2'), 'info')} />} />
+          <ListRow icon="finger-print" title={t('profile.biometric')} right={<CustomSwitch value={false} onChange={() => toast(t('common.comingInV2'), 'info')} />} />
         </FadeIn>
         <FadeIn index={6}>
-          <ListRow icon="notifications" title={t('profile.notifications')} subtitle={t('profile.notifBody')} right={<CustomSwitch value={true} onChange={() => {}} />} />
+          <ListRow icon="notifications" title={t('profile.notifications')} right={<CustomSwitch value={true} onChange={() => {}} />} />
         </FadeIn>
         <FadeIn index={7}>
           <ListRow icon="game-controller" title={t('profile.rules')} subtitle={t('rules.title')} onPress={() => navigation.navigate('RulesGuide')} />
         </FadeIn>
         <FadeIn index={8}>
-          <ListRow icon="help-buoy" title={t('profile.support')} subtitle={t('profile.supportBody')} onPress={() => navigation.navigate('Support')} />
+          <ListRow icon="help-buoy" title={t('profile.support')} onPress={() => navigation.navigate('Support')} />
         </FadeIn>
 
-        {/* قسم المطوّر (عرض) */}
+        {/* حالة المزامنة مع الخادم */}
         <FadeIn index={9}>
           <Card glass>
-            <Txt variant="caption" color={theme.textMuted} style={{ marginBottom: 8 }}>🛠️ {t('common.demoBanner')}</Txt>
             <Row between center>
-              <Txt variant="body">{t('common.offlineBanner').split('—')[0]}</Txt>
-              <CustomSwitch value={!online} onChange={(v) => setOnline(!v)} color={theme.warn} />
+              <Row center gap={10}>
+                <Ionicons
+                  name={!online ? 'cloud-offline' : syncing ? 'sync' : 'cloud-done'}
+                  size={18}
+                  color={!online ? theme.warn : syncing ? theme.brand : theme.success}
+                />
+                <Txt variant="body">
+                  {!online ? t('common.offlineBanner').split('—')[0] : syncing ? t('common.syncing') : `${t('common.synced')} ${lastSyncAt ? formatTime(lastSyncAt, lang) : '—'}`}
+                </Txt>
+              </Row>
+              <Btn title={t('common.refresh')} variant="ghost" icon="refresh" onPress={() => { void refresh(); }} />
             </Row>
-            <Spacer size={10} />
-            <Btn title={t('common.resetDemo')} variant="danger" icon="refresh" onPress={() => {
-              if (typeof window !== 'undefined') {
-                const ok = window.confirm(t('common.resetConfirm'));
-                if (!ok) return;
-              }
-              resetDemo();
-            }} />
           </Card>
         </FadeIn>
 
         <FadeIn index={10}>
-          <ListRow icon="log-out" title={t('common.logout')} danger onPress={logout} />
+          <ListRow icon="log-out" title={t('common.logout')} danger onPress={() => { void logout(); }} />
         </FadeIn>
 
-        <Txt variant="micro" color={theme.textMuted} align="center">{t('profile.about')} · v3.0.0</Txt>
+        <Txt variant="micro" color={theme.textMuted} align="center">{t('profile.about')} · v3.1.0</Txt>
       </ScrollView>
 
       {/* اللغة */}
@@ -141,12 +148,12 @@ export function ProfileScreen() {
       {/* الثيم */}
       <Sheet visible={themeSheet} onClose={() => setThemeSheet(false)} title={t('common.theme')}>
         <View style={{ gap: 10 }}>
-          {(['light', 'dark', 'oled'] as ThemeName[]).map((th) => (
+          {(['system', 'light', 'dark', 'oled'] as ThemePref[]).map((th) => (
             <ListRow
               key={th}
-              icon={th === 'light' ? 'sunny' : th === 'dark' ? 'moon' : 'contrast'}
-              title={t(th === 'light' ? 'common.themeLight' : th === 'dark' ? 'common.themeDark' : 'common.themeOled')}
-              right={themeName === th ? <Ionicons name="checkmark-circle" size={22} color={theme.success} /> : undefined}
+              icon={th === 'system' ? 'phone-portrait' : th === 'light' ? 'sunny' : th === 'dark' ? 'moon' : 'contrast'}
+              title={t(th === 'system' ? 'common.themeSystem' : th === 'light' ? 'common.themeLight' : th === 'dark' ? 'common.themeDark' : 'common.themeOled')}
+              right={preference === th ? <Ionicons name="checkmark-circle" size={22} color={theme.success} /> : undefined}
               onPress={() => { setTheme(th); setThemeSheet(false); }}
             />
           ))}
@@ -173,50 +180,98 @@ function MiniStat({ label, value, icon, color }: { label: string; value: string;
 
 function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useI18n();
-  const { db, user, mutate, toast } = useApp();
-  const { theme } = useTheme();
+  const { user, updateProfile, uploadAvatar, toast } = useApp();
+  const { theme, isDark } = useTheme();
   const [name, setName] = useState(user?.fullName ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [avatar, setAvatar] = useState<string | null>(user?.avatarUrl ?? null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    if (visible && user) {
+      setName(user.fullName);
+      setPhone(user.phone);
+      setAvatar(user.avatarUrl ?? null);
+      setError('');
+    }
+  }, [visible, user]);
+
   if (!user) return null;
-  const save = async () => {
-    if (name.trim().length < 3) return;
-    setSaving(true);
-    await mutate((d) => {
-      const p = d.profiles.find((x) => x.id === user.id);
-      if (p) p.fullName = name.trim();
-    });
-    setSaving(false);
-    onClose();
-    toast(t('common.done') + ' ✓', 'success');
+
+  const pick = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    if (res.canceled || !res.assets?.[0]?.uri) return;
+    setUploading(true);
+    const url = await uploadAvatar(res.assets[0].uri);
+    setUploading(false);
+    if (url) setAvatar(url);
   };
+
+  const save = async () => {
+    if (name.trim().split(/\s+/).length < 2) { setError(t('complete.nameError')); return; }
+    if (!/^01\d{9}$/.test(phone.trim())) { setError(t('complete.phoneError')); return; }
+    setSaving(true);
+    const r = await updateProfile({ fullName: name.trim(), phone: phone.trim(), avatarUrl: avatar });
+    setSaving(false);
+    if (!r.ok) { setError(r.error ?? t('common.errorTitle')); return; }
+    onClose();
+    toast(t('complete.saved'), 'success');
+  };
+
   return (
     <Sheet visible={visible} onClose={onClose} title={t('profile.edit')}>
-      <View style={{ gap: 12 }}>
+      <View style={{ gap: 14 }}>
+        <Pressable onPress={pick} style={{ alignSelf: 'center' }}>
+          <View style={{
+            width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
+            alignItems: 'center', justifyContent: 'center',
+            backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+            borderWidth: 2, borderColor: theme.brand,
+          }}>
+            {uploading ? <ActivityIndicator color={theme.brand} />
+              : avatar ? <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
+              : <Ionicons name="camera" size={30} color={theme.brand} />}
+          </View>
+        </Pressable>
+
+        <Card glass>
+          <Row center gap={10}>
+            <Ionicons name="mail" size={16} color={theme.brand} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
+              <Txt variant="bodyMed">{user.email ?? '—'}</Txt>
+            </View>
+            <Ionicons name="lock-closed" size={14} color={theme.textMuted} />
+          </Row>
+        </Card>
+
         <Input label={t('complete.fullName')} value={name} onChange={setName} icon="person" />
+        <Input
+          label={t('common.phone')}
+          value={phone}
+          onChange={(v) => { setPhone(v.replace(/[^\d]/g, '')); setError(''); }}
+          keyboardType="phone-pad"
+          icon="call"
+          maxLength={11}
+        />
+        {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
         <Btn title={t('common.save')} full loading={saving} onPress={save} icon="checkmark" />
       </View>
     </Sheet>
   );
 }
-
-// ───────────────────────────── الدعم ─────────────────────────────
-
 export function SupportScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db } = useApp();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('profile.support')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
-        <FadeIn index={0}>
-          <Card glass>
-            <Row center gap={8}>
-              <Ionicons name="help-buoy" size={20} color={theme.brand} />
-              <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('profile.supportBody')}</Txt>
-            </Row>
-          </Card>
-        </FadeIn>
         {[
           { q: 'كيف أسجل حضوري؟', a: 'افتح زر «امسح» أثناء الجلسة وامسح رمز QR من شاشة المدرب، أو أدخل كود الـ 6 أرقام. الرمز يتجدد كل 25 ثانية فالرمز المصوّر لا يعمل.' },
           { q: 'ماذا لو غبت؟', a: 'قدّم عذرًا من شاشة «أعذاري» خلال الجلسة التالية. العذر المقبول يحافظ على الستريك بدون نقاط. لو عندك مُجمّد ستُستهلك حمايته تلقائيًا.' },
