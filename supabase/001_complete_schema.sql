@@ -579,9 +579,9 @@ BEGIN
   
   -- Get points from rules
   v_points := COALESCE(
-    (value->>'value')::INTEGER 
-    FROM gamification_rules 
-    WHERE key = 'points.present'
+    (SELECT (value->>'value')::INTEGER 
+     FROM gamification_rules 
+     WHERE key = 'points.present')
   , 10);
   
   -- Insert attendance
