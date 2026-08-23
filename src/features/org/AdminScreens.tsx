@@ -6,7 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useApp, IDS } from '../../data/store';
+import { useApp } from '../../data/store';
 import {
   attendancePct, batchOf, batchStudents, checkInstructorConflict, courseOf,
   dashboardStats, generateSessionsForBatch, profileOf, seatCounts, sessionsOfBatch,
@@ -35,7 +35,7 @@ export function DashboardScreen({ navigation }: any) {
   const stats = dashboardStats(db, branchFilter === 'all' ? undefined : branchFilter);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('dash.title')} subtitle={`${t('dash.hello')} ${user.fullName} 👋`} />
 
@@ -83,7 +83,7 @@ export function DashboardScreen({ navigation }: any) {
         <FadeIn index={6}>
           <Txt variant="h3">{t('today.quickActions')}</Txt>
           <Spacer size={8} />
-          <ListRow icon="rocket" title={t('dash.openWizard')} subtitle="6 خطوات مرشدة حتى أول باتش منشور" onPress={() => navigation.navigate('Wizard')} />
+          <ListRow icon="rocket" title={t('dash.openWizard')} onPress={() => navigation.navigate('Wizard')} />
           <Spacer size={8} />
           <Row gap={8}>
             <View style={{ flex: 1 }}>
@@ -158,7 +158,7 @@ export function OrgManagerScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
         {db.branches.map((b, i) => {
@@ -250,7 +250,7 @@ export function CoursesScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         {db.courses.map((c, i) => {
@@ -308,7 +308,7 @@ export function BatchesAdminScreen({ navigation }: any) {
   const [creating, setCreating] = useState(false);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         {db.batches.map((b, i) => {
@@ -493,7 +493,7 @@ export function UsersScreen() {
   const selUser = selected ? profileOf(db, selected) : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
         <Header title={t('users.title')} />
         <Input value={query} onChange={setQuery} placeholder={t('users.searchPlaceholder')} icon="search" />

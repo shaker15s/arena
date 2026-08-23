@@ -7,6 +7,7 @@ import {
   Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, View, ViewStyle, TextStyle, ScrollView,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -78,16 +79,20 @@ export function Spacer({ size = 8 }: { size?: number }) {
 
 // ───────────────────────────── بطاقات زجاجية ─────────────────────────────
 
-export function Card({ children, style, glass, color, noPad, onPress }: {
+export function Card({ children, style, glass, color, noPad, onPress, solid }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
+  /** مُبقاة للتوافق — الزجاج صار الأساس */
   glass?: boolean;
   color?: string;
   noPad?: boolean;
   onPress?: () => void;
+  /** بطاقة معتمة بلا ضبابية (للحالات التي تحتاج تباينًا كاملًا) */
+  solid?: boolean;
 }) {
   const { theme, isDark } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
+  const useGlass = !solid && !color;
 
   const pressIn = () => {
     if (onPress) Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
@@ -96,25 +101,29 @@ export function Card({ children, style, glass, color, noPad, onPress }: {
     if (onPress) Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
   };
 
+  const shell: ViewStyle = {
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: theme.glassBorder,
+    padding: noPad ? 0 : spacing.s4,
+    shadowColor: '#000',
+    shadowOpacity: isDark ? 0.28 : 0.07,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+    overflow: 'hidden',
+  };
+
   const content = (
-    <Animated.View
-      style={[
-        {
-          backgroundColor: glass ? theme.glass : color ?? theme.card,
-          borderRadius: radii.card,
-          borderWidth: 1,
-          borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
-          padding: noPad ? 0 : spacing.s4,
-          shadowColor: '#000',
-          shadowOpacity: glass ? 0.04 : 0.06,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 8,
-          transform: [{ scale }],
-        },
-        style,
-      ]}
-    >
+    <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glass : color ?? theme.card, transform: [{ scale }] }, style]}>
+      {useGlass ? (
+        <BlurView
+          intensity={isDark ? 34 : 42}
+          tint={isDark ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      ) : null}
       {children}
     </Animated.View>
   );

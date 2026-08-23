@@ -7,10 +7,16 @@ export type Role = 'student' | 'volunteer' | 'supervisor' | 'admin';
 
 export interface Profile {
   id: string;
+  /** معرّف المستخدم في auth.users (Google) — null للحسابات المُنشأة إداريًا */
+  authUserId?: string | null;
   fullName: string;
+  /** الإيميل القادم من حساب Google — يُحفظ ولا يُعدّل يدويًا */
+  email?: string | null;
   phone: string;
   role: Role;
   branchId: string | null;
+  /** صورة المستخدم (من Google أو مرفوعة على Supabase Storage) */
+  avatarUrl?: string | null;
   avatarColor: string;
   gender: 'm' | 'f';
   status: 'active' | 'disabled';

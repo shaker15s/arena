@@ -36,12 +36,12 @@ export function JourneyScreen({ navigation }: any) {
   })();
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, paddingBottom: 120 }}>
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {myEnrollments.length === 0 ? (
-            <Empty emoji="🗺️" title={t('journey.emptyTitle')} body={t('journey.emptyBody')} cta={t('today.exploreCta')} onCta={() => navigation.navigate('Tabs')} />
+            <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => navigation.navigate('Tabs')} />
           ) : (
             myEnrollments.map((enr, i) => {
               const batch = batchOf(db, enr.batchId);
@@ -170,7 +170,7 @@ export function JourneyMapScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={course.title} subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`} back={() => navigation.goBack()} right={
         streak >= 2 ? (
           <Row center gap={4}>
@@ -295,7 +295,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('history.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}>
         <FadeIn index={0}>

@@ -75,7 +75,7 @@ export function AdminDashboard({ navigation }: any) {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <Header title="لوحة الأدمن" />
 
       {/* Tab Selector */}

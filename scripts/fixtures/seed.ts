@@ -1,16 +1,17 @@
+/** بيانات اختبار (fixtures) — تُستخدم في اختبارات المحرك فقط ولا تُشحن داخل التطبيق. */
 /**
  * data/seed.ts — بذر قاعدة البيانات المحاكاة على نفس مخطط وثيقة 06.
  * يمثل «السيناريو الذهبي» (وثيقة 07) في منتصفه: فرع نشط، باتش تصميم في
  * محاضرته السابعة الحية الآن، طلاب بحضور ونقاط واستريك، باتش مكتمل
  * لديمومة إصدار الشهادات، وأعذار معلقة.
  */
-import { defaultRules } from './rules';
-import { weekStartOf, monthKeyOf } from '../shared/format';
+import { defaultRules } from '../../src/data/rules';
+import { weekStartOf, monthKeyOf } from '../../src/shared/format';
 import {
   Attendance, Badge, Batch, Branch, Certificate, Committee, Course, Db,
   Enrollment, Excuse, GamificationProfile, PointEvent, Profile,
   StreakWeek, TrainingSession, AppNotification, CourseRating,
-} from './types';
+} from '../../src/data/types';
 
 export const SEED_VERSION = 3;
 

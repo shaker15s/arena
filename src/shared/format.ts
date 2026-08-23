@@ -82,10 +82,20 @@ export function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
-let uidCounter = 0;
-export function uid(prefix = 'id'): string {
-  uidCounter += 1;
-  return `${prefix}_${Date.now().toString(36)}_${uidCounter}_${Math.floor(Math.random() * 1e6).toString(36)}`;
+/**
+ * مُولّد معرّفات — UUID v4 حقيقي حتى تكون كل السجلات الجديدة صالحة
+ * للكتابة مباشرة في أعمدة UUID داخل Postgres/Supabase.
+ * الوسيط `prefix` مُهمَل ومحفوظ فقط لتوافق النداءات القديمة.
+ */
+export function uid(_prefix = 'id'): string {
+  const g = globalThis as unknown as { crypto?: { randomUUID?: () => string } };
+  if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  // بديل حتمي الشكل (RFC 4122 v4) للبيئات القديمة
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 /** هاش بسيط حتمي — لتوليد توكنات QR الدوّارة (محاكاة التوقيع السيرفري) */

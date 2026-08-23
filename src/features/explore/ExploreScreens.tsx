@@ -50,7 +50,7 @@ export function ExploreScreen({ navigation }: any) {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       {!online ? (
         <View style={{ backgroundColor: theme.warnSoft, padding: 8, marginTop: insets.top }}>
           <Txt variant="caption" color={theme.warn} align="center">{t('common.offlineBanner')}</Txt>
@@ -78,7 +78,7 @@ export function ExploreScreen({ navigation }: any) {
           </FadeIn>
 
           {filtered.length === 0 ? (
-            <Empty emoji="🧭" title={t('explore.noResults')} body={t('explore.noResultsBody')} />
+            <Empty emoji="🧭" title={t('explore.noResults')} />
           ) : (
             filtered.map((course, i) => (
               <CourseCard key={course.id} course={course} index={i} onPress={() => navigation.navigate('CourseDetails', { courseId: course.id })} />
@@ -181,7 +181,7 @@ export function CourseDetailsScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
         {/* غلاف Hero متدرج */}
         <View style={{ backgroundColor: course.color, paddingTop: insets.top + 10, paddingBottom: 26, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
@@ -308,7 +308,7 @@ export function CourseDetailsScreen({ navigation, route }: any) {
 
           {tab === 'reviews' ? (
             reviews.length === 0 ? (
-              <Empty emoji="⭐" title={t('explore.noResults')} body={t('explore.noResultsBody')} />
+              <Empty emoji="⭐" title={t('explore.noResults')} />
             ) : (
               reviews.map((r, i) => {
                 const reviewer = profileOf(db, r.userId);

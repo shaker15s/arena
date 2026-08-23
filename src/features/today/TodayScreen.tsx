@@ -64,7 +64,7 @@ export function TodayScreen() {
   const streakUrgent = gam != null && gam.weekStatus === 'tracking' && liveSess != null && !alreadyChecked;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1 }}>
       {/* Background gradient orbs */}
       <View style={{
         position: 'absolute', top: -80, right: -60,
@@ -286,7 +286,6 @@ export function TodayScreen() {
                   <Ionicons name="rocket" size={48} color={theme.brand} />
                 </View>
                 <Txt variant="h2" align="center">{t('today.emptyTitle')}</Txt>
-                <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 280 }}>{t('today.emptyBody')}</Txt>
                 <Spacer size={8} />
                 <Btn title={t('today.exploreCta')} icon="compass" onPress={() => tabs.setTab('explore')} />
               </Card>

@@ -19,6 +19,7 @@ export const RULE_DEFS: RuleDef[] = [
   { key: 'certificate.min_attendance_pct', def: 75, min: 50, max: 100, unit: 'pct' },
   { key: 'kudos.monthly_quota_per_instructor', def: 200, min: 0, max: 1000, unit: 'pts' },
   { key: 'streak.freeze_max_hold', def: 2, min: 0, max: 5, unit: 'count' },
+  { key: 'streak.min_sessions_week', def: 1, min: 1, max: 7, unit: 'count' },
   { key: 'league.promotion_pct', def: 15, min: 5, max: 40, unit: 'pct' },
   { key: 'league.relegation_pct', def: 15, min: 0, max: 40, unit: 'pct' },
   { key: 'points.month_bonus', def: 50, min: 0, max: 200, unit: 'pts' },

@@ -95,7 +95,7 @@ export function LiveSessionScreen() {
       ? db.sessions.filter((s) => s.batchId === batchWithScheduled.id && s.status === 'scheduled').sort((a, b) => a.startsAt - b.startsAt)[0]
       : undefined;
     return (
-      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, alignItems: 'center', paddingBottom: 130 }}>
           <Header title={t('live.title')} />
           <Empty emoji="🎬" title={closedSummary ? `${t('live.closedSnack')}` : t('vtoday.noSessionToday')} />
@@ -173,16 +173,11 @@ export function LiveSessionScreen() {
                   <QRCode value={token} size={176} />
                 </View>
               </View>
-              <Txt variant="micro" color="#A8B0C2">{t('live.rotationNote')}</Txt>
               <Row center gap={8}>
                 <Txt variant="micro" color="#5B6478">{t('live.codeLabel')}:</Txt>
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4 }}>
                   <Txt variant="h2" color="#F1F5F9" style={{ letterSpacing: 6 }}>{code}</Txt>
                 </View>
-              </Row>
-              <Row center gap={6}>
-                <Ionicons name="information-circle" size={13} color="#5B6478" />
-                <Txt variant="micro" color="#5B6478" align="center" style={{ maxWidth: 280 }}>{t('live.qrHint')}</Txt>
               </Row>
             </Card>
           </FadeIn>
