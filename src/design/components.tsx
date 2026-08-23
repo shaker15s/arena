@@ -4,8 +4,8 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text,
-  TextInput, View, ViewStyle, TextStyle, ScrollView,
+  ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pressable,
+  StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -13,8 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
 import { radii, spacing, typography } from './tokens';
-import { duration, easing, isReducedMotion } from './motion';
+import { easing, isReducedMotion, scalePress, staggerDelay } from './motion';
 import { useI18n } from '../i18n';
+import { useHaptics } from '../shared/hooks';
 
 // ───────────────────────────── نصوص ─────────────────────────────
 
@@ -91,6 +92,7 @@ export function Card({ children, style, glass, color, noPad, onPress, solid }: {
   solid?: boolean;
 }) {
   const { theme, isDark } = useTheme();
+  const { impactLight } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
   const useGlass = !solid && !color;
 
@@ -129,7 +131,12 @@ export function Card({ children, style, glass, color, noPad, onPress, solid }: {
   );
   if (onPress) {
     return (
-      <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => { impactLight(); onPress(); }}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+      >
         {content}
       </Pressable>
     );
@@ -154,8 +161,16 @@ export function Btn({
   full?: boolean;
   accessibilityHint?: string;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
+  const { impactLight, impactMedium } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    if (!onPress || disabled || loading) return;
+    if (variant === 'primary' || variant === 'danger') impactMedium();
+    else impactLight();
+    onPress();
+  };
 
   const isGradient = variant === 'primary';
   const bg =
@@ -180,14 +195,22 @@ export function Btn({
 
   if (isGradient) {
     return (
-      <Animated.View style={[{ transform: [{ scale }] }, full ? { alignSelf: 'stretch' } as ViewStyle : null, style]}>
+      <Animated.View style={[
+        {
+          transform: [{ scale }], shadowColor: theme.brand,
+          shadowOpacity: disabled ? 0 : 0.22, shadowRadius: 14,
+          shadowOffset: { width: 0, height: 7 }, elevation: disabled ? 0 : 7,
+        },
+        full ? { alignSelf: 'stretch' } as ViewStyle : null,
+        style,
+      ]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={title}
           accessibilityHint={accessibilityHint}
           accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
-          onPress={loading || disabled ? undefined : onPress}
-          onPressIn={() => press(0.96)}
+          onPress={loading || disabled ? undefined : handlePress}
+          onPressIn={() => press(scalePress)}
           onPressOut={() => press(1)}
         >
           <LinearGradient
@@ -227,8 +250,8 @@ export function Btn({
         accessibilityLabel={title}
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
-        onPress={loading || disabled ? undefined : onPress}
-        onPressIn={() => press(0.96)}
+        onPress={loading || disabled ? undefined : handlePress}
+        onPressIn={() => press(scalePress)}
         onPressOut={() => press(1)}
         style={{
           backgroundColor: bg,
@@ -260,20 +283,7 @@ export function Btn({
 
 export function Spinner({ color }: { color?: string }) {
   const { theme } = useTheme();
-  const spin = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(spin, { toValue: 1, duration: 800, easing: Easing.linear, useNativeDriver: true }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [spin]);
-  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  return (
-    <Animated.View style={{ transform: [{ rotate }] }}>
-      <Ionicons name="ellipse-outline" size={20} color={color ?? theme.brand} />
-    </Animated.View>
-  );
+  return <ActivityIndicator size="small" color={color ?? theme.brand} />;
 }
 
 // ───────────────────────────── Chips / Tags / Segmented ─────────────────────────────
@@ -282,11 +292,15 @@ export function Chip({ label, active, onPress, icon }: {
   label: string; active?: boolean; onPress?: () => void; icon?: keyof typeof Ionicons.glyphMap;
 }) {
   const { theme, isDark } = useTheme();
+  const { impactLight } = useHaptics();
   return (
     <Pressable
-      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(active) }}
+      accessibilityLabel={label}
+      onPress={onPress ? () => { impactLight(); onPress(); } : undefined}
       style={({ pressed }) => ({
-        flexDirection: 'row', alignItems: 'center', gap: 6,
+        flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40,
         backgroundColor: active ? theme.brand : isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
         borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 9,
         borderWidth: 0.5,
@@ -316,14 +330,18 @@ export function Segmented<T extends string>({ options, value, onChange }: {
   onChange: (v: T) => void;
 }) {
   const { theme, isDark } = useTheme();
+  const { impactLight } = useHaptics();
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)', borderRadius: radii.pill, padding: 3 }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)', borderRadius: radii.pill, padding: 3 }}>
       {options.map((opt) => {
         const active = opt.value === value;
         return (
           <Pressable
             key={opt.value}
-            onPress={() => onChange(opt.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={opt.label}
+            onPress={() => { impactLight(); onChange(opt.value); }}
             style={{
               flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center',
               backgroundColor: active ? (isDark ? 'rgba(60,60,67,0.5)' : theme.card) : 'transparent',
@@ -358,6 +376,7 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
   secure?: boolean;
 }) {
   const { theme, isDark } = useTheme();
+  const [focused, setFocused] = useState(false);
   return (
     <View style={{ alignSelf: 'stretch' }}>
       {label ? <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 6 }}>{label}</Txt> : null}
@@ -365,15 +384,22 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
         style={{
           flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', gap: 10,
           backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
-          borderRadius: radii.button, borderWidth: error ? 1.5 : 0.5,
-          borderColor: error ? theme.danger : isDark ? 'rgba(84,84,88,0.3)' : 'rgba(60,60,67,0.15)',
-          paddingHorizontal: 16, paddingVertical: multiline ? 12 : 4, minHeight: multiline ? 90 : 52,
+          borderRadius: radii.button, borderWidth: error || focused ? 1.5 : 0.5,
+          borderColor: error ? theme.danger : focused ? theme.brand : isDark ? 'rgba(84,84,88,0.3)' : 'rgba(60,60,67,0.15)',
+          paddingHorizontal: 16, paddingVertical: multiline ? 12 : 4, minHeight: multiline ? 96 : 54,
+          shadowColor: focused ? theme.brand : 'transparent',
+          shadowOpacity: focused ? 0.12 : 0,
+          shadowRadius: focused ? 12 : 0,
+          shadowOffset: { width: 0, height: 4 },
         }}
       >
-        {icon ? <Ionicons name={icon} size={18} color={theme.textMuted} style={{ marginTop: multiline ? 10 : 0 }} /> : null}
+        {icon ? <Ionicons name={icon} size={18} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} style={{ marginTop: multiline ? 10 : 0 }} /> : null}
         <TextInput
           value={value}
           onChangeText={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          accessibilityLabel={label ?? placeholder}
           placeholder={placeholder}
           placeholderTextColor={theme.textMuted}
           keyboardType={keyboardType}
@@ -449,10 +475,11 @@ export function StatRing({ size = 72, stroke = 7, progress, color, children }: {
 export function Flame({ size = 22, urgent }: { size?: number; urgent?: boolean }) {
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
+    if (isReducedMotion()) return undefined;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: urgent ? 1.25 : 1.08, duration: urgent ? 400 : 1000, easing: easing.inOut, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: urgent ? 400 : 1000, easing: easing.inOut, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: urgent ? 1.18 : 1.06, duration: urgent ? 520 : 1200, easing: easing.inOut, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: urgent ? 520 : 1200, easing: easing.inOut, useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -494,13 +521,15 @@ export function CountUp({ value, variant = 'numberHero', color, duration: dur = 
     prevRef.current = value;
     if (isReducedMotion()) { setDisplay(value); return; }
     const start = Date.now();
+    let frame = 0;
     const step = () => {
       const t = Math.min(1, (Date.now() - start) / dur);
       const easedVal = 1 - Math.pow(1 - t, 3);
       setDisplay(Math.round(from + (value - from) * easedVal));
-      if (t < 1) requestAnimationFrame(step);
+      if (t < 1) frame = requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
   }, [value, dur]);
   return <Txt variant={variant} color={color}>{String(display)}</Txt>;
 }
@@ -510,7 +539,7 @@ export function CountUp({ value, variant = 'numberHero', color, duration: dur = 
 export function FadeIn({ children, index = 0, delay = 0, style }: { children: React.ReactNode; index?: number; delay?: number; style?: ViewStyle | ViewStyle[] }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const finalDelay = delay || (index * 70) || 0;
+    const finalDelay = delay > 0 ? Math.min(delay, 420) : staggerDelay(index);
     if (isReducedMotion()) {
       anim.setValue(1);
     } else {
@@ -567,12 +596,22 @@ export function Empty({ emoji, title, body, cta, onCta }: {
 }) {
   const { theme } = useTheme();
   return (
-    <View style={{ alignItems: 'center', paddingVertical: spacing.s10, paddingHorizontal: spacing.s6, gap: 12 }}>
-      <Text style={{ fontSize: 52 }}>{emoji}</Text>
-      <Txt variant="h2" align="center">{title}</Txt>
-      {body ? <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 300 }}>{body}</Txt> : null}
-      {cta && onCta ? <View style={{ marginTop: 10 }}><Btn title={cta} onPress={onCta} /></View> : null}
-    </View>
+    <FadeIn>
+      <View style={{ alignItems: 'center', paddingVertical: spacing.s10, paddingHorizontal: spacing.s6, gap: 12 }}>
+        <View style={{
+          width: 92, height: 92, borderRadius: 30,
+          alignItems: 'center', justifyContent: 'center',
+          backgroundColor: theme.brandSoft,
+          borderWidth: 1, borderColor: `${theme.brand}22`,
+          transform: [{ rotate: '-3deg' }],
+        }}>
+          <Text style={{ fontSize: 44, transform: [{ rotate: '3deg' }] }}>{emoji}</Text>
+        </View>
+        <Txt variant="h2" align="center">{title}</Txt>
+        {body ? <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 340 }}>{body}</Txt> : null}
+        {cta && onCta ? <View style={{ marginTop: 10 }}><Btn title={cta} onPress={onCta} icon="arrow-forward" /></View> : null}
+      </View>
+    </FadeIn>
   );
 }
 
@@ -584,9 +623,13 @@ export function Shimmer({ width = '100%', height = 14, radius = 10, style }: {
   const { theme, isDark } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    if (isReducedMotion()) {
+      anim.setValue(0.55);
+      return undefined;
+    }
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 700, easing: easing.inOut, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 900, easing: easing.inOut, useNativeDriver: true }),
         Animated.timing(anim, { toValue: 0, duration: 700, easing: easing.inOut, useNativeDriver: true }),
       ]),
     );
@@ -638,13 +681,19 @@ export function Header({ title, subtitle, back, right }: {
   title: string; subtitle?: string; back?: () => void; right?: React.ReactNode;
 }) {
   const { theme, isDark } = useTheme();
+  const { t } = useI18n();
   return (
     <View style={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s3 }}>
       <Row between center>
         <Row center gap={12} style={{ flex: 1 }}>
           {back ? (
-            <Pressable onPress={back} style={({ pressed }) => ({
-              width: 44, height: 44, borderRadius: 22,
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
+              hitSlop={8}
+              onPress={back}
+              style={({ pressed }) => ({
+              width: 44, height: 44, borderRadius: 15,
               backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
               alignItems: 'center', justifyContent: 'center',
               opacity: pressed ? 0.7 : 1,
@@ -668,46 +717,65 @@ export function BackIcon({ color }: { color: string }) {
   return <Ionicons name={rtl ? 'chevron-forward' : 'chevron-back'} size={22} color={color} />;
 }
 
+export function DisclosureIcon({ color, size = 18 }: { color: string; size?: number }) {
+  const { rtl } = useI18n();
+  return <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} size={size} color={color} />;
+}
+
 // ───────────────────────────── ورقة سفلية ─────────────────────────────
 
 export function Sheet({ visible, onClose, children, title }: {
   visible: boolean; onClose: () => void; children: React.ReactNode; title?: string;
 }) {
   const { theme, isDark } = useTheme();
+  const { t } = useI18n();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (visible) {
-      Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 20, stiffness: 180 }).start();
+      if (isReducedMotion()) anim.setValue(1);
+      else Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 20, stiffness: 180 }).start();
     } else {
       anim.setValue(0);
     }
   }, [visible, anim]);
   if (!visible) return null;
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }} onPress={onClose}>
-        <Animated.View
-          style={{
-            backgroundColor: isDark ? theme.card : theme.card,
-            borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
-            padding: spacing.s5, paddingBottom: spacing.s8,
-            maxHeight: '88%',
-            borderTopWidth: 0.5,
-            borderTopColor: isDark ? 'rgba(84,84,88,0.3)' : 'rgba(255,255,255,0.5)',
-            shadowColor: '#000',
-            shadowOpacity: 0.15,
-            shadowRadius: 30,
-            shadowOffset: { width: 0, height: -10 },
-            transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] }) }],
-          }}
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('common.close')}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
+          onPress={onClose}
         >
-          <Pressable onPress={(e) => e.stopPropagation?.()}>
-            <View style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: isDark ? 'rgba(84,84,88,0.4)' : 'rgba(120,120,128,0.2)', marginBottom: 14 }} />
-            {title ? <Txt variant="h2" style={{ marginBottom: 12 }}>{title}</Txt> : null}
-            {children}
-          </Pressable>
-        </Animated.View>
-      </Pressable>
+          <BlurView intensity={isDark ? 18 : 10} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay }]} />
+          <Animated.View
+            accessibilityViewIsModal
+            style={{
+              width: '100%', maxWidth: 720, alignSelf: 'center',
+              backgroundColor: theme.card,
+              borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
+              padding: spacing.s5, paddingBottom: spacing.s8,
+              maxHeight: '90%',
+              borderWidth: 1,
+              borderBottomWidth: 0,
+              borderColor: isDark ? 'rgba(84,84,88,0.42)' : 'rgba(255,255,255,0.72)',
+              shadowColor: '#000',
+              shadowOpacity: 0.22,
+              shadowRadius: 34,
+              shadowOffset: { width: 0, height: -12 },
+              transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [460, 0] }) }],
+            }}
+          >
+            <Pressable accessibilityRole="none" onPress={(event) => event.stopPropagation?.()}>
+              <View style={{ alignSelf: 'center', width: 42, height: 5, borderRadius: 3, backgroundColor: isDark ? 'rgba(174,174,178,0.32)' : 'rgba(60,60,67,0.18)', marginBottom: 16 }} />
+              {title ? <Txt variant="h2" style={{ marginBottom: 14 }}>{title}</Txt> : null}
+              {children}
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -724,11 +792,14 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
   danger?: boolean;
 }) {
   const { theme, isDark } = useTheme();
+  const { impactLight } = useHaptics();
   return (
     <Pressable
-      onPress={onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={title}
+      onPress={onPress ? () => { impactLight(); onPress(); } : undefined}
       style={({ pressed }) => ({
-        flexDirection: 'row', alignItems: 'center', gap: 12,
+        flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
         backgroundColor: isDark ? 'rgba(28,28,30,0.72)' : 'rgba(255,255,255,0.72)',
         borderRadius: radii.cardSm, padding: 14,
         borderWidth: 0.5,
@@ -755,6 +826,7 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
 
 export function CustomSwitch({ value, onChange, color }: { value: boolean; onChange: (v: boolean) => void; color?: string }) {
   const { theme, isDark } = useTheme();
+  const { impactLight } = useHaptics();
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
   useEffect(() => {
     Animated.spring(anim, { toValue: value ? 1 : 0, useNativeDriver: false, damping: 22, stiffness: 260 }).start();
@@ -765,7 +837,12 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
   ]});
   const translate = anim.interpolate({ inputRange: [0, 1], outputRange: [2, 22] });
   return (
-    <Pressable onPress={() => onChange(!value)}>
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      onPress={() => { impactLight(); onChange(!value); }}
+      hitSlop={8}
+    >
       <Animated.View style={{ width: 51, height: 31, borderRadius: 16, backgroundColor: bg, justifyContent: 'center' }}>
         <Animated.View style={{ width: 27, height: 27, borderRadius: 14, backgroundColor: '#fff', transform: [{ translateX: translate }], shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3 }} />
       </Animated.View>
@@ -777,10 +854,19 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
 
 export function Stars({ value, size = 16, onRate }: { value: number; size?: number; onRate?: (v: number) => void }) {
   const { theme } = useTheme();
+  const { impactLight } = useHaptics();
   return (
     <Row gap={2}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <Pressable key={i} onPress={onRate ? () => onRate(i) : undefined} disabled={!onRate}>
+        <Pressable
+          key={i}
+          accessibilityRole={onRate ? 'radio' : 'image'}
+          accessibilityLabel={`${i} / 5`}
+          accessibilityState={onRate ? { checked: i === Math.round(value) } : undefined}
+          onPress={onRate ? () => { impactLight(); onRate(i); } : undefined}
+          disabled={!onRate}
+          hitSlop={4}
+        >
           <Ionicons name={i <= Math.round(value) ? 'star' : 'star-outline'} size={size} color={i <= Math.round(value) ? theme.certGold : theme.textMuted} />
         </Pressable>
       ))}

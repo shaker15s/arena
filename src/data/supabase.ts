@@ -37,7 +37,7 @@ export function getSupabase(): SupabaseClient<any> {
         detectSessionInUrl: Platform.OS === 'web',
         flowType: 'pkce',
       },
-      global: { headers: { 'x-client-info': 'masar-app/3.1' } },
+      global: { headers: { 'x-client-info': 'masar-app/3.2' } },
     });
   }
   return _client;

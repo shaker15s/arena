@@ -103,34 +103,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [online, setOnline] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeq = useRef(0);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
+  const refreshQueued = useRef(false);
   const dbRef = useRef(db);
   dbRef.current = db;
 
   const toast = useCallback((message: string, kind: Toast['kind'] = 'info') => {
     toastSeq.current += 1;
     const id = toastSeq.current;
-    setToasts((t) => [...t, { id, message, kind }]);
+    setToasts((current) => [...current.slice(-2), { id, message, kind }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
   }, []);
 
   /** يقرأ القاعدة من السيرفر ويحدّث الحالة والكاش */
   const refresh = useCallback(async () => {
     if (!SUPABASE_ENABLED) return;
-    setSyncing(true);
+    // Realtime قد يرسل عدة أحداث للعملية الواحدة؛ كل المستهلكين ينتظرون نفس القراءة
+    // بدل فتح عشرات طلبات متوازية وإظهار بيانات أقدم فوق الأحدث.
+    if (refreshInFlight.current) {
+      refreshQueued.current = true;
+      return refreshInFlight.current;
+    }
+    const task = (async () => {
+      setSyncing(true);
+      try {
+        const fresh = await fetchRemoteDb();
+        // لا تُغلق الجلسات أو تغيّر الدفاتر من جهاز المستخدم. المهام المجدولة
+        // وعمليات RPC الخادمية هي مصدر الحقيقة الوحيد لهذه الانتقالات.
+        dbRef.current = fresh;
+        setDb(fresh);
+        writeCache(fresh);
+        setLastSyncAt(Date.now());
+        setSyncError(null);
+        setOnline(true);
+      } catch (error) {
+        setSyncError((error as Error).message);
+        setOnline(false);
+      } finally {
+        setSyncing(false);
+      }
+    })();
+    refreshInFlight.current = task;
     try {
-      const fresh = await fetchRemoteDb();
-      // لا تُغلق الجلسات أو تغيّر الدفاتر من جهاز المستخدم. المهام المجدولة
-      // وعمليات RPC الخادمية هي مصدر الحقيقة الوحيد لهذه الانتقالات.
-      setDb(fresh);
-      writeCache(fresh);
-      setLastSyncAt(Date.now());
-      setSyncError(null);
-      setOnline(true);
-    } catch (e) {
-      setSyncError((e as Error).message);
-      setOnline(false);
+      await task;
     } finally {
-      setSyncing(false);
+      refreshInFlight.current = null;
+      if (refreshQueued.current) {
+        refreshQueued.current = false;
+        setTimeout(() => { void refresh(); }, 0);
+      }
     }
   }, []);
 

@@ -2,8 +2,8 @@
  * features/org — S40 لوحة التحكم + S42 التنظيم + S43 الكورسات +
  * S44 فورم المجموعات (أهم فورم: معاينة تلقائية + تحذير تعارض) + S47 المستخدمون.
  */
-import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
@@ -20,6 +20,7 @@ import {
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
+import { easing, isReducedMotion } from '../../design/motion';
 import { Batch, type Role } from '../../data/types';
 import {
   createBatchWithSessions, createBranch, createCommittee, createCourse, updateUserAccess,
@@ -80,12 +81,12 @@ export function DashboardScreen({ navigation }: any) {
               {stats.trend.map((v, i) => (
                 <View key={i} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
                   <Txt variant="micro" color={theme.textMuted}>{v}%</Txt>
-                  <View style={{
-                    width: '100%', borderRadius: 6,
-                    height: Math.max(6, (v / 100) * 80),
-                    backgroundColor: v >= 75 ? theme.success : v >= 50 ? theme.brand : theme.warn,
-                    opacity: 0.4 + (i / Math.max(stats.trend.length - 1, 1)) * 0.6,
-                  }} />
+                  <TrendBar
+                    value={v}
+                    index={i}
+                    color={v >= 75 ? theme.success : v >= 50 ? theme.brand : theme.warn}
+                    opacity={0.4 + (i / Math.max(stats.trend.length - 1, 1)) * 0.6}
+                  />
                 </View>
               ))}
             </View>
@@ -111,6 +112,25 @@ export function DashboardScreen({ navigation }: any) {
         </FadeIn>
       </ScrollView>
     </View>
+  );
+}
+
+function TrendBar({ value, index, color, opacity }: { value: number; index: number; color: string; opacity: number }) {
+  const progress = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: isReducedMotion() ? 100 : 520,
+      delay: isReducedMotion() ? 0 : index * 55,
+      easing: easing.standard,
+      useNativeDriver: false,
+    }).start();
+  }, [index, progress]);
+  return (
+    <Animated.View style={{
+      width: '100%', borderRadius: 6, backgroundColor: color, opacity,
+      height: progress.interpolate({ inputRange: [0, 1], outputRange: [6, Math.max(6, (value / 100) * 80)] }),
+    }} />
   );
 }
 
@@ -182,6 +202,9 @@ export function OrgManagerScreen() {
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
+        {db.branches.length === 0 ? (
+          <Empty emoji="🏢" title={t('org.branches')} body={t('wizard.s1Body')} cta={t('org.newBranch')} onCta={() => setBranchSheet(true)} />
+        ) : null}
         {db.branches.map((b, i) => {
           const committees = db.committees.filter((c) => c.branchId === b.id);
           const activeBatches = db.batches.filter((x) => x.branchId === b.id && x.status === 'active').length;
@@ -281,7 +304,10 @@ export function CoursesScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
+        {db.courses.length === 0 ? (
+          <Empty emoji="📚" title={t('courses.title')} cta={t('courses.new')} onCta={() => setCreating(true)} />
+        ) : null}
         {db.courses.map((c, i) => {
           const batches = db.batches.filter((b) => b.courseId === c.id);
           const active = batches.filter((b) => b.status === 'active').length;
@@ -345,7 +371,10 @@ export function BatchesAdminScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
+        {db.batches.length === 0 ? (
+          <Empty emoji="🗓️" title={t('batchAdm.title')} cta={t('batchAdm.new')} onCta={() => setCreating(true)} />
+        ) : null}
         {db.batches.map((b, i) => {
           const course = courseOf(db, b.courseId)!;
           const instructor = profileOf(db, b.instructorId);
@@ -584,6 +613,7 @@ export function UsersScreen() {
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
           ))}
         </Row>
+        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} /> : null}
         {list.map((p, i) => (
           <FadeIn key={p.id} index={Math.min(i, 8)}>
             <Card onPress={() => setSelected(p.id)}>
@@ -614,30 +644,34 @@ export function UsersScreen() {
                 </View>
               </Row>
 
-              <Txt variant="caption" color={theme.textSecondary}>{t('users.changeRole')}</Txt>
-              <Row gap={6} wrap>
-                {(['student', 'volunteer'] as const).map((r) => (
-                  <Btn key={r} title={roleLabel[r]} size="sm" variant={selUser.role === r ? 'primary' : 'ghost'}
-                    onPress={() => { void changeAccess(selUser.id, { role: r }); }} />
-                ))}
-                {(user.role === 'admin') ? (
-                  <Btn title={t('common.supervisor')} size="sm" variant={selUser.role === 'supervisor' || selUser.role === 'admin' ? 'primary' : 'ghost'}
-                    onPress={() => {
-                      void changeAccess(selUser.id, { role: selUser.role === 'supervisor' ? 'admin' : 'supervisor' });
-                    }} />
-                ) : null}
-              </Row>
-
-              <Row gap={8}>
-                <Btn
-                  title={selUser.status === 'active' ? t('users.deactivate') : t('users.activate')}
-                  variant={selUser.status === 'active' ? 'danger' : 'success'}
-                  icon={selUser.status === 'active' ? 'pause-circle' : 'play-circle'}
-                  onPress={() => {
-                    void changeAccess(selUser.id, { status: selUser.status === 'active' ? 'disabled' : 'active' });
-                  }}
-                />
-              </Row>
+              {user.role === 'admin' ? (
+                <View style={{ gap: 10 }}>
+                  <Txt variant="caption" color={theme.textSecondary}>{t('users.changeRole')}</Txt>
+                  <Row gap={6} wrap>
+                    {(['student', 'volunteer', 'supervisor', 'admin'] as Role[]).map((role) => (
+                      <Btn
+                        key={role}
+                        title={roleLabel[role]}
+                        size="sm"
+                        variant={selUser.role === role ? 'primary' : 'ghost'}
+                        onPress={selUser.role === role ? undefined : () => { void changeAccess(selUser.id, { role }); }}
+                      />
+                    ))}
+                  </Row>
+                  {selUser.id !== user.id ? (
+                    <Row gap={8}>
+                      <Btn
+                        title={selUser.status === 'active' ? t('users.deactivate') : t('users.activate')}
+                        variant={selUser.status === 'active' ? 'danger' : 'success'}
+                        icon={selUser.status === 'active' ? 'pause-circle' : 'play-circle'}
+                        onPress={() => {
+                          void changeAccess(selUser.id, { status: selUser.status === 'active' ? 'disabled' : 'active' });
+                        }}
+                      />
+                    </Row>
+                  ) : null}
+                </View>
+              ) : null}
 
               <Card glass>
                 <Row center gap={8}>

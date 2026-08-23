@@ -225,7 +225,7 @@ export function MyBatchesScreen({ navigation }: any) {
                 <ProgressBar progress={closed / course.sessionsCount} color={course.color} height={6} />
                 <Spacer size={10} />
                 <Row gap={8}>
-                  <Btn title="تفاصيل الكورس" size="sm" variant="secondary" icon="information-circle" onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })} />
+                  <Btn title={t('management.detailsTitle')} size="sm" variant="secondary" icon="information-circle" onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })} />
                   <Btn title={t('sess.title')} size="sm" variant="ghost" icon="archive" onPress={() => navigation.navigate('SessionsHistory', { batchId: b.id })} />
                 </Row>
               </Card>
@@ -446,7 +446,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
                   <Ionicons name={meta.icon as any} size={20} color={meta.color} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="caption">{s.title}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>{formatDate(s.startsAt, lang)}{att?.method === 'manual' ? ' · يدوي' : ''}{att?.note ? ` · ${att.note}` : ''}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>{formatDate(s.startsAt, lang)}{att?.method === 'manual' ? ` · ${t('common.manual')}` : ''}{att?.note ? ` · ${att.note}` : ''}</Txt>
                   </View>
                 </Row>
               );

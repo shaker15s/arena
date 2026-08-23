@@ -28,6 +28,7 @@ export function ProfileScreen() {
   const [langSheet, setLangSheet] = useState(false);
   const [themeSheet, setThemeSheet] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const [versionTaps, setVersionTaps] = useState(0);
   const [showDevInfo, setShowDevInfo] = useState(false);
 
@@ -78,7 +79,7 @@ export function ProfileScreen() {
               <Tag label={roleLabel[user.role]} color={theme.brand} bg={theme.brandSoft} icon="person" />
               <Tag label={`${t('profile.level')} ${level} · ${t(`level.${level}` as any)}`} color={levelMeta.color} bg={levelMeta.color + '1F'} icon="shield-half" />
             </Row>
-            <Row gap={22} style={{ marginTop: 6 }}>
+            <Row gap={6} style={{ marginTop: 8, width: '100%' }}>
               <MiniStat label={t('today.pointsLabel')} value={points.toLocaleString()} icon="star" color={theme.certGold} />
               <MiniStat label={t('profile.longestStreak')} value={`${gam.longestStreakWeeks} ${t('common.weeks')}`} icon="flame" color={theme.warn} />
               <MiniStat label={t('profile.memberSince')} value={formatDate(user.joinedAt, lang)} icon="calendar" color={theme.brand} />
@@ -93,8 +94,8 @@ export function ProfileScreen() {
         <FadeIn index={3}>
           <ListRow
             icon="mail-unread"
-            title="الطلبات والرسائل"
-            subtitle={user.role === 'student' ? 'طلب كورس أو مراجعة ترقية' : 'متابعة طلبات المستخدمين'}
+            title={t('requests.title')}
+            subtitle={t('requests.officialTitle')}
             onPress={() => navigation.navigate('Requests')}
           />
         </FadeIn>
@@ -142,11 +143,11 @@ export function ProfileScreen() {
         </FadeIn>
 
         <FadeIn index={10}>
-          <ListRow icon="log-out" title={t('common.logout')} danger onPress={() => { void logout(); }} />
+          <ListRow icon="log-out" title={t('common.logout')} danger onPress={() => setLogoutOpen(true)} />
         </FadeIn>
 
         <Pressable onPress={handleVersionTap}>
-          <Txt variant="micro" color={theme.textMuted} align="center">{t('profile.about')} · v3.1.0</Txt>
+          <Txt variant="micro" color={theme.textMuted} align="center">{t('profile.about')} · v3.2.0</Txt>
         </Pressable>
 
         {showDevInfo && (
@@ -193,6 +194,16 @@ export function ProfileScreen() {
         </View>
       </Sheet>
 
+      <Sheet visible={logoutOpen} onClose={() => setLogoutOpen(false)} title={t('profile.logoutConfirm')}>
+        <View style={{ gap: 14 }}>
+          <Txt variant="body" color={theme.textSecondary}>{t('profile.logoutBody')}</Txt>
+          <Row gap={10}>
+            <View style={{ flex: 1 }}><Btn title={t('common.cancel')} variant="ghost" full onPress={() => setLogoutOpen(false)} /></View>
+            <View style={{ flex: 1 }}><Btn title={t('common.logout')} variant="danger" full icon="log-out" onPress={() => { setLogoutOpen(false); void logout(); }} /></View>
+          </Row>
+        </View>
+      </Sheet>
+
       <EditProfileSheet visible={editOpen} onClose={() => setEditOpen(false)} />
     </View>
   );
@@ -201,10 +212,10 @@ export function ProfileScreen() {
 function MiniStat({ label, value, icon, color }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; color: string }) {
   const { theme } = useTheme();
   return (
-    <View style={{ alignItems: 'center', gap: 3 }}>
+    <View style={{ flex: 1, alignItems: 'center', gap: 3, minWidth: 0 }}>
       <Row center gap={4}>
         <Ionicons name={icon} size={13} color={color} />
-        <Txt variant="h3">{value}</Txt>
+        <Txt variant="h3" numberOfLines={1} style={{ fontSize: 15 }}>{value}</Txt>
       </Row>
       <Txt variant="micro" color={theme.textMuted}>{label}</Txt>
     </View>
@@ -298,18 +309,17 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
   );
 }
 export function SupportScreen({ navigation }: any) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { theme } = useTheme();
-  const { db } = useApp();
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('profile.support')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         {[
-          { q: 'كيف أسجل حضوري؟', a: 'افتح زر «امسح» أثناء الجلسة وامسح رمز QR من شاشة المدرب، أو أدخل كود الـ 6 أرقام. الرمز يتجدد كل 25 ثانية فالرمز المصوّر لا يعمل.' },
-          { q: 'ماذا لو غبت؟', a: 'قدّم عذرًا من شاشة «أعذاري» خلال الجلسة التالية. العذر المقبول يحافظ على الستريك بدون نقاط. لو عندك مُجمّد ستُستهلك حمايته تلقائيًا.' },
-          { q: 'كيف أكسب الشهادة؟', a: 'احضر النسبة المطلوبة (الحالية مكتوبة في «قواعد اللعبة») وسيصدر المشرف شهادتك بضغطة عند إغلاق المجموعة، بسيريال ورابط تحقق عام.' },
-          { q: 'كيف يعمل الدوري؟', a: 'نقاط كل أسبوع تُحسب من الصفر. أعلى المجموعة يصعد وأدناها يهبط. الجدد لهم لوحة «نجوم صاعدة» عادلة.' },
+          { q: t('support.attendanceQ'), a: t('support.attendanceA') },
+          { q: t('support.absenceQ'), a: t('support.absenceA') },
+          { q: t('support.certificateQ'), a: t('support.certificateA') },
+          { q: t('support.leagueQ'), a: t('support.leagueA') },
         ].map((f, i) => (
           <FadeIn key={i} index={i + 1}>
             <Card>

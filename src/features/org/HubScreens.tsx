@@ -342,7 +342,7 @@ function BroadcastComposer() {
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed">{title}</Txt>
                 <Txt variant="caption" color={theme.textSecondary}>{body}</Txt>
-                <Txt variant="micro" color={theme.textMuted}>مسار · الآن</Txt>
+                <Txt variant="micro" color={theme.textMuted}>{t('common.appName')} · {t('common.now')}</Txt>
               </View>
             </Row>
           </Card>

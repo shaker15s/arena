@@ -22,6 +22,7 @@ import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, sameDay } from '../../shared/format';
+import { useNow } from '../../shared/hooks';
 
 export function TodayScreen() {
   const { t, lang } = useI18n();
@@ -51,12 +52,13 @@ export function TodayScreen() {
 
   const gam = useMemo(() => (user ? getMyGamification(db, user.id) : null), [db, user]);
   const liveSess = useMemo(() => (user ? liveSessionForStudent(db, user.id) : undefined), [db, user]);
+  const now = useNow(liveSess ? 1_000 : 60_000);
   const nextSess = useMemo(() => (user ? nextSessionForUser(db, user.id) : undefined), [db, user]);
   const near = useMemo(() => (user ? nearestBadge(db, user.id) : null), [db, user]);
   const myEnrollmentCount = db.enrollments.filter((e) => e.userId === user?.id && e.status === 'active').length;
 
   if (!user) return null;
-  const hour = new Date().getHours();
+  const hour = new Date(now).getHours();
   const greeting = hour < 12 ? t('today.morning') : t('today.evening');
   const firstName = user.fullName.split(' ')[0];
 
@@ -192,7 +194,7 @@ export function TodayScreen() {
                       <Txt variant="h2" color="#fff">{liveCourse?.title ?? ''}</Txt>
                       <Txt variant="caption" color="rgba(255,255,255,0.85)">{liveSess.title}</Txt>
                       <Txt variant="micro" color="rgba(255,255,255,0.65)">
-                        {t('today.endsIn')}: {formatDuration(checkinEndsAt - Date.now(), lang)}
+                        {t('today.endsIn')}: {formatDuration(checkinEndsAt - now, lang)}
                       </Txt>
                       <Spacer size={6} />
                       <View style={{
@@ -231,7 +233,7 @@ export function TodayScreen() {
                       <Row center gap={4}>
                         <Ionicons name="time-outline" size={14} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>
-                          {sameDay(nextSess.startsAt, Date.now()) ? t('common.today') : formatDate(nextSess.startsAt, lang)} · {formatTime(nextSess.startsAt, lang)}
+                          {sameDay(nextSess.startsAt, now) ? t('common.today') : formatDate(nextSess.startsAt, lang)} · {formatTime(nextSess.startsAt, lang)}
                         </Txt>
                       </Row>
                       <Row center gap={4}>
@@ -339,11 +341,9 @@ export function TodayScreen() {
         {showEasterEgg && (
           <FadeIn>
             <Card style={{ alignItems: 'center', padding: 20, marginHorizontal: spacing.s5, marginBottom: spacing.s4, borderColor: theme.certGold, borderWidth: 2 }}>
-              <Txt variant="h2" align="center">🔥 أنت أسطورة! 🔥</Txt>
+              <Txt variant="h2" align="center">{t('today.secretTitle')}</Txt>
               <Spacer size={8} />
-              <Txt variant="body" color={theme.textSecondary} align="center">
-                {lang === 'ar' ? 'اكتشفت السر! استمر في التألق' : 'You found the secret! Keep shining'}
-              </Txt>
+              <Txt variant="body" color={theme.textSecondary} align="center">{t('today.secretBody')}</Txt>
             </Card>
           </FadeIn>
         )}

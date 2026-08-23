@@ -28,7 +28,7 @@ function systemTheme(): ThemeName {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [preference, setPreference] = useState<ThemePref>('light');
+  const [preference, setPreference] = useState<ThemePref>('system');
   const [system, setSystem] = useState<ThemeName>(systemTheme());
 
   // استرجاع اختيار المستخدم
@@ -64,6 +64,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const themeName: ThemeName = preference === 'system' ? system : preference;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.documentElement.style.colorScheme = themeName === 'light' ? 'light' : 'dark';
+    document.documentElement.style.backgroundColor = themes[themeName].bg;
+    document.body.style.backgroundColor = themes[themeName].bg;
+  }, [themeName]);
 
   const value = useMemo<ThemeCtx>(
     () => ({

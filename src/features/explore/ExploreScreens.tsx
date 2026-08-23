@@ -313,7 +313,7 @@ export function CourseDetailsScreen({ navigation, route }: any) {
                         mine.status === 'waitlist' ? (
                           <Btn title={t('explore.onWaitlist')} variant="secondary" full disabled icon="time" />
                         ) : (
-                          <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { screen: 'journey' })} />
+                          <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
                         )
                       ) : (
                         <Btn

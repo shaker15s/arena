@@ -18,10 +18,10 @@ import { isReducedMotion } from '../../design/motion';
 
 // ───────────────────────────── Onboarding (عناوين فقط) ─────────────────────────────
 
-const SLIDES: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; from: string; to: string }> = [
-  { icon: 'calendar', title: 'onboarding.o1Title', from: '#007AFF', to: '#5856D6' },
-  { icon: 'qr-code', title: 'onboarding.o2Title', from: '#30D158', to: '#34C759' },
-  { icon: 'trophy', title: 'onboarding.o3Title', from: '#FF9F0A', to: '#FF3B30' },
+const SLIDES: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string; from: string; to: string }> = [
+  { icon: 'calendar', title: 'onboarding.o1Title', body: 'onboarding.o1Body', from: '#007AFF', to: '#5856D6' },
+  { icon: 'qr-code', title: 'onboarding.o2Title', body: 'onboarding.o2Body', from: '#30D158', to: '#34C759' },
+  { icon: 'trophy', title: 'onboarding.o3Title', body: 'onboarding.o3Body', from: '#FF9F0A', to: '#FF3B30' },
 ];
 
 export function OnboardingScreen({ navigation }: any) {
@@ -60,7 +60,7 @@ export function OnboardingScreen({ navigation }: any) {
   const isLast = index === SLIDES.length - 1;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 24, paddingHorizontal: spacing.s6 }}>
+    <View style={{ flex: 1, width: '100%', maxWidth: 820, alignSelf: 'center', backgroundColor: theme.bg, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 24, paddingHorizontal: spacing.s6 }}>
       <View style={{
         position: 'absolute', top: -100, left: -80,
         width: 350, height: 350, borderRadius: 175,
@@ -73,7 +73,7 @@ export function OnboardingScreen({ navigation }: any) {
             colors={[theme.brandGradientFrom, theme.brandGradientTo]}
             style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="map" size={20} color="#fff" />
+            <Image source={require('../../../assets/adaptive-icon.png')} style={{ width: 25, height: 25 }} resizeMode="contain" />
           </LinearGradient>
           <Txt variant="h3">{t('common.appName')}</Txt>
         </Row>
@@ -100,7 +100,10 @@ export function OnboardingScreen({ navigation }: any) {
               <Ionicons name={slide.icon} size={100} color={slide.from} />
             </LinearGradient>
           </Animated.View>
-          <Txt variant="h1" align="center">{t(slide.title as any)}</Txt>
+          <View style={{ alignItems: 'center', gap: 10, maxWidth: 520 }}>
+            <Txt variant="h1" align="center">{t(slide.title as any)}</Txt>
+            <Txt variant="body" color={theme.textSecondary} align="center">{t(slide.body as any)}</Txt>
+          </View>
         </Animated.View>
       </View>
 
@@ -163,7 +166,7 @@ export function SignInScreen({ navigation }: any) {
         backgroundColor: isDark ? 'rgba(175,82,222,0.10)' : 'rgba(88,86,214,0.05)',
       }} />
 
-      <View style={{ flex: 1, padding: spacing.s6, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 580, alignSelf: 'center', padding: spacing.s6, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }}>
         <FadeIn index={0}>
           <LinearGradient
             colors={[theme.brandGradientFrom, theme.brandGradientTo]}
@@ -174,7 +177,7 @@ export function SignInScreen({ navigation }: any) {
               shadowOffset: { width: 0, height: 10 }, elevation: 14,
             }}
           >
-            <Ionicons name="map" size={44} color="#fff" />
+            <Image source={require('../../../assets/adaptive-icon.png')} style={{ width: 58, height: 58 }} resizeMode="contain" />
           </LinearGradient>
         </FadeIn>
         <Spacer size={24} />
@@ -290,7 +293,7 @@ export function CompleteProfileScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.bg }}
-      contentContainerStyle={{ padding: spacing.s6, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
+      contentContainerStyle={{ width: '100%', maxWidth: 680, alignSelf: 'center', padding: spacing.s6, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
       keyboardShouldPersistTaps="handled"
     >
       <Row between center>

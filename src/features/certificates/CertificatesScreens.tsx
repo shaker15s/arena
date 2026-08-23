@@ -14,7 +14,7 @@ import { useApp } from '../../data/store';
 import { batchOf, courseOf, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, Empty, FadeIn, Header, Row, Spacer, Tag, Txt } from '../../design/components';
+import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Row, Spacer, Tag, Txt } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
@@ -51,7 +51,7 @@ export function CertificatesScreen({ navigation }: any) {
                         <Txt variant="h3">{course?.title ?? ''}</Txt>
                         <Txt variant="caption" color={theme.textSecondary}>{branch?.name ?? ''}</Txt>
                       </View>
-                      <Ionicons name="chevron-back" size={18} color={theme.textMuted} />
+                      <DisclosureIcon color={theme.textMuted} />
                     </Row>
                     <Row between center>
                       <Row center gap={5}>

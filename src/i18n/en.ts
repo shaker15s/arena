@@ -3,6 +3,12 @@ import type { DictKey } from './ar';
 
 export const en: Record<DictKey, string> = {
   'common.appName': 'Masar',
+  'common.continue': 'Continue',
+  'common.awesome': 'Awesome!',
+  'common.manual': 'Manual',
+  'common.now': 'Now',
+  'today.secretTitle': '🔥 You are a legend! 🔥',
+  'today.secretBody': 'You found the secret. Keep shining!',
   'joinCode.title': 'Join a batch',
   'joinCode.body': 'Review the join code and course before confirming. Enrollment is recorded once by the server.',
   'joinCode.code': 'Join code',
@@ -169,8 +175,11 @@ export const en: Record<DictKey, string> = {
   'dayShort.6': 'Sat',
 
   'onboarding.o1Title': 'Run your course end-to-end',
+  'onboarding.o1Body': 'Your schedule, sessions, and progress stay together with live, trustworthy updates.',
   'onboarding.o2Title': 'Check in with one scan',
+  'onboarding.o2Body': 'Scan the rotating session code and record your attendance instantly and securely.',
   'onboarding.o3Title': 'Earn points and your certificate',
+  'onboarding.o3Body': 'Track achievements, climb the league, and earn a publicly verifiable certificate.',
   'onboarding.startNow': 'Get started',
   'onboarding.haveAccount': 'I have an account',
 
@@ -624,6 +633,17 @@ export const en: Record<DictKey, string> = {
   'gam.streakProtected': 'We protected your streak with a freeze 🛡️',
   'gam.streakProtectedBody': 'You were absent this week, so a freeze was consumed automatically. Next attendance matters!',
   'gam.freezeEarned': 'You earned a new streak freeze 🛡️ (4 committed weeks!)',
+
+  'profile.logoutConfirm': 'Sign out?',
+  'profile.logoutBody': 'You will need to sign in with Google again to return to your account.',
+  'support.attendanceQ': 'How do I check in?',
+  'support.attendanceA': 'Open Scan during a live session and scan the instructor’s QR, or enter the backup code. The code rotates automatically to protect your attendance.',
+  'support.absenceQ': 'What should I do if I miss a session?',
+  'support.absenceA': 'Submit an excuse from My Excuses. An approved excuse protects your streak without awarding attendance points.',
+  'support.certificateQ': 'How do I earn a certificate?',
+  'support.certificateA': 'Complete the course and meet the required attendance rate. A manager issues your certificate with a serial number and public verification link.',
+  'support.leagueQ': 'How does the league work?',
+  'support.leagueA': 'Each week’s points are calculated independently, then tiers are updated automatically after the fair weekly settlement.',
 
   'error.network': 'Connection failed — check your internet and try again',
 };

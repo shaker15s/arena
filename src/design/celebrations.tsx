@@ -12,6 +12,7 @@ import { useTheme } from './theme';
 import { Btn, Txt } from './components';
 import { duration, isReducedMotion } from './motion';
 import { radii, spacing } from './tokens';
+import { useI18n } from '../i18n';
 
 // ── جسيمات الكونفيتي ──
 const CONFETTI_COLORS = ['#007AFF', '#5856D6', '#30D158', '#FF9F0A', '#FF3B30', '#FFB800', '#34C759'];
@@ -107,14 +108,15 @@ export function CelebrationModal({
   emoji?: string;
 }) {
   const { theme, isDark } = useTheme();
+  const { t } = useI18n();
   const [fly, setFly] = useState(false);
   const flyAnim = useRef(new Animated.Value(0)).current;
   const cardScale = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
     if (visible) {
-      cardScale.setValue(0.85);
-      Animated.spring(cardScale, { toValue: 1, damping: 15, stiffness: 120, useNativeDriver: true }).start();
+      cardScale.setValue(isReducedMotion() ? 1 : 0.85);
+      if (!isReducedMotion()) Animated.spring(cardScale, { toValue: 1, damping: 15, stiffness: 120, useNativeDriver: true }).start();
       setFly(false);
       flyAnim.setValue(0);
       const t = setTimeout(() => {
@@ -168,7 +170,7 @@ export function CelebrationModal({
             </View>
           ) : null}
           <View style={{ alignSelf: 'stretch', marginTop: 10 }}>
-            <Btn title="متابعة" onPress={onClose} size="lg" full />
+            <Btn title={t('common.continue')} onPress={onClose} size="lg" full />
           </View>
         </Animated.View>
       </View>
@@ -182,16 +184,19 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
   rarityLabel: string; rarityColor: string; icon: keyof typeof Ionicons.glyphMap;
 }) {
   const { theme, isDark } = useTheme();
+  const { t } = useI18n();
   const scale = useRef(new Animated.Value(0.3)).current;
   const rotate = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (visible) {
-      scale.setValue(0.3);
-      rotate.setValue(0);
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 9, stiffness: 180 }),
-        Animated.spring(rotate, { toValue: 1, useNativeDriver: true, damping: 15, stiffness: 80 }),
-      ]).start();
+      scale.setValue(isReducedMotion() ? 1 : 0.3);
+      rotate.setValue(isReducedMotion() ? 1 : 0);
+      if (!isReducedMotion()) {
+        Animated.parallel([
+          Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 9, stiffness: 180 }),
+          Animated.spring(rotate, { toValue: 1, useNativeDriver: true, damping: 15, stiffness: 80 }),
+        ]).start();
+      }
     }
   }, [visible, scale, rotate]);
   if (!visible) return null;
@@ -242,7 +247,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
           <Txt variant="h1" align="center">{badgeName}</Txt>
           <Txt variant="body" color={theme.textSecondary} align="center">{badgeDesc}</Txt>
           <View style={{ alignSelf: 'stretch', marginTop: 10 }}>
-            <Btn title="رائع!" onPress={onClose} size="lg" full />
+            <Btn title={t('common.awesome')} onPress={onClose} size="lg" full />
           </View>
         </Animated.View>
       </View>

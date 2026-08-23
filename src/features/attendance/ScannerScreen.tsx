@@ -18,7 +18,7 @@ import { useI18n } from '../../i18n';
 import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
-import { easing } from '../../design/motion';
+import { easing, isReducedMotion } from '../../design/motion';
 
 async function haptic(kind: 'success' | 'error' | 'warning') {
   if (Platform.OS === 'web') return;
@@ -50,6 +50,10 @@ export function ScannerScreen({ navigation }: any) {
   // خط ليزر متحرك داخل الإطار
   const laser = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    if (isReducedMotion()) {
+      laser.setValue(0.5);
+      return undefined;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(laser, { toValue: 1, duration: 1400, easing: easing.inOut, useNativeDriver: true }),
@@ -123,7 +127,7 @@ export function ScannerScreen({ navigation }: any) {
       <View style={{ flex: 1, paddingTop: insets.top + 12, paddingHorizontal: spacing.s5 }}>
         <Row between center>
           <Txt variant="h2" color="#F1F5F9">{t('scanner.title')}</Txt>
-          <Pressable onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={8} onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="close" size={22} color="#F1F5F9" />
           </Pressable>
         </Row>
@@ -133,7 +137,7 @@ export function ScannerScreen({ navigation }: any) {
 
         {/* إطار الماسح */}
         <View style={{ alignItems: 'center', marginVertical: 24 }}>
-          <View style={{ width: frameSize, height: frameSize, borderRadius: 28, borderWidth: 3, borderColor: '#4F46E5', backgroundColor: 'rgba(79,70,229,0.08)', overflow: 'hidden', justifyContent: 'center' }}>
+          <View style={{ width: frameSize, height: frameSize, borderRadius: 28, borderWidth: 3, borderColor: theme.brand, backgroundColor: `${theme.brand}14`, overflow: 'hidden', justifyContent: 'center' }}>
             {permission?.granted ? (
               <CameraView
                 style={{ position: 'absolute', inset: 0 }}
@@ -151,12 +155,12 @@ export function ScannerScreen({ navigation }: any) {
               { bottom: 8, left: 8, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 12 },
               { bottom: 8, right: 8, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 12 },
             ].map((s, i) => (
-              <View pointerEvents="none" key={i} style={[{ position: 'absolute', zIndex: 2, width: 34, height: 34, borderColor: '#8B5CF6' }, s]} />
+              <View pointerEvents="none" key={i} style={[{ position: 'absolute', zIndex: 2, width: 34, height: 34, borderColor: theme.brandGradientTo }, s]} />
             ))}
             <Animated.View pointerEvents="none" style={{
               position: 'absolute', zIndex: 2, left: 16, right: 16, height: 3, borderRadius: 2,
-              backgroundColor: '#14B8A6',
-              shadowColor: '#14B8A6', shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
+              backgroundColor: theme.teal,
+              shadowColor: theme.teal, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
               top: laser.interpolate({ inputRange: [0, 1], outputRange: [16, frameSize - 20] }),
             }} />
           </View>

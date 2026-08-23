@@ -9,7 +9,7 @@ import {
 } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import {
-  Avatar, Btn, Card, Chip, Empty, Header, Input, Row, Segmented, Sheet, Spacer, Tag, Txt,
+  Avatar, Btn, Card, Chip, Empty, Header, Input, Row, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing } from '../../design/tokens';
 import { timePast } from '../../shared/format';
@@ -156,6 +156,8 @@ export function RequestsScreen({ navigation }: any) {
               disabled={subject.trim().length < 3 || body.trim().length < 10 || (kind === 'course_request' && !recipientId)}
             />
           </View>
+        ) : loading && rows.length === 0 ? (
+          <SkeletonList count={3} height={112} />
         ) : (
           rows.length === 0 ? <Empty emoji="📨" title={t('requests.empty')} /> : rows.map((request) => {
             const sender = db.profiles.find((p) => p.id === request.sender_id);

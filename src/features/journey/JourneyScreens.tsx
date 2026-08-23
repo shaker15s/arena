@@ -14,12 +14,13 @@ import { submitCourseRating } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, Chip, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
+  Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
 import { Batch, TrainingSession, AttendanceStatus } from '../../data/types';
+import { useTabs } from '../../app/RootNavigator';
 
 // ───────────────────────────── S14 رحلتي ─────────────────────────────
 
@@ -28,6 +29,7 @@ export function JourneyScreen({ navigation }: any) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user } = useApp();
+  const tabs = useTabs();
   if (!user) return null;
 
   const myEnrollments = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
@@ -42,7 +44,7 @@ export function JourneyScreen({ navigation }: any) {
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {myEnrollments.length === 0 ? (
-            <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => navigation.navigate('Tabs')} />
+            <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => tabs.setTab('explore')} />
           ) : (
             myEnrollments.map((enr, i) => {
               const batch = batchOf(db, enr.batchId);
@@ -85,7 +87,7 @@ export function JourneyScreen({ navigation }: any) {
                             ) : null}
                           </Row>
                         </View>
-                        <Ionicons name="chevron-back" size={18} color={theme.textMuted} />
+                        <DisclosureIcon color={theme.textMuted} />
                       </Row>
                     </Pressable>
                     <Spacer size={10} />
@@ -357,7 +359,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
                       <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>
                         {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
-                        {att.method === 'manual' ? ' · يدوي' : ''}
+                        {att.method === 'manual' ? ` · ${t('common.manual')}` : ''}
                       </Txt>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>

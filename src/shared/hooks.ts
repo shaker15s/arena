@@ -21,6 +21,17 @@ export function useDebounce<T>(value: T, delayMs = 300): T {
   return debouncedValue;
 }
 
+/** ساعة واجهة خفيفة للعدادات الحية؛ تتوقف تلقائيًا عند فك الشاشة. */
+export function useNow(intervalMs = 30_000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), Math.max(1_000, intervalMs));
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
 /**
  * تفاعل اهتزازي لطيف بأسلوب Apple Haptics
  */
