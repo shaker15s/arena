@@ -7,9 +7,8 @@ import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
-import {
-  attendanceOf, batchOf, courseOf, profileOf, rpcReviewExcuse, rpcSubmitExcuse,
-} from '../../data/engine';
+import { attendanceOf, batchOf, courseOf, profileOf } from '../../data/engine';
+import { reviewExcuse, submitExcuse } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -25,7 +24,7 @@ import { Excuse } from '../../data/types';
 export function ExcusesScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const [tab, setTab] = useState<'list' | 'new'>('list');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -54,19 +53,21 @@ export function ExcusesScreen({ navigation }: any) {
 
   const submit = async () => {
     if (!sessionId) { setError(t('excuses.pickSession')); return; }
-    if (reason.trim().length < 4) { setError(t('excuses.reasonLabel')); return; }
+    if (reason.trim().length < 5) { setError(t('excuses.reasonLabel')); return; }
     setSending(true);
-    const r = await mutate((d) => rpcSubmitExcuse(d, user.id, sessionId, reason.trim()));
-    setSending(false);
-    if (!r.ok) {
-      setError(t(`excuses.${r.error}` as any));
-      return;
+    try {
+      await submitExcuse({ sessionId, reason: reason.trim() });
+      await refresh();
+      toast(t('excuses.submitted'), 'success');
+      setTab('list');
+      setSessionId(null);
+      setReason('');
+      setError('');
+    } catch (submitError) {
+      setError((submitError as Error).message);
+    } finally {
+      setSending(false);
     }
-    toast(t('excuses.submitted'), 'success');
-    setTab('list');
-    setSessionId(null);
-    setReason('');
-    setError('');
   };
 
   return (
@@ -110,10 +111,6 @@ export function ExcusesScreen({ navigation }: any) {
               <Spacer size={12} />
               <Input label={t('excuses.reasonLabel')} value={reason} onChange={setReason} placeholder={t('excuses.reasonPlaceholder')} multiline />
               <Spacer size={8} />
-              <Row center gap={6}>
-                <Ionicons name="attach" size={14} color={theme.textMuted} />
-                <Txt variant="micro" color={theme.textMuted}>{t('excuses.attach')}</Txt>
-              </Row>
               {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
               <Spacer size={10} />
               <Btn title={t('excuses.submit')} full size="lg" loading={sending} onPress={submit} icon="send" />
@@ -173,7 +170,7 @@ export function ExcusesInboxScreen() {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
   const [tab, setTab] = useState<'excuses' | 'reports'>('excuses');
@@ -201,10 +198,15 @@ export function ExcusesInboxScreen() {
 
   const review = async (id: string, decision: 'accepted' | 'rejected', note?: string) => {
     if (decision === 'rejected' && !note?.trim()) return;
-    await mutate((d) => rpcReviewExcuse(d, id, user.id, decision, note));
-    toast(decision === 'accepted' ? t('inbox.acceptedSnack') : t('inbox.rejectedSnack'), decision === 'accepted' ? 'success' : 'warn');
-    setRejectId(null);
-    setRejectNote('');
+    try {
+      await reviewExcuse({ excuseId: id, decision, note });
+      await refresh();
+      toast(decision === 'accepted' ? t('inbox.acceptedSnack') : t('inbox.rejectedSnack'), decision === 'accepted' ? 'success' : 'warn');
+      setRejectId(null);
+      setRejectNote('');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    }
   };
 
   return (

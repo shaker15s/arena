@@ -274,7 +274,7 @@ export function CompleteProfileScreen() {
   const submit = async () => {
     if (name.trim().split(/\s+/).length < 2) { setError(t('complete.nameError')); return; }
     if (!/^01\d{9}$/.test(phone.trim())) { setError(t('complete.phoneError')); return; }
-    if (!branchId) { setError(t('complete.chooseBranch')); return; }
+    if (!branchId && user?.role !== 'admin') { setError(t('complete.chooseBranch')); return; }
     setLoading(true);
     const r = await completeProfile({
       fullName: name.trim(),

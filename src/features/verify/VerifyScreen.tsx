@@ -6,8 +6,8 @@ import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useApp } from '../../data/store';
-import { lookupCertificate } from '../../data/engine';
+import { verifyCertificate } from '../../data/actions';
+import type { VerifiedCertificate } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Avatar, Btn, Card, FadeIn, Header, Input, Row, Spacer, Txt } from '../../design/components';
@@ -18,21 +18,24 @@ export function VerifyScreen({ navigation, route }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db } = useApp();
   const [serial, setSerial] = useState<string>(route?.params?.serial ?? '');
-  const [result, setResult] = useState<null | 'found' | 'not-found'>(null);
+  const [result, setResult] = useState<VerifiedCertificate | 'not-found' | 'error' | null>(null);
   const [loading, setLoading] = useState(false);
 
   const check = async () => {
     if (!serial.trim()) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 450));
-    const found = lookupCertificate(db, serial);
-    setResult(found ? 'found' : 'not-found');
-    setLoading(false);
+    try {
+      const certificate = await verifyCertificate(serial);
+      setResult(certificate ?? 'not-found');
+    } catch {
+      setResult('error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const found = result === 'found' ? lookupCertificate(db, serial) : null;
+  const found = result && typeof result !== 'string' ? result : null;
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top }}>
@@ -41,7 +44,7 @@ export function VerifyScreen({ navigation, route }: any) {
         <FadeIn index={1}>
           <Input
             value={serial}
-            onChange={setSerial}
+            onChange={(value) => { setSerial(value); setResult(null); }}
             placeholder={t('verify.serialPlaceholder')}
             icon="key"
           />
@@ -61,6 +64,17 @@ export function VerifyScreen({ navigation, route }: any) {
           </FadeIn>
         ) : null}
 
+        {result === 'error' ? (
+          <FadeIn index={0}>
+            <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55' }}>
+              <Row center gap={12}>
+                <Ionicons name="cloud-offline" size={40} color={theme.warn} />
+                <Txt variant="h3" color={theme.warn} style={{ flex: 1 }}>{t('common.errorTitle')}</Txt>
+              </Row>
+            </Card>
+          </FadeIn>
+        ) : null}
+
         {found ? (
           <FadeIn index={0}>
             <Card style={{ borderColor: theme.success + '66', borderWidth: 2 }}>
@@ -71,16 +85,16 @@ export function VerifyScreen({ navigation, route }: any) {
                     <Txt variant="h3" color={theme.success}>{t('verify.verified')}</Txt>
                   </Row>
                 </View>
-                <Avatar name={found.user.fullName} color={found.user.avatarColor} size={72} />
+                <Avatar name={found.student_name} color={theme.brand} size={72} />
                 <View style={{ alignItems: 'center', gap: 2 }}>
-                  <Txt variant="h2" align="center">{found.user.fullName}</Txt>
-                  <Txt variant="body" color={theme.textSecondary} align="center">{found.course.title}</Txt>
+                  <Txt variant="h2" align="center">{found.student_name}</Txt>
+                  <Txt variant="body" color={theme.textSecondary} align="center">{found.course_title}</Txt>
                 </View>
                 <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 6 }}>
-                  <InfoRow label={t('verify.course')} value={found.course.title} icon="book" />
-                  <InfoRow label={t('common.branch')} value={db.branches.find((b) => b.id === found.batch.branchId)?.name ?? ''} icon="business" />
-                  <InfoRow label={t('verify.issuedAt')} value={formatDate(found.cert.issuedAt, lang)} icon="calendar" />
-                  <InfoRow label={t('certs.serial')} value={found.cert.serial} icon="barcode" />
+                  <InfoRow label={t('verify.course')} value={found.course_title} icon="book" />
+                  <InfoRow label={t('common.branch')} value={found.branch_name} icon="business" />
+                  <InfoRow label={t('verify.issuedAt')} value={formatDate(new Date(found.issued_at).getTime(), lang)} icon="calendar" />
+                  <InfoRow label={t('certs.serial')} value={found.serial} icon="barcode" />
                 </View>
               </View>
             </Card>

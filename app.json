@@ -9,6 +9,25 @@
     "backgroundColor": "#F7F8FC",
     "primaryColor": "#4F46E5",
     "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.masaregypt.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط."
+      }
+    },
+    "android": {
+      "package": "org.masaregypt.app",
+      "permissions": ["CAMERA"]
+    },
     "web": {
       "bundler": "metro",
       "output": "single",

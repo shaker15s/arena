@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Txt } from '../design/components';
+import { Btn, Txt } from '../design/components';
 import { AppBackground } from '../design/glass';
 import { radii, spacing } from '../design/tokens';
+import { PUBLIC_APP_URL } from '../shared/links';
 
 import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
 import { VerifyScreen } from '../features/verify/VerifyScreen';
@@ -23,12 +25,15 @@ import { WalletScreen, LeagueScreen, AchievementsScreen, RulesGuideScreen } from
 import { CertificatesScreen, CertificateViewerScreen } from '../features/certificates/CertificatesScreens';
 import { ExcusesScreen, ExcusesInboxScreen } from '../features/excuses/ExcusesScreens';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
+import { RequestsScreen } from '../features/notifications/RequestsScreen';
 import { ProfileScreen, SupportScreen } from '../features/profile/ProfileScreens';
 import { VolunteerTodayScreen, MyBatchesScreen, StudentRecordScreen, SessionsHistoryScreen } from '../features/volunteer/VolunteerScreens';
 import { LiveSessionScreen } from '../features/volunteer/LiveSessionScreen';
 import { DashboardScreen, OrgManagerScreen, CoursesScreen, BatchesAdminScreen, UsersScreen } from '../features/org/AdminScreens';
 import { OrgWizardScreen } from '../features/org/WizardScreen';
 import { HubScreen, IssueCertificatesScreen } from '../features/org/HubScreens';
+import { CourseManagementScreen } from '../features/courses/CourseManagementScreen';
+import { JoinBatchScreen } from '../features/courses/JoinBatchScreen';
 
 // ─── سياق التبويبات الداخلية ───
 interface TabsCtx {
@@ -42,6 +47,10 @@ export function useTabs() {
 
 const Stack = createNativeStackNavigator<any>();
 const screenOpts = { headerShown: false, animation: 'slide_from_right' as const };
+const linking = {
+  prefixes: [Linking.createURL('/'), ...(PUBLIC_APP_URL ? [PUBLIC_APP_URL] : [])],
+  config: { screens: { Verify: 'verify', JoinBatch: 'join' } },
+};
 
 // ─── تعريف التبويب ───
 export interface TabDef {
@@ -197,7 +206,7 @@ function StudentTabs({ navigation }: any) {
         { key: 'profile', label: t('tabs.profile'), icon: 'person-outline', iconActive: 'person' },
       ]}
       fab={{ icon: 'qr-code', label: t('tabs.scan'), onPress: () => navigation.navigate('Scanner') }}
-      badges={{ profile: unreadCount > 99 ? 99 : 0 }}
+      badges={{ profile: Math.min(unreadCount, 99) }}
       renders={{
         today: () => <TodayScreen />,
         explore: () => <ExploreScreen />,
@@ -267,6 +276,7 @@ function StudentStack() {
     <Stack.Navigator screenOptions={screenOpts}>
       <Stack.Screen name="Tabs" component={StudentTabs} />
       <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
       <Stack.Screen name="JourneyMap" component={JourneyMapScreen} />
       <Stack.Screen name="AttendanceHistory" component={AttendanceHistoryScreen} />
       <Stack.Screen name="Scanner" component={ScannerScreen} options={{ animation: 'fade_from_bottom', presentation: 'fullScreenModal' }} />
@@ -277,6 +287,7 @@ function StudentStack() {
       <Stack.Screen name="CertificateViewer" component={CertificateViewerScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Excuses" component={ExcusesScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
@@ -290,8 +301,13 @@ function VolunteerStack() {
       <Stack.Screen name="Tabs" component={VolunteerTabs} />
       <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
       <Stack.Screen name="SessionsHistory" component={SessionsHistoryScreen} />
+      <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Requests" component={RequestsScreen} />
+      <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="Verify" component={VerifyScreen} />
+      <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
     </Stack.Navigator>
   );
 }
@@ -303,10 +319,15 @@ function AdminStack() {
       <Stack.Screen name="Wizard" component={OrgWizardScreen} options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
+      <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
+      <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
       <Stack.Screen name="IssueCertificates" component={IssueCertificatesScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Requests" component={RequestsScreen} />
+      <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
+      <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
     </Stack.Navigator>
   );
 }
@@ -317,7 +338,24 @@ function AuthStack() {
       <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
+      <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
     </Stack.Navigator>
+  );
+}
+
+function DisabledAccountScreen() {
+  const { logout } = useApp();
+  const { theme } = useTheme();
+  const { t } = useI18n();
+  return (
+    <AppBackground>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 }}>
+        <Ionicons name="lock-closed" size={52} color={theme.danger} />
+        <Txt variant="h2" align="center">{t('account.disabledTitle')}</Txt>
+        <Txt variant="body" color={theme.textSecondary} align="center">{t('account.disabledBody')}</Txt>
+        <Btn title={t('common.logout')} variant="danger" onPress={() => { void logout(); }} />
+      </View>
+    </AppBackground>
   );
 }
 
@@ -349,11 +387,13 @@ export function RootNavigator() {
   }), [isDark, theme]);
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} linking={linking}>
       {needsProfile ? (
         <CompleteProfileStack />
       ) : !user ? (
         <AuthStack />
+      ) : user.status === 'disabled' ? (
+        <DisabledAccountScreen />
       ) : user.role === 'student' ? (
         <StudentStack />
       ) : user.role === 'volunteer' ? (

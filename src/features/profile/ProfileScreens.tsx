@@ -92,6 +92,14 @@ export function ProfileScreen() {
         </FadeIn>
         <FadeIn index={3}>
           <ListRow
+            icon="mail-unread"
+            title="الطلبات والرسائل"
+            subtitle={user.role === 'student' ? 'طلب كورس أو مراجعة ترقية' : 'متابعة طلبات المستخدمين'}
+            onPress={() => navigation.navigate('Requests')}
+          />
+        </FadeIn>
+        <FadeIn index={4}>
+          <ListRow
             icon="language" title={t('common.language')}
             right={<Tag label={lang === 'ar' ? t('common.arabic') : t('common.english')} color={theme.brand} bg={theme.brandSoft} />}
             onPress={() => setLangSheet(true)}
@@ -105,10 +113,7 @@ export function ProfileScreen() {
           />
         </FadeIn>
         <FadeIn index={5}>
-          <ListRow icon="finger-print" title={t('profile.biometric')} right={<CustomSwitch value={false} onChange={() => toast(t('common.comingInV2'), 'info')} />} />
-        </FadeIn>
-        <FadeIn index={6}>
-          <ListRow icon="notifications" title={t('profile.notifications')} right={<CustomSwitch value={true} onChange={() => {}} />} />
+          <ListRow icon="notifications" title={t('profile.notifications')} onPress={() => navigation.navigate('Notifications')} />
         </FadeIn>
         <FadeIn index={7}>
           <ListRow icon="game-controller" title={t('profile.rules')} subtitle={t('rules.title')} onPress={() => navigation.navigate('RulesGuide')} />

@@ -2,7 +2,9 @@
  * shared/export.ts — تصدير التقارير كملف CSV حقيقي.
  * الويب: تنزيل مباشر. الموبايل: مشاركة عبر ورقة المشاركة الأصلية.
  */
-import { Platform, Share } from 'react-native';
+import { Platform } from 'react-native';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 /** يحوّل صفوفًا إلى CSV مع تهريب صحيح وBOM حتى تفتح العربية سليمة في Excel */
 export function toCsv(rows: Array<Array<string | number>>): string {
@@ -28,8 +30,16 @@ export async function saveCsv(filename: string, csv: string): Promise<boolean> {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       return true;
     }
-    const res = await Share.share({ title: filename, message: csv });
-    return res.action !== Share.dismissedAction;
+    if (!(await Sharing.isAvailableAsync())) return false;
+    const safeName = filename.replace(/[^\p{L}\p{N}._-]+/gu, '-');
+    const file = new File(Paths.cache, safeName);
+    file.write(csv);
+    await Sharing.shareAsync(file.uri, {
+      mimeType: 'text/csv',
+      dialogTitle: filename,
+      UTI: 'public.comma-separated-values-text',
+    });
+    return true;
   } catch {
     return false;
   }

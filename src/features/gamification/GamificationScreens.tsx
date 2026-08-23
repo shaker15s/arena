@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
   balanceOf, badgeProgress, getWeeklyLeague, levelOf, nearestBadge, profileOf,
-  risingStars, simulateWeekClose,
+  risingStars,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -127,9 +127,8 @@ export function WalletScreen({ navigation }: any) {
 export function LeagueScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user } = useApp();
   const [board, setBoard] = useState<'league' | 'rising'>('league');
-  const [closing, setClosing] = useState(false);
   if (!user) return null;
 
   const league = getWeeklyLeague(db, user.id);
@@ -138,13 +137,6 @@ export function LeagueScreen({ navigation }: any) {
   const remaining = league.endsAt - Date.now();
   const daysLeft = Math.floor(remaining / 86_400_000);
   const hoursLeft = Math.floor((remaining % 86_400_000) / 3_600_000);
-
-  const closeWeek = async () => {
-    setClosing(true);
-    await mutate((d) => simulateWeekClose(d, user.id));
-    setClosing(false);
-    toast(t('league.weekClosed'), 'success');
-  };
 
   const renderRow = (r: { user: any; xp: number; rank: number; zone: string; isYou: boolean }, i: number) => (
     <FadeIn key={r.user.id} index={Math.min(i, 8)}>
@@ -223,10 +215,6 @@ export function LeagueScreen({ navigation }: any) {
           </>
         )}
 
-        {/* زر تجريبي: محاكاة كرون إقفال الأسبوع (السبت 23:59 على السيرفر) */}
-        <FadeIn index={9}>
-          <Btn title={t('league.simCloseWeek')} variant="ghost" size="sm" loading={closing} onPress={closeWeek} icon="flask" />
-        </FadeIn>
       </ScrollView>
     </View>
   );

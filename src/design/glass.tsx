@@ -36,7 +36,7 @@ export function GlassSurface({
       <View
         pointerEvents="none"
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           {
             backgroundColor: tintColor ?? theme.glass,
             borderRadius: radius,
