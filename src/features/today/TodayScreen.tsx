@@ -1,10 +1,11 @@
 /**
  * features/today — S10 «اليوم»: مركز القيادة.
- * إجابة «إيه اللي عليّ دلوقتي؟» في 5 ثواني — Bento Grid + الستريك والنقاط والدوري.
+ * تصميم Apple Liquid Glass — Bento Grid + الستريك والنقاط والدوري.
  */
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -17,13 +18,14 @@ import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, CountUp, FadeIn, Flame, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
 } from '../../design/components';
+import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, sameDay } from '../../shared/format';
 
 export function TodayScreen() {
   const { t, lang } = useI18n();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user, unreadCount, online } = useApp();
   const navigation = useNavigation<any>();
@@ -50,7 +52,6 @@ export function TodayScreen() {
   const nextBatch = nextSess ? batchOf(db, nextSess.batchId) : undefined;
   const nextCourse = nextBatch ? courseOf(db, nextBatch.courseId) : undefined;
 
-  // أفضل باتش لعرض التقدم
   const myBatches = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
   const primaryBatch = myBatches.length > 0 ? batchOf(db, myBatches[0].batchId) : undefined;
   const pct = primaryBatch ? attendancePct(db, user.id, primaryBatch.id) : null;
@@ -64,6 +65,13 @@ export function TodayScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      {/* Background gradient orbs */}
+      <View style={{
+        position: 'absolute', top: -80, right: -60,
+        width: 300, height: 300, borderRadius: 150,
+        backgroundColor: isDark ? 'rgba(10,132,255,0.06)' : 'rgba(0,122,255,0.04)',
+      }} />
+
       {!online ? (
         <View style={{ backgroundColor: theme.warnSoft, padding: 8, marginTop: insets.top }}>
           <Txt variant="caption" color={theme.warn} align="center">{t('common.offlineBanner')}</Txt>
@@ -74,80 +82,102 @@ export function TodayScreen() {
         <FadeIn index={0}>
           <Row between center style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4 }}>
             <Row center gap={12}>
-              <Avatar name={user.fullName} color={user.avatarColor} size={48} ring={theme.brand} />
+              <Avatar name={user.fullName} color={user.avatarColor} size={50} ring={theme.brand} />
               <View>
-                <Txt variant="caption" color={theme.textSecondary}>{greeting} 👋</Txt>
+                <Txt variant="caption" color={theme.textMuted}>{greeting} 👋</Txt>
                 <Txt variant="h3">{firstName}</Txt>
               </View>
             </Row>
-            <Pressable onPress={() => navigation.navigate('Notifications')} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable
+              onPress={() => navigation.navigate('Notifications')}
+              style={({ pressed }) => ({
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+                alignItems: 'center', justifyContent: 'center',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
               <Ionicons name="notifications-outline" size={21} color={theme.text} />
               {unreadCount > 0 ? (
-                <View style={{ position: 'absolute', top: 8, end: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger }} />
+                <View style={{ position: 'absolute', top: 8, end: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 2, borderColor: theme.bg }} />
               ) : null}
             </Pressable>
           </Row>
         </FadeIn>
 
-        {/* ── شريط المؤشرات الثلاثة ── */}
+        {/* ── شريط المؤشرات الثلاثة — Glass Bubbles ── */}
         {gam ? (
           <FadeIn index={1}>
             <Row gap={10} style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4 }}>
-              <Pressable onPress={() => navigation.navigate('Achievements')} style={{ flex: 1 }}>
-                <Card style={{ paddingVertical: 12, alignItems: 'center', gap: 2 }}>
-                  <Row center gap={5}>
-                    <Flame size={18} urgent={streakUrgent} />
-                    <CountUp value={gam.streak} variant="h3" />
-                  </Row>
-                  <Txt variant="micro" color={theme.textMuted} align="center">{t('today.streakLabel')}</Txt>
-                </Card>
-              </Pressable>
-              <Pressable onPress={() => navigation.navigate('Wallet')} style={{ flex: 1 }}>
-                <Card style={{ paddingVertical: 12, alignItems: 'center', gap: 2 }}>
-                  <Row center gap={5}>
-                    <Ionicons name="star" size={16} color={theme.certGold} />
-                    <CountUp value={gam.points} variant="h3" />
-                  </Row>
-                  <Txt variant="micro" color={theme.textMuted} align="center">{t('today.pointsLabel')}</Txt>
-                </Card>
-              </Pressable>
-              <Pressable onPress={() => navigation.navigate('League')} style={{ flex: 1 }}>
-                <Card style={{ paddingVertical: 12, alignItems: 'center', gap: 2 }}>
-                  <Row center gap={5}>
-                    <Ionicons name="shield" size={16} color={leagueTierColors[gam.leagueTier]} />
-                    <Txt variant="h3">#{gam.leagueRank || '—'}</Txt>
-                  </Row>
-                  <Txt variant="micro" color={theme.textMuted} align="center">{t('today.leagueLabel')} {t(`tier.${gam.leagueTier}` as any)}</Txt>
-                </Card>
-              </Pressable>
+              <StatBubble
+                value={gam.streak}
+                label={t('today.streakLabel')}
+                icon={<Flame size={20} urgent={streakUrgent} />}
+                color="#FF9F0A"
+                onPress={() => navigation.navigate('Achievements')}
+              />
+              <StatBubble
+                value={gam.points}
+                label={t('today.pointsLabel')}
+                icon={<Ionicons name="star" size={20} color={theme.certGold} />}
+                color={theme.certGold}
+                onPress={() => navigation.navigate('Wallet')}
+              />
+              <StatBubble
+                value={`#${gam.leagueRank || '—'}`}
+                label={t(`tier.${gam.leagueTier}` as any)}
+                icon={<Ionicons name="shield" size={20} color={leagueTierColors[gam.leagueTier]} />}
+                color={leagueTierColors[gam.leagueTier]}
+                onPress={() => navigation.navigate('League')}
+              />
             </Row>
           </FadeIn>
         ) : null}
 
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
-          {/* ── بطاقة الجلسة الحية ── */}
+          {/* ── بطاقة الجلسة الحية — Gradient Premium ── */}
           {liveSess && !alreadyChecked ? (
             <FadeIn index={2}>
-              <Card color={theme.brand} style={{ borderColor: 'transparent', overflow: 'hidden' }}>
-                <Row between center>
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
-                    <Txt variant="h3" color="#fff">{liveCourse?.title ?? ''}</Txt>
-                    <Txt variant="caption" color="rgba(255,255,255,0.85)">{liveSess.title}</Txt>
-                    <Txt variant="micro" color="rgba(255,255,255,0.7)">
-                      {t('today.endsIn')}: {formatDuration(checkinEndsAt - Date.now(), lang)}
-                    </Txt>
-                    <Spacer size={4} />
-                    <Btn
-                      title={t('today.checkInNow')}
-                      variant="gold"
-                      icon="qr-code"
-                      onPress={() => navigation.navigate('Scanner')}
-                    />
-                  </View>
-                  <Ionicons name="qr-code-outline" size={84} color="rgba(255,255,255,0.25)" />
-                </Row>
-              </Card>
+              <Pressable onPress={() => navigation.navigate('Scanner')}>
+                <LinearGradient
+                  colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    borderRadius: radii.card,
+                    padding: spacing.s4,
+                    overflow: 'hidden',
+                    shadowColor: theme.brand,
+                    shadowOpacity: 0.3,
+                    shadowRadius: 24,
+                    shadowOffset: { width: 0, height: 12 },
+                    elevation: 12,
+                  }}
+                >
+                  <Row between center>
+                    <View style={{ flex: 1, gap: 8 }}>
+                      <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
+                      <Txt variant="h2" color="#fff">{liveCourse?.title ?? ''}</Txt>
+                      <Txt variant="caption" color="rgba(255,255,255,0.85)">{liveSess.title}</Txt>
+                      <Txt variant="micro" color="rgba(255,255,255,0.65)">
+                        {t('today.endsIn')}: {formatDuration(checkinEndsAt - Date.now(), lang)}
+                      </Txt>
+                      <Spacer size={6} />
+                      <View style={{
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        borderRadius: radii.button,
+                        paddingVertical: 12, paddingHorizontal: 18,
+                        flexDirection: 'row', alignItems: 'center', gap: 8,
+                        alignSelf: 'flex-start',
+                      }}>
+                        <Ionicons name="qr-code" size={18} color="#fff" />
+                        <Txt variant="bodyMed" color="#fff">{t('today.checkInNow')}</Txt>
+                      </View>
+                    </View>
+                    <Ionicons name="qr-code-outline" size={90} color="rgba(255,255,255,0.15)" />
+                  </Row>
+                </LinearGradient>
+              </Pressable>
             </FadeIn>
           ) : null}
 
@@ -156,14 +186,16 @@ export function TodayScreen() {
             <FadeIn index={3}>
               <Card>
                 <Row between center>
-                  <View style={{ flex: 1, gap: 4 }}>
+                  <View style={{ flex: 1, gap: 6 }}>
                     <Row center gap={6}>
-                      <Ionicons name="calendar" size={15} color={theme.brand} />
+                      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="calendar" size={13} color={theme.brand} />
+                      </View>
                       <Txt variant="caption" color={theme.brand}>{t('today.nextSession')}</Txt>
                     </Row>
                     <Txt variant="h3">{nextCourse.title}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>{nextSess.title}</Txt>
-                    <Row center gap={10} wrap>
+                    <Row center gap={12} wrap style={{ marginTop: 4 }}>
                       <Row center gap={4}>
                         <Ionicons name="time-outline" size={14} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>
@@ -176,14 +208,13 @@ export function TodayScreen() {
                       </Row>
                     </Row>
                   </View>
-                  <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: (nextCourse.color ?? theme.brand) + '22', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="book" size={30} color={nextCourse.color ?? theme.brand} />
+                  <View style={{
+                    width: 68, height: 68, borderRadius: 20,
+                    backgroundColor: (nextCourse.color ?? theme.brand) + '1A',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Ionicons name="book" size={32} color={nextCourse.color ?? theme.brand} />
                   </View>
-                </Row>
-                <Spacer size={8} />
-                <Row center gap={6}>
-                  <Ionicons name="notifications" size={13} color={theme.success} />
-                  <Txt variant="micro" color={theme.success}>{t('today.reminderOn')}</Txt>
                 </Row>
               </Card>
             </FadeIn>
@@ -193,14 +224,20 @@ export function TodayScreen() {
           {pct && primaryBatch ? (
             <FadeIn index={4}>
               <Row gap={12}>
-                <Card style={{ flex: 1, alignItems: 'center', gap: 8 }}>
-                  <StatRing size={86} stroke={8} progress={pct.pct / 100} color={pct.pct >= certPct ? theme.success : theme.brand}>
-                    <Txt variant="h3">{pct.pct}%</Txt>
+                <Card style={{ flex: 1, alignItems: 'center', gap: 10, paddingVertical: 18 }}>
+                  <StatRing size={90} stroke={8} progress={pct.pct / 100} color={pct.pct >= certPct ? theme.success : theme.brand}>
+                    <Txt variant="h2" color={pct.pct >= certPct ? theme.success : theme.brand}>{pct.pct}%</Txt>
                   </StatRing>
                   <Txt variant="micro" color={theme.textMuted} align="center">{t('today.attendanceRate')}</Txt>
                 </Card>
-                <Card style={{ flex: 1, alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                  <Ionicons name={pct.pct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={38} color={pct.pct >= certPct ? theme.success : theme.warn} />
+                <Card style={{ flex: 1, alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 18 }}>
+                  <View style={{
+                    width: 56, height: 56, borderRadius: 28,
+                    backgroundColor: pct.pct >= certPct ? theme.successSoft : theme.warnSoft,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Ionicons name={pct.pct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={pct.pct >= certPct ? theme.success : theme.warn} />
+                  </View>
                   <Txt variant="caption" color={pct.pct >= certPct ? theme.success : theme.warn} align="center">
                     {pct.pct >= certPct ? t('today.eligible') : t('today.needMore', { x: needed })}
                   </Txt>
@@ -216,14 +253,18 @@ export function TodayScreen() {
           {near ? (
             <FadeIn index={5}>
               <Card onPress={() => navigation.navigate('Achievements')}>
-                <Row center gap={12}>
-                  <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={near.badge.icon as any} size={26} color={theme.brand} />
+                <Row center gap={14}>
+                  <View style={{
+                    width: 56, height: 56, borderRadius: 18,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Ionicons name={near.badge.icon as any} size={28} color={theme.brand} />
                   </View>
                   <View style={{ flex: 1, gap: 6 }}>
                     <Row between center>
                       <Txt variant="caption" color={theme.textMuted}>{t('today.nearestBadge')}</Txt>
-                      <Txt variant="micro" color={theme.brand}>{Math.round(near.progress * 100)}%</Txt>
+                      <Txt variant="caption" color={theme.brand}>{Math.round(near.progress * 100)}%</Txt>
                     </Row>
                     <Txt variant="bodyMed">{lang === 'ar' ? near.badge.nameAr : near.badge.nameEn}</Txt>
                     <ProgressBar progress={near.progress} />
@@ -236,13 +277,17 @@ export function TodayScreen() {
           {/* ── حالة فارغة: لا كورسات ── */}
           {myEnrollmentCount === 0 ? (
             <FadeIn index={2}>
-              <Card style={{ alignItems: 'center', paddingVertical: spacing.s8, gap: 10 }}>
-                <View style={{ width: 90, height: 90, borderRadius: 45, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="rocket" size={44} color={theme.brand} />
+              <Card style={{ alignItems: 'center', paddingVertical: spacing.s8, gap: 12 }}>
+                <View style={{
+                  width: 100, height: 100, borderRadius: 50,
+                  backgroundColor: theme.brandSoft,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Ionicons name="rocket" size={48} color={theme.brand} />
                 </View>
                 <Txt variant="h2" align="center">{t('today.emptyTitle')}</Txt>
-                <Txt variant="body" color={theme.textSecondary} align="center">{t('today.emptyBody')}</Txt>
-                <Spacer size={6} />
+                <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 280 }}>{t('today.emptyBody')}</Txt>
+                <Spacer size={8} />
                 <Btn title={t('today.exploreCta')} icon="compass" onPress={() => tabs.setTab('explore')} />
               </Card>
             </FadeIn>
@@ -250,8 +295,8 @@ export function TodayScreen() {
 
           {/* ── وصول سريع ── */}
           <FadeIn index={6}>
-            <Txt variant="h3" style={{ marginTop: 4 }}>{t('today.quickActions')}</Txt>
-            <Row gap={10} style={{ marginTop: 10 }}>
+            <Txt variant="h3" style={{ marginTop: 6, marginBottom: 10 }}>{t('today.quickActions')}</Txt>
+            <Row gap={10}>
               <QuickAction icon="shield-half" label={t('excuses.title')} color={theme.info} onPress={() => navigation.navigate('Excuses')} />
               <QuickAction icon="ribbon" label={t('certs.title')} color={theme.certGold} onPress={() => navigation.navigate('Certificates')} />
               <QuickAction icon="wallet" label={t('wallet.title')} color={theme.success} onPress={() => navigation.navigate('Wallet')} />
@@ -265,12 +310,16 @@ export function TodayScreen() {
 }
 
 function QuickAction({ icon, label, color, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; onPress: () => void }) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.9 : 1 })}>
-      <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 14 }}>
-        <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={icon} size={21} color={color} />
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+      <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
+        <View style={{
+          width: 46, height: 46, borderRadius: 14,
+          backgroundColor: color + '1A',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Ionicons name={icon} size={22} color={color} />
         </View>
         <Txt variant="micro" align="center">{label}</Txt>
       </Card>

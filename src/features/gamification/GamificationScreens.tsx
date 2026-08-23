@@ -4,6 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
@@ -49,22 +50,27 @@ export function WalletScreen({ navigation }: any) {
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <Header title={t('wallet.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
-        {/* البطاقة الكبرى */}
+        {/* البطاقة الكبرى — Gradient */}
         <FadeIn index={0}>
-          <Card color={theme.brand} style={{ borderColor: 'transparent', paddingVertical: 26 }}>
-            <View style={{ alignItems: 'center', gap: 6 }}>
-              <Txt variant="caption" color="rgba(255,255,255,0.8)">{t('wallet.total')}</Txt>
+          <LinearGradient
+            colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ borderRadius: radii.card, paddingVertical: 28, paddingHorizontal: 20, shadowColor: theme.brand, shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12 }}
+          >
+            <View style={{ alignItems: 'center', gap: 8 }}>
+              <Txt variant="caption" color="rgba(255,255,255,0.75)">{t('wallet.total')}</Txt>
               <CountUp value={balance} variant="display" color="#fff" />
-              <Row center gap={8} style={{ marginTop: 4 }}>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 5 }}>
-                  <Row center gap={5}>
+              <Row center gap={8} style={{ marginTop: 6 }}>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 7 }}>
+                  <Row center gap={6}>
                     <Ionicons name="shield-half" size={14} color="#fff" />
                     <Txt variant="caption" color="#fff">{t('wallet.level')} {level} · {t(`level.${level}` as any)}</Txt>
                   </Row>
                 </View>
               </Row>
             </View>
-          </Card>
+          </LinearGradient>
         </FadeIn>
 
         {/* تقدم المستوى */}

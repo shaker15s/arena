@@ -1,5 +1,6 @@
 /**
  * design/tokens.ts — المصدر الوحيد للألوان/التايب/المسافات (وثيقة 05)
+ * تصميم أبل الزجاجي (Liquid Glass) — فخامة وشفافية وسلاسة
  * ممنوع أي لون أو مسافة أو خط حرفي خارج هذا الملف.
  */
 
@@ -8,10 +9,10 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  xl: 28,      // شاشات وحوارات
-  card: 20,    // بطاقات
-  cardSm: 16,  // بطاقات صغيرة
-  button: 14,  // أزرار
+  xl: 32,      // شاشات وحوارات — Apple-style أكبر
+  card: 24,    // بطاقات — أكبر وأنعم
+  cardSm: 18,  // بطاقات صغيرة
+  button: 16,  // أزرار
   pill: 999,   // Chips/حبوب
 } as const;
 
@@ -21,7 +22,9 @@ export interface ThemeColors {
   brand: string;
   brandDark: string;
   brandSoft: string;
+  brandGradientFrom: string;
   brandGradientTo: string;
+  brandGradientMid: string;
   teal: string;
   success: string;
   successSoft: string;
@@ -29,80 +32,117 @@ export interface ThemeColors {
   warnSoft: string;
   danger: string;
   dangerSoft: string;
-  info: string;        // سماوي المعذور 🛡️
+  info: string;
   infoSoft: string;
   flameFrom: string;
   flameTo: string;
   certGold: string;
   bg: string;
+  bgGradientFrom: string;
+  bgGradientTo: string;
   card: string;
   glass: string;
+  glassHeavy: string;
+  glassBorder: string;
+  glassShadow: string;
   text: string;
   textSecondary: string;
   textMuted: string;
   line: string;
   overlay: string;
-  // ندرة الشارات
   rarityCommon: string;
   rarityRare: string;
   rarityEpic: string;
   rarityLegendary: string;
+  // Apple-specific
+  cardElevated: string;
+  surfaceGlass: string;
+  backdropBlur: string;
+  separator: string;
 }
 
 export const lightTheme: ThemeColors = {
-  brand: '#4F46E5',
-  brandDark: '#4338CA',
-  brandSoft: '#EEF0FE',
-  brandGradientTo: '#8B5CF6',
-  teal: '#14B8A6',
-  success: '#10B981',
-  successSoft: '#E7F8F1',
-  warn: '#F59E0B',
-  warnSoft: '#FEF4E2',
-  danger: '#EF4444',
-  dangerSoft: '#FDECEC',
-  info: '#0EA5E9',
+  brand: '#007AFF',
+  brandDark: '#0055D4',
+  brandSoft: '#E8F2FF',
+  brandGradientFrom: '#007AFF',
+  brandGradientTo: '#5856D6',
+  brandGradientMid: '#5E5CE6',
+  teal: '#30D158',
+  success: '#34C759',
+  successSoft: '#E8F9ED',
+  warn: '#FF9F0A',
+  warnSoft: '#FFF4E5',
+  danger: '#FF3B30',
+  dangerSoft: '#FFECEB',
+  info: '#5AC8FA',
   infoSoft: '#E5F5FE',
-  flameFrom: '#F59E0B',
-  flameTo: '#EF4444',
-  certGold: '#F0B429',
-  bg: '#F7F8FC',
+  flameFrom: '#FF9F0A',
+  flameTo: '#FF3B30',
+  certGold: '#FFB800',
+  bg: '#F2F2F7',
+  bgGradientFrom: '#FFFFFF',
+  bgGradientTo: '#F2F2F7',
   card: '#FFFFFF',
-  glass: 'rgba(255,255,255,0.72)',
-  text: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#94A3B8',
-  line: '#E6E9F2',
-  overlay: 'rgba(15,23,42,0.42)',
-  rarityCommon: '#94A3B8',
-  rarityRare: '#3B82F6',
-  rarityEpic: '#A855F7',
-  rarityLegendary: '#F0B429',
+  glass: 'rgba(255, 255, 255, 0.72)',
+  glassHeavy: 'rgba(255, 255, 255, 0.85)',
+  glassBorder: 'rgba(255, 255, 255, 0.5)',
+  glassShadow: 'rgba(0, 0, 0, 0.06)',
+  text: '#1C1C1E',
+  textSecondary: '#3C3C43',
+  textMuted: '#8E8E93',
+  line: 'rgba(60, 60, 67, 0.12)',
+  overlay: 'rgba(0, 0, 0, 0.4)',
+  rarityCommon: '#8E8E93',
+  rarityRare: '#007AFF',
+  rarityEpic: '#AF52DE',
+  rarityLegendary: '#FF9F0A',
+  cardElevated: 'rgba(255, 255, 255, 0.9)',
+  surfaceGlass: 'rgba(255, 255, 255, 0.65)',
+  backdropBlur: 'rgba(249, 249, 249, 0.94)',
+  separator: 'rgba(60, 60, 67, 0.1)',
 };
 
 export const darkTheme: ThemeColors = {
   ...lightTheme,
-  brand: '#6D64FF',
-  brandDark: '#5750E8',
-  brandSoft: '#1E2145',
-  bg: '#0A0E1A',
-  card: '#121826',
-  glass: 'rgba(255,255,255,0.06)',
-  successSoft: '#0C2B22',
-  warnSoft: '#33230A',
-  dangerSoft: '#331414',
-  infoSoft: '#0B2638',
-  text: '#F1F5F9',
-  textSecondary: '#A8B0C2',
-  textMuted: '#5B6478',
-  line: 'rgba(255,255,255,0.08)',
-  overlay: 'rgba(0,0,0,0.55)',
+  brand: '#0A84FF',
+  brandDark: '#0066CC',
+  brandSoft: '#0D1F3C',
+  brandGradientFrom: '#0A84FF',
+  brandGradientTo: '#5E5CE6',
+  brandGradientMid: '#5E5CE6',
+  teal: '#30D158',
+  bg: '#000000',
+  bgGradientFrom: '#1C1C1E',
+  bgGradientTo: '#000000',
+  card: '#1C1C1E',
+  glass: 'rgba(28, 28, 30, 0.72)',
+  glassHeavy: 'rgba(28, 28, 30, 0.88)',
+  glassBorder: 'rgba(84, 84, 88, 0.35)',
+  glassShadow: 'rgba(0, 0, 0, 0.3)',
+  successSoft: '#0D2818',
+  warnSoft: '#2D1F00',
+  dangerSoft: '#2D0A08',
+  infoSoft: '#0A1E2E',
+  text: '#FFFFFF',
+  textSecondary: '#EBEBF5',
+  textMuted: '#8E8E93',
+  line: 'rgba(84, 84, 88, 0.25)',
+  overlay: 'rgba(0, 0, 0, 0.65)',
+  cardElevated: 'rgba(44, 44, 46, 0.8)',
+  surfaceGlass: 'rgba(28, 28, 30, 0.65)',
+  backdropBlur: 'rgba(22, 22, 24, 0.94)',
+  separator: 'rgba(84, 84, 88, 0.2)',
 };
 
 export const oledTheme: ThemeColors = {
   ...darkTheme,
   bg: '#000000',
-  card: '#0B0F18',
+  bgGradientFrom: '#0A0A0A',
+  bgGradientTo: '#000000',
+  card: '#0C0C0E',
+  glass: 'rgba(12, 12, 14, 0.78)',
+  glassHeavy: 'rgba(12, 12, 14, 0.92)',
 };
 
 export const themes: Record<ThemeName, ThemeColors> = {
@@ -111,7 +151,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
   oled: oledTheme,
 };
 
-// خط IBM Plex Sans Arabic بأوزانه — مفاتيح التحميل من @expo-google-fonts
+// خط IBM Plex Sans Arabic بأوزانه
 export const fonts = {
   regular: 'IBMPlexSansArabic_400Regular',
   medium: 'IBMPlexSansArabic_500Medium',
@@ -120,38 +160,38 @@ export const fonts = {
 } as const;
 
 export const typography = {
-  display: { fontSize: 34, lineHeight: 42, fontFamily: fonts.bold },
-  h1: { fontSize: 26, lineHeight: 34, fontFamily: fonts.bold },
-  h2: { fontSize: 21, lineHeight: 28, fontFamily: fonts.semibold },
+  display: { fontSize: 36, lineHeight: 44, fontFamily: fonts.bold },
+  h1: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
+  h2: { fontSize: 22, lineHeight: 28, fontFamily: fonts.semibold },
   h3: { fontSize: 17, lineHeight: 24, fontFamily: fonts.semibold },
   body: { fontSize: 15.5, lineHeight: 24, fontFamily: fonts.regular },
   bodyMed: { fontSize: 15.5, lineHeight: 24, fontFamily: fonts.medium },
   caption: { fontSize: 13, lineHeight: 18, fontFamily: fonts.medium },
   micro: { fontSize: 11, lineHeight: 14, fontFamily: fonts.medium },
-  numberHero: { fontSize: 28, lineHeight: 34, fontFamily: fonts.bold },
+  numberHero: { fontSize: 32, lineHeight: 40, fontFamily: fonts.bold },
 } as const;
 
 // مستويات مسار (وثيقة 04 §2.3)
 export const levels = [
-  { level: 1, threshold: 0, color: '#94A3B8' },
-  { level: 2, threshold: 100, color: '#14B8A6' },
-  { level: 3, threshold: 300, color: '#0EA5E9' },
+  { level: 1, threshold: 0, color: '#8E8E93' },
+  { level: 2, threshold: 100, color: '#30D158' },
+  { level: 3, threshold: 300, color: '#5AC8FA' },
   { level: 4, threshold: 700, color: '#CD7F32' },
-  { level: 5, threshold: 1500, color: '#A8B0C2' },
-  { level: 6, threshold: 3000, color: '#F0B429' },
-  { level: 7, threshold: 6000, color: '#7DD3FC' },
-  { level: 8, threshold: 12000, color: '#F0B429' },
+  { level: 5, threshold: 1500, color: '#C7C7CC' },
+  { level: 6, threshold: 3000, color: '#FFB800' },
+  { level: 7, threshold: 6000, color: '#BF5AF2' },
+  { level: 8, threshold: 12000, color: '#FF375F' },
 ] as const;
 
 // فئات الدوري (وثيقة 04 §5)
 export const leagueTiers = ['bronze', 'silver', 'gold', 'ruby', 'master'] as const;
 export type LeagueTier = (typeof leagueTiers)[number];
 export const leagueTierColors: Record<LeagueTier, string> = {
-  bronze: '#B0793F',
-  silver: '#A8B0C2',
-  gold: '#F0B429',
-  ruby: '#EF4444',
-  master: '#8B5CF6',
+  bronze: '#CD7F32',
+  silver: '#C7C7CC',
+  gold: '#FFB800',
+  ruby: '#FF375F',
+  master: '#BF5AF2',
 };
 
 // دلالات حالات الحضور — ألوان مقدسة (وثيقة 05 §2.3)
@@ -159,5 +199,47 @@ export const attendanceColors = {
   present: lightTheme.success,
   late: lightTheme.warn,
   excused: lightTheme.info,
-  absent: '#64748B',
+  absent: '#8E8E93',
 };
+
+// ═══════════════ Apple Glass Utilities ═══════════════
+export const glassEffects = {
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 } as const,
+    elevation: 8,
+  },
+  cardDark: {
+    backgroundColor: 'rgba(28, 28, 30, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(84, 84, 88, 0.35)',
+    borderRadius: 24,
+  },
+  elevated: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 12 } as const,
+    elevation: 12,
+  },
+  tabBar: {
+    backgroundColor: 'rgba(249, 249, 249, 0.94)',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(60, 60, 67, 0.12)',
+  },
+  tabBarDark: {
+    backgroundColor: 'rgba(22, 22, 24, 0.94)',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(84, 84, 88, 0.25)',
+  },
+} as const;
