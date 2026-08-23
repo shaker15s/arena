@@ -1,292 +1,458 @@
--- ═══════════════════════════════════════════════════════════════════
--- مسار 3.0 — Migration 0001: المخطط الأساسي + جداول الجيميفيكيشن الجديدة
--- (وثيقة 06 §3) — تُراجع يدويًا وتُطبَّق على staging قبل الإنتاج.
--- ═══════════════════════════════════════════════════════════════════
+-- MASAR 3.2 — canonical baseline schema.
+-- This is the only baseline applied by Supabase CLI; it contains no demo organization data.
 
-create extension if not exists pgcrypto;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ── الجداول المنقولة من 2.0 (بتنقيح) ──
-create table if not exists branches (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  governorate text not null,
-  address text default '',
-  supervisor_id uuid,
-  created_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- 2. CORE TABLES
+-- ═══════════════════════════════════════════════════════════════
+
+-- ═══════════════════════════════════════════════════════════════
+-- PROFILES - Extended user profiles
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  email TEXT,
+  phone TEXT,
+  full_name TEXT,
+  role TEXT DEFAULT 'student' CHECK (role IN ('student', 'volunteer', 'supervisor', 'admin')),
+  avatar_url TEXT,
+  avatar_color TEXT DEFAULT '#007AFF',
+  branch_id UUID,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+  gender TEXT CHECK (gender IN ('m', 'f', NULL)),
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists profiles (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  full_name text not null,
-  phone text unique not null,
-  role text not null default 'student' check (role in ('student','volunteer','supervisor','admin')),
-  branch_id uuid references branches(id),
-  avatar_url text,
-  gender text default 'm' check (gender in ('m','f')),
-  status text not null default 'active' check (status in ('active','disabled')),
-  joined_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- BRANCHES - RTC Training Centers
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.branches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  governorate TEXT NOT NULL,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  facebook_url TEXT,
+  supervisor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists committees (
-  id uuid primary key default gen_random_uuid(),
-  branch_id uuid not null references branches(id) on delete cascade,
-  name text not null
+-- Add foreign key for profiles.branch_id
+ALTER TABLE public.profiles ADD CONSTRAINT fk_branch FOREIGN KEY (branch_id) REFERENCES public.branches(id) ON DELETE SET NULL;
+
+-- ═══════════════════════════════════════════════════════════════
+-- COMMITTEES - Committees within branches
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.committees (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists courses (
-  id uuid primary key default gen_random_uuid(),
-  committee_id uuid not null references committees(id),
-  title text not null,
-  field text not null,
-  description text default '',
-  topics text[] default '{}',
-  sessions_count int not null default 8,
-  status text not null default 'draft' check (status in ('draft','published','archived')),
-  color text default '#4F46E5'
+-- ═══════════════════════════════════════════════════════════════
+-- COURSES - Training courses
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.courses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  committee_id UUID REFERENCES public.committees(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  field TEXT NOT NULL,
+  description TEXT,
+  topics TEXT[] DEFAULT '{}',
+  sessions_count INTEGER DEFAULT 8,
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  color TEXT DEFAULT '#007AFF',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists batches (
-  id uuid primary key default gen_random_uuid(),
-  course_id uuid not null references courses(id),
-  branch_id uuid not null references branches(id),
-  instructor_id uuid not null references profiles(user_id),
-  capacity int not null default 25,
-  schedule_json jsonb not null,          -- {days:[6,2], time:"18:00", durationMin:120}
-  start_date timestamptz not null,
-  room text default '',
-  status text not null default 'scheduled' check (status in ('scheduled','active','completed','archived')),
-  join_code text unique
+-- ═══════════════════════════════════════════════════════════════
+-- BATCHES - Training groups/batches
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
+  branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE CASCADE,
+  instructor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  capacity INTEGER DEFAULT 25,
+  schedule JSONB DEFAULT '{"days": [], "time": "18:00", "durationMin": 120}',
+  start_date DATE,
+  room TEXT,
+  status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'active', 'completed', 'archived')),
+  join_code TEXT UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists enrollments (
-  user_id uuid not null references profiles(user_id),
-  batch_id uuid not null references batches(id),
-  status text not null default 'active' check (status in ('active','waitlist')),
-  joined_at timestamptz not null default now(),
-  primary key (user_id, batch_id)
+-- ═══════════════════════════════════════════════════════════════
+-- ENROLLMENTS - Student enrollments
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.enrollments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  batch_id UUID NOT NULL REFERENCES public.batches(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'waitlist', 'completed')),
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, batch_id)
 );
 
-create table if not exists sessions (
-  id uuid primary key default gen_random_uuid(),
-  batch_id uuid not null references batches(id) on delete restrict, -- لا حذف لتاريخ التدريب
-  seq int not null,
-  title text not null,
-  starts_at timestamptz not null,
-  duration_min int not null default 120,
-  status text not null default 'scheduled' check (status in ('scheduled','live','closed')),
-  started_at timestamptz,
-  closed_at timestamptz,
-  qr_seed text,
-  unique (batch_id, seq)
+-- ═══════════════════════════════════════════════════════════════
+-- SESSIONS - Training sessions
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  batch_id UUID NOT NULL REFERENCES public.batches(id) ON DELETE CASCADE,
+  seq INTEGER NOT NULL,
+  title TEXT,
+  starts_at TIMESTAMPTZ NOT NULL,
+  duration_min INTEGER DEFAULT 120,
+  status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'live', 'closed')),
+  started_at TIMESTAMPTZ,
+  closed_at TIMESTAMPTZ,
+  qr_seed TEXT,
+  report JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists attendance (
-  session_id uuid not null references sessions(id) on delete restrict,
-  user_id uuid not null references profiles(user_id),
-  status text not null check (status in ('present','late','absent','excused')),
-  checked_in_at timestamptz,
-  method text check (method in ('qr','code','manual')),
-  note text,
-  primary key (session_id, user_id)
+-- ═══════════════════════════════════════════════════════════════
+-- ATTENDANCE - Session attendance
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.attendance (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID NOT NULL REFERENCES public.sessions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK (status IN ('present', 'late', 'absent', 'excused')),
+  checked_in_at TIMESTAMPTZ,
+  method TEXT CHECK (method IN ('qr', 'code', 'manual', NULL)),
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(session_id, user_id)
 );
 
-create table if not exists excuses (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(user_id),
-  session_id uuid not null references sessions(id),
-  reason text not null,
-  file_url text,
-  status text not null default 'pending' check (status in ('pending','accepted','rejected')),
-  note text,
-  reviewed_by uuid references profiles(user_id),
-  created_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- POINT_EVENTS - Points ledger (source of truth)
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.point_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  points INTEGER NOT NULL,
+  reason_code TEXT NOT NULL,
+  ref_type TEXT CHECK (ref_type IN ('session', 'course', 'batch', 'admin', NULL)),
+  ref_id UUID,
+  awarded_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  idempotency_key TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists session_reports (
-  id uuid primary key default gen_random_uuid(),
-  session_id uuid not null references sessions(id),
-  done text default '',
-  planned text default '',
-  challenges text default '',
-  submitted_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- STREAK_WEEKS - Weekly streak tracking
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.streak_weeks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('tracking', 'kept', 'frozen', 'pending', 'broken')),
+  sessions_total INTEGER DEFAULT 0,
+  sessions_honored INTEGER DEFAULT 0,
+  freeze_used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, week_start)
 );
 
-create table if not exists certificates (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(user_id),
-  batch_id uuid not null references batches(id),
-  serial text unique not null,
-  issued_at timestamptz not null default now(),
-  unique (user_id, batch_id)
+-- ═══════════════════════════════════════════════════════════════
+-- GAMIFICATION - Gamification profiles cache
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.gamification (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE,
+  current_streak_weeks INTEGER DEFAULT 0,
+  longest_streak_weeks INTEGER DEFAULT 0,
+  freezes_held INTEGER DEFAULT 1,
+  league_tier TEXT DEFAULT 'bronze' CHECK (league_tier IN ('bronze', 'silver', 'gold', 'ruby', 'master')),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists course_ratings (
-  user_id uuid not null references profiles(user_id),
-  course_id uuid not null references courses(id),
-  stars int not null check (stars between 1 and 5),
-  comment text,
-  created_at timestamptz not null default now(),
-  primary key (user_id, course_id)
+-- ═══════════════════════════════════════════════════════════════
+-- BADGES - Badge definitions
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.badges (
+  code TEXT PRIMARY KEY,
+  name_ar TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  desc_ar TEXT,
+  desc_en TEXT,
+  rarity TEXT NOT NULL CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
+  icon TEXT NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── الجداول الجديدة: قلب مسار 3.0 ──
-
--- دفتر النقاط: مصدر الحقيقة الوحيد — الرصيد = SUM(points)
-create table if not exists point_events (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(user_id),
-  points int not null check (points >= 0),          -- لا سالب أبدًا
-  reason_code text not null,
-  ref_type text,
-  ref_id uuid,
-  awarded_by uuid references profiles(user_id),      -- NULL = النظام
-  idempotency_key text not null unique,              -- الضغطة المكررة = نتيجة واحدة
-  created_at timestamptz not null default now()
-);
-create index if not exists point_events_user_week on point_events (user_id, created_at);
-
--- الاستريك: تقييم أسبوعي محفوظ للتاريخ
-create table if not exists streak_weeks (
-  user_id uuid not null references profiles(user_id),
-  week_start date not null,
-  status text not null check (status in ('tracking','kept','frozen','pending','broken')),
-  sessions_total int not null default 0,
-  sessions_honored int not null default 0,
-  freeze_used boolean not null default false,
-  primary key (user_id, week_start)
+-- ═══════════════════════════════════════════════════════════════
+-- USER_BADGES - Earned badges
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.user_badges (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  badge_code TEXT NOT NULL REFERENCES public.badges(code) ON DELETE CASCADE,
+  awarded_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, badge_code)
 );
 
--- كاش مشتق — يُعاد بناؤه دائمًا من الدفاتر
-create table if not exists profiles_gamification (
-  user_id uuid primary key references profiles(user_id),
-  current_streak_weeks int not null default 0,
-  longest_streak_weeks int not null default 0,
-  freezes_held int not null default 1,
-  level int not null default 1,
-  league_tier text not null default 'bronze' check (league_tier in ('bronze','silver','gold','ruby','master')),
-  updated_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- LEAGUE_WEEKS - Weekly league history
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.league_weeks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,
+  tier TEXT NOT NULL,
+  xp_week INTEGER DEFAULT 0,
+  final_rank INTEGER,
+  outcome TEXT CHECK (outcome IN ('promoted', 'stayed', 'relegated', NULL)),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists badges (
-  code text primary key,
-  name_ar text not null,
-  name_en text not null,
-  desc_ar text not null default '',
-  desc_en text not null default '',
-  rarity text not null check (rarity in ('common','rare','epic','legendary')),
-  icon text not null,
-  active boolean not null default true
+-- ═══════════════════════════════════════════════════════════════
+-- CERTIFICATES - Issued certificates
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.certificates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  batch_id UUID NOT NULL REFERENCES public.batches(id) ON DELETE CASCADE,
+  serial TEXT UNIQUE NOT NULL,
+  issued_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists user_badges (
-  user_id uuid not null references profiles(user_id),
-  badge_code text not null references badges(code),
-  context_json jsonb default '{}',
-  awarded_at timestamptz not null default now(),
-  primary key (user_id, badge_code)
+-- ═══════════════════════════════════════════════════════════════
+-- EXCUSES - Student excuses
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.excuses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id UUID NOT NULL REFERENCES public.sessions(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  attachment_url TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+  note TEXT,
+  reviewed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists league_weeks (
-  user_id uuid not null references profiles(user_id),
-  week_start date not null,
-  tier text not null,
-  xp_week int not null default 0,
-  final_rank int,
-  outcome text check (outcome in ('promoted','stayed','relegated')),
-  primary key (user_id, week_start)
+-- ═══════════════════════════════════════════════════════════════
+-- COURSE_RATINGS - Course ratings
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.course_ratings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
+  stars INTEGER NOT NULL CHECK (stars >= 1 AND stars <= 5),
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, course_id)
 );
 
--- توكنات QR الدوّارة (تسلسل كل 25 ثانية)
-create table if not exists session_qr_tokens (
-  session_id uuid not null references sessions(id) on delete cascade,
-  seq int not null,
-  token_hash text not null,
-  valid_from timestamptz not null,
-  valid_until timestamptz not null,
-  primary key (session_id, seq)
+-- ═══════════════════════════════════════════════════════════════
+-- INSTRUCTOR_RATINGS - Instructor ratings (NEW!)
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.instructor_ratings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  instructor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  batch_id UUID REFERENCES public.batches(id) ON DELETE CASCADE,
+  stars INTEGER NOT NULL CHECK (stars >= 1 AND stars <= 5),
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- قواعد اللعبة — يظبطها المشرف من S49
-create table if not exists gamification_rules (
-  key text primary key,
-  value jsonb not null,
-  scope jsonb not null default '"global"',
-  updated_by uuid references profiles(user_id),
-  updated_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- ORGANIZATION_RATINGS - Organization/branch ratings (NEW!)
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.organization_ratings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  branch_id UUID NOT NULL REFERENCES public.branches(id) ON DELETE CASCADE,
+  stars INTEGER NOT NULL CHECK (stars >= 1 AND stars <= 5),
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- شفافية إدارية — لا يُحذف أبدًا
-create table if not exists audit_log (
-  id uuid primary key default gen_random_uuid(),
-  actor_id uuid references profiles(user_id),
-  action text not null,
-  target text,
-  payload jsonb default '{}',
-  created_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- GAMIFICATION_RULES - Game rules (admin-configurable)
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.gamification_rules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  key TEXT UNIQUE NOT NULL,
+  value JSONB NOT NULL,
+  scope JSONB DEFAULT '{"type": "global"}',
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists kudos_quota (
-  instructor_id uuid not null references profiles(user_id),
-  month text not null,                    -- 'YYYY-M'
-  spent int not null default 0,
-  primary key (instructor_id, month)
+-- ═══════════════════════════════════════════════════════════════
+-- AUDIT_LOG - Audit trail
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.audit_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  target TEXT,
+  payload JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-create table if not exists notifications (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(user_id),
-  title text not null,
-  body text not null,
-  type text not null,
-  read boolean not null default false,
-  created_at timestamptz not null default now()
+-- ═══════════════════════════════════════════════════════════════
+-- KUDOS_QUOTAS - Monthly kudos quotas
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.kudos_quotas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  instructor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  month TEXT NOT NULL, -- Format: "2026-8"
+  spent INTEGER DEFAULT 0,
+  UNIQUE(instructor_id, month)
 );
 
-create table if not exists private_notes (
-  instructor_id uuid not null references profiles(user_id),
-  user_id uuid not null references profiles(user_id),
-  note text not null,
-  updated_at timestamptz not null default now(),
-  primary key (instructor_id, user_id)
+-- ═══════════════════════════════════════════════════════════════
+-- NOTIFICATIONS - User notifications
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT,
+  type TEXT NOT NULL CHECK (type IN ('session', 'excuse', 'badge', 'cert', 'league', 'broadcast', 'streak', 'system')),
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── RLS: Zero-Trust — الطالب يرى نفسه فقط في الدفاتر ──
-alter table profiles enable row level security;
-alter table point_events enable row level security;
-alter table attendance enable row level security;
-alter table certificates enable row level security;
-alter table gamification_rules enable row level security;
-alter table audit_log enable row level security;
-
--- قراءة القواعد للجميع (شفافية)، تعديلها لمشرف/أدمن فقط
-drop policy if exists rules_read_all on gamification_rules;
-create policy rules_read_all on gamification_rules for select using (true);
-drop policy if exists rules_write_admin on gamification_rules;
-create policy rules_write_admin on gamification_rules for all using (
-  exists (select 1 from profiles p where p.user_id = auth.uid() and p.role in ('supervisor','admin'))
+-- ═══════════════════════════════════════════════════════════════
+-- PRIVATE_NOTES - Instructor private notes about students
+-- ═══════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.private_notes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  instructor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  note TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(instructor_id, user_id)
 );
 
--- المستخدم يرى دفتره فقط
-drop policy if exists points_read_own on point_events;
-create policy points_read_own on point_events for select using (user_id = auth.uid());
+-- ═══════════════════════════════════════════════════════════════
+-- 3. INDEXES
+-- ═══════════════════════════════════════════════════════════════
 
--- حضور الطالب لنفسه، والمدرب لباتشاته
-drop policy if exists attendance_read_scope on attendance;
-create policy attendance_read_scope on attendance for select using (
-  user_id = auth.uid()
-  or exists (
-    select 1 from sessions s join batches b on b.id = s.batch_id
-    where s.id = attendance.session_id and b.instructor_id = auth.uid()
-  )
-  or exists (select 1 from profiles p where p.user_id = auth.uid() and p.role in ('supervisor','admin'))
-);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_branch_id ON public.profiles(branch_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+CREATE INDEX IF NOT EXISTS idx_batches_course_id ON public.batches(course_id);
+CREATE INDEX IF NOT EXISTS idx_batches_branch_id ON public.batches(branch_id);
+CREATE INDEX IF NOT EXISTS idx_batches_instructor_id ON public.batches(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_enrollments_user_id ON public.enrollments(user_id);
+CREATE INDEX IF NOT EXISTS idx_enrollments_batch_id ON public.enrollments(batch_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_batch_id ON public.sessions(batch_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_status ON public.sessions(status);
+CREATE INDEX IF NOT EXISTS idx_attendance_session_id ON public.attendance(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON public.attendance(user_id);
+CREATE INDEX IF NOT EXISTS idx_point_events_user_id ON public.point_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_point_events_created_at ON public.point_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_streak_weeks_user_id ON public.streak_weeks(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(read);
+CREATE INDEX IF NOT EXISTS idx_certificates_user_id ON public.certificates(user_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_serial ON public.certificates(serial);
+CREATE INDEX IF NOT EXISTS idx_course_ratings_course_id ON public.course_ratings(course_id);
+CREATE INDEX IF NOT EXISTS idx_instructor_ratings_instructor_id ON public.instructor_ratings(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_organization_ratings_branch_id ON public.organization_ratings(branch_id);
 
--- التحقق العام من الشهادات: قراءة بالسيريال فقط (بدون مستخدم)
-drop policy if exists certs_public_verify on certificates;
-create policy certs_public_verify on certificates for select using (true);
+-- ═══════════════════════════════════════════════════════════════
+-- 4. ROW LEVEL SECURITY (RLS)
+-- ═══════════════════════════════════════════════════════════════
 
--- العمليات: قراءة للمشرف/الأدمن فقط
-drop policy if exists audit_read_admin on audit_log;
-create policy audit_read_admin on audit_log for select using (
-  exists (select 1 from profiles p where p.user_id = auth.uid() and p.role in ('supervisor','admin'))
-);
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.committees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.point_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.streak_weeks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gamification ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.league_weeks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.excuses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.instructor_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organization_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gamification_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kudos_quotas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.private_notes ENABLE ROW LEVEL SECURITY;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Timestamp maintenance (authorization and business RPCs follow later).
+-- ═══════════════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_branches_updated_at BEFORE UPDATE ON public.branches
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_courses_updated_at BEFORE UPDATE ON public.courses
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_batches_updated_at BEFORE UPDATE ON public.batches
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_gamification_updated_at BEFORE UPDATE ON public.gamification
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Reference-only seed data. Organization branches, courses, users and batches
+-- are intentionally never fabricated by a production migration.
+INSERT INTO public.badges (code,name_ar,name_en,desc_ar,desc_en,rarity,icon,active) VALUES
+  ('first_step','البداية الصح','Right Start','أول حضور في تاريخك','Your first attendance','common','footsteps',true),
+  ('consistent','المواظب','Consistent','4 محاضرات متتالية','4 consecutive sessions','common','calendar',true),
+  ('early_bird','الطائر المبكر','Early Bird','10 حضورات مبكرة','10 early check-ins','rare','sunny',true),
+  ('perfection','الكمال','Perfection','شهر حضور 100%','Perfect month','epic','diamond',true),
+  ('super_streak','السوبر ستريك','Super Streak','8 أسابيع التزام','8 week streak','epic','flame',true),
+  ('month_star','نجم الشهر','Star of Month','أعلى نقاط الشهر','Top monthly points','epic','star',true),
+  ('top_scorer','المتصدر','Top Scorer','صدارة الدوري','League leader','common','trophy',true),
+  ('climber','الصاعد','Climber','صعود دوري','League promotion','rare','trending-up',true),
+  ('cert_hunter','صائد الشهادات','Cert Hunter','أول شهادة','First certificate','rare','ribbon',true),
+  ('pro_expert','الخبير','Pro Expert','3 شهادات مكتملة','3 completed certificates','epic','medal',true),
+  ('honest_reviewer','المقيّم الأمين','Honest Reviewer','تقييم 3 كورسات','Rate 3 courses','common','chatbubble-ellipses',true),
+  -- Seasons are not yet a persisted domain, so this definition remains hidden.
+  ('season_legend','أسطورة الموسم','Season Legend','أعلى نقاط الموسم','Top season points','legendary','crown',false)
+ON CONFLICT(code) DO NOTHING;
+
+INSERT INTO public.gamification_rules(key,value,scope) VALUES
+  ('points.present','{"value":10}','{"type":"global"}'),
+  ('points.late','{"value":7}','{"type":"global"}'),
+  ('attendance.late_window_min','{"value":15}','{"type":"global"}'),
+  ('certificate.min_attendance_pct','{"value":75}','{"type":"global"}'),
+  ('kudos.monthly_quota_per_instructor','{"value":200}','{"type":"global"}'),
+  ('streak.freeze_max_hold','{"value":2}','{"type":"global"}'),
+  ('streak.min_sessions_week','{"value":1}','{"type":"global"}'),
+  ('league.promotion_pct','{"value":15}','{"type":"global"}'),
+  ('league.relegation_pct','{"value":15}','{"type":"global"}'),
+  ('points.month_bonus','{"value":50}','{"type":"global"}'),
+  ('points.course_complete','{"value":100}','{"type":"global"}'),
+  ('points.rating','{"value":5}','{"type":"global"}')
+ON CONFLICT(key) DO NOTHING;

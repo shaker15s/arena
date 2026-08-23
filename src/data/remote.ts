@@ -38,29 +38,64 @@ export function emptyDb(): Db {
 
 // ───────────────────────── القراءة ─────────────────────────
 
-async function selectAll<T>(table: string, columns = '*'): Promise<T[]> {
+const READ_PAGE_SIZE = 500;
+const MAX_READ_ROWS = 100_000;
+
+async function selectAll<T>(table: string, columns = '*', orderColumn = 'id'): Promise<T[]> {
   const sb = getSupabase();
-  const { data, error } = await sb.from(table).select(columns).limit(5000);
+  const rows: T[] = [];
+  for (let from = 0; from < MAX_READ_ROWS; from += READ_PAGE_SIZE) {
+    const { data, error } = await sb.from(table).select(columns)
+      .order(orderColumn, { ascending: true })
+      .range(from, from + READ_PAGE_SIZE - 1);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    const page = (data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < READ_PAGE_SIZE) return rows;
+  }
+  throw new Error(`${table}: safety limit of ${MAX_READ_ROWS} rows exceeded; use a server-side paginated view`);
+}
+
+async function selectRecent<T>(table: string, columns = '*', limit = 500): Promise<T[]> {
+  const { data, error } = await getSupabase().from(table).select(columns)
+    .order('created_at', { ascending: false }).limit(limit);
   if (error) throw new Error(`${table}: ${error.message}`);
   return (data ?? []) as T[];
 }
 
-/** يقرأ القاعدة كاملة من Supabase ويحوّلها لشكل التطبيق */
+async function callRows<T>(fn: string): Promise<T[]> {
+  const rows: T[] = [];
+  for (let offset = 0; offset < MAX_READ_ROWS; offset += READ_PAGE_SIZE) {
+    const { data, error } = await getSupabase().rpc(fn, { p_offset: offset, p_limit: READ_PAGE_SIZE });
+    if (error) throw new Error(`${fn}: ${error.message}`);
+    const page = (data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < READ_PAGE_SIZE) return rows;
+  }
+  throw new Error(`${fn}: safety limit of ${MAX_READ_ROWS} rows exceeded`);
+}
+
+/**
+ * يقرأ فقط النطاق المسموح للمستخدم الحالي. الملفات الشخصية تمر عبر directory
+ * آمن يحجب الهاتف والبريد عن الطلاب، وإحصاء المقاعد لا يكشف هويات المسجلين.
+ */
 export async function fetchRemoteDb(): Promise<Db> {
   const [
-    profiles, branches, committees, courses, batches, enrollments, sessions, attendance,
+    profiles, branches, committees, courses, batches, batchStats, enrollments, sessions, attendance,
     pointEvents, streakWeeks, gamification, badges, userBadges, leagueWeeks, certificates,
     excuses, ratings, rules, audit, kudosQuotas, notifications, privateNotes,
   ] = await Promise.all([
-    selectAll<any>('profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
-    selectAll<any>('courses'), selectAll<any>('batches'), selectAll<any>('enrollments'),
-    selectAll<any>('sessions'), selectAll<any>('attendance'), selectAll<any>('point_events'),
-    selectAll<any>('streak_weeks'), selectAll<any>('gamification'), selectAll<any>('badges'),
+    callRows<any>('list_visible_profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
+    selectAll<any>('courses'), selectAll<any>('batches'), callRows<any>('get_batch_stats'), selectAll<any>('enrollments'),
+    selectAll<any>('sessions', 'id,batch_id,seq,title,starts_at,duration_min,status,started_at,closed_at,report,created_at'),
+    selectAll<any>('attendance'), selectAll<any>('point_events'),
+    selectAll<any>('streak_weeks'), selectAll<any>('gamification'), selectAll<any>('badges', '*', 'code'),
     selectAll<any>('user_badges'), selectAll<any>('league_weeks'), selectAll<any>('certificates'),
     selectAll<any>('excuses'), selectAll<any>('course_ratings'), selectAll<any>('gamification_rules'),
-    selectAll<any>('audit_log'), selectAll<any>('kudos_quotas'), selectAll<any>('notifications'),
+    selectRecent<any>('audit_log'), selectAll<any>('kudos_quotas'), selectAll<any>('notifications'),
     selectAll<any>('private_notes'),
   ]);
+  const statsByBatch = new Map(batchStats.map((r: any) => [r.batch_id, r]));
 
   const db: Db = {
     profiles: profiles.map((r): Profile => ({
@@ -90,6 +125,8 @@ export async function fetchRemoteDb(): Promise<Db> {
     batches: batches.map((r): Batch => ({
       id: r.id, courseId: r.course_id, branchId: r.branch_id, instructorId: r.instructor_id ?? '',
       capacity: r.capacity ?? 0,
+      enrolledCount: Number(statsByBatch.get(r.id)?.enrolled_count ?? 0),
+      waitlistCount: Number(statsByBatch.get(r.id)?.waitlist_count ?? 0),
       schedule: r.schedule ?? { days: [], time: '18:00', durationMin: 120 },
       startDate: tsOr(r.start_date, Date.now()), room: r.room ?? '',
       status: r.status, joinCode: r.join_code ?? '',

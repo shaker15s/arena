@@ -1,10 +1,9 @@
 /**
- * data/engine.ts — محاكاة محرك RPC كامل بطرف العميل.
- * كل دالة هنا مرآة لعقد سيرفري في وثيقة 06 §3.3 (SECURITY DEFINER + Idempotency
- * + فحص الدور داخليًا). عند الربط بـ Supabase تستدعي نفس الأسماء عبر data/rpc.
+ * data/engine.ts — نموذج نطاق حتمي للحسابات والعرض والاختبارات.
+ * العمليات الحساسة في المنتج (الحضور، الأدوار، الرسائل، بدء/إغلاق الجلسة)
+ * تُنفّذ حصريًا داخل RPCs ذرّية في Supabase؛ هذا الملف لا يمثل حدًا أمنيًا.
  *
- * اتفاق المنطق: كل الدوال تعدّل نسخة Db ممرّرة (المخزن يستنسخها قبل الاستدعاء)
- * وترجع نتيجة مطابقة لما سيرجعه السيرفر.
+ * كل دالة تعدّل نسخة Db ممرّرة ويغطيها اختبار المحرك لتوثيق قواعد العمل.
  */
 import {
   AuditEntry, Attendance, Badge, Certificate, Db, GamificationProfile,
@@ -88,6 +87,19 @@ export function sessionsOfBatch(db: Db, batchId: string): TrainingSession[] {
   return db.sessions.filter((s) => s.batchId === batchId).sort((a, b) => a.seq - b.seq);
 }
 
+/** Completion is derived from real sessions and at least one real enrollee. */
+export function isBatchComplete(db: Db, batchId: string): boolean {
+  const batch = batchOf(db, batchId);
+  const course = batch ? courseOf(db, batch.courseId) : undefined;
+  if (!batch || !course || batch.status !== 'completed') return false;
+  const sessions = sessionsOfBatch(db, batchId);
+  const students = db.enrollments.filter((e) => e.batchId === batchId && e.status === 'active');
+  return students.length > 0
+    && sessions.length === course.sessionsCount
+    && sessions.length > 0
+    && sessions.every((session) => session.status === 'closed');
+}
+
 export function attendanceOf(db: Db, sessionId: string, userId: string): Attendance | undefined {
   return db.attendance.find((a) => a.sessionId === sessionId && a.userId === userId);
 }
@@ -98,10 +110,13 @@ export function batchStudents(db: Db, batchId: string): Profile[] {
 }
 
 export function seatCounts(db: Db, batchId: string): { taken: number; waitlist: number } {
+  const batch = batchOf(db, batchId);
   const rows = db.enrollments.filter((e) => e.batchId === batchId);
+  // Students only receive their own enrollment rows. Server aggregates keep
+  // capacity accurate without leaking the complete class roster.
   return {
-    taken: rows.filter((e) => e.status === 'active').length,
-    waitlist: rows.filter((e) => e.status === 'waitlist').length,
+    taken: Math.max(rows.filter((e) => e.status === 'active').length, batch?.enrolledCount ?? 0),
+    waitlist: Math.max(rows.filter((e) => e.status === 'waitlist').length, batch?.waitlistCount ?? 0),
   };
 }
 
@@ -908,21 +923,6 @@ export function dashboardStats(db: Db, branchId?: string) {
     certsMonth,
     trend,
   };
-}
-
-/** محاكاة وصول طالب للجلسة الحية (زر تجريبي على شاشة المدرب) */
-export function simulateArrival(db: Db, sessionId: string): { user: Profile; result: CheckInResult } | null {
-  const session = db.sessions.find((s) => s.id === sessionId && s.status === 'live');
-  if (!session) return null;
-  const candidates = batchStudents(db, session.batchId).filter((p) => {
-    const r = attendanceOf(db, sessionId, p.id);
-    return !r || r.status === 'absent';
-  });
-  if (candidates.length === 0) return null;
-  const user = candidates[Math.floor(Math.random() * candidates.length)];
-  const token = currentQrToken(session, Date.now());
-  const result = rpcCheckIn(db, user.id, token);
-  return { user, result };
 }
 
 export function roleHierarchy(): Role[] {

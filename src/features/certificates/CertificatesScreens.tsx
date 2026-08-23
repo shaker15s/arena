@@ -6,14 +6,19 @@ import { Animated, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
+import { toDataURL as qrToDataUrl } from 'qrcode';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 import { useApp } from '../../data/store';
 import { batchOf, courseOf, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, Empty, FadeIn, Header, Row, Spacer, Tag, Txt } from '../../design/components';
+import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Row, Spacer, Tag, Txt } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
+import { publicVerifyUrl } from '../../shared/links';
 
 export function CertificatesScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -46,7 +51,7 @@ export function CertificatesScreen({ navigation }: any) {
                         <Txt variant="h3">{course?.title ?? ''}</Txt>
                         <Txt variant="caption" color={theme.textSecondary}>{branch?.name ?? ''}</Txt>
                       </View>
-                      <Ionicons name="chevron-back" size={18} color={theme.textMuted} />
+                      <DisclosureIcon color={theme.textMuted} />
                     </Row>
                     <Row between center>
                       <Row center gap={5}>
@@ -75,6 +80,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const { db, toast } = useApp();
   const cert = db.certificates.find((c) => c.id === route.params.certId);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const stamp = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -86,18 +92,52 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const course = courseOf(db, batch.courseId)!;
   const student = profileOf(db, cert.userId)!;
   const branch = db.branches.find((b) => b.id === batch.branchId);
-  const verifyUrl = `https://masar.app/verify?serial=${cert.serial}`;
+  const verifyUrl = publicVerifyUrl(cert.serial);
 
   const copyLink = async () => {
     try {
-      if (Platform.OS === 'web' && navigator.clipboard) {
-        await navigator.clipboard.writeText(`${t('verify.title')}: ${cert.serial} — ${verifyUrl}`);
-      }
+      const value = `${t('verify.title')}: ${cert.serial} — ${verifyUrl}`;
+      if (Platform.OS === 'web' && navigator.clipboard) await navigator.clipboard.writeText(value);
+      else await Clipboard.setStringAsync(value);
       setCopied(true);
       toast(t('common.copied'), 'success');
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast(t('common.copied'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    }
+  };
+
+  const exportCertificate = async (share: boolean) => {
+    setExporting(true);
+    try {
+      const qr = await qrToDataUrl(verifyUrl, { margin: 1, width: 180 });
+      const esc = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
+      const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>
+        @page{size:A4 landscape;margin:18mm} body{font-family:Arial,sans-serif;color:#3D2B00;background:#fff;margin:0}
+        .cert{height:155mm;border:6px double #C99B22;padding:18mm;box-sizing:border-box;text-align:center;position:relative;background:#FFFDF5}
+        h1{font-size:34px;color:#7A5C00;margin:6px} h2{font-size:28px;margin:10px} p{font-size:17px;color:#7D6A35;margin:8px}
+        .course{font-size:25px;font-weight:bold;color:#7A5C00}.footer{display:flex;align-items:center;justify-content:center;gap:30px;margin-top:18px}
+        .serial{font-family:monospace;letter-spacing:2px;color:#3D2B00}.seal{border:4px solid #C99B22;border-radius:12px;padding:10px;color:#A67B11;font-weight:bold}
+      </style></head><body><div class="cert"><h1>${esc(t('certs.of'))}</h1><p>${esc(t('certs.awardedTo'))}</p>
+      <h2>${esc(student.fullName)}</h2><p>${esc(t('certs.forCompleting'))}</p><div class="course">${esc(course.title)}</div>
+      <p>${esc(branch?.name ?? t('certs.issuedBy'))} · ${esc(formatDate(cert.issuedAt, lang))}</p>
+      <div class="footer"><img src="${qr}" width="120" height="120"/><div><div class="seal">${esc(t('verify.verified'))}</div><p class="serial">${esc(cert.serial)}</p></div></div>
+      </div></body></html>`;
+
+      if (Platform.OS === 'web') {
+        await Print.printAsync({ html });
+      } else {
+        const file = await Print.printToFileAsync({ html, base64: false });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: share ? t('certs.sharePng') : t('certs.downloadPdf') });
+        } else {
+          toast(file.uri, 'success');
+        }
+      }
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -161,10 +201,10 @@ export function CertificateViewerScreen({ route, navigation }: any) {
         <FadeIn index={2}>
           <Row gap={10}>
             <Btn title={copied ? t('common.copied') : t('certs.copyLink')} icon={copied ? 'checkmark' : 'link'} variant="secondary" onPress={copyLink} full />
-            <Btn title={t('certs.downloadPdf')} icon="download" variant="ghost" onPress={() => toast(t('common.comingInV2'), 'info')} full />
+            <Btn title={t('certs.downloadPdf')} icon="download" variant="ghost" loading={exporting} onPress={() => { void exportCertificate(false); }} full />
           </Row>
           <Spacer size={8} />
-          <Btn title={t('certs.sharePng')} icon="share-social" variant="ghost" full onPress={() => toast(t('common.comingInV2'), 'info')} />
+          <Btn title={t('certs.sharePng')} icon="share-social" variant="ghost" loading={exporting} full onPress={() => { void exportCertificate(true); }} />
         </FadeIn>
       </ScrollView>
     </View>

@@ -8,8 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
   attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
-  rpcAwardKudos, seatCounts, sessionsOfBatch,
+  seatCounts, sessionsOfBatch,
 } from '../../data/engine';
+import { awardKudos } from '../../data/actions';
 import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -18,7 +19,7 @@ import {
   Row, Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
-import { formatDate, formatTime, monthKeyOf, sameDay } from '../../shared/format';
+import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
 
 // ───────────────────────────── S30 يوم المدرب ─────────────────────────────
@@ -224,6 +225,7 @@ export function MyBatchesScreen({ navigation }: any) {
                 <ProgressBar progress={closed / course.sessionsCount} color={course.color} height={6} />
                 <Spacer size={10} />
                 <Row gap={8}>
+                  <Btn title={t('management.detailsTitle')} size="sm" variant="secondary" icon="information-circle" onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })} />
                   <Btn title={t('sess.title')} size="sm" variant="ghost" icon="archive" onPress={() => navigation.navigate('SessionsHistory', { batchId: b.id })} />
                 </Row>
               </Card>
@@ -347,13 +349,14 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
 export function StudentRecordScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, mutate, refresh, toast } = useApp();
   const student = db.profiles.find((p) => p.id === route.params.userId);
   const batch = batchOf(db, route.params.batchId);
   const [note, setNote] = useState('');
   const [kudosOpen, setKudosOpen] = useState(false);
   const [kudosPts, setKudosPts] = useState('10');
   const [kudosReason, setKudosReason] = useState('');
+  const [kudosRequestId, setKudosRequestId] = useState(() => uid());
   const [sending, setSending] = useState(false);
 
   if (!student || !batch || !user) return null;
@@ -381,14 +384,23 @@ export function StudentRecordScreen({ route, navigation }: any) {
     const pts = parseInt(kudosPts, 10);
     if (!kudosReason.trim()) return;
     setSending(true);
-    const r = await mutate((d) => rpcAwardKudos(d, user.id, student.id, batch.id, pts, kudosReason.trim()));
-    setSending(false);
-    if (r.ok) {
+    try {
+      await awardKudos({
+        studentId: student.id,
+        batchId: batch.id,
+        points: pts,
+        reason: kudosReason.trim(),
+        idempotencyKey: kudosRequestId,
+      });
+      await refresh();
       setKudosOpen(false);
       setKudosReason('');
+      setKudosRequestId(uid());
       toast(t('student.awarded'), 'success');
-    } else {
-      toast(r.error === 'quota' ? t('student.noKudos') : t('common.errorTitle'), 'error');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -434,7 +446,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
                   <Ionicons name={meta.icon as any} size={20} color={meta.color} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="caption">{s.title}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>{formatDate(s.startsAt, lang)}{att?.method === 'manual' ? ' · يدوي' : ''}{att?.note ? ` · ${att.note}` : ''}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>{formatDate(s.startsAt, lang)}{att?.method === 'manual' ? ` · ${t('common.manual')}` : ''}{att?.note ? ` · ${att.note}` : ''}</Txt>
                   </View>
                 </Row>
               );

@@ -7,18 +7,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
-  attendanceOf, attendancePct, batchOf, courseOf, courseStreak,
-  profileOf, rpcSubmitRating, sessionsOfBatch,
+  attendanceOf, attendancePct, batchOf, courseOf, courseStreak, isBatchComplete,
+  profileOf, sessionsOfBatch,
 } from '../../data/engine';
+import { submitCourseRating } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, Chip, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
+  Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
 import { Batch, TrainingSession, AttendanceStatus } from '../../data/types';
+import { useTabs } from '../../app/RootNavigator';
 
 // ───────────────────────────── S14 رحلتي ─────────────────────────────
 
@@ -27,6 +29,7 @@ export function JourneyScreen({ navigation }: any) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user } = useApp();
+  const tabs = useTabs();
   if (!user) return null;
 
   const myEnrollments = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
@@ -41,7 +44,7 @@ export function JourneyScreen({ navigation }: any) {
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {myEnrollments.length === 0 ? (
-            <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => navigation.navigate('Tabs')} />
+            <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => tabs.setTab('explore')} />
           ) : (
             myEnrollments.map((enr, i) => {
               const batch = batchOf(db, enr.batchId);
@@ -51,7 +54,7 @@ export function JourneyScreen({ navigation }: any) {
               const closed = sess.filter((s) => s.status === 'closed').length;
               const { pct } = attendancePct(db, user.id, batch.id);
               const streak = courseStreak(db, user.id, batch.id);
-              const completed = closed >= course.sessionsCount || batch.status === 'completed';
+              const completed = isBatchComplete(db, batch.id);
               const rated = db.ratings.some((r) => r.userId === user.id && r.courseId === course.id);
               return (
                 <FadeIn key={batch.id} index={i}>
@@ -84,7 +87,7 @@ export function JourneyScreen({ navigation }: any) {
                             ) : null}
                           </Row>
                         </View>
-                        <Ionicons name="chevron-back" size={18} color={theme.textMuted} />
+                        <DisclosureIcon color={theme.textMuted} />
                       </Row>
                     </Pressable>
                     <Spacer size={10} />
@@ -114,7 +117,7 @@ export function JourneyMapScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const batchId: string = route.params.batchId;
   const batch = batchOf(db, batchId);
   const course = batch ? courseOf(db, batch.courseId) : undefined;
@@ -161,11 +164,15 @@ export function JourneyMapScreen({ route, navigation }: any) {
   const submitRating = async () => {
     if (!user) return;
     setSending(true);
-    const r = await mutate((d) => rpcSubmitRating(d, user.id, course.id, stars, comment.trim() || undefined));
-    setSending(false);
-    if (r.ok) {
+    try {
+      await submitCourseRating({ courseId: course.id, stars, comment: comment.trim() || undefined });
+      await refresh();
       setRateOpen(false);
       toast(t('journey.ratingThanks'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -352,7 +359,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
                       <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>
                         {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
-                        {att.method === 'manual' ? ' · يدوي' : ''}
+                        {att.method === 'manual' ? ` · ${t('common.manual')}` : ''}
                       </Txt>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>

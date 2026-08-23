@@ -10,7 +10,7 @@ import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
-import { rpcCloseSession } from './engine';
+import { completeMyProfile, updateMyProfile } from './actions';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
@@ -103,42 +103,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [online, setOnline] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeq = useRef(0);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
+  const refreshQueued = useRef(false);
   const dbRef = useRef(db);
   dbRef.current = db;
 
   const toast = useCallback((message: string, kind: Toast['kind'] = 'info') => {
     toastSeq.current += 1;
     const id = toastSeq.current;
-    setToasts((t) => [...t, { id, message, kind }]);
+    setToasts((current) => [...current.slice(-2), { id, message, kind }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
   }, []);
 
   /** يقرأ القاعدة من السيرفر ويحدّث الحالة والكاش */
   const refresh = useCallback(async () => {
     if (!SUPABASE_ENABLED) return;
-    setSyncing(true);
+    // Realtime قد يرسل عدة أحداث للعملية الواحدة؛ كل المستهلكين ينتظرون نفس القراءة
+    // بدل فتح عشرات طلبات متوازية وإظهار بيانات أقدم فوق الأحدث.
+    if (refreshInFlight.current) {
+      refreshQueued.current = true;
+      return refreshInFlight.current;
+    }
+    const task = (async () => {
+      setSyncing(true);
+      try {
+        const fresh = await fetchRemoteDb();
+        // لا تُغلق الجلسات أو تغيّر الدفاتر من جهاز المستخدم. المهام المجدولة
+        // وعمليات RPC الخادمية هي مصدر الحقيقة الوحيد لهذه الانتقالات.
+        dbRef.current = fresh;
+        setDb(fresh);
+        writeCache(fresh);
+        setLastSyncAt(Date.now());
+        setSyncError(null);
+        setOnline(true);
+      } catch (error) {
+        setSyncError((error as Error).message);
+        setOnline(false);
+      } finally {
+        setSyncing(false);
+      }
+    })();
+    refreshInFlight.current = task;
     try {
-      const fresh = await fetchRemoteDb();
-      // إقفال الجلسات المنسية (احتياطي محلي إن لم يعمل pg_cron)
-      const now = Date.now();
-      let changed = false;
-      fresh.sessions.forEach((s) => {
-        if (s.status === 'live' && s.startedAt && now - s.startedAt > (s.durationMin + 30) * 60_000) {
-          rpcCloseSession(fresh, s.id, 'system');
-          changed = true;
-        }
-      });
-      setDb(fresh);
-      writeCache(fresh);
-      setLastSyncAt(Date.now());
-      setSyncError(null);
-      setOnline(true);
-      if (changed) void pushDelta(fresh, fresh).catch(() => undefined);
-    } catch (e) {
-      setSyncError((e as Error).message);
-      setOnline(false);
+      await task;
     } finally {
-      setSyncing(false);
+      refreshInFlight.current = null;
+      if (refreshQueued.current) {
+        refreshQueued.current = false;
+        setTimeout(() => { void refresh(); }, 0);
+      }
     }
   }, []);
 
@@ -238,13 +251,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const rep = await pushDelta(before, draft);
         if (rep.errors.length) {
+          // لا نترك الواجهة تدّعي نجاح تغيير رفضه الخادم.
+          dbRef.current = before;
+          setDb(before);
+          writeCache(before);
           setSyncError(rep.errors[0]);
           toast(rep.errors[0], 'error');
+          void refresh();
         } else {
           setSyncError(null);
           setLastSyncAt(Date.now());
         }
       } catch (e) {
+        dbRef.current = before;
+        setDb(before);
+        writeCache(before);
         setSyncError((e as Error).message);
         setOnline(false);
       } finally {
@@ -252,7 +273,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
     return result;
-  }, [toast]);
+  }, [refresh, toast]);
 
   const touch = useCallback(() => setDb((prev) => ({ ...prev })), []);
 
@@ -280,39 +301,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /** إنشاء البروفايل بعد الدخول بجوجل — رقم الموبايل مطلوب */
   const completeProfile = useCallback(async (draft: ProfileDraft) => {
     if (!identity) return { ok: false, error: 'no-session' };
-    const sb = getSupabase();
-    const payload = {
-      user_id: identity.authUserId,
-      email: identity.email,
-      full_name: draft.fullName,
-      phone: draft.phone,
-      avatar_url: draft.avatarUrl,
-      branch_id: draft.branchId,
-      gender: draft.gender,
-      role: 'student',
-    };
-    const { data, error } = await sb.from('profiles').upsert(payload, { onConflict: 'user_id' }).select('id').single();
-    if (error) return { ok: false, error: error.message };
-    setProfileId(data.id as string);
-    await refresh();
-    return { ok: true };
+    try {
+      const result = await completeMyProfile(draft);
+      setProfileId(result.profile_id);
+      await refresh();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
   }, [identity, refresh]);
 
-  /** تعديل البيانات الشخصية لاحقًا (الاسم/الصورة/الموبايل/الفرع) */
+  /** تعديل البيانات الشخصية لاحقًا عبر RPC منفصلة عن صلاحيات الدور والحالة. */
   const updateProfile = useCallback(async (patch: Partial<ProfileDraft>) => {
     if (!profileId) return { ok: false, error: 'no-profile' };
-    const sb = getSupabase();
-    const row: Record<string, unknown> = {};
-    if (patch.fullName !== undefined) row.full_name = patch.fullName;
-    if (patch.phone !== undefined) row.phone = patch.phone;
-    if (patch.avatarUrl !== undefined) row.avatar_url = patch.avatarUrl;
-    if (patch.branchId !== undefined) row.branch_id = patch.branchId;
-    if (patch.gender !== undefined) row.gender = patch.gender;
-    const { error } = await sb.from('profiles').update(row).eq('id', profileId);
-    if (error) return { ok: false, error: error.message };
-    await refresh();
-    return { ok: true };
-  }, [profileId, refresh]);
+    const current = db.profiles.find((profile) => profile.id === profileId);
+    if (!current) return { ok: false, error: 'profile-not-loaded' };
+    try {
+      await updateMyProfile({
+        fullName: patch.fullName ?? current.fullName,
+        phone: patch.phone ?? current.phone,
+        avatarUrl: patch.avatarUrl !== undefined ? patch.avatarUrl : (current.avatarUrl ?? null),
+      });
+      await refresh();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  }, [db.profiles, profileId, refresh]);
 
   const logout = useCallback(async () => {
     await sbSignOut();
@@ -341,7 +356,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [db.profiles, profileId],
   );
 
-  const needsProfile = Boolean(identity) && (!user || !user.phone);
+  const needsProfile = Boolean(identity) && (!user || (user.status !== 'disabled' && !user.phone));
 
   const value = useMemo<AppCtx>(() => ({
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, loading, syncing,

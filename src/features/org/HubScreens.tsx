@@ -8,8 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
-  audit, batchOf, batchStudents, courseOf, issuanceTable, previewRuleImpact,
-  profileOf, rpcBroadcast, rpcIssueCertificates, rpcUpdateRule, ruleValue,
+  audit, batchOf, batchStudents, courseOf, isBatchComplete, issuanceTable, previewRuleImpact,
+  profileOf, ruleValue,
 } from '../../data/engine';
 import { RULE_DEFS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
@@ -22,6 +22,9 @@ import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
 import { timePast, formatDate } from '../../shared/format';
 import { Certificate } from '../../data/types';
+import {
+  issueBatchCertificates, sendBroadcast, setBadgeActive, updateGamificationRule,
+} from '../../data/actions';
 
 // ───────────────────────────── Hub (مقسّم) ─────────────────────────────
 
@@ -61,7 +64,7 @@ export function HubScreen() {
 function RulesStudio() {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const [editing, setEditing] = useState<{ key: string; value: string } | null>(null);
   const [impact, setImpact] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -97,15 +100,17 @@ function RulesStudio() {
     if (!editing) return;
     const value = parseFloat(editing.value);
     setSaving(true);
-    const r = await mutate((d) => rpcUpdateRule(d, user.id, editing.key, value));
-    setSaving(false);
-    if (!r.ok) {
+    try {
+      await updateGamificationRule(editing.key, value);
+      await refresh();
+      toast(t('studio.saved'), 'success');
+      setEditing(null);
+      setImpact(null);
+    } catch {
       toast(t('studio.outOfBounds'), 'error');
-      return;
+    } finally {
+      setSaving(false);
     }
-    toast(t('studio.saved'), 'success');
-    setEditing(null);
-    setImpact(null);
   };
 
   return (
@@ -175,7 +180,7 @@ function RulesStudio() {
 function BadgeStudio() {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, mutate, toast } = useApp();
+  const { db, refresh, toast } = useApp();
 
   const rarityColor = (r: string) =>
     r === 'legendary' ? theme.rarityLegendary : r === 'epic' ? theme.rarityEpic : r === 'rare' ? theme.rarityRare : theme.rarityCommon;
@@ -206,11 +211,13 @@ function BadgeStudio() {
                   <CustomSwitch
                     value={badge.active}
                     onChange={async (v) => {
-                      await mutate((d) => {
-                        const b = d.badges.find((x) => x.code === badge.code);
-                        if (b) b.active = v;
-                      });
-                      toast(t('common.done') + ' ✓', 'success');
+                      try {
+                        await setBadgeActive(badge.code, v);
+                        await refresh();
+                        toast(t('common.done') + ' ✓', 'success');
+                      } catch (error) {
+                        toast((error as Error).message, 'error');
+                      }
                     }}
                   />
                 </View>
@@ -228,7 +235,7 @@ function BadgeStudio() {
 function BroadcastComposer() {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, toast } = useApp();
   const [scope, setScope] = useState<'all' | 'branch' | 'batch'>('all');
   const [branchId, setBranchId] = useState<string>(db.branches[0]?.id ?? '');
   const [batchId, setBatchId] = useState<string>(db.batches[0]?.id ?? '');
@@ -240,8 +247,8 @@ function BroadcastComposer() {
   if (!user) return null;
 
   const targetCount =
-    scope === 'all' ? db.profiles.filter((p) => p.role === 'student' || p.role === 'volunteer').length
-    : scope === 'branch' ? db.profiles.filter((p) => p.branchId === branchId && (p.role === 'student' || p.role === 'volunteer')).length
+    scope === 'all' ? db.profiles.filter((p) => p.status === 'active' && p.id !== user.id).length
+    : scope === 'branch' ? db.profiles.filter((p) => p.status === 'active' && p.id !== user.id && p.branchId === branchId).length
     : batchStudents(db, batchId).length;
 
   const typeMeta = {
@@ -253,12 +260,21 @@ function BroadcastComposer() {
   const send = async () => {
     if (title.trim().length < 2 || body.trim().length < 4) return;
     setSending(true);
-    const scopeArg = scope === 'all' ? { kind: 'all' as const } : scope === 'branch' ? { kind: 'branch' as const, branchId } : { kind: 'batch' as const, batchId };
-    const r = await mutate((d) => rpcBroadcast(d, user.id, scopeArg as any, title.trim(), body.trim()));
-    setSending(false);
-    toast(t('broadcast.sent', { x: r.reached }), 'success');
-    setTitle('');
-    setBody('');
+    try {
+      const reached = await sendBroadcast({
+        scope,
+        scopeId: scope === 'branch' ? branchId : scope === 'batch' ? batchId : undefined,
+        title: title.trim(),
+        body: body.trim(),
+      });
+      toast(t('broadcast.sent', { x: reached }), 'success');
+      setTitle('');
+      setBody('');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSending(false);
+    }
   };
 
   const meta = typeMeta[type];
@@ -326,7 +342,7 @@ function BroadcastComposer() {
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed">{title}</Txt>
                 <Txt variant="caption" color={theme.textSecondary}>{body}</Txt>
-                <Txt variant="micro" color={theme.textMuted}>مسار · الآن</Txt>
+                <Txt variant="micro" color={theme.textMuted}>{t('common.appName')} · {t('common.now')}</Txt>
               </View>
             </Row>
           </Card>
@@ -392,8 +408,8 @@ function AuditLog() {
 export function IssueCertificatesScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
-  const completedBatches = db.batches.filter((b) => b.status === 'completed');
+  const { db, user, refresh, toast } = useApp();
+  const completedBatches = db.batches.filter((b) => isBatchComplete(db, b.id));
   const [batchId, setBatchId] = useState<string | null>(completedBatches[0]?.id ?? null);
   const [issuing, setIssuing] = useState(false);
   const [celebrate, setCelebrate] = useState<number | null>(null);
@@ -407,10 +423,16 @@ export function IssueCertificatesScreen({ navigation }: any) {
   const issue = async () => {
     if (!batchId) return;
     setIssuing(true);
-    const r = await mutate((d) => rpcIssueCertificates(d, user.id, batchId));
-    setIssuing(false);
-    setCelebrate(r.issued.length);
-    toast(t('issue.issuedSnack', { x: r.issued.length }), 'success');
+    try {
+      const issued = await issueBatchCertificates(batchId);
+      await refresh();
+      setCelebrate(issued);
+      toast(t('issue.issuedSnack', { x: issued }), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setIssuing(false);
+    }
   };
 
   return (

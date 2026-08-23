@@ -61,6 +61,9 @@ export interface Batch {
   branchId: string;
   instructorId: string;
   capacity: number;
+  /** Aggregates returned by the server without exposing enrollment identities. */
+  enrolledCount?: number;
+  waitlistCount?: number;
   schedule: BatchSchedule;
   startDate: number;
   room: string;
@@ -248,7 +251,7 @@ export interface PrivateNote {
   updatedAt: number;
 }
 
-/** قاعدة البيانات المحاكاة كاملة (جذر التخزين) */
+/** نموذج القراءة الموحّد للبيانات المسموح بها للمستخدم الحالي. */
 export interface Db {
   profiles: Profile[];
   branches: Branch[];

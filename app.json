@@ -2,20 +2,54 @@
   "expo": {
     "name": "مسار — Masar",
     "slug": "masar",
-    "version": "3.0.0",
-    "orientation": "portrait",
+    "version": "3.2.0",
+    "orientation": "default",
     "scheme": "masar",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#F7F8FC",
-    "primaryColor": "#4F46E5",
+    "backgroundColor": "#F5F5FA",
+    "primaryColor": "#007AFF",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A84FF",
+      "dark": {
+        "image": "./assets/splash-icon.png",
+        "backgroundColor": "#050814"
+      }
+    },
     "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.masaregypt.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط."
+      }
+    },
+    "android": {
+      "package": "org.masaregypt.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A84FF"
+      },
+      "permissions": ["CAMERA"]
+    },
     "web": {
       "bundler": "metro",
       "output": "single",
       "lang": "ar",
-      "name": "مسار — Masär",
+      "name": "مسار — Masar",
       "description": "منظومة تنظيم مراكز التدريب: حضور ذكي بـQR دوّار، جيميفيكيشن كامل، وشهادات قابلة للتحقق.",
-      "themeColor": "#4F46E5"
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#007AFF"
     },
     "experiments": {
       "typedRoutes": false

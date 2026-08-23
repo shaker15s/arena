@@ -7,9 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
-  batchOf, courseRatingStats, instructorBatches, profileOf, rpcJoinBatch,
-  seatCounts, sessionsOfBatch,
+  batchOf, courseRatingStats, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
+import { joinBatch as joinBatchOnServer } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -164,7 +164,7 @@ export function CourseDetailsScreen({ navigation, route }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const courseId: string = route.params.courseId;
   const course = db.courses.find((c) => c.id === courseId);
   const [tab, setTab] = useState<'about' | 'batches' | 'reviews'>('about');
@@ -188,10 +188,16 @@ export function CourseDetailsScreen({ navigation, route }: any) {
   const confirmJoin = async () => {
     if (!joinBatch || !user) return;
     setJoining(true);
-    const r = await mutate((d) => rpcJoinBatch(d, user.id, joinBatch.id));
-    setJoining(false);
-    setJoinBatch(null);
-    setCelebrate({ waitlist: r.status === 'waitlist' });
+    try {
+      const result = await joinBatchOnServer(joinBatch.id);
+      await refresh();
+      setJoinBatch(null);
+      setCelebrate({ waitlist: result.status === 'waitlist' });
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
@@ -307,7 +313,7 @@ export function CourseDetailsScreen({ navigation, route }: any) {
                         mine.status === 'waitlist' ? (
                           <Btn title={t('explore.onWaitlist')} variant="secondary" full disabled icon="time" />
                         ) : (
-                          <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { screen: 'journey' })} />
+                          <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
                         )
                       ) : (
                         <Btn

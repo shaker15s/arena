@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, StatusBar as RNStatusBar, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, Image, Platform, StatusBar as RNStatusBar, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,14 +17,15 @@ import { I18nProvider } from '../i18n';
 import { AppProvider, useApp } from '../data/store';
 import { RootNavigator } from './RootNavigator';
 import { Txt } from '../design/components';
-import { AppBackground } from '../design/glass';
+import { AppBackground, GlassSurface } from '../design/glass';
+import { observeReducedMotion, isReducedMotion } from '../design/motion';
 import { SUPABASE_ENABLED, exchangeUrlForSession } from '../data/supabase';
 import { useI18n } from '../i18n';
+import { useHaptics } from '../shared/hooks';
 
 /** S01 — Apple-style Splash: اللوجو يتجمع مع توهج ثم fade */
 function BootSplash() {
   const { theme, isDark } = useTheme();
-  const [phase, setPhase] = useState(0); // 0=appearing, 1=glow, 2=ready
   const logoScale = useRef(new Animated.Value(0.3)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const glowScale = useRef(new Animated.Value(0.5)).current;
@@ -33,6 +34,13 @@ function BootSplash() {
   const textTranslate = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
+    if (isReducedMotion()) {
+      logoScale.setValue(1);
+      logoOpacity.setValue(1);
+      textOpacity.setValue(1);
+      textTranslate.setValue(0);
+      return;
+    }
     // Phase 0: Logo appears with spring
     Animated.parallel([
       Animated.spring(logoScale, { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true, delay: 100 }),
@@ -88,7 +96,7 @@ function BootSplash() {
               elevation: 16,
             }}
           >
-            <Ionicons name="map" size={56} color="#fff" />
+            <Image source={require('../../assets/adaptive-icon.png')} style={{ width: 82, height: 82 }} resizeMode="contain" />
           </LinearGradient>
         </Animated.View>
 
@@ -108,25 +116,67 @@ function BootSplash() {
   );
 }
 
+function ToastItem({ message, kind }: { message: string; kind: 'info' | 'success' | 'error' | 'warn' }) {
+  const { theme, isDark } = useTheme();
+  const { notificationError, notificationSuccess } = useHaptics();
+  const entrance = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
+  useEffect(() => {
+    if (kind === 'success') notificationSuccess();
+    if (kind === 'error') notificationError();
+    Animated.spring(entrance, {
+      toValue: 1,
+      damping: 20,
+      stiffness: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [entrance, kind, notificationError, notificationSuccess]);
+  const color = kind === 'success' ? theme.success
+    : kind === 'error' ? theme.danger
+    : kind === 'warn' ? theme.warn
+    : theme.brand;
+  const icon = kind === 'success' ? 'checkmark-circle'
+    : kind === 'error' ? 'alert-circle'
+    : kind === 'warn' ? 'warning'
+    : 'information-circle';
+  return (
+    <Animated.View style={{
+      opacity: entrance,
+      transform: [
+        { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) },
+        { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+      ],
+      width: '100%', maxWidth: 520,
+    }}>
+      <GlassSurface
+        intensity={isDark ? 55 : 75}
+        radius={18}
+        tintColor={isDark ? 'rgba(24,24,28,0.92)' : 'rgba(255,255,255,0.94)'}
+        style={{
+          shadowColor: '#000', shadowOpacity: isDark ? 0.32 : 0.14,
+          shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 14,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 13 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}1F`, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name={icon} size={18} color={color} />
+          </View>
+          <Txt variant="caption" color={theme.text} style={{ flex: 1 }}>{message}</Txt>
+        </View>
+      </GlassSurface>
+    </Animated.View>
+  );
+}
+
 function ToastHost() {
   const { toasts } = useApp();
-  const { theme, isDark } = useTheme();
   if (toasts.length === 0) return null;
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: Platform.OS === 'web' ? 16 : 54, left: 16, right: 16, alignItems: 'center', gap: 8, zIndex: 999 }}>
-      {toasts.map((t) => (
-        <View
-          key={t.id}
-          style={{
-            backgroundColor: t.kind === 'success' ? theme.success : t.kind === 'error' ? theme.danger : t.kind === 'warn' ? theme.warn : isDark ? 'rgba(60,60,67,0.9)' : 'rgba(30,30,30,0.9)',
-            paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999,
-            maxWidth: 560,
-            shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
-          }}
-        >
-          <Txt variant="caption" color="#FFFFFF" align="center">{t.message}</Txt>
-        </View>
-      ))}
+    <View
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+      style={{ position: 'absolute', top: Platform.OS === 'web' ? 18 : 54, left: 16, right: 16, alignItems: 'center', gap: 8, zIndex: 999 }}
+    >
+      {toasts.slice(-3).map((toast) => <ToastItem key={toast.id} message={toast.message} kind={toast.kind} />)}
     </View>
   );
 }
@@ -137,10 +187,20 @@ function SetupRequired() {
   const { t } = useI18n();
   return (
     <AppBackground>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 }}>
-        <Ionicons name="construct" size={54} color={theme.warn} />
-        <Txt variant="h2" align="center">{t('common.setupRequired')}</Txt>
-        <Txt variant="body" color={theme.textSecondary} align="center">{t('auth.notConfigured')}</Txt>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <GlassSurface intensity={70} radius={32} style={{ width: '100%', maxWidth: 520 }}>
+          <View style={{ alignItems: 'center', padding: 30, gap: 14 }}>
+            <LinearGradient
+              colors={[theme.warn, theme.danger]}
+              style={{ width: 82, height: 82, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="construct" size={38} color="#fff" />
+            </LinearGradient>
+            <Txt variant="h2" align="center">{t('common.setupRequired')}</Txt>
+            <Txt variant="body" color={theme.textSecondary} align="center">{t('auth.notConfigured')}</Txt>
+            <View style={{ width: 46, height: 4, borderRadius: 2, backgroundColor: theme.warn, marginTop: 4 }} />
+          </View>
+        </GlassSurface>
       </View>
     </AppBackground>
   );
@@ -149,12 +209,25 @@ function SetupRequired() {
 function Shell() {
   const { ready } = useApp();
   const { theme, isDark } = useTheme();
+  const reveal = useRef(new Animated.Value(0)).current;
   const [fontsLoaded] = useFonts({
     IBMPlexSansArabic_400Regular,
     IBMPlexSansArabic_500Medium,
     IBMPlexSansArabic_600SemiBold,
     IBMPlexSansArabic_700Bold,
   });
+
+  useEffect(() => observeReducedMotion(), []);
+
+  useEffect(() => {
+    if (!fontsLoaded || !ready) return;
+    Animated.timing(reveal, {
+      toValue: 1,
+      duration: isReducedMotion() ? 100 : 320,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [fontsLoaded, ready, reveal]);
 
   // التقاط رابط رجوع Google على الموبايل (deep link)
   useEffect(() => {
@@ -168,14 +241,18 @@ function Shell() {
   }, []);
 
   if (!fontsLoaded || !ready) return <BootSplash />;
-  if (!SUPABASE_ENABLED) return <SetupRequired />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <Animated.View style={{
+      flex: 1,
+      backgroundColor: theme.bg,
+      opacity: reveal,
+      transform: [{ scale: reveal.interpolate({ inputRange: [0, 1], outputRange: [0.992, 1] }) }],
+    }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <RootNavigator />
+      {SUPABASE_ENABLED ? <RootNavigator /> : <SetupRequired />}
       <ToastHost />
-    </View>
+    </Animated.View>
   );
 }
 

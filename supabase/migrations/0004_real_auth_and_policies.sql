@@ -1,6 +1,6 @@
 -- ═══════════════════════════════════════════════════════════════
--- MASAR 3.1 — الدخول بجوجل + صلاحيات حقيقية (RLS) + تخزين الصور
--- يُطبَّق بعد 001_complete_schema.sql
+-- MASAR 3.2 — Google auth bootstrap, initial RLS, storage and realtime.
+-- Applied after the canonical 0001 baseline; 0005 replaces these initial policies.
 -- ═══════════════════════════════════════════════════════════════
 
 -- ───────────────────────────────────────────────────────────────
@@ -39,8 +39,13 @@ DECLARE
   v_profile_id UUID;
   v_role TEXT;
 BEGIN
-  SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE role = 'admin')
-              THEN 'admin' ELSE 'student' END
+  -- Serialize the one-time first-admin decision to prevent concurrent signups
+  -- from creating more than one bootstrap administrator.
+  PERFORM pg_advisory_xact_lock(hashtextextended('masar-first-admin', 0));
+  SELECT CASE
+    WHEN COALESCE(NEW.raw_app_meta_data->>'masar_bootstrap_admin','false')='true'
+      AND NOT EXISTS (SELECT 1 FROM public.profiles WHERE role='admin')
+    THEN 'admin' ELSE 'student' END
   INTO v_role;
 
   INSERT INTO public.profiles (user_id, email, full_name, avatar_url, role)

@@ -2,7 +2,7 @@
 // npx tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/engine.test.js
 import {
   attendanceOf, backupCodeOf, balanceOf, currentQrToken, evaluateBadges, evaluateStreakWeek,
-  gamifOf, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
+  gamifOf, isBatchComplete, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReviewExcuse, rpcStartSession, rpcSubmitExcuse,
   rpcUpdateRule, simulateWeekClose,
 } from '../src/data/engine';
@@ -136,6 +136,11 @@ const MIN = 60_000;
 
   // ═ 7) شهادات G4 ═
   console.log('\n═ 7) الشهادات ═');
+  ok(isBatchComplete(db, IDS.g4), 'الإكمال الحقيقي يتطلب جلسات مغلقة وطلابًا');
+  const completedTemplate = db.batches.find((batch) => batch.id === IDS.g4)!;
+  const emptyCompletedId = '00000000-0000-4000-8000-000000000099';
+  db.batches.push({ ...completedTemplate, id: emptyCompletedId, status: 'completed' });
+  ok(!isBatchComplete(db, emptyCompletedId), 'مجموعة مكتملة بلا طلاب/جلسات لا تُعرض كمكتملة');
   const table = issuanceTable(db, IDS.g4);
   ok(table.length === 8, 'جدول الإصدار = 8 طلاب', table.length);
   const i1 = rpcIssueCertificates(db, IDS.mahmoud, IDS.g4);

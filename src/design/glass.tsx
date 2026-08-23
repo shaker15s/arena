@@ -10,6 +10,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
 import { radii, spacing } from './tokens';
+import { isReducedMotion } from './motion';
 
 /**
  * سطح زجاجي حقيقي (Apple Liquid Glass): ضبابية خلفية + طبقة لون شفافة
@@ -36,7 +37,7 @@ export function GlassSurface({
       <View
         pointerEvents="none"
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           {
             backgroundColor: tintColor ?? theme.glass,
             borderRadius: radius,
@@ -50,33 +51,88 @@ export function GlassSurface({
   );
 }
 
-// ═══════════════ Glass Background Gradient ═══════════════
+// ═══════════════ Ambient background ═══════════════
+function AmbientOrb({
+  size, color, style, drift = 18,
+}: {
+  size: number;
+  color: string;
+  style: ViewStyle;
+  drift?: number;
+}) {
+  const progress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (isReducedMotion()) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(progress, { toValue: 1, duration: 9000, useNativeDriver: true }),
+      Animated.timing(progress, { toValue: 0, duration: 9000, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [progress]);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute', width: size, height: size, borderRadius: size / 2,
+          backgroundColor: color,
+          transform: [
+            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
+            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
+            { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
+          ],
+        },
+        style,
+      ]}
+    />
+  );
+}
+
 export function AppBackground({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   const { theme, isDark } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg, ...style }}>
+    <View style={[{ flex: 1, backgroundColor: theme.bg, overflow: 'hidden' }, style]}>
       <LinearGradient
-        colors={isDark ? ['#1C1C1E', '#000000'] : ['#FAFBFF', '#EEEEF6']}
+        colors={[theme.bgGradientFrom, theme.bgGradientTo]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* Primary decorative glow — top-right, warm blue */}
-      <View style={{
-        position: 'absolute', top: -140, right: -80,
-        width: 360, height: 360, borderRadius: 180,
-        backgroundColor: isDark ? 'rgba(10, 132, 255, 0.10)' : 'rgba(0, 122, 255, 0.07)',
-      }} />
-      {/* Secondary decorative glow — bottom-left, soft purple */}
-      <View style={{
-        position: 'absolute', bottom: 60, left: -100,
-        width: 400, height: 400, borderRadius: 200,
-        backgroundColor: isDark ? 'rgba(175, 82, 222, 0.08)' : 'rgba(88, 86, 214, 0.05)',
-      }} />
-      {/* Tertiary accent — center-left, teal hint */}
-      <View style={{
-        position: 'absolute', top: '40%' as any, left: -40,
-        width: 200, height: 200, borderRadius: 100,
-        backgroundColor: isDark ? 'rgba(48, 209, 88, 0.05)' : 'rgba(48, 209, 88, 0.03)',
-      }} />
+      <AmbientOrb
+        size={420}
+        color={isDark ? 'rgba(10,132,255,0.12)' : 'rgba(0,122,255,0.085)'}
+        style={{ top: -190, right: -115 }}
+      />
+      <AmbientOrb
+        size={460}
+        color={isDark ? 'rgba(94,92,230,0.10)' : 'rgba(88,86,214,0.065)'}
+        drift={-22}
+        style={{ bottom: -180, left: -160 }}
+      />
+      <AmbientOrb
+        size={230}
+        color={isDark ? 'rgba(48,209,88,0.055)' : 'rgba(48,209,88,0.035)'}
+        drift={12}
+        style={{ top: '36%' as any, left: -90 }}
+      />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
+        borderWidth: Platform.OS === 'web' ? 1 : 0,
+        borderColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.2)',
+      }]} />
+      {children}
+    </View>
+  );
+}
+
+/** يثبت اتساع المحتوى على الويب/التابلت مع بقاء الموبايل بعرضه الكامل. */
+export function ContentFrame({ children, style, maxWidth = 1120 }: {
+  children: React.ReactNode;
+  style?: ViewStyle | ViewStyle[];
+  maxWidth?: number;
+}) {
+  return (
+    <View style={[{ width: '100%', maxWidth, alignSelf: 'center' }, style]}>
       {children}
     </View>
   );
@@ -341,9 +397,10 @@ export function GlassFAB({ icon, onPress, label, color }: {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (isReducedMotion()) return undefined;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.05, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1.035, duration: 1500, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
       ]),
     );

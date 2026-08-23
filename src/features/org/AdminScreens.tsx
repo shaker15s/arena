@@ -2,14 +2,14 @@
  * features/org — S40 لوحة التحكم + S42 التنظيم + S43 الكورسات +
  * S44 فورم المجموعات (أهم فورم: معاينة تلقائية + تحذير تعارض) + S47 المستخدمون.
  */
-import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
   attendancePct, batchOf, batchStudents, checkInstructorConflict, courseOf,
-  dashboardStats, generateSessionsForBatch, profileOf, seatCounts, sessionsOfBatch,
+  dashboardStats, generateSessionsForBatch, isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -19,8 +19,12 @@ import {
 } from '../../design/components';
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii } from '../../design/tokens';
-import { formatDate, uid } from '../../shared/format';
-import { Batch, Course } from '../../data/types';
+import { formatDate } from '../../shared/format';
+import { easing, isReducedMotion } from '../../design/motion';
+import { Batch, type Role } from '../../data/types';
+import {
+  createBatchWithSessions, createBranch, createCommittee, createCourse, updateUserAccess,
+} from '../../data/actions';
 
 // ───────────────────────────── S40 لوحة التحكم ─────────────────────────────
 
@@ -77,12 +81,12 @@ export function DashboardScreen({ navigation }: any) {
               {stats.trend.map((v, i) => (
                 <View key={i} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
                   <Txt variant="micro" color={theme.textMuted}>{v}%</Txt>
-                  <View style={{
-                    width: '100%', borderRadius: 6,
-                    height: Math.max(6, (v / 100) * 80),
-                    backgroundColor: v >= 75 ? theme.success : v >= 50 ? theme.brand : theme.warn,
-                    opacity: 0.4 + (i / Math.max(stats.trend.length - 1, 1)) * 0.6,
-                  }} />
+                  <TrendBar
+                    value={v}
+                    index={i}
+                    color={v >= 75 ? theme.success : v >= 50 ? theme.brand : theme.warn}
+                    opacity={0.4 + (i / Math.max(stats.trend.length - 1, 1)) * 0.6}
+                  />
                 </View>
               ))}
             </View>
@@ -111,6 +115,25 @@ export function DashboardScreen({ navigation }: any) {
   );
 }
 
+function TrendBar({ value, index, color, opacity }: { value: number; index: number; color: string; opacity: number }) {
+  const progress = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: isReducedMotion() ? 100 : 520,
+      delay: isReducedMotion() ? 0 : index * 55,
+      easing: easing.standard,
+      useNativeDriver: false,
+    }).start();
+  }, [index, progress]);
+  return (
+    <Animated.View style={{
+      width: '100%', borderRadius: 6, backgroundColor: color, opacity,
+      height: progress.interpolate({ inputRange: [0, 1], outputRange: [6, Math.max(6, (value / 100) * 80)] }),
+    }} />
+  );
+}
+
 function KpiCard({ icon, color, value, suffix, label, index }: { icon: keyof typeof Ionicons.glyphMap; color: string; value: number; suffix?: string; label: string; index: number }) {
   const { theme } = useTheme();
   return (
@@ -135,7 +158,7 @@ export function OrgManagerScreen() {
   const { t } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, mutate, toast, user } = useApp();
+  const { db, refresh, toast } = useApp();
   const [branchSheet, setBranchSheet] = useState(false);
   const [committeeSheet, setCommitteeSheet] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -146,31 +169,42 @@ export function OrgManagerScreen() {
   const saveBranch = async () => {
     if (!name.trim() || !gov.trim()) return;
     setSaving(true);
-    await mutate((d) => {
-      d.branches.push({ id: uid('b'), name: name.trim(), governorate: gov.trim(), address: address.trim(), supervisorId: null });
-    });
-    setSaving(false);
-    setBranchSheet(false);
-    setName(''); setGov(''); setAddress('');
-    toast(t('common.done') + ' ✓', 'success');
+    try {
+      await createBranch({ name: name.trim(), governorate: gov.trim(), address: address.trim() });
+      await refresh();
+      setBranchSheet(false);
+      setName(''); setGov(''); setAddress('');
+      toast(t('common.done') + ' ✓', 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveCommittee = async () => {
     if (!name.trim() || !committeeSheet) return;
     setSaving(true);
-    await mutate((d) => {
-      d.committees.push({ id: uid('cm'), branchId: committeeSheet, name: name.trim() });
-    });
-    setSaving(false);
-    setCommitteeSheet(null);
-    setName('');
-    toast(t('common.done') + ' ✓', 'success');
+    try {
+      await createCommittee(committeeSheet, name.trim());
+      await refresh();
+      setCommitteeSheet(null);
+      setName('');
+      toast(t('common.done') + ' ✓', 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
+        {db.branches.length === 0 ? (
+          <Empty emoji="🏢" title={t('org.branches')} body={t('wizard.s1Body')} cta={t('org.newBranch')} onCta={() => setBranchSheet(true)} />
+        ) : null}
         {db.branches.map((b, i) => {
           const committees = db.committees.filter((c) => c.branchId === b.id);
           const activeBatches = db.batches.filter((x) => x.branchId === b.id && x.status === 'active').length;
@@ -232,43 +266,54 @@ export function OrgManagerScreen() {
 export function CoursesScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, mutate, toast } = useApp();
+  const { db, refresh, toast } = useApp();
   const [creating, setCreating] = useState(false);
+  const [committeeId, setCommitteeId] = useState<string | null>(db.committees[0]?.id ?? null);
   const [title, setTitle] = useState('');
-  const [field, setField] = useState('تصميم');
+  const [field, setField] = useState('');
   const [desc, setDesc] = useState('');
   const [sessionsCount, setSessionsCount] = useState('8');
   const [topics, setTopics] = useState('');
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (title.trim().length < 3) return;
+    if (title.trim().length < 3 || !committeeId) return;
     setSaving(true);
-    await mutate((d) => {
-      const committeeId = d.committees[0]?.id ?? 'cm_train';
-      d.courses.push({
-        id: uid('c'), committeeId, title: title.trim(), field: field.trim() || 'عام',
-        description: desc.trim(), topics: topics.split('\n').map((x) => x.trim()).filter(Boolean),
-        sessionsCount: Math.max(1, parseInt(sessionsCount, 10) || 8), status: 'published',
-        color: ['#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'][d.courses.length % 6],
+    try {
+      const palette = ['#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
+      await createCourse({
+        committeeId,
+        title: title.trim(),
+        field: field.trim() || t('common.general'),
+        description: desc.trim(),
+        topics: topics.split('\n').map((x) => x.trim()).filter(Boolean),
+        sessionsCount: Math.max(1, parseInt(sessionsCount, 10) || 8),
+        color: palette[db.courses.length % palette.length],
       });
-    });
-    setSaving(false);
-    setCreating(false);
-    setTitle(''); setDesc(''); setTopics('');
-    toast(t('common.done') + ' ✓', 'success');
+      await refresh();
+      setCreating(false);
+      setTitle(''); setDesc(''); setTopics('');
+      toast(t('common.done') + ' ✓', 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
+        {db.courses.length === 0 ? (
+          <Empty emoji="📚" title={t('courses.title')} cta={t('courses.new')} onCta={() => setCreating(true)} />
+        ) : null}
         {db.courses.map((c, i) => {
           const batches = db.batches.filter((b) => b.courseId === c.id);
           const active = batches.filter((b) => b.status === 'active').length;
           return (
             <FadeIn key={c.id} index={i}>
-              <Card>
+              <Card onPress={() => navigation.navigate('CourseManagement', { courseId: c.id })}>
                 <Row center gap={12}>
                   <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: c.color, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons name="book" size={22} color="#fff" />
@@ -292,6 +337,12 @@ export function CoursesScreen({ navigation }: any) {
       <Sheet visible={creating} onClose={() => setCreating(false)} title={t('courses.new')}>
         <ScrollView>
           <View style={{ gap: 12 }}>
+            <Txt variant="caption" color={theme.textSecondary}>{t('org.committees')}</Txt>
+            <Row gap={6} wrap>
+              {db.committees.map((committee) => (
+                <Chip key={committee.id} label={committee.name} active={committeeId === committee.id} onPress={() => setCommitteeId(committee.id)} />
+              ))}
+            </Row>
             <Input label={t('courses.titleLabel')} value={title} onChange={setTitle} icon="book" />
             <Input label={t('courses.fieldLabel')} value={field} onChange={setField} icon="bookmark" />
             <Input label={t('courses.descLabel')} value={desc} onChange={setDesc} multiline />
@@ -301,7 +352,7 @@ export function CoursesScreen({ navigation }: any) {
               </View>
             </Row>
             <Input label={t('courses.topicsLabel')} value={topics} onChange={setTopics} multiline />
-            <Btn title={t('courses.save')} full size="lg" loading={saving} onPress={save} icon="checkmark" disabled={title.trim().length < 3} />
+            <Btn title={t('courses.save')} full size="lg" loading={saving} onPress={save} icon="checkmark" disabled={title.trim().length < 3 || !committeeId} />
           </View>
         </ScrollView>
       </Sheet>
@@ -314,24 +365,28 @@ export function CoursesScreen({ navigation }: any) {
 export function BatchesAdminScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, mutate, toast } = useApp();
+  const { db } = useApp();
   const [creating, setCreating] = useState(false);
 
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
+        {db.batches.length === 0 ? (
+          <Empty emoji="🗓️" title={t('batchAdm.title')} cta={t('batchAdm.new')} onCta={() => setCreating(true)} />
+        ) : null}
         {db.batches.map((b, i) => {
           const course = courseOf(db, b.courseId)!;
           const instructor = profileOf(db, b.instructorId);
           const seats = seatCounts(db, b.id);
           const statusMeta = b.status === 'active' ? { label: t('common.active'), color: theme.success, bg: theme.successSoft }
-            : b.status === 'completed' ? { label: t('common.closedStatus'), color: theme.brand, bg: theme.brandSoft }
+            : b.status === 'completed' && isBatchComplete(db, b.id) ? { label: t('common.closedStatus'), color: theme.brand, bg: theme.brandSoft }
+            : b.status === 'completed' ? { label: t('common.errorTitle'), color: theme.danger, bg: theme.dangerSoft }
             : b.status === 'scheduled' ? { label: t('common.scheduledStatus'), color: theme.warn, bg: theme.warnSoft }
             : { label: t('common.archived'), color: theme.textMuted, bg: theme.bg };
           return (
             <FadeIn key={b.id} index={i}>
-              <Card>
+              <Card onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })}>
                 <Row center gap={12}>
                   <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons name="people" size={22} color={course.color} />
@@ -368,7 +423,8 @@ export function BatchesAdminScreen({ navigation }: any) {
 function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, mutate, toast } = useApp();
+  const { db, refresh, toast } = useApp();
+  const [branchId, setBranchId] = useState<string | null>(db.branches[0]?.id ?? null);
   const [courseId, setCourseId] = useState<string | null>(null);
   const [instructorId, setInstructorId] = useState<string | null>(null);
   const [capacity, setCapacity] = useState('25');
@@ -379,7 +435,7 @@ function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   const [saving, setSaving] = useState(false);
 
   const publishedCourses = db.courses.filter((c) => c.status === 'published');
-  const volunteers = db.profiles.filter((p) => p.role === 'volunteer');
+  const volunteers = db.profiles.filter((p) => p.role === 'volunteer' && p.status === 'active');
   const course = courseId ? courseOf(db, courseId) : null;
 
   const toggleDay = (d: number) => {
@@ -387,8 +443,8 @@ function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   };
 
   // معاينة مولّدة تلقائيًا + تحذير تعارض
-  const draftBatch: Batch | null = course && instructorId && days.length > 0 ? {
-    id: 'preview', courseId: course.id, branchId: db.branches[0].id, instructorId,
+  const draftBatch: Batch | null = course && branchId && instructorId && days.length > 0 ? {
+    id: 'preview', courseId: course.id, branchId, instructorId,
     capacity: parseInt(capacity, 10) || 25,
     schedule: { days, time, durationMin: 120 },
     startDate: new Date(startDate).getTime(),
@@ -398,27 +454,45 @@ function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   const conflict = instructorId && days.length > 0 ? checkInstructorConflict(db, instructorId, days, time) : null;
 
   const publish = async () => {
-    if (!course || !instructorId || !draftBatch) return;
+    if (!course || !branchId || !instructorId || !draftBatch) return;
     setSaving(true);
-    await mutate((d) => {
-      const batch: Batch = { ...draftBatch, id: uid('bt'), joinCode: `MSR-${String(Math.floor(1000 + Math.random() * 9000))}` };
-      d.batches.push(batch);
-      preview.forEach((p) => {
-        d.sessions.push({
-          id: uid('s'), batchId: batch.id, seq: p.seq, title: course.topics[p.seq - 1] ?? `محاضرة ${p.seq}`,
-          startsAt: p.startsAt, durationMin: draftBatch.schedule.durationMin, status: 'scheduled',
-        });
+    try {
+      await createBatchWithSessions({
+        courseId: course.id,
+        branchId,
+        instructorId,
+        capacity: draftBatch.capacity,
+        schedule: draftBatch.schedule,
+        startDate,
+        room: room.trim(),
+        sessions: preview.map((session) => ({
+          seq: session.seq,
+          title: course.topics[session.seq - 1] ?? t('common.sessionNumber', { x: session.seq }),
+          starts_at: new Date(session.startsAt).toISOString(),
+          duration_min: draftBatch.schedule.durationMin,
+        })),
       });
-    });
-    setSaving(false);
-    onClose();
-    toast(t('batchAdm.published'), 'success');
+      await refresh();
+      onClose();
+      toast(t('batchAdm.published'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('batchAdm.new')}>
       <ScrollView>
         <View style={{ gap: 12 }}>
+          <Txt variant="caption" color={theme.textSecondary}>{t('common.branch')}</Txt>
+          <Row gap={6} wrap>
+            {db.branches.map((branch) => (
+              <Chip key={branch.id} label={branch.name} active={branchId === branch.id} onPress={() => setBranchId(branch.id)} />
+            ))}
+          </Row>
+
           <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickCourse')}</Txt>
           <Row gap={6} wrap>
             {publishedCourses.map((c) => (
@@ -471,7 +545,7 @@ function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () =>
             </Card>
           ) : null}
 
-          <Btn title={t('batchAdm.publish')} size="lg" full loading={saving} onPress={publish} icon="rocket" disabled={!course || !instructorId || days.length === 0 || !room.trim()} />
+          <Btn title={t('batchAdm.publish')} size="lg" full loading={saving} onPress={publish} icon="rocket" disabled={!branchId || !course || !instructorId || days.length === 0 || !room.trim() || Boolean(conflict)} />
         </View>
       </ScrollView>
     </Sheet>
@@ -484,7 +558,7 @@ export function UsersScreen() {
   const { t } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, mutate, toast, user, refresh, syncing } = useApp();
+  const { db, toast, user, refresh, syncing } = useApp();
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [selected, setSelected] = useState<string | null>(null);
@@ -509,6 +583,16 @@ export function UsersScreen() {
 
   const selUser = selected ? profileOf(db, selected) : null;
 
+  const changeAccess = async (profileId: string, patch: { role?: Role; status?: 'active' | 'disabled' }) => {
+    try {
+      await updateUserAccess(profileId, patch);
+      await refresh();
+      toast(patch.role ? t('users.roleChanged') : t('users.statusChanged'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -529,6 +613,7 @@ export function UsersScreen() {
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
           ))}
         </Row>
+        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} /> : null}
         {list.map((p, i) => (
           <FadeIn key={p.id} index={Math.min(i, 8)}>
             <Card onPress={() => setSelected(p.id)}>
@@ -559,44 +644,34 @@ export function UsersScreen() {
                 </View>
               </Row>
 
-              <Txt variant="caption" color={theme.textSecondary}>{t('users.changeRole')}</Txt>
-              <Row gap={6} wrap>
-                {(['student', 'volunteer'] as const).map((r) => (
-                  <Btn key={r} title={roleLabel[r]} size="sm" variant={selUser.role === r ? 'primary' : 'ghost'}
-                    onPress={async () => {
-                      await mutate((d) => {
-                        const p = d.profiles.find((x) => x.id === selUser.id);
-                        if (p) p.role = r;
-                      });
-                      toast(t('users.roleChanged'), 'success');
-                    }} />
-                ))}
-                {(user.role === 'admin') ? (
-                  <Btn title={t('common.supervisor')} size="sm" variant={selUser.role === 'supervisor' || selUser.role === 'admin' ? 'primary' : 'ghost'}
-                    onPress={async () => {
-                      await mutate((d) => {
-                        const p = d.profiles.find((x) => x.id === selUser.id);
-                        if (p) p.role = p.role === 'supervisor' ? 'admin' : 'supervisor';
-                      });
-                      toast(t('users.roleChanged'), 'success');
-                    }} />
-                ) : null}
-              </Row>
-
-              <Row gap={8}>
-                <Btn
-                  title={selUser.status === 'active' ? t('users.deactivate') : t('users.activate')}
-                  variant={selUser.status === 'active' ? 'danger' : 'success'}
-                  icon={selUser.status === 'active' ? 'pause-circle' : 'play-circle'}
-                  onPress={async () => {
-                    await mutate((d) => {
-                      const p = d.profiles.find((x) => x.id === selUser.id);
-                      if (p) p.status = p.status === 'active' ? 'disabled' : 'active';
-                    });
-                    toast(t('users.statusChanged'), 'success');
-                  }}
-                />
-              </Row>
+              {user.role === 'admin' ? (
+                <View style={{ gap: 10 }}>
+                  <Txt variant="caption" color={theme.textSecondary}>{t('users.changeRole')}</Txt>
+                  <Row gap={6} wrap>
+                    {(['student', 'volunteer', 'supervisor', 'admin'] as Role[]).map((role) => (
+                      <Btn
+                        key={role}
+                        title={roleLabel[role]}
+                        size="sm"
+                        variant={selUser.role === role ? 'primary' : 'ghost'}
+                        onPress={selUser.role === role ? undefined : () => { void changeAccess(selUser.id, { role }); }}
+                      />
+                    ))}
+                  </Row>
+                  {selUser.id !== user.id ? (
+                    <Row gap={8}>
+                      <Btn
+                        title={selUser.status === 'active' ? t('users.deactivate') : t('users.activate')}
+                        variant={selUser.status === 'active' ? 'danger' : 'success'}
+                        icon={selUser.status === 'active' ? 'pause-circle' : 'play-circle'}
+                        onPress={() => {
+                          void changeAccess(selUser.id, { status: selUser.status === 'active' ? 'disabled' : 'active' });
+                        }}
+                      />
+                    </Row>
+                  ) : null}
+                </View>
+              ) : null}
 
               <Card glass>
                 <Row center gap={8}>

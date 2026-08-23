@@ -4,17 +4,18 @@
 -- ═══════════════════════════════════════════════════════════════════
 
 insert into gamification_rules (key, value) values
-  ('points.present', '10'),
-  ('points.late', '7'),
-  ('attendance.late_window_min', '15'),
-  ('certificate.min_attendance_pct', '75'),
-  ('kudos.monthly_quota_per_instructor', '200'),
-  ('streak.freeze_max_hold', '2'),
-  ('league.promotion_pct', '15'),
-  ('league.relegation_pct', '15'),
-  ('points.month_bonus', '50'),
-  ('points.course_complete', '100'),
-  ('points.rating', '5')
+  ('points.present', '{"value":10}'),
+  ('points.late', '{"value":7}'),
+  ('attendance.late_window_min', '{"value":15}'),
+  ('certificate.min_attendance_pct', '{"value":75}'),
+  ('kudos.monthly_quota_per_instructor', '{"value":200}'),
+  ('streak.freeze_max_hold', '{"value":2}'),
+  ('streak.min_sessions_week', '{"value":1}'),
+  ('league.promotion_pct', '{"value":15}'),
+  ('league.relegation_pct', '{"value":15}'),
+  ('points.month_bonus', '{"value":50}'),
+  ('points.course_complete', '{"value":100}'),
+  ('points.rating', '{"value":5}')
 on conflict (key) do nothing;
 
 insert into badges (code, name_ar, name_en, desc_ar, desc_en, rarity, icon) values

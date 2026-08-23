@@ -1,81 +1,120 @@
-# إعداد Supabase لمسار 3.1
+# إعداد Supabase لمسار 3.2
 
-## 1) إنشاء المشروع والمخطط
+## 1) إنشاء المشروع وتطبيق المخطط القانوني الوحيد
 
-1. أنشئ مشروعًا على [supabase.com](https://supabase.com).
-2. من **SQL Editor** نفّذ الملفات بالترتيب:
-   1. `supabase/001_complete_schema.sql` (الجداول + الدوال الأساسية)
-   2. `supabase/migrations/0004_real_auth_and_policies.sql` (**إلزامي** — الدخول بجوجل + سياسات RLS الصحيحة + bucket الصور + Realtime)
-   3. `supabase/seed/seed.sql` (اختياري: الشارات وقواعد اللعبة الافتراضية)
+المصدر القانوني للمخطط هو مجلد `supabase/migrations` فقط. لا تنفّذ ملفات SQL منفردة أو بترتيب يدوي.
+المسار `0001` → `0006` ينشئ الجداول، Google Auth، التخزين، المهام المجدولة، RLS، وواجهات RPC الذرية.
+ولا يزرع أي فرع أو كورس أو مستخدم وهمي.
 
-> بدون الملف الثاني ستفشل كل عمليات الكتابة، لأن سياسات RLS الأصلية كانت تقارن
-> `auth.uid()` بأعمدة تشير إلى `profiles.id`.
+```bash
+npx supabase login
+npx supabase link --project-ref <PROJECT-REF>
+npx supabase db push
+```
 
-## 2) تفعيل الدخول بحساب Google
+نفّذ أول نشر على مشروع **staging**، اختبره، ثم كرر `db push` على production. لا تعدّل migration طُبّقت بالفعل؛
+أي تغيير لاحق يجب أن يكون migration جديدة.
 
-1. **Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web)**.
-2. في **Authorized redirect URIs** أضف:
-   ```
-   https://<PROJECT-REF>.supabase.co/auth/v1/callback
-   ```
-3. انسخ `Client ID` و `Client Secret` إلى:
-   **Supabase → Authentication → Providers → Google** وفعّله.
-4. **Authentication → URL Configuration**:
-   - `Site URL`: رابط نسخة الويب (مثلاً `https://masar.example.com`).
-   - `Redirect URLs`: أضف كل ما يلي
-     ```
-     http://localhost:8081
-     https://masar.example.com
-     masar://auth/callback
-     exp://*
-     ```
-   (`masar` هو الـ scheme المعرَّف في `app.json`.)
+> **تنبيه للنسخ القديمة:** إذا طُبقت ملفات `0001`–`0004` القديمة المتعارضة على مشروع سابق، فلا تعتبره قاعدة صالحة
+> بمجرد `db push`. ما دام المشروع قبل الإطلاق، أنشئ مشروع staging جديدًا من السلسلة الحالية. إن وُجدت بيانات حقيقية، خذ نسخة
+> احتياطية ونفّذ خطة تحويل بيانات مخصصة ومراجَعة بدل إعادة الضبط أو افتراض توافق المخططين.
+>
+> يتطلب `0006_automation_jobs.sql` إتاحة امتداد `pg_cron` في خطة Supabase. المهام ليست تجميلية:
+> فهي تغلق الجلسات المنسية، وتسوي الستريك والدوري وبونص الشهر، وترسل تذكيرات الجلسات بصورة idempotent.
 
-للبناء الأصلي (iOS/Android) أنشئ أيضًا OAuth clients خاصة بالمنصتين في Google Cloud
-باستخدام bundle identifier / package name وبصمة SHA-1.
+## 2) إنشاء أول أدمن بأمان
 
-## 3) متغيرات البيئة
+لا يتحول «أول شخص يصل للموقع» إلى أدمن تلقائيًا. هذا يمنع الاستيلاء على مشروع جديد قبل اكتمال الإعداد.
+الطريقة المفضلة هي إنشاء المستخدم من **Auth Admin API** (بيئة خادم فقط) مع App Metadata التالية قبل أول دخول:
 
-انسخ `.env.example` إلى `.env` واملأه:
+```json
+{ "masar_bootstrap_admin": "true" }
+```
+
+لا تضع `service_role` في التطبيق أو `.env` التي تبدأ بـ`EXPO_PUBLIC_`.
+إذا أنشأت الحساب أولًا كطالب، نفّذ مرة واحدة من SQL Editor بعد التأكد من البريد:
+
+```sql
+BEGIN;
+DO $$
+DECLARE v_profile uuid;
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE role='admin') THEN
+    RAISE EXCEPTION 'admin_already_exists';
+  END IF;
+  SELECT p.id INTO STRICT v_profile
+  FROM public.profiles p JOIN auth.users u ON u.id=p.user_id
+  WHERE lower(u.email)=lower('owner@example.com');
+  UPDATE public.profiles SET role='admin',updated_at=now() WHERE id=v_profile;
+  INSERT INTO public.audit_log(actor_id,action,target,payload)
+  VALUES(v_profile,'bootstrap_admin',v_profile::text,jsonb_build_object('method','sql_editor'));
+END $$;
+COMMIT;
+```
+
+بعدها استخدم شاشة المستخدمين داخل التطبيق لكل تغييرات الأدوار والحالة؛ فهي تمر عبر RPC مدققة ولا تعتمد على تعديل محلي.
+
+## 3) تفعيل Google OAuth
+
+1. في **Google Cloud Console → APIs & Services → Credentials** أنشئ OAuth Web Client.
+2. أضف URI التالي إلى **Authorized redirect URIs**:
+   `https://<PROJECT-REF>.supabase.co/auth/v1/callback`
+3. انسخ Client ID وClient Secret إلى **Supabase → Authentication → Providers → Google**.
+4. في **Authentication → URL Configuration** اضبط Site URL على نطاق الويب الإنتاجي، وأضف روابط staging والإنتاج و:
+   - `masar://auth/callback`
+   - روابط development build المستخدمة فعليًا فقط.
+5. للبناء الأصلي أنشئ OAuth clients خاصة بـiOS وAndroid باستخدام:
+   - iOS bundle: `org.masaregypt.app`
+   - Android package: `org.masaregypt.app`
+   - بصمات SHA الصحيحة لكل ملف توقيع.
+
+لا تستخدم wildcard واسعًا في Redirect URLs على production.
+
+## 4) متغيرات البيئة
+
+انسخ `.env.example` إلى ملف بيئة محلي غير متتبع:
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://<PROJECT-REF>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+EXPO_PUBLIC_APP_URL=https://masar.example.com
 ```
 
-بدون هذه المفاتيح يعرض التطبيق شاشة «الإعداد مطلوب» ولا يعرض أي بيانات وهمية.
+`EXPO_PUBLIC_APP_URL` هو أصل رابط التحقق العام من الشهادات. يجب أن يفتح المسار `/verify?serial=...` على نسخة الويب.
+بدون إعداد Supabase يعرض التطبيق «الإعداد مطلوب» ولا يستبدل الخادم ببيانات وهمية.
 
-## 4) صور المستخدمين
+## 5) التخزين وRealtime
 
-المايجريشن ينشئ bucket باسم `avatars` (قراءة عامة، كتابة لصاحب المجلد فقط)،
-والمسار المستخدم: `avatars/<auth-user-id>/avatar_<timestamp>.jpg`.
+المسار ينشئ bucket عام القراءة باسم `avatars`، والكتابة مقتصرة على مجلد المستخدم:
+`<auth-user-id>/avatar_<timestamp>.jpg`. راجع سياسة الاحتفاظ بالصور والخصوصية قبل الإطلاق.
 
-## 5) أول مستخدم = أدمن
+تُضاف جداول الجلسات والحضور والإشعارات والأعذار والتسجيلات والطلبات إلى Realtime بصورة idempotent.
 
-دالة `handle_new_user` تجعل **أول** حساب يسجّل الدخول أدمن (لأنه لا يوجد أدمن بعد)،
-وباقي الحسابات تُنشأ كطلاب. لترقية مستخدم لاحقًا:
+## 6) إنشاء بيانات المؤسسة الحقيقية
 
-```sql
-UPDATE public.profiles SET role = 'supervisor' WHERE email = 'someone@example.com';
-```
+بعد دخول الأدمن:
+1. استخدم «ابدأ مركزك» لإنشاء الفرع واللجان والكورس والمجموعة والجلسات في معاملة خادم واحدة.
+2. أو استخدم شاشات التنظيم والكورسات والمجموعات منفصلة؛ نشر المجموعة وجلساتها ذري.
+3. لا تستخدم `supabase/seed/seed.sql` لإنتاج بيانات مؤسسة؛ الملف يحتوي مراجع الشارات والقواعد فقط.
 
-## 6) الوظائف المجدولة (اختياري لكن موصى به)
-
-فعّل امتداد `pg_cron` ثم طبّق `supabase/migrations/0003_cron_jobs.sql`
-(إقفال الجلسات المنسية كل 30 دقيقة + تصفية الستريك والدوري فجر كل أحد).
-
-## 7) تشغيل التطبيق
+## 7) البناء والتشغيل
 
 ```bash
-npm install
-npm run web        # معاينة ويب
-npx expo start     # موبايل عبر Expo Go / development build
+npm ci
+npm run typecheck
+npm run parity
+npm run test:engine
+npm run export:web
+npx eas build --profile development --platform all
 ```
 
-## 8) فحوصات الجودة
+اختبر على development build حقيقي: الكاميرا، QR، Google callback، مشاركة CSV/PDF، الطباعة، وروابط التحقق.
+Expo Go أو web export وحدهما لا يثبتان سلامة التكاملات الأصلية.
 
-```bash
-npm run typecheck    # صفر أخطاء
-npm run parity       # تطابق مفاتيح العربية/الإنجليزية
-npm run test:engine  # 49 اختبار سلوكي لقلب النظام
-```
+## 8) قائمة ما قبل الإنتاج
+
+- طبّق migrations على staging من قاعدة فارغة واختبر سياسات كل دور.
+- اختبر سباقات التسجيل في آخر مقعد، تكرار QR، إغلاق الجلسة مرتين، وإصدار الشهادات مرتين.
+- راقب `cron.job_run_details` و`audit_log` وSupabase Auth logs.
+- اضبط نسخًا احتياطية، تنبيهات الأخطاء، وسياسة استرداد قبل دعوة المستخدمين.
+- ثبّت نطاق الويب وOAuth redirects و`EXPO_PUBLIC_APP_URL` لكل بيئة.

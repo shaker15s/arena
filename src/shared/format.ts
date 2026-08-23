@@ -98,7 +98,7 @@ export function uid(_prefix = 'id'): string {
   });
 }
 
-/** هاش بسيط حتمي — لتوليد توكنات QR الدوّارة (محاكاة التوقيع السيرفري) */
+/** هاش حتمي للاختبارات والحسابات المحلية فقط؛ ليس توقيعًا أمنيًا. */
 export function hashStr(input: string): string {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;

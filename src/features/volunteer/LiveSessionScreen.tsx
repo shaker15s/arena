@@ -3,17 +3,18 @@
  * QR دوّار كل 25 ثانية + كود احتياطي + عداد حضور حي + آخر الواصلين
  * + رصد يدوي بسبب إلزامي + إنهاء ← تقرير 3 حقول + محاسبة تلقائية.
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Easing, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../../data/store';
+import { batchOf, batchStudents, courseOf, profileOf } from '../../data/engine';
 import {
-  backupCodeOf, batchOf, batchStudents, courseOf, currentQrToken, profileOf,
-  qrSlotOf, rpcCloseSession, rpcManualMark, rpcStartSession, simulateArrival,
-} from '../../data/engine';
+  closeTrainingSession, getSessionQrPayload, manualMarkAttendance,
+  startTrainingSession, type SessionQrPayload,
+} from '../../data/actions';
 import { QR_ROTATION_MS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -24,15 +25,13 @@ import {
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
 import { formatTime } from '../../shared/format';
-import { useTabs } from '../../app/RootNavigator';
 import { TrainingSession } from '../../data/types';
 
 export function LiveSessionScreen() {
   const { t, lang } = useI18n();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, user, mutate, toast } = useApp();
-  const tabs = useTabs();
+  const { db, user, refresh, toast } = useApp();
   const [, setTick] = useState(0);
   const [starting, setStarting] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
@@ -43,8 +42,7 @@ export function LiveSessionScreen() {
   const [challenges, setChallenges] = useState('');
   const [closing, setClosing] = useState(false);
   const [closedSummary, setClosedSummary] = useState<null | { present: number; absent: number; total: number }>(null);
-  const [trickle, setTrickle] = useState(false);
-  const fakeArrivals = useRef(false);
+  const [qrPayload, setQrPayload] = useState<SessionQrPayload | null>(null);
 
   // نبضة ساعة للتدوير (كل 500ms)
   useEffect(() => {
@@ -57,36 +55,65 @@ export function LiveSessionScreen() {
   const myLive = db.sessions.find((s) => s.status === 'live' && myBatches.some((b) => b.id === s.batchId));
   const batchWithScheduled = myBatches.find((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
 
-  // محاكاة وصول طلاب تجريبي أثناء العرض
+  // الخادم وحده يولّد التوقيع والكود الاحتياطي؛ لا تصل بذرة QR للعميل.
   useEffect(() => {
-    if (!trickle || !myLive || !user) return;
-    fakeArrivals.current = true;
-    const iv = setInterval(async () => {
-      const r = await mutate((d) => simulateArrival(d, myLive.id));
-      if (!r) setTrickle(false);
-    }, 9000);
-    return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trickle, myLive?.id]);
+    if (!myLive) {
+      setQrPayload(null);
+      return;
+    }
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = async () => {
+      try {
+        const payload = await getSessionQrPayload(myLive.id);
+        if (!active) return;
+        setQrPayload(payload);
+        const delay = Math.max(800, Math.min(QR_ROTATION_MS, payload.expires_at - Date.now() + 150));
+        timer = setTimeout(() => { void load(); }, delay);
+      } catch (error) {
+        if (active) {
+          toast((error as Error).message, 'error');
+          timer = setTimeout(() => { void load(); }, 5000);
+        }
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [myLive?.id, toast]);
 
   const start = async () => {
     if (!batchWithScheduled) return;
     setStarting(true);
-    await mutate((d) => rpcStartSession(d, batchWithScheduled.id, user.id));
-    setStarting(false);
+    try {
+      await startTrainingSession(batchWithScheduled.id);
+      await refresh();
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setStarting(false);
+    }
   };
 
   const endAndReport = async () => {
     if (!myLive) return;
     setClosing(true);
     const report = { done: done.trim(), planned: planned.trim(), challenges: challenges.trim(), submittedAt: Date.now() };
-    const summary = await mutate((d) => rpcCloseSession(d, myLive.id, user.id, report));
-    setClosing(false);
-    setReportStep(false);
-    setEndConfirm(false);
-    setClosedSummary({ present: summary.present + summary.late, absent: summary.absent, total: summary.total });
-    toast(t('live.closedSnack'), 'success');
-    toast(t('report.sent'), 'success');
+    try {
+      const summary = await closeTrainingSession(myLive.id, report);
+      await refresh();
+      setReportStep(false);
+      setEndConfirm(false);
+      setClosedSummary({ present: summary.present + summary.late, absent: summary.absent, total: summary.total });
+      toast(t('live.closedSnack'), 'success');
+      toast(t('report.sent'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setClosing(false);
+    }
   };
 
   // ── الحالة 1: لا جلسة حية ──
@@ -138,10 +165,9 @@ export function LiveSessionScreen() {
   const batch = batchOf(db, myLive.batchId)!;
   const course = courseOf(db, batch.courseId)!;
   const now = Date.now();
-  const token = currentQrToken(myLive, now);
-  const slot = qrSlotOf(myLive, now);
-  const slotProgress = 1 - ((now - (myLive.startedAt ?? myLive.startsAt) - slot * QR_ROTATION_MS) / QR_ROTATION_MS);
-  const code = backupCodeOf(myLive);
+  const token = qrPayload?.token ?? '';
+  const slotProgress = qrPayload ? Math.max(0, Math.min(1, (qrPayload.expires_at - now) / QR_ROTATION_MS)) : 0;
+  const code = qrPayload?.backup_code ?? '••••••';
   const students = batchStudents(db, batch.id);
   const rows = db.attendance.filter((a) => a.sessionId === myLive.id && a.status !== 'absent');
   const recent = [...rows].sort((a, b) => (b.checkedInAt ?? 0) - (a.checkedInAt ?? 0)).slice(0, 4);
@@ -170,7 +196,7 @@ export function LiveSessionScreen() {
               <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
                 <RingCountdown progress={slotProgress} size={236} />
                 <View style={{ backgroundColor: '#fff', padding: 14, borderRadius: 20 }}>
-                  <QRCode value={token} size={176} />
+                  {token ? <QRCode value={token} size={176} /> : <Ionicons name="sync" size={64} color={theme.brand} />}
                 </View>
               </View>
               <Row center gap={8}>
@@ -233,13 +259,6 @@ export function LiveSessionScreen() {
         <FadeIn index={3}>
           <Row gap={10} wrap>
             <Btn title={t('live.manualMark')} variant="secondary" icon="hand-left" onPress={() => setManualOpen(true)} />
-            <Btn
-              title={`${t('live.demoTrickle')} ${trickle ? '⏸' : '▶'}`}
-              variant="ghost"
-              icon="flask"
-              style={{ borderColor: 'rgba(255,255,255,0.2)' }}
-              onPress={() => setTrickle((x) => !x)}
-            />
             <View style={{ flex: 1 }} />
             <Btn title={t('live.endSession')} variant="danger" icon="stop-circle" onPress={() => setEndConfirm(true)} />
           </Row>
@@ -325,7 +344,7 @@ function RingCountdown({ progress, size }: { progress: number; size: number }) {
 function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onClose: () => void; session: TrainingSession }) {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [status, setStatus] = useState<'present' | 'late'>('present');
@@ -343,15 +362,17 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
     if (!selected) return;
     if (reason.trim().length < 3) return;
     setSending(true);
-    const r = await mutate((d) => rpcManualMark(d, { sessionId: session.id, userId: selected, status, reason: reason.trim(), actorId: user.id }));
-    setSending(false);
-    if (r.ok) {
+    try {
+      await manualMarkAttendance({ sessionId: session.id, userId: selected, status, reason: reason.trim() });
+      await refresh();
       toast(t('manual.done'), 'success');
       setSelected(null);
       setReason('');
       onClose();
-    } else if (r.already) {
-      toast(t('manual.already'), 'warn');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setSending(false);
     }
   };
 
