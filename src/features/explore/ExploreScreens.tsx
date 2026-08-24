@@ -9,7 +9,7 @@ import { useApp } from '../../data/store';
 import {
   batchOf, courseRatingStats, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
-import { joinBatch as joinBatchOnServer } from '../../data/actions';
+import { joinBatch as joinBatchOnServer, leaveBatch } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -313,7 +313,23 @@ export function CourseDetailsScreen({ navigation, route }: any) {
                         mine.status === 'waitlist' ? (
                           <Btn title={t('explore.onWaitlist')} variant="secondary" full disabled icon="time" />
                         ) : (
-                          <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
+                          <>
+                            <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
+                            <Spacer size={6} />
+                            <Btn
+                              title={t('course.leaveBatch')}
+                              variant="ghost" full icon="exit"
+                              onPress={async () => {
+                                try {
+                                  await leaveBatch(b.id);
+                                  await refresh();
+                                  toast(t('course.leavedBatch'), 'success');
+                                } catch (error) {
+                                  toast((error as Error).message, 'error');
+                                }
+                              }}
+                            />
+                          </>
                         )
                       ) : (
                         <Btn

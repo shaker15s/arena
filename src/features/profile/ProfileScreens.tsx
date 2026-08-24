@@ -24,11 +24,14 @@ export function ProfileScreen() {
   const { theme, preference, setTheme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { db, user, logout, online, syncing, lastSyncAt, refresh, toast } = useApp();
+  const { db, user, logout, deleteMyAccount, online, syncing, lastSyncAt, refresh, toast } = useApp();
   const [langSheet, setLangSheet] = useState(false);
   const [themeSheet, setThemeSheet] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [versionTaps, setVersionTaps] = useState(0);
   const [showDevInfo, setShowDevInfo] = useState(false);
 
@@ -145,6 +148,9 @@ export function ProfileScreen() {
         <FadeIn index={10}>
           <ListRow icon="log-out" title={t('common.logout')} danger onPress={() => setLogoutOpen(true)} />
         </FadeIn>
+        <FadeIn index={11}>
+          <ListRow icon="trash-outline" title={t('profile.deleteAccount')} subtitle={t('profile.deleteAccountSub')} danger onPress={() => { setDeleteConfirm(''); setDeleteOpen(true); }} />
+        </FadeIn>
 
         <Pressable onPress={handleVersionTap}>
           <Txt variant="micro" color={theme.textMuted} align="center">{t('profile.about')} · v3.2.0</Txt>
@@ -200,6 +206,45 @@ export function ProfileScreen() {
           <Row gap={10}>
             <View style={{ flex: 1 }}><Btn title={t('common.cancel')} variant="ghost" full onPress={() => setLogoutOpen(false)} /></View>
             <View style={{ flex: 1 }}><Btn title={t('common.logout')} variant="danger" full icon="log-out" onPress={() => { setLogoutOpen(false); void logout(); }} /></View>
+          </Row>
+        </View>
+      </Sheet>
+
+      <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title={t('profile.deleteAccount')}>
+        <View style={{ gap: 14 }}>
+          <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55' }}>
+            <Row center gap={10}>
+              <Ionicons name="warning" size={26} color={theme.danger} />
+              <Txt variant="body" color={theme.danger} style={{ flex: 1 }}>{t('profile.deleteBody')}</Txt>
+            </Row>
+          </Card>
+          <Input
+            label={t('profile.deleteTypeConfirm')}
+            value={deleteConfirm}
+            onChange={setDeleteConfirm}
+            placeholder="DELETE"
+            autoCapitalize="characters"
+          />
+          {deleteConfirm.toUpperCase() !== 'DELETE' ? (
+            <Txt variant="micro" color={theme.textMuted}>{t('profile.deleteHint')}</Txt>
+          ) : null}
+          <Row gap={10}>
+            <View style={{ flex: 1 }}><Btn title={t('common.cancel')} variant="ghost" full onPress={() => setDeleteOpen(false)} /></View>
+            <View style={{ flex: 1 }}>
+              <Btn
+                title={t('profile.deleteAccount')}
+                variant="danger" full icon="trash-outline"
+                loading={deleting}
+                disabled={deleteConfirm.toUpperCase() !== 'DELETE'}
+                onPress={async () => {
+                  setDeleting(true);
+                  const r = await deleteMyAccount(deleteConfirm.toUpperCase());
+                  setDeleting(false);
+                  if (!r.ok) { toast(r.error ?? t('common.errorTitle'), 'error'); return; }
+                  setDeleteOpen(false);
+                }}
+              />
+            </View>
           </Row>
         </View>
       </Sheet>

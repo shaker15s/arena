@@ -10,12 +10,14 @@ import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
-import { completeMyProfile, updateMyProfile } from './actions';
+import { completeMyProfile, deleteMyAccount, updateMyProfile } from './actions';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
-import { emptyDb, fetchRemoteDb, pushDelta, subscribeRealtime } from './remote';
+import { applyRealtimePatch, emptyDb, fetchRemoteDb, pushDelta, subscribeRealtime } from './remote';
+import { enqueueCommandOnServer, finishCommandOnServer } from './actions';
+import { loadCommands, markApplied, markFailed, pruneCommands } from '../shared/offline';
 
 const CACHE_KEY = 'masar.cache.v1';
 
@@ -60,6 +62,7 @@ interface AppCtx {
   updateProfile: (patch: Partial<ProfileDraft>) => Promise<{ ok: boolean; error?: string }>;
   uploadAvatar: (uri: string) => Promise<string | null>;
   logout: () => Promise<void>;
+  deleteMyAccount: (confirm: string) => Promise<{ ok: boolean; error?: string }>;
   unreadCount: number;
   markNotificationsRead: () => void;
 }
@@ -155,6 +158,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /** يعيد تشغيل الأوامر المعلّقة (Offline write queue) عند عودة الاتصال */
+  const flushOfflineQueue = useCallback(async () => {
+    if (!SUPABASE_ENABLED || !identity) return;
+    try {
+      const pending = (await loadCommands()).filter((c) => c.status === 'pending');
+      if (!pending.length) return;
+      await pruneCommands();
+      for (const c of pending) {
+        try {
+          await enqueueCommandOnServer(c.id, c.command, c.payload);
+          await markApplied(c.id);
+        } catch (error) {
+          await markFailed(c.id, (error as Error).message);
+        }
+      }
+      await refresh();
+    } catch {
+      // لا نكسر حلقة التزامن إن فشل الطابور
+    }
+  }, [SUPABASE_ENABLED, identity, refresh]);
+
   /** يربط جلسة Supabase بالبروفايل المحلي */
   const applySession = useCallback(async (session: Session | null) => {
     const authUser: User | null = session?.user ?? null;
@@ -196,8 +220,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const { data: { session } } = await sb.auth.getSession();
           if (isMounted) {
             await applySession(session);
-            unsubRealtime = subscribeRealtime(() => {
-              if (isMounted) void refresh();
+            // Realtime incremental: طبّق التغيير محليًا بدل سحب كل الجداول؛
+            // إن تعذّر (جدول/حدث غير مُعالج) نعمل refresh كامل.
+            unsubRealtime = subscribeRealtime((patch) => {
+              if (!isMounted) return;
+              const next = applyRealtimePatch(dbRef.current, patch);
+              if (next) {
+                dbRef.current = next;
+                setDb(next);
+                writeCache(next);
+              } else {
+                void refresh();
+              }
             });
           }
         } catch {
@@ -218,15 +252,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ── إعادة المزامنة عند عودة التطبيق للمقدمة ──
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && profileId) void refresh();
+      if (state === 'active' && profileId) void refresh().then(() => flushOfflineQueue());
     });
     return () => sub.remove();
-  }, [profileId, refresh]);
+  }, [profileId, refresh, flushOfflineQueue]);
 
   // ── مراقبة الاتصال على الويب ──
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const up = () => { setOnline(true); void refresh(); };
+    const up = () => { setOnline(true); void refresh().then(() => flushOfflineQueue()); };
     const down = () => setOnline(false);
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
@@ -235,7 +269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', up);
       window.removeEventListener('offline', down);
     };
-  }, [refresh]);
+  }, [refresh, flushOfflineQueue]);
 
   /** تعديل متفائل محليًا + كتابة الفروق فعليًا في Supabase */
   const mutate = useCallback(async <R,>(fn: (db: Db) => R): Promise<R> => {
@@ -337,6 +371,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     writeCache(emptyDb());
   }, []);
 
+  /** حذف الحساب على الخادم ثم إنهاء الجلسة محليًا. */
+  const deleteAccount = useCallback(async (confirm: string): Promise<{ ok: boolean; error?: string }> => {
+    if (!identity) return { ok: false, error: 'no-session' };
+    try {
+      await deleteMyAccount(confirm);
+      // Auth row removed server-side -> session is invalidated.
+      setProfileId(null);
+      setIdentity(null);
+      setDb(emptyDb());
+      writeCache(emptyDb());
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  }, [identity]);
+
   const unreadCount = useMemo(() => {
     if (!profileId) return 0;
     return db.notifications.filter((n) => n.userId === profileId && !n.read).length;
@@ -362,11 +412,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, loading, syncing,
     lastSyncAt, syncError, online, setOnline, toasts, toast, mutate, touch, refresh,
     signInWithGoogle, completeProfile, updateProfile, uploadAvatar, logout,
-    unreadCount, markNotificationsRead,
+    deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, loading, syncing, lastSyncAt, syncError, online,
     toasts, toast, mutate, touch, refresh, signInWithGoogle, completeProfile, updateProfile,
-    uploadAvatar, logout, unreadCount, markNotificationsRead,
+    uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

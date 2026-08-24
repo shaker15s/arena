@@ -328,3 +328,154 @@ export async function fetchSupportRequests(): Promise<SupportRequestRow[]> {
   if (error) messageOf(error, 'fetch_support_requests');
   return (data ?? []) as SupportRequestRow[];
 }
+
+// ───────────────────────────── Batch B: account / waitlist / reports / analytics ─────────────────────────────
+
+/** حذف الحساب نهائيًا على الخادم (يتطلب كتابة كلمة التأكيد DELETE). */
+export async function deleteMyAccount(confirm: string): Promise<void> {
+  await rpc('delete_my_account', { p_confirm: confirm });
+}
+
+/** مغادرة مجموعة (يحرر مقعدًا ويُرقّي قائمة الانتظار فورًا). */
+export async function leaveBatch(batchId: string): Promise<void> {
+  await rpc('leave_batch', { p_batch_id: batchId });
+}
+
+/** إزالة طالب من مجموعة (مدير/مدرب) ثم ترقية قائمة الانتظار. */
+export async function removeFromBatch(batchId: string, userId: string): Promise<void> {
+  await rpc('remove_from_batch', { p_batch_id: batchId, p_user_id: userId });
+}
+
+export interface SessionReportData {
+  session_id: string;
+  title: string | null;
+  starts_at: string | null;
+  expected: number;
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  total: number;
+  report?: { done?: string; planned?: string; challenges?: string; submittedAt?: number } | null;
+}
+
+/** تقرير جلسة موثّق خادميًا (المدرب/المشرف فقط). */
+export async function getSessionReport(sessionId: string): Promise<SessionReportData> {
+  return rpc<SessionReportData>('get_session_report', { p_session_id: sessionId });
+}
+
+/** إشعار المتغيبين عن جلسة مغلقة (idempotent). */
+export async function notifySessionAbsentees(sessionId: string): Promise<{ notified: number }> {
+  const result = await rpc<{ notified: number }>('notify_session_absentees', { p_session_id: sessionId });
+  return { notified: result.notified };
+}
+
+export type AnalyticsScope = 'branch' | 'course' | 'batch' | 'session';
+
+export interface AnalyticsResult {
+  scope: AnalyticsScope;
+  scope_id: string | null;
+  sessions: number;
+  enrollments: number;
+  attendance: number;
+  attendanceRatio: number;
+}
+
+/** تحليلات خادمية بمدى محدد (branch/course/batch/session) — تتحقق الصلاحية على الخادم. */
+export async function getAnalytics(scope: AnalyticsScope, scopeId?: string | null): Promise<AnalyticsResult> {
+  return rpc<AnalyticsResult>('get_analytics', { p_scope: scope, p_scope_id: scopeId ?? null });
+}
+
+// ───────────── Domain query layer (P0, 0012) — ask the server for one object ─────────────
+
+export interface BatchRosterRow {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  avatar_color: string | null;
+  email: string | null;
+  phone: string | null;
+  status: 'active' | 'waitlist' | 'completed';
+  joined_at: string | null;
+  attended: number;
+  absent: number;
+}
+
+export interface CourseOverviewBatch {
+  id: string;
+  branch_id: string;
+  instructor_id: string | null;
+  capacity: number | null;
+  room: string | null;
+  status: string;
+  join_code: string | null;
+  start_date: string | null;
+  schedule: unknown;
+  enrolled: number;
+  waitlist: number;
+  attendance: number;
+  attendancePct: number;
+}
+
+export interface BatchSessionRow {
+  id: string;
+  seq: number;
+  title: string | null;
+  starts_at: string;
+  duration_min: number | null;
+  status: 'scheduled' | 'live' | 'closed';
+  report?: unknown;
+  present: number;
+  absent: number;
+  excused: number;
+}
+
+export interface SessionRosterRow {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  status: 'present' | 'late' | 'absent' | 'excused';
+  checked_in_at: string | null;
+  method: 'qr' | 'code' | 'manual' | null;
+  note: string | null;
+}
+
+/** نظرة عامة على الكورس: الكورس + مجموعاته (حضور/اشتراكات محسوبة خادميًا). */
+export async function getCourseOverview(courseId: string): Promise<{ course: Record<string, unknown>; batches: CourseOverviewBatch[] }> {
+  return rpc('get_course_overview', { p_course_id: courseId });
+}
+
+/** كشف طلاب مجموعة — PII مخفي إلا للمدير/المشرف/المدرب المالك. */
+export async function getBatchRoster(batchId: string): Promise<{ batch: Record<string, unknown>; students: BatchRosterRow[] }> {
+  return rpc('get_batch_roster', { p_batch_id: batchId });
+}
+
+/** جلسات مجموعة مع ملخص حضور كل جلسة. */
+export async function getBatchSessions(batchId: string): Promise<BatchSessionRow[]> {
+  return rpc('get_batch_sessions', { p_batch_id: batchId });
+}
+
+/** كشف حضور جلسة واحدة. */
+export async function getSessionRoster(sessionId: string): Promise<SessionRosterRow[]> {
+  return rpc('get_session_roster', { p_session_id: sessionId });
+}
+
+// ───────────── Offline write queue (P0 #3, 0013) — idempotent command log ─────────────
+
+export interface CommandStatus {
+  ok: boolean;
+  command_id: string;
+  status: 'pending' | 'applied' | 'failed';
+}
+
+/** سجّل أمرًا في قاعدة الأوامر (idempotent — إعادة المحاولة لا تُدخل تكرارًا). */
+export async function enqueueCommandOnServer(commandId: string, command: string, payload: Record<string, unknown> = {}): Promise<CommandStatus> {
+  return rpc<CommandStatus>('enqueue_command', {
+    p_command_id: commandId, p_command: command, p_payload: payload,
+  });
+}
+
+/** علّم أمرًا منفّذًا (أو فاشلًا) على الخادم. */
+export async function finishCommandOnServer(commandId: string, status: 'applied' | 'failed'): Promise<void> {
+  await rpc('finish_command', { p_command_id: commandId, p_status: status });
+}

@@ -2,15 +2,19 @@
  * features/volunteer — S30 يوم المدرب + S31 مجموعاتي + S36 ملف الطالب + S37 سجل الجلسات.
  */
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useApp } from '../../data/store';
 import {
   attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
   seatCounts, sessionsOfBatch,
 } from '../../data/engine';
-import { awardKudos } from '../../data/actions';
+import {
+  awardKudos, getSessionReport, notifySessionAbsentees, type SessionReportData,
+} from '../../data/actions';
 import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -244,13 +248,45 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   const { theme } = useTheme();
   const { db, toast, user } = useApp();
   const batch = batchOf(db, route.params.batchId);
+  const [report, setReport] = useState<SessionReportData | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [notifying, setNotifying] = useState(false);
   if (!batch || !user) return null;
   const course = courseOf(db, batch.courseId)!;
   const sessions = sessionsOfBatch(db, batch.id);
   const students = batchStudents(db, batch.id);
 
-  /** تصدير كشف الحضور الكامل (طلاب × جلسات) كملف CSV حقيقي */
-  const exportCsv = async () => {
+  /** فتح تقرير جلسة موثّق من الخادم. */
+  const openReport = async (sessionId: string) => {
+    setReportLoading(true);
+    try {
+      const data = await getSessionReport(sessionId);
+      setReport(data);
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  /** إشعار المتغيبين عن الجلسة (إجراء واحد ذرّي على الخادم). */
+  const notifyAbsentees = async () => {
+    if (!report) return;
+    setNotifying(true);
+    try {
+      const res = await notifySessionAbsentees(report.session_id);
+      toast(t('sess.absenteesNotified', { x: res.notified }), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+  /**
+   * بناء صفوف كشف الحضور (طلاب × جلسات) — قابلة لإعادة الاستخدام بين CSV وPDF.
+   */
+  const buildAttendanceRows = () => {
     const statusLabel: Record<string, string> = {
       present: t('history.present'),
       late: t('history.late'),
@@ -272,15 +308,53 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
       }),
       String(attendancePct(db, st.id, batch.id).pct),
     ]);
+    return { header, body };
+  };
+
+  /** تصدير الكشف كملف CSV حقيقي (تنزيل/مشاركة). */
+  const exportCsv = async () => {
+    const { header, body } = buildAttendanceRows();
     const filename = `masar-${course.title.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
     const ok = await saveCsv(filename, toCsv([header, ...body]));
     toast(ok ? t('sess.exported') : t('common.errorTitle'), ok ? 'success' : 'error');
   };
 
+  /** تصدير الكشف كملف PDF (طباعة/حفظ/مشاركة) — HTML بجدول مرتب RTL. */
+  const exportPdf = async () => {
+    const { header, body } = buildAttendanceRows();
+    const esc = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
+    const th = header.map((h) => `<th>${esc(h)}</th>`).join('');
+    const trs = body.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('');
+    const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>
+      @page{size:A4 landscape;margin:14mm} body{font-family:Arial,sans-serif;color:#1F2937;margin:0}
+      h1{font-size:20px;margin:0 0 4px} .meta{font-size:12px;color:#6B7280;margin-bottom:16px}
+      table{border-collapse:collapse;width:100%;font-size:11px} th,td{border:1px solid #D1D5DB;padding:6px;text-align:center}
+      th{background:#F3F4F6;font-weight:bold} td:first-child,th:first-child{text-align:right}
+    </style></head><body>
+      <h1>${esc(`${course.title} — ${t('sess.title')}`)}</h1>
+      <div class="meta">${esc(batch.room)} · ${esc(batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + '))} ${esc(batch.schedule.time)} · ${esc(new Date().toLocaleDateString())}</div>
+      <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>
+    </body></html>`;
+
+    if (Platform.OS === 'web') {
+      await Print.printAsync({ html });
+    } else {
+      const file = await Print.printToFileAsync({ html, base64: false });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: t('sess.export') });
+      } else {
+        toast(file.uri, 'success');
+      }
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <Header title={`${course.title} — ${t('sess.title')}`} back={() => navigation.goBack()} right={
-        <Btn title={t('sess.export')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
+        <Row gap={6}>
+          <Btn title={t('sess.exportCsv')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
+          <Btn title={t('sess.exportPdf')} size="sm" variant="ghost" icon="document-text" onPress={exportPdf} />
+        </Row>
       } />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
         {/* الطلاب */}
@@ -335,12 +409,60 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
                     <Txt variant="micro" color={theme.textSecondary} numberOfLines={1}>{s.report.done}</Txt>
                   </Row>
                 ) : null}
+                {s.status === 'closed' ? (
+                  <Btn title={t('sess.report')} size="sm" variant="ghost" icon="stats-chart" onPress={() => { void openReport(s.id); }} />
+                ) : null}
               </Card>
             );
           })}
         </FadeIn>
       </ScrollView>
+
+      {/* تقرير الجلسة + إشعار المتغيبين */}
+      <Sheet visible={report != null} onClose={() => setReport(null)} title={report?.title ? `${t('sess.report')} — ${report.title}` : t('sess.report')}>
+        {reportLoading ? (
+          <Txt variant="caption" color={theme.textMuted} align="center" style={{ padding: 20 }}>{t('common.loading')}</Txt>
+        ) : report ? (
+          <View style={{ gap: 10 }}>
+            <Row gap={10}>
+              <ReportStat label={t('history.present')} value={report.present} color={theme.success} />
+              <ReportStat label={t('history.late')} value={report.late} color={theme.warn} />
+              <ReportStat label={t('history.excused')} value={report.excused} color={theme.info} />
+              <ReportStat label={t('history.absent')} value={report.absent} color={theme.danger} />
+            </Row>
+            <Card glass>
+              <Row between center>
+                <Row center gap={6}>
+                  <Ionicons name="people" size={14} color={theme.brand} />
+                  <Txt variant="caption" color={theme.textSecondary}>{t('sess.expected')}</Txt>
+                </Row>
+                <Txt variant="h3">{report.expected}</Txt>
+              </Row>
+              <Spacer size={8} />
+              <Row between center>
+                <Txt variant="caption" color={theme.textSecondary}>{t('sess.attendancePct')}</Txt>
+                <Txt variant="h3" color={report.total === 0 ? theme.textMuted : (report.total - report.absent - report.excused >= report.total * 0.75 ? theme.success : theme.warn)}>
+                  {report.total === 0 ? '—' : `${Math.round(((report.total - report.absent - report.excused) / report.total) * 100)}%`}
+                </Txt>
+              </Row>
+            </Card>
+            {report.absent > 0 ? (
+              <Btn title={t('sess.notifyAbsentees', { x: report.absent })} variant="secondary" icon="notifications" loading={notifying} onPress={notifyAbsentees} />
+            ) : null}
+          </View>
+        ) : null}
+      </Sheet>
     </View>
+  );
+}
+
+function ReportStat({ label, value, color }: { label: string; value: number; color: string }) {
+  const { theme } = useTheme();
+  return (
+    <Card style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 12 }}>
+      <Txt variant="h3" color={color}>{value}</Txt>
+      <Txt variant="micro" color={theme.textMuted} align="center">{label}</Txt>
+    </Card>
   );
 }
 
