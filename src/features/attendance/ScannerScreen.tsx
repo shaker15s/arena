@@ -47,6 +47,10 @@ export function ScannerScreen({ navigation }: any) {
 
   const liveSess = user ? liveSessionForStudent(db, user.id) : undefined;
 
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
   // خط ليزر متحرك داخل الإطار
   const laser = useRef(new Animated.Value(0)).current;
   useEffect(() => {

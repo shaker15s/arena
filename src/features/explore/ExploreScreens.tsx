@@ -114,7 +114,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
   const { db, user } = useApp();
   const batches = db.batches.filter((b) => b.courseId === course.id && (b.status === 'active' || b.status === 'scheduled'));
   const stats = courseRatingStats(db, course.id);
-  const openBatch = batches[0];
+  const openBatch = batches.find(b => b.capacity - seatCounts(db, b.id).taken > 0) || batches[0];
   const seats = openBatch ? seatCounts(db, openBatch.id) : null;
   const seatsLeft = openBatch ? openBatch.capacity - (seats?.taken ?? 0) : 0;
   const joined = openBatch && user ? db.enrollments.some((e) => e.userId === user.id && e.batchId === openBatch.id) : false;

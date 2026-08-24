@@ -475,6 +475,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const markNotificationsRead = useCallback(() => {
     if (!profileId) return;
+    const hasUnread = dbRef.current.notifications.some((n) => n.userId === profileId && !n.read);
+    if (!hasUnread) return;
     // تحديث متفائل محلي، والكتابة الفعلية عبر RPC خادمية (0014) لأن upsert
     // المباشر على notifications ترفضه RLS. أوفلاين: يدخل الطابور ويُعاد تلقائيًا.
     const next = structuredClone(dbRef.current);

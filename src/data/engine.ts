@@ -116,8 +116,8 @@ export function seatCounts(db: Db, batchId: string): { taken: number; waitlist: 
   // Students only receive their own enrollment rows. Server aggregates keep
   // capacity accurate without leaking the complete class roster.
   return {
-    taken: Math.max(rows.filter((e) => e.status === 'active').length, batch?.enrolledCount ?? 0),
-    waitlist: Math.max(rows.filter((e) => e.status === 'waitlist').length, batch?.waitlistCount ?? 0),
+    taken: batch?.enrolledCount ?? rows.filter((e) => e.status === 'active').length,
+    waitlist: batch?.waitlistCount ?? rows.filter((e) => e.status === 'waitlist').length,
   };
 }
 

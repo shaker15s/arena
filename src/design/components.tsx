@@ -11,6 +11,7 @@ import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
 import { radii, spacing, typography } from './tokens';
 import { easing, isReducedMotion, scalePress, staggerDelay } from './motion';
@@ -443,7 +444,7 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
           textAlignVertical={multiline ? 'top' : 'center'}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
-            textAlign: 'auto', paddingVertical: multiline ? 6 : 8,
+            textAlign: 'auto', paddingVertical: multiline ? 6 : 8, paddingRight: 8,
             minWidth: 0, width: '100%',
             ...(Platform.OS === 'web' ? { outlineStyle: 'none', border: 'none', background: 'transparent' } as object : {}),
           }}
@@ -777,6 +778,7 @@ export function Sheet({ visible, onClose, children, title }: {
 }) {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (visible) {
@@ -808,7 +810,7 @@ export function Sheet({ visible, onClose, children, title }: {
               backgroundColor: theme.card,
               borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
               paddingHorizontal: spacing.s5, paddingTop: spacing.s4,
-              paddingBottom: Platform.OS === 'web' ? 28 : spacing.s8,
+              paddingBottom: Platform.OS === 'web' ? 28 : spacing.s8 + insets.bottom,
               maxHeight: '92%',
               borderWidth: 1,
               borderBottomWidth: 0,
@@ -817,7 +819,7 @@ export function Sheet({ visible, onClose, children, title }: {
               shadowOpacity: 0.28,
               shadowRadius: 36,
               shadowOffset: { width: 0, height: -12 },
-              transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [460, 0] }) }],
+              transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }],
               display: 'flex',
               flexDirection: 'column',
             }}
@@ -839,7 +841,9 @@ export function Sheet({ visible, onClose, children, title }: {
             ) : null}
 
             <View style={{ flex: 1, minHeight: 0 }}>
-              {children}
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                {children}
+              </ScrollView>
             </View>
           </Animated.View>
         </View>

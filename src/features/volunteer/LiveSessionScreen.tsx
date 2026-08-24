@@ -14,7 +14,7 @@ import { useApp } from '../../data/store';
 import { batchOf, batchStudents, courseOf, instructorBatches, profileOf, sessionsOfBatch } from '../../data/engine';
 import {
   closeTrainingSession, getSessionQrPayload, manualMarkAttendance,
-  startTrainingSession, type SessionQrPayload,
+  startTrainingSession, getBatchRoster, type SessionQrPayload,
 } from '../../data/actions';
 import { QR_ROTATION_MS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
@@ -375,7 +375,6 @@ function RingCountdown({ progress, size }: { progress: number; size: number }) {
   );
 }
 
-// ── ورقة الرصد اليدوي (S33) ──
 function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onClose: () => void; session: TrainingSession }) {
   const { t } = useI18n();
   const { theme } = useTheme();
@@ -385,9 +384,41 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
   const [status, setStatus] = useState<'present' | 'late'>('present');
   const [reason, setReason] = useState('');
   const [sending, setSending] = useState(false);
+  const [rosterStudents, setRosterStudents] = useState<any[]>([]);
+  const [loadingRoster, setLoadingRoster] = useState(false);
+
   if (!user) return null;
 
-  const students = batchStudents(db, session.batchId).filter((st) => {
+  const localStudents = batchStudents(db, session.batchId);
+
+  useEffect(() => {
+    if (visible && localStudents.length === 0) {
+      let active = true;
+      const load = async () => {
+        setLoadingRoster(true);
+        try {
+          const res = await getBatchRoster(session.batchId);
+          if (active) {
+            setRosterStudents(res.students.map((s) => ({
+              id: s.id,
+              fullName: s.full_name || 'Unknown',
+              avatarColor: s.avatar_color || '#333',
+            })));
+          }
+        } catch (error) {
+          if (active) toast((error as Error).message, 'error');
+        } finally {
+          if (active) setLoadingRoster(false);
+        }
+      };
+      void load();
+      return () => { active = false; };
+    }
+  }, [visible, localStudents.length, session.batchId, toast]);
+
+  const sourceStudents = localStudents.length > 0 ? localStudents : rosterStudents;
+
+  const students = sourceStudents.filter((st) => {
     const r = db.attendance.find((a) => a.sessionId === session.id && a.userId === st.id);
     const already = r && r.status !== 'absent';
     return !already && (query.trim() === '' || st.fullName.includes(query.trim()));
@@ -416,22 +447,34 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
       <View style={{ gap: 12 }}>
         <Input value={query} onChange={setQuery} placeholder={t('manual.searchPlaceholder')} icon="search" />
         <View style={{ maxHeight: 200 }}>
-          <ScrollView>
-            <View style={{ gap: 6 }}>
-              {students.map((st) => {
-                const active = selected === st.id;
-                return (
-                  <Card key={st.id} onPress={() => setSelected(st.id)} color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line, padding: 10 }}>
-                    <Row center gap={8}>
-                      <Avatar name={st.fullName} color={st.avatarColor} size={32} />
-                      <Txt variant="bodyMed">{st.fullName}</Txt>
-                      {active ? <Ionicons name="checkmark-circle" size={18} color={theme.brand} /> : null}
-                    </Row>
-                  </Card>
-                );
-              })}
+          {loadingRoster ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Txt color={theme.textMuted}>{t('common.loading')}</Txt>
             </View>
-          </ScrollView>
+          ) : (
+            <ScrollView>
+              <View style={{ gap: 6 }}>
+                {students.length === 0 ? (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <Txt color={theme.textMuted}>{t('common.empty') || 'No students found'}</Txt>
+                  </View>
+                ) : (
+                  students.map((st) => {
+                    const active = selected === st.id;
+                    return (
+                      <Card key={st.id} onPress={() => setSelected(st.id)} color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line, padding: 10 }}>
+                        <Row center gap={8}>
+                          <Avatar name={st.fullName} color={st.avatarColor} size={32} />
+                          <Txt variant="bodyMed">{st.fullName}</Txt>
+                          {active ? <Ionicons name="checkmark-circle" size={18} color={theme.brand} /> : null}
+                        </Row>
+                      </Card>
+                    );
+                  })
+                )}
+              </View>
+            </ScrollView>
+          )}
         </View>
         <Row gap={8}>
           <Btn title={t('manual.markPresent')} variant={status === 'present' ? 'success' : 'ghost'} icon="checkmark" onPress={() => setStatus('present')} />

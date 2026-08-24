@@ -73,13 +73,22 @@ export function TodayScreen() {
   const nextCourse = nextBatch ? courseOf(db, nextBatch.courseId) : undefined;
 
   const myBatches = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
-  const primaryBatch = myBatches.length > 0 ? batchOf(db, myBatches[0].batchId) : undefined;
-  const pct = primaryBatch ? attendancePct(db, user.id, primaryBatch.id) : null;
+  const activeBatches = myBatches.map(e => batchOf(db, e.batchId)).filter(Boolean);
   const certRule = db.rules.find((r) => r.key === 'certificate.min_attendance_pct');
   const certPct = typeof certRule?.value === 'number' ? certRule.value : 75;
-  const closedCount = primaryBatch ? sessionsOfBatch(db, primaryBatch.id).filter((s) => s.status === 'closed').length : 0;
-  const totalCount = primaryBatch ? sessionsOfBatch(db, primaryBatch.id).length : 0;
-  const needed = pct ? Math.max(0, Math.ceil(((certPct / 100) * Math.max(totalCount, closedCount)) - pct.honored)) : 0;
+
+  let closedCount = 0;
+  let totalCount = 0;
+  let totalHonored = 0;
+  for (const b of activeBatches) {
+    if (!b) continue;
+    closedCount += sessionsOfBatch(db, b.id).filter(s => s.status === 'closed').length;
+    totalCount += sessionsOfBatch(db, b.id).length;
+    totalHonored += attendancePct(db, user.id, b.id).honored;
+  }
+  const combinedPct = closedCount > 0 ? Math.round((totalHonored / closedCount) * 100) : 100;
+  const needed = Math.max(0, Math.ceil(((certPct / 100) * Math.max(totalCount, closedCount)) - totalHonored));
+  const hasBatches = activeBatches.length > 0;
 
   const streakUrgent = gam != null && gam.weekStatus === 'tracking' && liveSess != null && !alreadyChecked;
 
@@ -255,25 +264,25 @@ export function TodayScreen() {
           ) : null}
 
           {/* ── Bento: التقدم + الأهلية ── */}
-          {pct && primaryBatch ? (
+          {hasBatches ? (
             <FadeIn index={4}>
               <Row gap={12}>
                 <Card style={{ flex: 1, alignItems: 'center', gap: 10, paddingVertical: 18 }}>
-                  <StatRing size={90} stroke={8} progress={pct.pct / 100} color={pct.pct >= certPct ? theme.success : theme.brand}>
-                    <Txt variant="h2" color={pct.pct >= certPct ? theme.success : theme.brand}>{pct.pct}%</Txt>
+                  <StatRing size={90} stroke={8} progress={combinedPct / 100} color={combinedPct >= certPct ? theme.success : theme.brand}>
+                    <Txt variant="h2" color={combinedPct >= certPct ? theme.success : theme.brand}>{combinedPct}%</Txt>
                   </StatRing>
                   <Txt variant="micro" color={theme.textMuted} align="center">{t('today.attendanceRate')}</Txt>
                 </Card>
                 <Card style={{ flex: 1, alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 18 }}>
                   <View style={{
                     width: 56, height: 56, borderRadius: 28,
-                    backgroundColor: pct.pct >= certPct ? theme.successSoft : theme.warnSoft,
+                    backgroundColor: combinedPct >= certPct ? theme.successSoft : theme.warnSoft,
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Ionicons name={pct.pct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={pct.pct >= certPct ? theme.success : theme.warn} />
+                    <Ionicons name={combinedPct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={combinedPct >= certPct ? theme.success : theme.warn} />
                   </View>
-                  <Txt variant="caption" color={pct.pct >= certPct ? theme.success : theme.warn} align="center">
-                    {pct.pct >= certPct ? t('today.eligible') : t('today.needMore', { x: needed })}
+                  <Txt variant="caption" color={combinedPct >= certPct ? theme.success : theme.warn} align="center">
+                    {combinedPct >= certPct ? t('today.eligible') : t('today.needMore', { x: needed })}
                   </Txt>
                   <Txt variant="micro" color={theme.textMuted} align="center">
                     {t('journey.sessionXofY', { x: closedCount, y: totalCount })}

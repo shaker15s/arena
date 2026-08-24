@@ -54,7 +54,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   // متوسط حضور مجموعاتي
   const monthKey = monthKeyOf(Date.now());
   const monthAttendance = (() => {
-    const sess = db.sessions.filter((s) => batches.some((b) => b.id === s.batchId) && s.status === 'closed');
+    const sess = db.sessions.filter((s) => batches.some((b) => b.id === s.batchId) && s.status === 'closed' && monthKeyOf(s.startsAt) === monthKey);
     const rows = db.attendance.filter((a) => sess.some((s) => s.id === a.sessionId));
     if (rows.length === 0) return 0;
     return Math.round((rows.filter((a) => a.status !== 'absent').length / rows.length) * 100);
