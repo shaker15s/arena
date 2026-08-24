@@ -15,7 +15,7 @@ import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
-import { emptyDb, fetchRemoteDb, pushDelta, subscribeRealtime } from './remote';
+import { applyRealtimePatch, emptyDb, fetchRemoteDb, pushDelta, subscribeRealtime } from './remote';
 
 const CACHE_KEY = 'masar.cache.v1';
 
@@ -197,8 +197,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const { data: { session } } = await sb.auth.getSession();
           if (isMounted) {
             await applySession(session);
-            unsubRealtime = subscribeRealtime(() => {
-              if (isMounted) void refresh();
+            // Realtime incremental: طبّق التغيير محليًا بدل سحب كل الجداول؛
+            // إن تعذّر (جدول/حدث غير مُعالج) نعمل refresh كامل.
+            unsubRealtime = subscribeRealtime((patch) => {
+              if (!isMounted) return;
+              const next = applyRealtimePatch(dbRef.current, patch);
+              if (next) {
+                dbRef.current = next;
+                setDb(next);
+                writeCache(next);
+              } else {
+                void refresh();
+              }
             });
           }
         } catch {

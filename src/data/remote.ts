@@ -455,17 +455,149 @@ export async function pushDelta(before: Db, after: Db): Promise<SyncReport> {
 
 // ───────────────────────── الزمن الحقيقي ─────────────────────────
 
-/** يشترك في تغييرات كل الجداول المهمة ويستدعي onChange عند أي تحديث */
-export function subscribeRealtime(onChange: () => void): () => void {
+/** بيانات حدث Realtime كما يصلها العميل من Supabase. */
+export interface RealtimePatch {
+  table: string;                       // 'sessions' | 'attendance' | ...
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  newRow?: Record<string, unknown> | null;
+  oldRow?: Record<string, unknown> | null;
+}
+
+/**
+ * يشترك في تغييرات الجداول المهمة ويمرّر كل حدث للمعالج.
+ * المعالج يستلم الpayload (حتى لا نُفرّغ كامل قاعدة البيانات على كل حدث).
+ */
+export function subscribeRealtime(onPatch: (p: RealtimePatch) => void): () => void {
   const sb = getSupabase();
+  const handler = (payload: any) =>
+    onPatch({
+      table: payload.table ?? '',
+      eventType: payload.eventType as RealtimePatch['eventType'],
+      newRow: payload.new ?? null,
+      oldRow: payload.old ?? null,
+    });
   const channel = sb
     .channel('masar-live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, handler)
     .subscribe();
   return () => { void sb.removeChannel(channel); };
+}
+
+/**
+ * Realtime incremental: يطبّق حدثًا واحدًا على نسخة `db` محليًا بدل سحب كل الجداول.
+ * يعيد `null` إذا لم يستطع تطبيق الحدث (فليتبعه المتصل بـ refresh).
+ * يدعم INSERT/UPDATE (upsert) وDELETE (remove) لكل جدول مشترك.
+ */
+export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
+  if (!p.eventType || !p.table) return null;
+  const del = p.eventType === 'DELETE';
+  const row = del ? p.oldRow : p.newRow;
+  if (!row) return null;
+
+  const next = structuredClone(db);
+  const num = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
+  const numOr = (v: unknown, fb: number): number => (v == null ? fb : Number(v));
+  const tsVal = (v: unknown): number | undefined => (v == null ? undefined : new Date(String(v)).getTime());
+  const str = (v: unknown): string => (v == null ? '' : String(v));
+
+  switch (p.table) {
+    case 'notifications': {
+      const id = str(row.id);
+      if (del) { next.notifications = next.notifications.filter((n) => n.id !== id); break; }
+      const n: AppNotification = {
+        id, userId: str(row.user_id), title: str(row.title), body: str(row.body ?? ''),
+        type: row.type as AppNotification['type'], read: Boolean((row.read as any) === true),
+        createdAt: tsVal(row.created_at) ?? Date.now(),
+      };
+      const i = next.notifications.findIndex((x) => x.id === id);
+      if (i >= 0) next.notifications[i] = n; else next.notifications.unshift(n);
+      break;
+    }
+    case 'sessions': {
+      const id = str(row.id);
+      if (del) { next.sessions = next.sessions.filter((s) => s.id !== id); break; }
+      const s: TrainingSession = {
+        id, batchId: str(row.batch_id), seq: numOr(row.seq, 0), title: str(row.title ?? ''),
+        startsAt: tsVal(row.starts_at) ?? 0, durationMin: numOr(row.duration_min, 120),
+        status: row.status as TrainingSession['status'],
+        startedAt: tsVal(row.started_at), closedAt: tsVal(row.closed_at),
+        qrSeed: row.qr_seed as string | undefined, report: row.report as any,
+      };
+      const i = next.sessions.findIndex((x) => x.id === id);
+      if (i >= 0) next.sessions[i] = s; else next.sessions.push(s);
+      break;
+    }
+    case 'attendance': {
+      const sessionId = str(row.session_id); const userId = str(row.user_id);
+      // على DELETE قد لا يصل المفتاح المركّب (بدون REPLICA IDENTITY FULL) — نعيد null ليتبعها refresh.
+      if (!sessionId || !userId) return null;
+      const key = (a: Attendance) => a.sessionId === sessionId && a.userId === userId;
+      if (del) { next.attendance = next.attendance.filter((a) => !key(a)); break; }
+      const a: Attendance = {
+        sessionId, userId, status: row.status as Attendance['status'],
+        checkedInAt: tsVal(row.checked_in_at), method: row.method as Attendance['method'] ?? undefined,
+        note: (row.note as string) ?? undefined,
+      };
+      const i = next.attendance.findIndex(key);
+      if (i >= 0) next.attendance[i] = a; else next.attendance.push(a);
+      break;
+    }
+    case 'enrollments': {
+      const userId = str(row.user_id); const batchId = str(row.batch_id);
+      if (!userId || !batchId) return null;
+      const key = (e: Enrollment) => e.userId === userId && e.batchId === batchId;
+      if (del) { next.enrollments = next.enrollments.filter((e) => !key(e)); break; }
+      const e: Enrollment = {
+        userId, batchId, status: row.status === 'waitlist' ? 'waitlist' : 'active',
+        joinedAt: tsVal(row.joined_at) ?? Date.now(),
+      };
+      const i = next.enrollments.findIndex(key);
+      if (i >= 0) next.enrollments[i] = e; else next.enrollments.push(e);
+      break;
+    }
+    case 'point_events': {
+      const id = str(row.id);
+      if (del) { next.pointEvents = next.pointEvents.filter((x) => x.id !== id); break; }
+      const pe: PointEvent = {
+        id, userId: str(row.user_id), points: numOr(row.points, 0), reasonCode: row.reason_code as PointEvent['reasonCode'],
+        refType: row.ref_type as PointEvent['refType'] ?? undefined, refId: row.ref_id as string | undefined,
+        awardedBy: (row.awarded_by as string) ?? null, idempotencyKey: str(row.idempotency_key),
+        createdAt: tsVal(row.created_at) ?? Date.now(),
+      };
+      const i = next.pointEvents.findIndex((x) => x.id === id);
+      if (i >= 0) next.pointEvents[i] = pe; else next.pointEvents.push(pe);
+      break;
+    }
+    case 'excuses': {
+      const id = str(row.id);
+      if (del) { next.excuses = next.excuses.filter((x) => x.id !== id); break; }
+      const ex: Excuse = {
+        id, userId: str(row.user_id), sessionId: str(row.session_id), reason: str(row.reason ?? ''),
+        attachment: row.attachment_url as string | undefined, status: row.status as Excuse['status'],
+        note: row.note as string | undefined, reviewedBy: row.reviewed_by as string | undefined,
+        createdAt: tsVal(row.created_at) ?? Date.now(),
+      };
+      const i = next.excuses.findIndex((x) => x.id === id);
+      if (i >= 0) next.excuses[i] = ex; else next.excuses.push(ex);
+      break;
+    }
+    default:
+      return null; // جدول غير مشترك — المتصل يعمل refresh
+  }
+
+  // الـ batchStats مشتقة من enrollments — نُحدّث المقاعد لنفس الـ batch مباشرة.
+  if (p.table === 'enrollments') {
+    const batchId = str(row.batch_id);
+    const b = next.batches.find((x) => x.id === batchId);
+    if (b) {
+      b.enrolledCount = next.enrollments.filter((e) => e.batchId === batchId && e.status === 'active').length;
+      b.waitlistCount = next.enrollments.filter((e) => e.batchId === batchId && e.status === 'waitlist').length;
+    }
+  }
+  return next;
 }

@@ -224,7 +224,7 @@ Legend: **REAL** = persisted backend + authorization + usable UI; **PARTIAL** = 
 Confirmed as highest-leverage by the code (not just by the audit):
 
 1. **P0 — Domain query layer.** Add server-side methods (or Postgres views + RPCs) for `getCourseOverview`, `getBatchRoster`, `getBatchSessions`, `getSessionRoster`, `getAnalytics(scope)`, and stop loading the full `Db` for every screen. This is the single biggest scale/authorization win and enables per-screen RLS.
-2. **P0 — Make realtime incremental.** Replace `onChange → refresh()` full reload with event-driven cache updates for attendance/notifications/sessions.
+2. **P0 — Make realtime incremental.** Replace `onChange → refresh()` full reload with event-driven cache updates for attendance/notifications/sessions. **DONE in the working branch** (`arena/01a034df-arena`, group 4): `subscribeRealtime` now forwards each event, and `applyRealtimePatch` in `src/data/remote.ts` upserts/removes the single row locally for the 6 subscribed tables (sessions, attendance, notifications, excuses, enrollments, point_events) plus refreshes derived batch seats; `store.tsx` applies the patch to the in-memory `Db` + cache and falls back to `refresh()` only when a table/event can't be applied. The realtime publication for these tables already exists in `0004`, so no new SQL is required.
 3. **P0 — Offline write policy.** Either disable critical offline writes or implement a command queue (`command_id, created_at, device_time, payload, status, retry_count, server_result`) with server idempotency.
 4. **P0 — Room-collision check** in `create_batch_with_sessions` (BATCH-001).
 5. **P0 — Fix certificate on-screen QR** to encode the real `/verify?serial=` URL (QR-001).
