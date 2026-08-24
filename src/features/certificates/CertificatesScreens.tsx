@@ -180,7 +180,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
 
             <Row center gap={14}>
               <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E8D9A8' }}>
-                <QRCode value={`MSRVERIFY:${cert.serial}`} size={88} color="#3D2B00" backgroundColor="#fff" />
+                {/* QR يوجّه فعليًا لصفحة التحقق العام — وليس توكنًا ميتًا غير موصول */}
+                <QRCode value={verifyUrl} size={88} color="#3D2B00" backgroundColor="#fff" />
               </View>
               <View style={{ flex: 1, gap: 4, alignItems: 'center' }}>
                 {/* الختم ينطبع بأنيميشن */}

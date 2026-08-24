@@ -497,7 +497,9 @@ export const en: Record<DictKey, string> = {
   'student.privateNoteSaved': 'Note saved',
 
   'sess.title': 'Sessions log',
-  'sess.export': 'Export roster PDF',
+  'sess.export': 'Export roster',
+  'sess.exportCsv': 'CSV',
+  'sess.exportPdf': 'PDF',
   'sess.exported': 'Attendance file is ready to save or share',
   'sess.report': 'Report',
 

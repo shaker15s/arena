@@ -2,9 +2,11 @@
  * features/volunteer — S30 يوم المدرب + S31 مجموعاتي + S36 ملف الطالب + S37 سجل الجلسات.
  */
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useApp } from '../../data/store';
 import {
   attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
@@ -249,8 +251,10 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   const sessions = sessionsOfBatch(db, batch.id);
   const students = batchStudents(db, batch.id);
 
-  /** تصدير كشف الحضور الكامل (طلاب × جلسات) كملف CSV حقيقي */
-  const exportCsv = async () => {
+  /**
+   * بناء صفوف كشف الحضور (طلاب × جلسات) — قابلة لإعادة الاستخدام بين CSV وPDF.
+   */
+  const buildAttendanceRows = () => {
     const statusLabel: Record<string, string> = {
       present: t('history.present'),
       late: t('history.late'),
@@ -272,15 +276,53 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
       }),
       String(attendancePct(db, st.id, batch.id).pct),
     ]);
+    return { header, body };
+  };
+
+  /** تصدير الكشف كملف CSV حقيقي (تنزيل/مشاركة). */
+  const exportCsv = async () => {
+    const { header, body } = buildAttendanceRows();
     const filename = `masar-${course.title.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
     const ok = await saveCsv(filename, toCsv([header, ...body]));
     toast(ok ? t('sess.exported') : t('common.errorTitle'), ok ? 'success' : 'error');
   };
 
+  /** تصدير الكشف كملف PDF (طباعة/حفظ/مشاركة) — HTML بجدول مرتب RTL. */
+  const exportPdf = async () => {
+    const { header, body } = buildAttendanceRows();
+    const esc = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
+    const th = header.map((h) => `<th>${esc(h)}</th>`).join('');
+    const trs = body.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('');
+    const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>
+      @page{size:A4 landscape;margin:14mm} body{font-family:Arial,sans-serif;color:#1F2937;margin:0}
+      h1{font-size:20px;margin:0 0 4px} .meta{font-size:12px;color:#6B7280;margin-bottom:16px}
+      table{border-collapse:collapse;width:100%;font-size:11px} th,td{border:1px solid #D1D5DB;padding:6px;text-align:center}
+      th{background:#F3F4F6;font-weight:bold} td:first-child,th:first-child{text-align:right}
+    </style></head><body>
+      <h1>${esc(`${course.title} — ${t('sess.title')}`)}</h1>
+      <div class="meta">${esc(batch.room)} · ${esc(batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + '))} ${esc(batch.schedule.time)} · ${esc(new Date().toLocaleDateString())}</div>
+      <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>
+    </body></html>`;
+
+    if (Platform.OS === 'web') {
+      await Print.printAsync({ html });
+    } else {
+      const file = await Print.printToFileAsync({ html, base64: false });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: t('sess.export') });
+      } else {
+        toast(file.uri, 'success');
+      }
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <Header title={`${course.title} — ${t('sess.title')}`} back={() => navigation.goBack()} right={
-        <Btn title={t('sess.export')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
+        <Row gap={6}>
+          <Btn title={t('sess.exportCsv')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
+          <Btn title={t('sess.exportPdf')} size="sm" variant="ghost" icon="document-text" onPress={exportPdf} />
+        </Row>
       } />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
         {/* الطلاب */}

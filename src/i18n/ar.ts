@@ -528,7 +528,9 @@ export const ar = {
 
   // ── سجل الجلسات ──
   'sess.title': 'سجل الجلسات',
-  'sess.export': 'تصدير الكشف PDF',
+  'sess.export': 'تصدير الكشف',
+  'sess.exportCsv': 'CSV',
+  'sess.exportPdf': 'PDF',
   'sess.exported': 'تم تجهيز ملف الحضور للمشاركة أو الحفظ',
   'sess.report': 'التقرير',
 
