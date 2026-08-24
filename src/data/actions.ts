@@ -385,3 +385,77 @@ export interface AnalyticsResult {
 export async function getAnalytics(scope: AnalyticsScope, scopeId?: string | null): Promise<AnalyticsResult> {
   return rpc<AnalyticsResult>('get_analytics', { p_scope: scope, p_scope_id: scopeId ?? null });
 }
+
+// ───────────── Domain query layer (P0, 0012) — ask the server for one object ─────────────
+
+export interface BatchRosterRow {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  avatar_color: string | null;
+  email: string | null;
+  phone: string | null;
+  status: 'active' | 'waitlist' | 'completed';
+  joined_at: string | null;
+  attended: number;
+  absent: number;
+}
+
+export interface CourseOverviewBatch {
+  id: string;
+  branch_id: string;
+  instructor_id: string | null;
+  capacity: number | null;
+  room: string | null;
+  status: string;
+  join_code: string | null;
+  start_date: string | null;
+  schedule: unknown;
+  enrolled: number;
+  waitlist: number;
+  attendance: number;
+  attendancePct: number;
+}
+
+export interface BatchSessionRow {
+  id: string;
+  seq: number;
+  title: string | null;
+  starts_at: string;
+  duration_min: number | null;
+  status: 'scheduled' | 'live' | 'closed';
+  report?: unknown;
+  present: number;
+  absent: number;
+  excused: number;
+}
+
+export interface SessionRosterRow {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  status: 'present' | 'late' | 'absent' | 'excused';
+  checked_in_at: string | null;
+  method: 'qr' | 'code' | 'manual' | null;
+  note: string | null;
+}
+
+/** نظرة عامة على الكورس: الكورس + مجموعاته (حضور/اشتراكات محسوبة خادميًا). */
+export async function getCourseOverview(courseId: string): Promise<{ course: Record<string, unknown>; batches: CourseOverviewBatch[] }> {
+  return rpc('get_course_overview', { p_course_id: courseId });
+}
+
+/** كشف طلاب مجموعة — PII مخفي إلا للمدير/المشرف/المدرب المالك. */
+export async function getBatchRoster(batchId: string): Promise<{ batch: Record<string, unknown>; students: BatchRosterRow[] }> {
+  return rpc('get_batch_roster', { p_batch_id: batchId });
+}
+
+/** جلسات مجموعة مع ملخص حضور كل جلسة. */
+export async function getBatchSessions(batchId: string): Promise<BatchSessionRow[]> {
+  return rpc('get_batch_sessions', { p_batch_id: batchId });
+}
+
+/** كشف حضور جلسة واحدة. */
+export async function getSessionRoster(sessionId: string): Promise<SessionRosterRow[]> {
+  return rpc('get_session_roster', { p_session_id: sessionId });
+}
