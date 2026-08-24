@@ -19,7 +19,7 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
 }
 
 export interface CheckInResponse {
-  kind: 'ok' | 'already' | 'expired' | 'too_late' | 'no_session' | 'not_enrolled' | 'invalid';
+  kind: 'ok' | 'already' | 'expired' | 'too_late' | 'no_session' | 'not_enrolled' | 'invalid' | 'rate_limited';
   status?: 'present' | 'late';
   points?: number;
   session_id?: string;
@@ -478,4 +478,40 @@ export async function enqueueCommandOnServer(commandId: string, command: string,
 /** علّم أمرًا منفّذًا (أو فاشلًا) على الخادم. */
 export async function finishCommandOnServer(commandId: string, status: 'applied' | 'failed'): Promise<void> {
   await rpc('finish_command', { p_command_id: commandId, p_status: status });
+}
+
+export interface RunCommandResult {
+  ok: boolean;
+  command_id: string;
+  status: 'applied' | 'failed';
+  already?: boolean;
+  deduped?: boolean;
+  error?: string;
+}
+
+/**
+ * تنفيذ أمر مؤجل ذرّيًا على الخادم (0015): تسجيل + تنفيذ فعلي عبر نفس
+ * RPCs المدققة. إعادة الاستدعاء بنفس المعرف تعيد النتيجة المسجلة بلا تكرار.
+ */
+export async function runCommandOnServer(
+  commandId: string,
+  command: string,
+  payload: Record<string, unknown> = {},
+  deviceCreatedAt?: number,
+): Promise<RunCommandResult> {
+  return rpc<RunCommandResult>('run_command', {
+    p_command_id: commandId,
+    p_command: command,
+    p_payload: payload,
+    p_device_created_at: deviceCreatedAt ? new Date(deviceCreatedAt).toISOString() : null,
+  });
+}
+
+/**
+ * تعليم كل إشعارات المستخدم الحالي كمقروءة — RPC خادمية (0014).
+ * كان المسار القديم upsert مباشرًا على `notifications` وترفضه RLS
+ * (لا توجد سياسة INSERT منذ 0005) فيفشل مع toast خطأ في كل زيارة.
+ */
+export async function markMyNotificationsRead(): Promise<{ ok: boolean; updated: number }> {
+  return rpc('mark_notifications_read');
 }

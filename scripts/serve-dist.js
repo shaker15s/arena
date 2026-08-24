@@ -27,10 +27,18 @@ if (!fs.existsSync(ROOT)) {
 
 http
   .createServer((req, res) => {
-    let urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+    } catch {
+      res.writeHead(400).end(); // URI مشوّه — كان يُسقط السيرفر بالكامل
+      return;
+    }
     if (urlPath.endsWith('/')) urlPath += 'index.html';
-    let filePath = path.join(ROOT, urlPath);
-    if (!filePath.startsWith(ROOT)) { res.writeHead(403).end(); return; }
+    let filePath = path.resolve(ROOT, '.' + path.posix.normalize('/' + urlPath));
+    // فحص traversal صحيح: المقارنة بحدود مجلد (ROOT + فاصل) وليس prefix خام
+    // — `startsWith(ROOT)` وحدها كانت تسمح بمسار شقيق مثل `${ROOT}-evil`.
+    if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) { res.writeHead(403).end(); return; }
 
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       // SPA: أي مسار مجهول يرجع index.html

@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "noEmitOnError": false,
-    "outDir": "/tmp/masar-engine-test",
+    "outDir": ".test-build",
     "rootDir": ".",
     "types": ["node"]
   },

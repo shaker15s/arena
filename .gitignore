@@ -8,3 +8,4 @@ web-build/
 .env.*
 !.env.example
 metro-cache/
+.test-build/

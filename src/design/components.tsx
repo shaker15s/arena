@@ -363,7 +363,7 @@ export function Segmented<T extends string>({ options, value, onChange }: {
 
 // ───────────────────────────── حقول إدخال ─────────────────────────────
 
-export function Input({ label, value, onChange, placeholder, keyboardType, multiline, icon, error, maxLength, secure }: {
+export function Input({ label, value, onChange, placeholder, keyboardType, multiline, icon, error, maxLength, secure, autoCapitalize }: {
   label?: string;
   value: string;
   onChange: (v: string) => void;
@@ -374,6 +374,7 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
   error?: string;
   maxLength?: number;
   secure?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   const { theme, isDark } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -406,6 +407,7 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
           multiline={multiline}
           maxLength={maxLength}
           secureTextEntry={secure}
+          autoCapitalize={autoCapitalize}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
             textAlign: 'auto', paddingVertical: 10,

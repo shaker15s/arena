@@ -1,5 +1,5 @@
 // scripts/engine.test.ts — اختبارات سلوكية لقلب مسار (المحاكي = مرآة عقود RPC)
-// npx tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/engine.test.js
+// npx tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js
 import {
   attendanceOf, backupCodeOf, balanceOf, currentQrToken, evaluateBadges, evaluateStreakWeek,
   gamifOf, isBatchComplete, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,

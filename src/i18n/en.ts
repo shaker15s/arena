@@ -417,6 +417,8 @@ export const en: Record<DictKey, string> = {
   'excuses.instructorNote': 'Instructor note',
   'excuses.emptyTitle': 'No excuses — keep up the perfect record 💪',
   'excuses.submitted': 'Your excuse was sent to the instructor for review',
+  'excuses.queuedOffline': 'You are offline — your excuse will be sent automatically once you reconnect',
+  'scanner.rateLimited': 'Too many wrong attempts — wait 10 minutes before trying the code again',
   'excuses.alreadyExcused': 'You already have an excuse for this session',
   'excuses.onlyAbsent': 'Excuses can only be submitted for missed sessions',
 

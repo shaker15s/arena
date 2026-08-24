@@ -3,6 +3,9 @@
   "version": "3.2.0",
   "private": true,
   "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
@@ -10,8 +13,8 @@
     "preview": "node scripts/serve-dist.js",
     "typecheck": "tsc --noEmit",
     "parity": "node scripts/check-i18n-parity.js",
-    "test:engine": "tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/engine.test.js",
-    "test:rls": "tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/rls.test.js",
+    "test:engine": "tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js",
+    "test:rls": "tsc -p tsconfig.test.json && node .test-build/scripts/rls.test.js",
     "test:all": "npm run typecheck && npm run parity && npm run test:engine && npm run test:rls"
   },
   "dependencies": {
@@ -31,9 +34,11 @@
     "expo-font": "~57.0.1",
     "expo-haptics": "~57.0.1",
     "expo-image-picker": "~57.0.12",
+    "expo-keep-awake": "~15.0.2",
     "expo-linear-gradient": "^57.0.1",
     "expo-linking": "~57.0.7",
     "expo-print": "~57.0.1",
+    "expo-secure-store": "~15.0.7",
     "expo-sharing": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.2",

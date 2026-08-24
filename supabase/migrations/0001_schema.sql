@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   avatar_color TEXT DEFAULT '#007AFF',
   branch_id UUID,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
-  gender TEXT CHECK (gender IN ('m', 'f', NULL)),
+  gender TEXT CHECK (gender IS NULL OR gender IN ('m', 'f')),
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS public.attendance (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   status TEXT NOT NULL CHECK (status IN ('present', 'late', 'absent', 'excused')),
   checked_in_at TIMESTAMPTZ,
-  method TEXT CHECK (method IN ('qr', 'code', 'manual', NULL)),
+  method TEXT CHECK (method IS NULL OR method IN ('qr', 'code', 'manual')),
   note TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(session_id, user_id)
@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS public.point_events (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   points INTEGER NOT NULL,
   reason_code TEXT NOT NULL,
-  ref_type TEXT CHECK (ref_type IN ('session', 'course', 'batch', 'admin', NULL)),
+  ref_type TEXT CHECK (ref_type IS NULL OR ref_type IN ('session', 'course', 'batch', 'admin')),
   ref_id UUID,
   awarded_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   idempotency_key TEXT UNIQUE NOT NULL,
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS public.league_weeks (
   tier TEXT NOT NULL,
   xp_week INTEGER DEFAULT 0,
   final_rank INTEGER,
-  outcome TEXT CHECK (outcome IN ('promoted', 'stayed', 'relegated', NULL)),
+  outcome TEXT CHECK (outcome IS NULL OR outcome IN ('promoted', 'stayed', 'relegated')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -316,7 +316,7 @@ CREATE TABLE IF NOT EXISTS public.audit_log (
 CREATE TABLE IF NOT EXISTS public.kudos_quotas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   instructor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  month TEXT NOT NULL, -- Format: "2026-8"
+  month TEXT NOT NULL, -- Format: "2026-08" (to_char(now(),'YYYY-MM') — must match client monthKeyOf)
   spent INTEGER DEFAULT 0,
   UNIQUE(instructor_id, month)
 );

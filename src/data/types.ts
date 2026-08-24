@@ -18,7 +18,7 @@ export interface Profile {
   /** صورة المستخدم (من Google أو مرفوعة على Supabase Storage) */
   avatarUrl?: string | null;
   avatarColor: string;
-  gender: 'm' | 'f';
+  gender: 'm' | 'f' | null;
   status: 'active' | 'disabled';
   joinedAt: number;
 }

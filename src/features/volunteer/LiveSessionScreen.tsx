@@ -4,9 +4,10 @@
  * + رصد يدوي بسبب إلزامي + إنهاء ← تقرير 3 حقول + محاسبة تلقائية.
  */
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, ScrollView, View } from 'react-native';
+import { Animated, Easing, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../../data/store';
@@ -49,6 +50,17 @@ export function LiveSessionScreen() {
     const iv = setInterval(() => setTick((x) => x + 1), 500);
     return () => clearInterval(iv);
   }, []);
+
+  // شاشة البروجكتور يجب ألا تنطفئ في منتصف الحضور — KeepAwake طوال وجود جلسة حية.
+  const hasLive = Boolean(
+    user && db.sessions.some((s) => s.status === 'live'
+      && db.batches.some((b) => b.id === s.batchId && b.instructorId === user.id)),
+  );
+  useEffect(() => {
+    if (Platform.OS === 'web' || !hasLive) return;
+    void activateKeepAwakeAsync('masar-live-session').catch(() => {});
+    return () => { void deactivateKeepAwake('masar-live-session').catch(() => {}); };
+  }, [hasLive]);
 
   if (!user) return null;
   const myBatches = db.batches.filter((b) => b.instructorId === user.id);

@@ -15,6 +15,7 @@ import * as Linking from 'expo-linking';
 import { ThemeProvider, useTheme } from '../design/theme';
 import { I18nProvider } from '../i18n';
 import { AppProvider, useApp } from '../data/store';
+import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { RootNavigator } from './RootNavigator';
 import { Txt } from '../design/components';
 import { AppBackground, GlassSurface } from '../design/glass';
@@ -258,15 +259,17 @@ function Shell() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <I18nProvider>
-          <AppProvider>
-            <RNStatusBar barStyle="default" />
-            <Shell />
-          </AppProvider>
-        </I18nProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <I18nProvider>
+            <AppProvider>
+              <RNStatusBar barStyle="default" />
+              <Shell />
+            </AppProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
