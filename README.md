@@ -1,4 +1,4 @@
-# مسار Masär 3.1 🚀
+# مسار Masär 3.2 🚀
 
 تطبيق إدارة مراكز التدريب — **عربي أولاً، RTL بالكامل** — مبني على React Native + Expo + TypeScript strict، بواجهة خلفية **Supabase حقيقية**: الدخول بحساب Google، وكل البيانات تُقرأ وتُكتب فعليًا في Postgres. **لا يوجد أي وضع تجريبي أو بيانات وهمية.**
 
@@ -34,14 +34,15 @@ npx expo start            # ثم امسح QR من تطبيق Expo Go
 | `src/data/supabase.ts` | العميل + Google OAuth + رفع الصور + البروفايل |
 | `src/data/remote.ts` | قراءة كل الجداول → نموذج التطبيق، وكتابة الفروق (INSERT/UPDATE/DELETE) فعليًا + Realtime |
 | `src/data/store.tsx` | الجلسة، الحالة، المزامنة، الكاش، إكمال البروفايل |
-| `src/data/engine.ts` | قواعد العمل (حضور/ستريك/دوري/شهادات) — مغطاة بـ 49 اختبارًا |
+| `src/data/engine.ts` | قواعد العمل (حضور/ستريك/دوري/شهادات) — مغطاة باختبارات engine + rls |
 
 ## التحقق من الجودة
 
 ```bash
 npm run typecheck     # TypeScript strict — صفر أخطاء
-npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (524 مفتاحًا)
-npm run test:engine   # 49 اختبار سلوكي لقلب اللعبة (حضور/Idempotency/ستريك/كوتا/شهادات/دوري)
+npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (621 مفتاحًا)
+npm run test:engine   # اختبارات سلوكية لقلب اللعبة (حضور/Idempotency/ستريك/كوتا/شهادات/دوري)
+npm run test:rls      # اختبارات منع التحايل/السباق (تجاوز السعة، توكن مزيّف، كوتا كودوس)
 ```
 
 ## البنية
@@ -57,10 +58,10 @@ src/
 │   └── types.ts     #   أنواع النطاق كاملة (User/Batch/Session/Attendance/Grid...)
 ├── design/          # DS: tokens، ثيم فاتح/داكن، مكوّنات (Card/Seg/Sheet/Chip/Metric)،
 │                    #   احتفالات (CelebrationModal/CertReveal)، حركات موحّدة
-├── i18n/            # قاموسا ar/en (524 مفتاحًا متطابقة) + useT مع اتجاه RTL/LTR تلقائي
+├── i18n/            # قاموسا ar/en (621 مفتاحًا متطابقة) + useT مع اتجاه RTL/LTR تلقائي
 ├── shared/          # format helpers (تواريخ عربية/هجرية by locale، أرقام...)
 └── features/        # الشاشات، مُنتظمة لكل دور:
-    ├── auth/        #   دخول هاتف OTP (رقم واحد = معرّف واحد) + إنشاء بروفايل
+    ├── auth/        #   دخول Google OAuth عبر Supabase + إنشاء بروفايل
     ├── today/       #   شاشة اليوم: إكس بي، ستريك، جلسة اليوم، تنبيهات
     ├── volunteer/   #   كونسول الجلسة الحية + البشري، تسجيل الحضور، الكودوس، فريق الآن
     ├── gamification/#   الستريك، الدوري الأسبوعي، الإنجازات، الإكس بي، فريقي
@@ -69,7 +70,7 @@ src/
     ├── excuses/ + journey/ + notifications/ + profile/ + verify/
     └── org/         #   لوحة القيادة، معالج الدفعة (6 خطوات)، إدارة الفروع،
                      #   استوديو قواعد اللعبة، بث الرسايل، سجل العمليات، إصدار الشهادات
-supabase/            # migrations مرقّمة (0001-0003) + seed — تُراجع في الـ PR
+supabase/            # migrations مرقّمة (0001-0013) + seed + config.toml — تُراجع في الـ PR
 ```
 
 ## الصلاحيات (4 أدوار)

@@ -459,3 +459,23 @@ export async function getBatchSessions(batchId: string): Promise<BatchSessionRow
 export async function getSessionRoster(sessionId: string): Promise<SessionRosterRow[]> {
   return rpc('get_session_roster', { p_session_id: sessionId });
 }
+
+// ───────────── Offline write queue (P0 #3, 0013) — idempotent command log ─────────────
+
+export interface CommandStatus {
+  ok: boolean;
+  command_id: string;
+  status: 'pending' | 'applied' | 'failed';
+}
+
+/** سجّل أمرًا في قاعدة الأوامر (idempotent — إعادة المحاولة لا تُدخل تكرارًا). */
+export async function enqueueCommandOnServer(commandId: string, command: string, payload: Record<string, unknown> = {}): Promise<CommandStatus> {
+  return rpc<CommandStatus>('enqueue_command', {
+    p_command_id: commandId, p_command: command, p_payload: payload,
+  });
+}
+
+/** علّم أمرًا منفّذًا (أو فاشلًا) على الخادم. */
+export async function finishCommandOnServer(commandId: string, status: 'applied' | 'failed'): Promise<void> {
+  await rpc('finish_command', { p_command_id: commandId, p_status: status });
+}

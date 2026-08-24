@@ -16,6 +16,8 @@ import {
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
 import { applyRealtimePatch, emptyDb, fetchRemoteDb, pushDelta, subscribeRealtime } from './remote';
+import { enqueueCommandOnServer, finishCommandOnServer } from './actions';
+import { loadCommands, markApplied, markFailed, pruneCommands } from '../shared/offline';
 
 const CACHE_KEY = 'masar.cache.v1';
 
@@ -156,6 +158,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /** يعيد تشغيل الأوامر المعلّقة (Offline write queue) عند عودة الاتصال */
+  const flushOfflineQueue = useCallback(async () => {
+    if (!SUPABASE_ENABLED || !identity) return;
+    try {
+      const pending = (await loadCommands()).filter((c) => c.status === 'pending');
+      if (!pending.length) return;
+      await pruneCommands();
+      for (const c of pending) {
+        try {
+          await enqueueCommandOnServer(c.id, c.command, c.payload);
+          await markApplied(c.id);
+        } catch (error) {
+          await markFailed(c.id, (error as Error).message);
+        }
+      }
+      await refresh();
+    } catch {
+      // لا نكسر حلقة التزامن إن فشل الطابور
+    }
+  }, [SUPABASE_ENABLED, identity, refresh]);
+
   /** يربط جلسة Supabase بالبروفايل المحلي */
   const applySession = useCallback(async (session: Session | null) => {
     const authUser: User | null = session?.user ?? null;
@@ -229,15 +252,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ── إعادة المزامنة عند عودة التطبيق للمقدمة ──
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && profileId) void refresh();
+      if (state === 'active' && profileId) void refresh().then(() => flushOfflineQueue());
     });
     return () => sub.remove();
-  }, [profileId, refresh]);
+  }, [profileId, refresh, flushOfflineQueue]);
 
   // ── مراقبة الاتصال على الويب ──
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const up = () => { setOnline(true); void refresh(); };
+    const up = () => { setOnline(true); void refresh().then(() => flushOfflineQueue()); };
     const down = () => setOnline(false);
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
@@ -246,7 +269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', up);
       window.removeEventListener('offline', down);
     };
-  }, [refresh]);
+  }, [refresh, flushOfflineQueue]);
 
   /** تعديل متفائل محليًا + كتابة الفروق فعليًا في Supabase */
   const mutate = useCallback(async <R,>(fn: (db: Db) => R): Promise<R> => {

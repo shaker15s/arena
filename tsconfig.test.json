@@ -12,5 +12,5 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["src/data/**/*.ts", "src/shared/**/*.ts", "scripts/engine.test.ts", "scripts/fixtures/**/*.ts"]
+  "include": ["src/data/**/*.ts", "src/shared/**/*.ts", "scripts/engine.test.ts", "scripts/rls.test.ts", "scripts/fixtures/**/*.ts"]
 }

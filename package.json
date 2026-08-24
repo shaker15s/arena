@@ -10,7 +10,9 @@
     "preview": "node scripts/serve-dist.js",
     "typecheck": "tsc --noEmit",
     "parity": "node scripts/check-i18n-parity.js",
-    "test:engine": "tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/engine.test.js"
+    "test:engine": "tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/engine.test.js",
+    "test:rls": "tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/rls.test.js",
+    "test:all": "npm run typecheck && npm run parity && npm run test:engine && npm run test:rls"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
