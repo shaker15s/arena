@@ -54,9 +54,16 @@ export function weekStartOf(ts: number): number {
   return d.getTime();
 }
 
+/**
+ * مفتاح الشهر بصيغة `YYYY-MM` (مع صفر بادئ) — **يجب** أن يطابق السيرفر
+ * الذي يكتب `to_char(now(),'YYYY-MM')` في kudos_quotas وغيرها.
+ * الصيغة القديمة `2026-8` بلا padding كانت تجعل عدّاد الكوتا في الواجهة
+ * صفرًا دائمًا لأن المفتاحين لا يتطابقان أبدًا.
+ */
 export function monthKeyOf(ts: number): string {
   const d = new Date(ts);
-  return `${d.getFullYear()}-${d.getMonth() + 1}`;
+  const m = d.getMonth() + 1;
+  return `${d.getFullYear()}-${m < 10 ? `0${m}` : m}`;
 }
 
 export function sameDay(a: number, b: number): boolean {

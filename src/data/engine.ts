@@ -10,7 +10,7 @@ import {
   PointEvent, PointReason, Profile, SessionReport, StreakWeek,
   TrainingSession, AppNotification, Batch, Course, Enrollment, Excuse, Role,
 } from './types';
-import { HARD_CUTOFF_MIN, QR_ROTATION_MS, RULE_DEFS, levelForPoints } from './rules';
+import { HARD_CUTOFF_MIN, LEVEL_THRESHOLDS, QR_ROTATION_MS, RULE_DEFS, levelForPoints } from './rules';
 import { hashStr, monthKeyOf, uid, weekStartOf } from '../shared/format';
 
 // ───────────────────────────── أدوات عامة ─────────────────────────────
@@ -29,9 +29,8 @@ export function balanceOf(db: Db, userId: string): number {
 export function levelOf(db: Db, userId: string): { level: number; into: number; nextAt: number | null } {
   const pts = balanceOf(db, userId);
   const level = levelForPoints(pts);
-  const TH = [0, 100, 300, 700, 1500, 3000, 6000, 12000];
-  const nextAt = level < TH.length ? TH[level] : null;
-  const base = TH[level - 1];
+  const nextAt = level < LEVEL_THRESHOLDS.length ? LEVEL_THRESHOLDS[level] : null;
+  const base = LEVEL_THRESHOLDS[level - 1];
   return { level, into: pts - base, nextAt };
 }
 
@@ -87,15 +86,17 @@ export function sessionsOfBatch(db: Db, batchId: string): TrainingSession[] {
   return db.sessions.filter((s) => s.batchId === batchId).sort((a, b) => a.seq - b.seq);
 }
 
-/** Completion is derived from real sessions and at least one real enrollee. */
+/**
+ * Completion is derived from the batch's own sessions and at least one real
+ * enrollee (0017): no dependence on courses.sessions_count — editing the
+ * course after batch generation must not brick completion.
+ */
 export function isBatchComplete(db: Db, batchId: string): boolean {
   const batch = batchOf(db, batchId);
-  const course = batch ? courseOf(db, batch.courseId) : undefined;
-  if (!batch || !course || batch.status !== 'completed') return false;
+  if (!batch || batch.status !== 'completed') return false;
   const sessions = sessionsOfBatch(db, batchId);
   const students = db.enrollments.filter((e) => e.batchId === batchId && e.status === 'active');
   return students.length > 0
-    && sessions.length === course.sessionsCount
     && sessions.length > 0
     && sessions.every((session) => session.status === 'closed');
 }
@@ -750,7 +751,8 @@ export function rpcIssueCertificates(db: Db, actorId: string, batchId: string): 
     db.certSeq += 1;
     const cert: Certificate = {
       id: uid('cert'), userId: row.user.id, batchId,
-      serial: `MSR-2026-${String(db.certSeq).padStart(6, '0')}`,
+      // مرآة محلية للاختبارات فقط — الخادم يولّد سيريالًا عشوائيًا (0005).
+      serial: `MSR-${new Date().getFullYear()}-${String(db.certSeq).padStart(6, '0')}`,
       issuedAt: Date.now(),
     };
     db.certificates.push(cert);

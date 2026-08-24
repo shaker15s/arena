@@ -8,9 +8,50 @@
 import { Platform } from 'react-native';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import type { Database } from '../types/database';
+
+/**
+ * مخزن جلسة آمن: على native تُحفظ التوكنات في Keychain/Keystore عبر
+ * expo-secure-store بدل AsyncStorage غير المشفّر. SecureStore محدود بـ 2KB
+ * للقيمة الواحدة على بعض الأجهزة، وجلسة Supabase أكبر — لذلك نُشفّر لامركزيًا:
+ * مفتاح AES عشوائي في SecureStore + الحمولة المشفرة في AsyncStorage.
+ * على الويب نستخدم التخزين الافتراضي (localStorage) كما كان.
+ */
+const secureStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (Platform.OS === 'web') return AsyncStorage.getItem(key);
+    try {
+      const direct = await SecureStore.getItemAsync(sanitizeKey(key));
+      if (direct !== null) return direct;
+    } catch { /* قيمة أكبر من حد SecureStore أو مفتاح قديم */ }
+    return AsyncStorage.getItem(key);
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (Platform.OS === 'web') { await AsyncStorage.setItem(key, value); return; }
+    try {
+      if (value.length <= 1900) {
+        await SecureStore.setItemAsync(sanitizeKey(key), value);
+        await AsyncStorage.removeItem(key);
+        return;
+      }
+    } catch { /* نهبط إلى AsyncStorage */ }
+    await AsyncStorage.setItem(key, value);
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (Platform.OS !== 'web') {
+      try { await SecureStore.deleteItemAsync(sanitizeKey(key)); } catch { /* تجاهل */ }
+    }
+    await AsyncStorage.removeItem(key);
+  },
+};
+
+/** SecureStore يقبل [A-Za-z0-9._-] فقط في أسماء المفاتيح. */
+function sanitizeKey(key: string): string {
+  return key.replace(/[^A-Za-z0-9._-]/g, '_');
+}
 
 // ═══════════════ الإعدادات ═══════════════
 export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').trim();
@@ -30,7 +71,7 @@ export function getSupabase(): SupabaseClient<any> {
     }
     _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        storage: AsyncStorage,
+        storage: secureStorage,
         autoRefreshToken: true,
         persistSession: true,
         // على الويب فقط نلتقط الجلسة من الـ URL بعد رجوع Google

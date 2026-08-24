@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import { attendanceOf, batchOf, courseOf, profileOf } from '../../data/engine';
-import { reviewExcuse, submitExcuse } from '../../data/actions';
+import { reviewExcuse } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -24,7 +24,7 @@ import { Excuse } from '../../data/types';
 export function ExcusesScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, refresh, toast } = useApp();
+  const { db, user, refresh, toast, submitOrQueue } = useApp();
   const [tab, setTab] = useState<'list' | 'new'>('list');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -56,9 +56,19 @@ export function ExcusesScreen({ navigation }: any) {
     if (reason.trim().length < 5) { setError(t('excuses.reasonLabel')); return; }
     setSending(true);
     try {
-      await submitExcuse({ sessionId, reason: reason.trim() });
-      await refresh();
-      toast(t('excuses.submitted'), 'success');
+      // كتابة قابلة للتأجيل: أونلاين تُنفَّذ فورًا، أوفلاين تدخل الطابور
+      // وتُعاد تلقائيًا عبر run_command الخادمية عند عودة الاتصال.
+      const result = await submitOrQueue('submit_excuse', {
+        session_id: sessionId,
+        reason: reason.trim(),
+      });
+      if (result.error) { setError(result.error); return; }
+      if (result.status === 'queued') {
+        toast(t('excuses.queuedOffline'), 'info');
+      } else {
+        await refresh();
+        toast(t('excuses.submitted'), 'success');
+      }
       setTab('list');
       setSessionId(null);
       setReason('');

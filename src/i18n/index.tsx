@@ -1,11 +1,13 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ar, DictKey } from './ar';
 import { en } from './en';
 
 export type Lang = 'ar' | 'en';
 
 const dicts: Record<Lang, Record<DictKey, string>> = { ar, en };
+const LANG_KEY = 'masar.lang.v1';
 
 interface I18nCtx {
   lang: Lang;
@@ -16,15 +18,50 @@ interface I18nCtx {
 
 const Ctx = createContext<I18nCtx | null>(null);
 
+function applyWebDir(l: Lang) {
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    document.documentElement.lang = l;
+    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+  }
+}
+
+async function readSavedLang(): Promise<Lang | null> {
+  try {
+    const raw = Platform.OS === 'web' && typeof localStorage !== 'undefined'
+      ? localStorage.getItem(LANG_KEY)
+      : await AsyncStorage.getItem(LANG_KEY);
+    return raw === 'ar' || raw === 'en' ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLang(l: Lang) {
+  try {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') localStorage.setItem(LANG_KEY, l);
+    else void AsyncStorage.setItem(LANG_KEY, l);
+  } catch { /* تجاهل */ }
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('ar');
 
+  // استرجاع اللغة المحفوظة عند الإقلاع — كانت تُفقد مع كل تشغيل.
+  useEffect(() => {
+    let mounted = true;
+    void readSavedLang().then((saved) => {
+      if (mounted && saved && saved !== 'ar') {
+        setLangState(saved);
+        applyWebDir(saved);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
+
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.documentElement.lang = l;
-      document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
-    }
+    saveLang(l);
+    applyWebDir(l);
   }, []);
 
   const t = useCallback(

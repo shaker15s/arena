@@ -90,6 +90,10 @@ export function ScannerScreen({ navigation }: any) {
         haptic('error');
         setError({ msg: t('scanner.noSession'), icon: 'search' });
         break;
+      case 'rate_limited':
+        haptic('error');
+        setError({ msg: t('scanner.rateLimited'), icon: 'hourglass' });
+        break;
       default:
         haptic('error');
         setError({ msg: t('scanner.invalid'), icon: 'close' });

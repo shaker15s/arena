@@ -438,6 +438,8 @@ export const ar = {
   'excuses.instructorNote': 'ملاحظة المدرب',
   'excuses.emptyTitle': 'لا أعذار — وعساك دايمًا مواظب 💪',
   'excuses.submitted': 'أُرسل عذرك وسيراجعه المدرب',
+  'excuses.queuedOffline': 'لا يوجد اتصال — سيُرسل عذرك تلقائيًا فور عودة الشبكة',
+  'scanner.rateLimited': 'محاولات كثيرة خاطئة — انتظر 10 دقائق ثم جرّب الكود مرة أخرى',
   'excuses.alreadyExcused': 'لديك عذر على هذه الجلسة بالفعل',
   'excuses.onlyAbsent': 'يمكن تقديم عذر فقط للمحاضرات الفائتة',
 

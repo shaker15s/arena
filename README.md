@@ -31,25 +31,30 @@ npx expo start            # ثم امسح QR من تطبيق Expo Go
 
 | الملف | الدور |
 |---|---|
-| `src/data/supabase.ts` | العميل + Google OAuth + رفع الصور + البروفايل |
-| `src/data/remote.ts` | قراءة كل الجداول → نموذج التطبيق، وكتابة الفروق (INSERT/UPDATE/DELETE) فعليًا + Realtime |
-| `src/data/store.tsx` | الجلسة، الحالة، المزامنة، الكاش، إكمال البروفايل |
-| `src/data/engine.ts` | قواعد العمل (حضور/ستريك/دوري/شهادات) — مغطاة باختبارات engine + rls |
+| `src/data/supabase.ts` | العميل + Google OAuth + تخزين جلسة آمن (SecureStore على native) + رفع الصور |
+| `src/data/remote.ts` | قراءة الجداول → نموذج التطبيق + Realtime. الكتابة المباشرة محصورة في `private_notes` — كل شيء آخر عبر RPCs |
+| `src/data/actions.ts` | كل الكتابة الحقيقية: RPCs ذرّية مدققة + طابور الأوامر المؤجلة (run_command) |
+| `src/data/store.tsx` | الجلسة، الحالة، المزامنة، كاش مربوط بالمستخدم، طابور الأوفلاين، إكمال البروفايل |
+| `src/data/engine.ts` | مرآة حتمية لقواعد العمل (حضور/ستريك/دوري/شهادات) للاختبارات والعرض — ليست حدًا أمنيًا |
 
 ## التحقق من الجودة
 
 ```bash
 npm run typecheck     # TypeScript strict — صفر أخطاء
-npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (621 مفتاحًا)
+npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (623 مفتاحًا)
 npm run test:engine   # اختبارات سلوكية لقلب اللعبة (حضور/Idempotency/ستريك/كوتا/شهادات/دوري)
-npm run test:rls      # اختبارات منع التحايل/السباق (تجاوز السعة، توكن مزيّف، كوتا كودوس)
+npm run test:rls      # اختبارات منع التحايل/السباق على مرآة المحرك (تجاوز السعة، توكن مزيّف، كوتا)
+npm run test:all      # كل ما سبق — وهو نفسه ما يشغّله CI على كل push/PR
 ```
+
+> ⚠️ `test:rls` يختبر **مرآة المحرك المحلية** لعقود الخادم، لا سياسات Postgres
+> الفعلية. الحد الأمني الحقيقي هو الـ RPCs والسياسات في `supabase/migrations/`.
 
 ## البنية
 
 ```
 src/
-├── app/             # App + RootNavigator: KeepAwake، أدوار، تبويبات RTL، ستاكات
+├── app/             # App (ErrorBoundary) + RootNavigator: أدوار، تبويبات RTL، ستاكات
 ├── data/            # عقل التطبيق — واجهة واحدة للوضعين demo/Supabase:
 │   ├── engine.ts    #   كل العمليات (startSession/checkIn/closeSession/awardKudos/issueCertificates...)
 │   ├── store.tsx    #   StoreProvider + hooks (useSession/useToday/useGamification...)
@@ -58,7 +63,7 @@ src/
 │   └── types.ts     #   أنواع النطاق كاملة (User/Batch/Session/Attendance/Grid...)
 ├── design/          # DS: tokens، ثيم فاتح/داكن، مكوّنات (Card/Seg/Sheet/Chip/Metric)،
 │                    #   احتفالات (CelebrationModal/CertReveal)، حركات موحّدة
-├── i18n/            # قاموسا ar/en (621 مفتاحًا متطابقة) + useT مع اتجاه RTL/LTR تلقائي
+├── i18n/            # قاموسا ar/en (623 مفتاحًا متطابقة) + useT مع اتجاه RTL/LTR تلقائي
 ├── shared/          # format helpers (تواريخ عربية/هجرية by locale، أرقام...)
 └── features/        # الشاشات، مُنتظمة لكل دور:
     ├── auth/        #   دخول Google OAuth عبر Supabase + إنشاء بروفايل

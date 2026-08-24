@@ -2,7 +2,7 @@
 // يختبر عقود العمل الخادمية التي تمنع: تجاوز السعة، الحضور في جلسة مغلقة،
 // بدء جلسة بغير مؤهل، تجاوز كوتا الكودوس، وازدواج التسجيل. يعمل بلا شبكة
 // (مُحاكي = مرآة لسلوك RPC الخادم) في نفس نمط engine.test.ts.
-//   نnx tsc -p tsconfig.test.json && node /tmp/masar-engine-test/scripts/rls.test.js
+//   npx tsc -p tsconfig.test.json && node .test-build/scripts/rls.test.js
 import {
   batchOf, currentQrToken, rpcAwardKudos, rpcCheckIn, rpcJoinBatch, rpcStartSession, seatCounts,
 } from '../src/data/engine';
@@ -44,15 +44,22 @@ function ok(cond: boolean, name: string, extra?: unknown) {
 
   // ═ 3) الحضور في جلسة حية فقط ورفض التوكن المزيّف ═
   console.log('\n═ 3) الحضور في جلسة حية فقط، ورفض التوكن المزيّف ═');
-  // افتح أقرب جلسة مجدولة لمجموعة g2 (omar مسجّل فيها من اختبار 1).
+  // g2 ممتلئة في الـ seed (سعة 12/12) لذا omar دخل قائمة الانتظار في اختبار 1.
+  // الحضور يُختبر بطالب مسجّل فعليًا (active)، وطالب الانتظار يجب أن يُرفض.
+  const enrolledStudent = db.enrollments.find((e) => e.batchId === batch && e.status === 'active')!.userId;
   const started = rpcStartSession(db, batch, IDS.sara);
   ok(!('error' in started), 'فتح جلسة g2 الحية نجح', started);
   const live = (started as any).session as TrainingSession;
   const token = currentQrToken(live, Date.now());
-  const check = rpcCheckIn(db, student, token);
+  const check = rpcCheckIn(db, enrolledStudent, token);
   ok(check.kind === 'ok' || check.kind === 'already', 'الحضور عبر توكن صالح يعمل أو يعيد already', check.kind);
+  // طالب قائمة الانتظار (غير active) ممنوع من الحضور — لا مقعد بلا تسجيل فعلي.
+  if (j1.status === 'waitlist' || d1.status === 'waitlist') {
+    const waitlisted = rpcCheckIn(db, student, currentQrToken(live, Date.now()));
+    ok(waitlisted.kind === 'not_enrolled', 'طالب قائمة الانتظار مرفوض من الحضور', waitlisted.kind);
+  }
   // التوكن المزيّف مرفوض دائمًا
-  const forged = rpcCheckIn(db, student, 'forged-token-xyz');
+  const forged = rpcCheckIn(db, enrolledStudent, 'forged-token-xyz');
   ok(forged.kind === 'invalid', 'توكن مزيّف مرفوض', forged.kind);
 
   // ═ 4) بدء جلسة لغير مدرب/مدير (صلاحية) ═
