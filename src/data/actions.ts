@@ -134,7 +134,7 @@ export async function createCommittee(branchId: string, name: string): Promise<s
 }
 
 export async function createCourse(input: {
-  committeeId: string;
+  committeeId?: string | null;
   title: string;
   field: string;
   description?: string;
@@ -143,7 +143,7 @@ export async function createCourse(input: {
   color: string;
 }): Promise<string> {
   const result = await rpc<{ id: string }>('create_course', {
-    p_committee_id: input.committeeId,
+    p_committee_id: input.committeeId ?? null,
     p_title: input.title,
     p_field: input.field,
     p_description: input.description ?? '',
@@ -152,6 +152,45 @@ export async function createCourse(input: {
     p_color: input.color,
   });
   return result.id;
+}
+
+export async function updateCourse(input: {
+  courseId: string;
+  title: string;
+  field: string;
+  description?: string;
+  topics: string[];
+  sessionsCount: number;
+}): Promise<void> {
+  await rpc('update_course_details', {
+    p_course_id: input.courseId,
+    p_title: input.title,
+    p_field: input.field,
+    p_description: input.description ?? '',
+    p_topics: input.topics,
+    p_sessions_count: input.sessionsCount,
+  });
+}
+
+export async function createSessionForBatch(input: {
+  batchId: string;
+  title: string;
+  seq: number;
+  startsAt: number;
+  durationMin?: number;
+}): Promise<string> {
+  const id = 'sess_' + Math.random().toString(36).slice(2, 9);
+  const { error } = await getSupabase().from('sessions').insert({
+    id,
+    batch_id: input.batchId,
+    title: input.title,
+    seq: input.seq,
+    starts_at: new Date(input.startsAt).toISOString(),
+    duration_min: input.durationMin ?? 120,
+    status: 'scheduled',
+  });
+  if (error) throw new Error(error.message);
+  return id;
 }
 
 export interface NewSessionInput {

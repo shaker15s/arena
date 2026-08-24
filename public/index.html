@@ -3,13 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
     <!-- react-native-web style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
-      html, body { height: 100%; }
-      body { overflow: hidden; }
-      #root { display: flex; height: 100%; flex: 1; }
+      html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        width: 100%;
+        flex: 1;
+        overflow-x: hidden;
+      }
     </style>
     <style id="expo-boot-splash">
       /* شاشة إقلاع فورية قبل تحميل الحزمة — تستبدلها BootSplash داخل التطبيق */

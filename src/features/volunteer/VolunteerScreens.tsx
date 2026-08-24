@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
   attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
@@ -19,21 +20,25 @@ import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Empty, FadeIn, Header, Input, ListRow, ProgressBar,
+  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, ProgressBar,
   Row, Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
+import { BatchFormSheet } from '../org/AdminScreens';
 
 // ───────────────────────────── S30 يوم المدرب ─────────────────────────────
 
-export function VolunteerTodayScreen({ navigation }: any) {
+export function VolunteerTodayScreen({ navigation: propNav }: any) {
+  const hookNav = useNavigation<any>();
+  const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user, refresh, syncing } = useApp();
   const tabs = useTabs();
+  const [creating, setCreating] = useState(false);
   if (!user) return null;
 
   const batches = instructorBatches(db, user.id).filter((b) => b.status === 'active');
@@ -126,8 +131,32 @@ export function VolunteerTodayScreen({ navigation }: any) {
           </Row>
         </FadeIn>
 
-        {/* جلساتي القادمة */}
+        {/* أدوات المنظم السريعة */}
         <FadeIn index={3}>
+          <Txt variant="h3">أدوات تنظيم الكورسات</Txt>
+          <Spacer size={8} />
+          <Row gap={8}>
+            <View style={{ flex: 1 }}>
+              <ListRow
+                icon="add-circle"
+                title="إنشاء مجموعة"
+                subtitle="بدء دفعة جديدة لكورس"
+                onPress={() => setCreating(true)}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ListRow
+                icon="albums"
+                title="الكورسات"
+                subtitle="استكشاف وإدارة المواد"
+                onPress={() => navigation.navigate('Courses')}
+              />
+            </View>
+          </Row>
+        </FadeIn>
+
+        {/* جلساتي القادمة */}
+        <FadeIn index={4}>
           <Row between center>
             <Txt variant="h3">{t('batches.title')}</Txt>
             <Btn title={t('common.seeAll')} size="sm" variant="ghost" onPress={() => tabs.setTab('batches')} />
@@ -155,6 +184,8 @@ export function VolunteerTodayScreen({ navigation }: any) {
           })}
         </FadeIn>
       </ScrollView>
+
+      <BatchFormSheet visible={creating} onClose={() => setCreating(false)} />
     </View>
   );
 }
@@ -173,13 +204,21 @@ function StatCard({ icon, color, value, label, onPress }: { icon: keyof typeof I
 
 // ───────────────────────────── S31 مجموعاتي ─────────────────────────────
 
-export function MyBatchesScreen({ navigation }: any) {
+export function MyBatchesScreen({ navigation: propNav }: any) {
+  const hookNav = useNavigation<any>();
+  const navigation = propNav ?? hookNav;
   const { t } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user, refresh, syncing } = useApp();
+  const [creating, setCreating] = useState(false);
+  const [filter, setFilter] = useState<'my' | 'all'>('my');
+
   if (!user) return null;
-  const batches = instructorBatches(db, user.id);
+
+  const myBatches = instructorBatches(db, user.id);
+  const allBatches = db.batches.filter((b) => b.status !== 'archived');
+  const batches = filter === 'my' && myBatches.length > 0 ? myBatches : allBatches;
 
   return (
     <View style={{ flex: 1 }}>
@@ -194,49 +233,99 @@ export function MyBatchesScreen({ navigation }: any) {
           />
         }
       >
-        <Header title={t('batches.title')} />
-        {batches.map((b, i) => {
-          const course = courseOf(db, b.courseId)!;
-          const sess = sessionsOfBatch(db, b.id);
-          const closed = sess.filter((s) => s.status === 'closed').length;
-          const students = batchStudents(db, b.id);
-          const attendedRowCount = db.attendance.filter((a) => sess.some((s) => s.id === a.sessionId && s.status === 'closed'));
-          const avg = attendedRowCount.length === 0 ? 0 : Math.round((attendedRowCount.filter((a) => a.status !== 'absent').length / attendedRowCount.length) * 100);
-          return (
-            <FadeIn key={b.id} index={i}>
-              <Card>
-                <Row center gap={12}>
-                  <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="book" size={24} color={course.color} />
-                  </View>
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <Txt variant="h3">{course.title}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>
-                      {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time} · {b.room}
-                    </Txt>
-                    <Row center gap={8}>
-                      <Tag label={t('batches.ofStudents', { x: students.length })} color={theme.brand} bg={theme.brandSoft} icon="people" />
-                      <Tag label={`${t('batches.avgAttendance')} ${avg}%`} color={avg >= 75 ? theme.success : theme.warn} bg={avg >= 75 ? theme.successSoft : theme.warnSoft} icon="pulse" />
-                    </Row>
-                  </View>
-                </Row>
-                <Spacer size={10} />
-                <Row between>
-                  <Txt variant="micro" color={theme.textMuted}>{t('journey.sessionXofY', { x: closed, y: course.sessionsCount })}</Txt>
-                  <Txt variant="micro" color={theme.brand}>{Math.round((closed / course.sessionsCount) * 100)}%</Txt>
-                </Row>
-                <Spacer size={5} />
-                <ProgressBar progress={closed / course.sessionsCount} color={course.color} height={6} />
-                <Spacer size={10} />
-                <Row gap={8}>
-                  <Btn title={t('management.detailsTitle')} size="sm" variant="secondary" icon="information-circle" onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })} />
-                  <Btn title={t('sess.title')} size="sm" variant="ghost" icon="archive" onPress={() => navigation.navigate('SessionsHistory', { batchId: b.id })} />
-                </Row>
-              </Card>
-            </FadeIn>
-          );
-        })}
+        <Header
+          title={t('batches.title')}
+          right={
+            <Btn
+              title={t('batchAdm.new')}
+              size="sm"
+              icon="add"
+              onPress={() => setCreating(true)}
+            />
+          }
+        />
+
+        <Row gap={8}>
+          <Chip label={`مجموعاتي المنظمة (${myBatches.length})`} active={filter === 'my'} onPress={() => setFilter('my')} />
+          <Chip label={`كل مجموعات الأكاديمية (${allBatches.length})`} active={filter === 'all'} onPress={() => setFilter('all')} />
+        </Row>
+
+        {batches.length === 0 ? (
+          <FadeIn index={0}>
+            <Empty
+              emoji="📚"
+              title="لا توجد مجموعات بعد"
+              body="يمكنك كمنظم البدء في تنظيم أول دفعة لكورس واختيار المواعيد والقاعة واستقبال الطلاب فوراً"
+              cta="➕ إنشاء وتنظيم مجموعة جديدة"
+              onCta={() => setCreating(true)}
+            />
+            <Spacer size={12} />
+            <Btn
+              title="تصفح كتالوج الكورسات"
+              variant="secondary"
+              icon="albums"
+              full
+              onPress={() => navigation.navigate('Courses')}
+            />
+          </FadeIn>
+        ) : (
+          batches.map((b, i) => {
+            const course = courseOf(db, b.courseId)!;
+            const sess = sessionsOfBatch(db, b.id);
+            const closed = sess.filter((s) => s.status === 'closed').length;
+            const students = batchStudents(db, b.id);
+            const attendedRowCount = db.attendance.filter((a) => sess.some((s) => s.id === a.sessionId && s.status === 'closed'));
+            const avg = attendedRowCount.length === 0 ? 0 : Math.round((attendedRowCount.filter((a) => a.status !== 'absent').length / attendedRowCount.length) * 100);
+            return (
+              <FadeIn key={b.id} index={i}>
+                <Card>
+                  <Row center gap={12}>
+                    <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: course ? course.color + '22' : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="book" size={24} color={course ? course.color : theme.brand} />
+                    </View>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <Txt variant="h3">{course?.title ?? 'كورس تدريبي'}</Txt>
+                      <Txt variant="micro" color={theme.textMuted}>
+                        {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time} · {b.room}
+                      </Txt>
+                      <Row center gap={8}>
+                        <Tag label={t('batches.ofStudents', { x: students.length })} color={theme.brand} bg={theme.brandSoft} icon="people" />
+                        <Tag label={`${t('batches.avgAttendance')} ${avg}%`} color={avg >= 75 ? theme.success : theme.warn} bg={avg >= 75 ? theme.successSoft : theme.warnSoft} icon="pulse" />
+                      </Row>
+                    </View>
+                  </Row>
+                  <Spacer size={10} />
+                  <Row between>
+                    <Txt variant="micro" color={theme.textMuted}>{t('journey.sessionXofY', { x: closed, y: course?.sessionsCount ?? sess.length })}</Txt>
+                    <Txt variant="micro" color={theme.brand}>{course?.sessionsCount ? Math.round((closed / course.sessionsCount) * 100) : 0}%</Txt>
+                  </Row>
+                  <Spacer size={5} />
+                  <ProgressBar progress={course?.sessionsCount ? closed / course.sessionsCount : 0} color={course?.color ?? theme.brand} height={6} />
+                  <Spacer size={10} />
+                  <Row gap={8} wrap>
+                    <Btn
+                      title={t('management.detailsTitle')}
+                      size="sm"
+                      variant="primary"
+                      icon="people"
+                      onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })}
+                    />
+                    <Btn
+                      title={t('sess.title')}
+                      size="sm"
+                      variant="secondary"
+                      icon="calendar"
+                      onPress={() => navigation.navigate('SessionsHistory', { batchId: b.id })}
+                    />
+                  </Row>
+                </Card>
+              </FadeIn>
+            );
+          })
+        )}
       </ScrollView>
+
+      <BatchFormSheet visible={creating} onClose={() => setCreating(false)} />
     </View>
   );
 }

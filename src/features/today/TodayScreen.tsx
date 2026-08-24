@@ -158,7 +158,7 @@ export function TodayScreen() {
                 onPress={() => navigation.navigate('Wallet')}
               />
               <StatBubble
-                value={`#${gam.leagueRank || '—'}`}
+                value={gam.leagueXp > 0 && gam.leagueRank > 0 ? `#${gam.leagueRank}` : '—'}
                 label={t(`tier.${gam.leagueTier}` as any)}
                 icon={<Ionicons name="shield" size={20} color={leagueTierColors[gam.leagueTier]} />}
                 color={leagueTierColors[gam.leagueTier]}

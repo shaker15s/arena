@@ -150,7 +150,9 @@ export function SignInScreen({ navigation }: any) {
     setLoading(true);
     const r = await signInWithGoogle();
     setLoading(false);
-    if (!r.ok && r.error && r.error !== 'cancelled') setError(t('auth.googleFailed'));
+    if (!r.ok && r.error && r.error !== 'cancelled') {
+      setError(r.error === 'not-configured' ? t('auth.notConfigured') : `${t('auth.googleFailed')}: ${r.error}`);
+    }
   };
 
   return (

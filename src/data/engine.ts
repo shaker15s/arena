@@ -872,19 +872,48 @@ export function getMyGamification(db: Db, userId: string): MyGamification {
 
 export function generateSessionsForBatch(batch: Batch, count: number): Array<{ seq: number; title: string; startsAt: number }> {
   const out: Array<{ seq: number; title: string; startsAt: number }> = [];
-  const [hh, mm] = batch.schedule.time.split(':').map(Number);
-  let seq = 0;
-  const cursor = new Date(batch.startDate);
+  const timeStr = (batch.schedule?.time || '18:00').trim();
+  let hh = 18;
+  let mm = 0;
+  const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?/);
+  if (match) {
+    hh = parseInt(match[1], 10);
+    mm = match[2] ? parseInt(match[2], 10) : 0;
+    if ((timeStr.includes('م') || timeStr.toLowerCase().includes('pm') || timeStr.includes('مساء')) && hh < 12) {
+      hh += 12;
+    }
+  }
+  if (isNaN(hh) || hh < 0 || hh > 23) hh = 18;
+  if (isNaN(mm) || mm < 0 || mm > 59) mm = 0;
+
+  const targetCount = Math.max(1, count || 8);
+  const startTs = typeof batch.startDate === 'number' && !isNaN(batch.startDate) && batch.startDate > 0
+    ? batch.startDate
+    : Date.now() + 7 * 86_400_000;
+  const cursor = new Date(startTs);
   cursor.setHours(hh, mm, 0, 0);
+
+  const selectedDays = batch.schedule?.days && batch.schedule.days.length > 0
+    ? batch.schedule.days
+    : [6];
+
+  let seq = 0;
   let guard = 0;
-  while (seq < count && guard < 400) {
+  while (seq < targetCount && guard < 600) {
     guard += 1;
-    if (batch.schedule.days.includes(cursor.getDay()) && cursor.getTime() >= batch.startDate - 86_400_000) {
+    if (selectedDays.includes(cursor.getDay())) {
       seq += 1;
       out.push({ seq, title: `محاضرة ${seq}`, startsAt: cursor.getTime() });
     }
     cursor.setDate(cursor.getDate() + 1);
   }
+
+  while (out.length < targetCount) {
+    seq += 1;
+    const lastTs = out[out.length - 1]?.startsAt ?? Date.now();
+    out.push({ seq, title: `محاضرة ${seq}`, startsAt: lastTs + 7 * 86_400_000 });
+  }
+
   return out;
 }
 

@@ -53,6 +53,11 @@ http
       'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
       'X-Content-Type-Options': 'nosniff',
     });
-    fs.createReadStream(filePath).pipe(res);
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', (err) => {
+      if (!res.headersSent) res.writeHead(500).end();
+      else res.end();
+    });
+    stream.pipe(res);
   })
   .listen(PORT, '0.0.0.0', () => console.log(`✓ مسار (production) على http://0.0.0.0:${PORT}`));

@@ -89,7 +89,7 @@ export function getSupabase(): SupabaseClient<any> {
 /** رابط الرجوع بعد Google (ويب: نفس الأصل، موبايل: masar://auth/callback) */
 export function authRedirectUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.origin}${window.location.pathname}`;
+    return `${window.location.origin}/`;
   }
   return Linking.createURL('auth/callback');
 }

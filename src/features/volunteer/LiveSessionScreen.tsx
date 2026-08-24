@@ -11,7 +11,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../../data/store';
-import { batchOf, batchStudents, courseOf, profileOf } from '../../data/engine';
+import { batchOf, batchStudents, courseOf, instructorBatches, profileOf, sessionsOfBatch } from '../../data/engine';
 import {
   closeTrainingSession, getSessionQrPayload, manualMarkAttendance,
   startTrainingSession, type SessionQrPayload,
@@ -26,7 +26,7 @@ import {
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
 import { formatTime } from '../../shared/format';
-import { TrainingSession } from '../../data/types';
+import { Batch, TrainingSession } from '../../data/types';
 
 export function LiveSessionScreen() {
   const { t, lang } = useI18n();
@@ -63,9 +63,11 @@ export function LiveSessionScreen() {
   }, [hasLive]);
 
   if (!user) return null;
-  const myBatches = db.batches.filter((b) => b.instructorId === user.id);
-  const myLive = db.sessions.find((s) => s.status === 'live' && myBatches.some((b) => b.id === s.batchId));
-  const batchWithScheduled = myBatches.find((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
+  const myBatches = instructorBatches(db, user.id);
+  const allActiveBatches = db.batches.filter((b) => b.status !== 'archived');
+  const effectiveBatches = myBatches.length > 0 ? myBatches : allActiveBatches;
+  const myLive = db.sessions.find((s) => s.status === 'live' && effectiveBatches.some((b) => b.id === s.batchId)) ?? db.sessions.find((s) => s.status === 'live');
+  const batchesWithScheduled = effectiveBatches.filter((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
 
   // الخادم وحده يولّد التوقيع والكود الاحتياطي؛ لا تصل بذرة QR للعميل.
   useEffect(() => {
@@ -96,12 +98,12 @@ export function LiveSessionScreen() {
     };
   }, [myLive?.id, toast]);
 
-  const start = async () => {
-    if (!batchWithScheduled) return;
+  const startBatch = async (batchId: string) => {
     setStarting(true);
     try {
-      await startTrainingSession(batchWithScheduled.id);
+      await startTrainingSession(batchId);
       await refresh();
+      toast(t('common.liveStatus'), 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
     } finally {
@@ -128,15 +130,12 @@ export function LiveSessionScreen() {
     }
   };
 
-  // ── الحالة 1: لا جلسة حية ──
+  // ── الحالة 1: لا توجد جلسة حية ──
   if (!myLive) {
-    const nextSess = batchWithScheduled
-      ? db.sessions.filter((s) => s.batchId === batchWithScheduled.id && s.status === 'scheduled').sort((a, b) => a.startsAt - b.startsAt)[0]
-      : undefined;
     return (
       <View style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, alignItems: 'center', paddingBottom: 130 }}>
-          <Header title={t('live.title')} />
+        <Header title={t('live.title')} />
+        <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, alignItems: 'center', paddingBottom: 130 }}>
           <Empty emoji="🎬" title={closedSummary ? `${t('live.closedSnack')}` : t('vtoday.noSessionToday')} />
           {closedSummary ? (
             <Card style={{ alignSelf: 'stretch' }}>
@@ -157,15 +156,39 @@ export function LiveSessionScreen() {
               </Row>
             </Card>
           ) : null}
-          {batchWithScheduled && nextSess ? (
-            <Card style={{ alignSelf: 'stretch' }}>
-              <Txt variant="h3">{nextSess.title}</Txt>
-              <Txt variant="caption" color={theme.textSecondary}>
-                {courseOf(db, batchWithScheduled.courseId)?.title} · {formatTime(nextSess.startsAt, lang)} · {batchWithScheduled.room}
-              </Txt>
-              <Spacer size={12} />
-              <Btn title={t('vtoday.startSession')} size="lg" full loading={starting} onPress={start} icon="play" />
-            </Card>
+          {batchesWithScheduled.length > 0 ? (
+            <View style={{ alignSelf: 'stretch', gap: 12 }}>
+              <Txt variant="h3">المجموعات الجاهزة لبدء الحضور:</Txt>
+              {batchesWithScheduled.map((b) => {
+                const course = courseOf(db, b.courseId);
+                const nextSess = sessionsOfBatch(db, b.id).find((s) => s.status === 'scheduled');
+                if (!nextSess) return null;
+                return (
+                  <Card key={b.id} style={{ alignSelf: 'stretch' }}>
+                    <Row center gap={10}>
+                      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: course ? course.color + '22' : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="play" size={22} color={course ? course.color : theme.brand} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="h3">{nextSess.title}</Txt>
+                        <Txt variant="caption" color={theme.textSecondary}>
+                          {course?.title} · {b.room} · {formatTime(nextSess.startsAt, lang)}
+                        </Txt>
+                      </View>
+                    </Row>
+                    <Spacer size={12} />
+                    <Btn
+                      title={`بدء الجلسة #${nextSess.seq} وتوليد الـ QR`}
+                      size="md"
+                      full
+                      loading={starting}
+                      onPress={() => startBatch(b.id)}
+                      icon="play"
+                    />
+                  </Card>
+                );
+              })}
+            </View>
           ) : null}
         </ScrollView>
         {renderClosedModal()}

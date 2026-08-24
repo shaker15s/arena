@@ -78,6 +78,8 @@ export function Spacer({ size = 8 }: { size?: number }) {
   return <View style={{ height: size, width: size }} />;
 }
 
+const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null;
+
 // ───────────────────────────── بطاقات زجاجية ─────────────────────────────
 
 export function Card({ children, style, glass, color, noPad, onPress, solid }: {
@@ -136,6 +138,7 @@ export function Card({ children, style, glass, color, noPad, onPress, solid }: {
         onPress={() => { impactLight(); onPress(); }}
         onPressIn={pressIn}
         onPressOut={pressOut}
+        style={webPointer}
       >
         {content}
       </Pressable>
@@ -212,6 +215,7 @@ export function Btn({
           onPress={loading || disabled ? undefined : handlePress}
           onPressIn={() => press(scalePress)}
           onPressOut={() => press(1)}
+          style={webPointer}
         >
           <LinearGradient
             colors={[theme.brandGradientFrom, theme.brandGradientTo]}
@@ -253,20 +257,23 @@ export function Btn({
         onPress={loading || disabled ? undefined : handlePress}
         onPressIn={() => press(scalePress)}
         onPressOut={() => press(1)}
-        style={{
-          backgroundColor: bg,
-          borderRadius: radii.button,
-          paddingVertical: padV,
-          paddingHorizontal: padH,
-          minHeight: size === 'lg' ? 56 : 48,
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          gap: 8,
-          opacity: disabled ? 0.45 : 1,
-          borderWidth: variant === 'ghost' ? 1 : 0,
-          borderColor: variant === 'ghost' ? theme.line : 'transparent',
-        }}
+        style={[
+          webPointer,
+          {
+            backgroundColor: bg,
+            borderRadius: radii.button,
+            paddingVertical: padV,
+            paddingHorizontal: padH,
+            minHeight: size === 'lg' ? 56 : 48,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 8,
+            opacity: disabled ? 0.45 : 1,
+            borderWidth: variant === 'ghost' ? 1 : 0,
+            borderColor: variant === 'ghost' ? theme.line : 'transparent',
+          },
+        ]}
       >
         {loading ? (
           <Spinner color={fg} />
@@ -363,7 +370,7 @@ export function Segmented<T extends string>({ options, value, onChange }: {
 
 // ───────────────────────────── حقول إدخال ─────────────────────────────
 
-export function Input({ label, value, onChange, placeholder, keyboardType, multiline, icon, error, maxLength, secure, autoCapitalize }: {
+export function Input({ label, value, onChange, placeholder, keyboardType, multiline, icon, error, maxLength, secure, autoCapitalize, onIconPress }: {
   label?: string;
   value: string;
   onChange: (v: string) => void;
@@ -375,9 +382,26 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
   maxLength?: number;
   secure?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  onIconPress?: () => void;
 }) {
   const { theme, isDark } = useTheme();
   const [focused, setFocused] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleIconClick = () => {
+    if (onIconPress) {
+      onIconPress();
+      return;
+    }
+    if (Platform.OS === 'web' && icon === 'calendar' && dateInputRef.current) {
+      if (typeof (dateInputRef.current as any).showPicker === 'function') {
+        (dateInputRef.current as any).showPicker();
+      } else {
+        dateInputRef.current.focus();
+      }
+    }
+  };
+
   return (
     <View style={{ alignSelf: 'stretch' }}>
       {label ? <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 6 }}>{label}</Txt> : null}
@@ -394,7 +418,15 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
           shadowOffset: { width: 0, height: 4 },
         }}
       >
-        {icon ? <Ionicons name={icon} size={18} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} style={{ marginTop: multiline ? 10 : 0 }} /> : null}
+        {icon ? (
+          <Pressable
+            hitSlop={8}
+            onPress={handleIconClick}
+            style={[Platform.OS === 'web' && (icon === 'calendar' || onIconPress) ? { cursor: 'pointer' } as any : null, { marginTop: multiline ? 10 : 0 }]}
+          >
+            <Ionicons name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+          </Pressable>
+        ) : null}
         <TextInput
           value={value}
           onChangeText={onChange}
@@ -408,12 +440,26 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
           maxLength={maxLength}
           secureTextEntry={secure}
           autoCapitalize={autoCapitalize}
+          textAlignVertical={multiline ? 'top' : 'center'}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
-            textAlign: 'auto', paddingVertical: 10,
-            ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as object : {}),
+            textAlign: 'auto', paddingVertical: multiline ? 6 : 8,
+            minWidth: 0, width: '100%',
+            ...(Platform.OS === 'web' ? { outlineStyle: 'none', border: 'none', background: 'transparent' } as object : {}),
           }}
         />
+        {Platform.OS === 'web' && icon === 'calendar' && (
+          <input
+            ref={dateInputRef as any}
+            type="date"
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            onChange={(e) => {
+              if (e.target.value) {
+                onChange(e.target.value);
+              }
+            }}
+          />
+        )}
       </View>
       {error ? <Txt variant="micro" color={theme.danger} style={{ marginTop: 4 }}>{error}</Txt> : null}
     </View>
@@ -735,48 +781,68 @@ export function Sheet({ visible, onClose, children, title }: {
   useEffect(() => {
     if (visible) {
       if (isReducedMotion()) anim.setValue(1);
-      else Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 20, stiffness: 180 }).start();
+      else Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 22, stiffness: 200 }).start();
     } else {
       anim.setValue(0);
     }
   }, [visible, anim]);
   if (!visible) return null;
+
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.close')}
-          style={{ flex: 1, justifyContent: 'flex-end' }}
-          onPress={onClose}
-        >
-          <BlurView intensity={isDark ? 18 : 10} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay }]} />
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: theme.overlay }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('common.close')}
+            style={StyleSheet.absoluteFill}
+            onPress={onClose}
+          >
+            <BlurView intensity={isDark ? 20 : 12} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          </Pressable>
+
           <Animated.View
             accessibilityViewIsModal
             style={{
-              width: '100%', maxWidth: 720, alignSelf: 'center',
+              width: '100%', maxWidth: 620, alignSelf: 'center',
               backgroundColor: theme.card,
               borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
-              padding: spacing.s5, paddingBottom: spacing.s8,
-              maxHeight: '90%',
+              paddingHorizontal: spacing.s5, paddingTop: spacing.s4,
+              paddingBottom: Platform.OS === 'web' ? 28 : spacing.s8,
+              maxHeight: '92%',
               borderWidth: 1,
               borderBottomWidth: 0,
               borderColor: isDark ? 'rgba(84,84,88,0.42)' : 'rgba(255,255,255,0.72)',
               shadowColor: '#000',
-              shadowOpacity: 0.22,
-              shadowRadius: 34,
+              shadowOpacity: 0.28,
+              shadowRadius: 36,
               shadowOffset: { width: 0, height: -12 },
               transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [460, 0] }) }],
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <Pressable accessibilityRole="none" onPress={(event) => event.stopPropagation?.()}>
-              <View style={{ alignSelf: 'center', width: 42, height: 5, borderRadius: 3, backgroundColor: isDark ? 'rgba(174,174,178,0.32)' : 'rgba(60,60,67,0.18)', marginBottom: 16 }} />
-              {title ? <Txt variant="h2" style={{ marginBottom: 14 }}>{title}</Txt> : null}
+            <View style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: isDark ? 'rgba(174,174,178,0.32)' : 'rgba(60,60,67,0.18)', marginBottom: 12 }} />
+            
+            {title ? (
+              <Row between center style={{ marginBottom: 12 }}>
+                <Txt variant="h2" style={{ flex: 1 }}>{title}</Txt>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.close')}
+                  onPress={onClose}
+                  style={[webPointer, { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }]}
+                >
+                  <Ionicons name="close" size={18} color={theme.textSecondary} />
+                </Pressable>
+              </Row>
+            ) : null}
+
+            <View style={{ flex: 1, minHeight: 0 }}>
               {children}
-            </Pressable>
+            </View>
           </Animated.View>
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -800,15 +866,18 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={title}
       onPress={onPress ? () => { impactLight(); onPress(); } : undefined}
-      style={({ pressed }) => ({
-        flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
-        backgroundColor: isDark ? 'rgba(28,28,30,0.72)' : 'rgba(255,255,255,0.72)',
-        borderRadius: radii.cardSm, padding: 14,
-        borderWidth: 0.5,
-        borderColor: isDark ? 'rgba(84,84,88,0.25)' : 'rgba(255,255,255,0.5)',
-        opacity: pressed ? 0.7 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-      })}
+      style={({ pressed }) => ([
+        webPointer,
+        {
+          flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
+          backgroundColor: isDark ? 'rgba(28,28,30,0.72)' : 'rgba(255,255,255,0.72)',
+          borderRadius: radii.cardSm, padding: 14,
+          borderWidth: 0.5,
+          borderColor: isDark ? 'rgba(84,84,88,0.25)' : 'rgba(255,255,255,0.5)',
+          opacity: pressed ? 0.7 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        },
+      ])}
     >
       {icon ? (
         <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: iconBg ?? theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>

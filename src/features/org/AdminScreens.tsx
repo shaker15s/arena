@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
   attendancePct, batchOf, batchStudents, checkInstructorConflict, courseOf,
@@ -28,7 +29,9 @@ import {
 
 // ───────────────────────────── S40 لوحة التحكم ─────────────────────────────
 
-export function DashboardScreen({ navigation }: any) {
+export function DashboardScreen({ navigation: propNav }: any) {
+  const hookNav = useNavigation<any>();
+  const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -97,18 +100,38 @@ export function DashboardScreen({ navigation }: any) {
         <FadeIn index={6}>
           <Txt variant="h3">{t('today.quickActions')}</Txt>
           <Spacer size={8} />
-          <ListRow icon="rocket" title={t('dash.openWizard')} onPress={() => navigation.navigate('Wizard')} />
+          <ListRow
+            icon="rocket"
+            title={t('dash.openWizard')}
+            subtitle="تهيئة سريعة لفرع أو دورة تدريبية ومجموعات جديدة"
+            onPress={() => navigation.navigate('Wizard')}
+          />
           <Spacer size={8} />
           <Row gap={8}>
             <View style={{ flex: 1 }}>
-              <ListRow icon="ribbon" title={t('dash.issueCerts')} onPress={() => navigation.navigate('IssueCertificates')} />
+              <ListRow
+                icon="ribbon"
+                title={t('dash.issueCerts')}
+                subtitle="إصدار الشهادات للمؤهلين"
+                onPress={() => navigation.navigate('IssueCertificates')}
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <ListRow icon="albums" title={t('courses.title')} onPress={() => navigation.navigate('Courses')} />
+              <ListRow
+                icon="albums"
+                title={t('courses.title')}
+                subtitle="كتالوج الكورسات وإدارتها"
+                onPress={() => navigation.navigate('Courses')}
+              />
             </View>
           </Row>
           <Spacer size={8} />
-          <ListRow icon="albums" title={t('batchAdm.title')} subtitle={t('batchAdm.new')} onPress={() => navigation.navigate('BatchesAdmin')} />
+          <ListRow
+            icon="people"
+            title={t('batchAdm.title')}
+            subtitle={t('batchAdm.new')}
+            onPress={() => navigation.navigate('BatchesAdmin')}
+          />
         </FadeIn>
       </ScrollView>
     </View>
@@ -275,14 +298,43 @@ export function CoursesScreen({ navigation }: any) {
   const [sessionsCount, setSessionsCount] = useState('8');
   const [topics, setTopics] = useState('');
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!creating) {
+      setErrors({});
+      setTitle('');
+      setField('');
+      setDesc('');
+      setSessionsCount('8');
+      setTopics('');
+      setCommitteeId(db.committees[0]?.id ?? null);
+    }
+  }, [creating, db.committees]);
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!title.trim() || title.trim().length < 3) {
+      errs.title = 'عنوان الكورس مطلوب ويجب ألا يقل عن 3 أحرف';
+    }
+    if (!field.trim() || field.trim().length < 2) {
+      errs.field = 'المجال / التخصص مطلوب ولا يقل عن حرفين';
+    }
+    const count = parseInt(sessionsCount, 10);
+    if (!count || count < 1 || count > 100) {
+      errs.sessionsCount = 'عدد المحاضرات يجب أن يكون بين 1 و 100';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const save = async () => {
-    if (title.trim().length < 3 || !committeeId) return;
+    if (!validate()) return;
     setSaving(true);
     try {
       const palette = ['#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
       await createCourse({
-        committeeId,
+        committeeId: committeeId || null,
         title: title.trim(),
         field: field.trim() || t('common.general'),
         description: desc.trim(),
@@ -295,7 +347,9 @@ export function CoursesScreen({ navigation }: any) {
       setTitle(''); setDesc(''); setTopics('');
       toast(t('common.done') + ' ✓', 'success');
     } catch (error) {
-      toast((error as Error).message, 'error');
+      const msg = (error as Error).message;
+      setErrors((prev) => ({ ...prev, general: msg }));
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -335,25 +389,67 @@ export function CoursesScreen({ navigation }: any) {
       </ScrollView>
 
       <Sheet visible={creating} onClose={() => setCreating(false)} title={t('courses.new')}>
-        <ScrollView>
-          <View style={{ gap: 12 }}>
-            <Txt variant="caption" color={theme.textSecondary}>{t('org.committees')}</Txt>
-            <Row gap={6} wrap>
-              {db.committees.map((committee) => (
-                <Chip key={committee.id} label={committee.name} active={committeeId === committee.id} onPress={() => setCommitteeId(committee.id)} />
-              ))}
-            </Row>
-            <Input label={t('courses.titleLabel')} value={title} onChange={setTitle} icon="book" />
-            <Input label={t('courses.fieldLabel')} value={field} onChange={setField} icon="bookmark" />
-            <Input label={t('courses.descLabel')} value={desc} onChange={setDesc} multiline />
-            <Row gap={10}>
-              <View style={{ flex: 1 }}>
-                <Input label={t('courses.sessionsLabel')} value={sessionsCount} onChange={setSessionsCount} keyboardType="numeric" icon="calendar" />
-              </View>
-            </Row>
-            <Input label={t('courses.topicsLabel')} value={topics} onChange={setTopics} multiline />
-            <Btn title={t('courses.save')} full size="lg" loading={saving} onPress={save} icon="checkmark" disabled={title.trim().length < 3 || !committeeId} />
-          </View>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {errors.general ? (
+            <Card color="#EF44441F" style={{ borderColor: '#EF4444', padding: 10 }}>
+              <Txt variant="caption" color="#EF4444">{errors.general}</Txt>
+            </Card>
+          ) : null}
+
+          {db.committees.length > 0 ? (
+            <>
+              <Txt variant="caption" color={theme.textSecondary}>{t('org.committees')}</Txt>
+              <Row gap={6} wrap>
+                {db.committees.map((committee) => (
+                  <Chip key={committee.id} label={committee.name} active={committeeId === committee.id} onPress={() => setCommitteeId(committee.id)} />
+                ))}
+              </Row>
+            </>
+          ) : null}
+
+          <Input
+            label={t('courses.titleLabel')}
+            value={title}
+            onChange={(v) => { setTitle(v); setErrors((e) => ({ ...e, title: '' })); }}
+            placeholder="مثال: أساسيات الذكاء الاصطناعي"
+            icon="book"
+            error={errors.title}
+          />
+          <Input
+            label={t('courses.fieldLabel')}
+            value={field}
+            onChange={(v) => { setField(v); setErrors((e) => ({ ...e, field: '' })); }}
+            placeholder="مثال: الذكاء الاصطناعي والتكنولوجيا"
+            icon="bookmark"
+            error={errors.field}
+          />
+          <Input
+            label={t('courses.descLabel')}
+            value={desc}
+            onChange={setDesc}
+            placeholder="نبذة مختصرة عن الكورس وأهدافه..."
+            multiline
+          />
+          <Row gap={10}>
+            <View style={{ flex: 1 }}>
+              <Input
+                label={t('courses.sessionsLabel')}
+                value={sessionsCount}
+                onChange={(v) => { setSessionsCount(v); setErrors((e) => ({ ...e, sessionsCount: '' })); }}
+                keyboardType="numeric"
+                icon="calendar"
+                error={errors.sessionsCount}
+              />
+            </View>
+          </Row>
+          <Input
+            label={t('courses.topicsLabel')}
+            value={topics}
+            onChange={setTopics}
+            placeholder="المحور الأول: مقدمة مفاهيمية&#10;المحور الثاني: التطبيقات العملية&#10;المحور الثالث: المشروع النهائي"
+            multiline
+          />
+          <Btn title={t('courses.save')} full size="lg" loading={saving} onPress={save} icon="checkmark-circle" />
         </ScrollView>
       </Sheet>
     </View>
@@ -420,41 +516,85 @@ export function BatchesAdminScreen({ navigation }: any) {
   );
 }
 
-function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible: boolean; onClose: () => void; initialCourseId?: string }) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, refresh, toast } = useApp();
+  const { db, refresh, toast, user } = useApp();
   const [branchId, setBranchId] = useState<string | null>(db.branches[0]?.id ?? null);
-  const [courseId, setCourseId] = useState<string | null>(null);
-  const [instructorId, setInstructorId] = useState<string | null>(null);
+  const [courseId, setCourseId] = useState<string | null>(initialCourseId ?? null);
+  const [instructorId, setInstructorId] = useState<string | null>(user?.role === 'volunteer' ? user.id : null);
   const [capacity, setCapacity] = useState('25');
   const [days, setDays] = useState<number[]>([6]);
-  const [time, setTime] = useState('18:00');
-  const [startDate, setStartDate] = useState(new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10));
+  const [time, setTime] = useState('');
+  const [startDate, setStartDate] = useState('');
   const [room, setRoom] = useState('');
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (initialCourseId) setCourseId(initialCourseId);
+    if (user?.role === 'volunteer') setInstructorId(user.id);
+    setErrors({});
+  }, [initialCourseId, user, visible]);
 
   const publishedCourses = db.courses.filter((c) => c.status === 'published');
   const volunteers = db.profiles.filter((p) => p.role === 'volunteer' && p.status === 'active');
   const course = courseId ? courseOf(db, courseId) : null;
 
+  // فحص حصرية المنظم: هل هذا الكورس منظم بالفعل بواسطة شخص آخر معروف؟
+  const activeBatchForCourse = courseId ? db.batches.find((b) => b.courseId === courseId && b.status !== 'archived') : null;
+  const currentOrganizer = activeBatchForCourse?.instructorId ? profileOf(db, activeBatchForCourse.instructorId) : null;
+  const isConflictWithOtherOrganizer = Boolean(
+    activeBatchForCourse && currentOrganizer && instructorId && activeBatchForCourse.instructorId !== instructorId
+  );
+
   const toggleDay = (d: number) => {
     setDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
+    setErrors((e) => ({ ...e, days: '' }));
   };
+
+  const effectiveTime = time.trim() || '18:00';
+  const effectiveStartDate = startDate.trim() || new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const effectiveCapacity = parseInt(capacity, 10) || 25;
+  const effectiveRoom = room.trim() || 'قاعة التدريب الرئيسية';
 
   // معاينة مولّدة تلقائيًا + تحذير تعارض
   const draftBatch: Batch | null = course && branchId && instructorId && days.length > 0 ? {
     id: 'preview', courseId: course.id, branchId, instructorId,
-    capacity: parseInt(capacity, 10) || 25,
-    schedule: { days, time, durationMin: 120 },
-    startDate: new Date(startDate).getTime(),
-    room, status: 'scheduled', joinCode: '',
+    capacity: effectiveCapacity,
+    schedule: { days, time: effectiveTime, durationMin: 120 },
+    startDate: new Date(effectiveStartDate).getTime(),
+    room: effectiveRoom, status: 'scheduled', joinCode: '',
   } : null;
   const preview = course && draftBatch ? generateSessionsForBatch(draftBatch, course.sessionsCount) : [];
-  const conflict = instructorId && days.length > 0 ? checkInstructorConflict(db, instructorId, days, time) : null;
+  const conflict = instructorId && days.length > 0 ? checkInstructorConflict(db, instructorId, days, effectiveTime) : null;
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!branchId) errs.branchId = 'يرجى اختيار الفرع';
+    if (!courseId) errs.courseId = 'يرجى اختيار الكورس';
+    if (!instructorId) errs.instructorId = 'يرجى اختيار المدرب/المنظم';
+    if (days.length === 0) errs.days = 'يرجى تحديد يوم واحد على الأقل للمحاضرات';
+    const cap = parseInt(capacity, 10);
+    if (!cap || cap < 5 || cap > 200) errs.capacity = 'سعة المقاعد يجب أن تكون بين 5 و 200';
+    if (startDate.trim() && isNaN(new Date(startDate.trim()).getTime())) {
+      errs.startDate = 'صيغة التاريخ غير صحيحة، يرجى كتابتها YYYY-MM-DD';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const publish = async () => {
+    if (!validate()) return;
     if (!course || !branchId || !instructorId || !draftBatch) return;
+    if (isConflictWithOtherOrganizer) {
+      setErrors((prev) => ({
+        ...prev,
+        courseId: `هذا الكورس منظم بالفعل بواسطة ${currentOrganizer?.fullName ?? 'منظم آخر'}.`,
+      }));
+      toast(`هذا الكورس منظم بالفعل بواسطة ${currentOrganizer?.fullName ?? 'منظم آخر'}. لا يمكن لعدة منظمين إدارة نفس الكورس.`, 'warn');
+      return;
+    }
     setSaving(true);
     try {
       await createBatchWithSessions({
@@ -463,20 +603,26 @@ function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () =>
         instructorId,
         capacity: draftBatch.capacity,
         schedule: draftBatch.schedule,
-        startDate,
-        room: room.trim(),
-        sessions: preview.map((session) => ({
-          seq: session.seq,
-          title: course.topics[session.seq - 1] ?? t('common.sessionNumber', { x: session.seq }),
-          starts_at: new Date(session.startsAt).toISOString(),
-          duration_min: draftBatch.schedule.durationMin,
+        startDate: effectiveStartDate,
+        room: effectiveRoom,
+        sessions: preview.map((session, idx) => ({
+          seq: idx + 1,
+          title: (course.topics && course.topics[idx] && course.topics[idx].trim())
+            ? course.topics[idx].trim()
+            : `المحاضرة ${idx + 1}`,
+          starts_at: (session.startsAt && !isNaN(session.startsAt))
+            ? new Date(session.startsAt).toISOString()
+            : new Date(Date.now() + (idx + 1) * 7 * 86_400_000).toISOString(),
+          duration_min: Math.max(15, draftBatch.schedule.durationMin || 120),
         })),
       });
       await refresh();
       onClose();
       toast(t('batchAdm.published'), 'success');
     } catch (error) {
-      toast((error as Error).message, 'error');
+      const msg = (error as Error).message;
+      setErrors((prev) => ({ ...prev, general: msg }));
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -484,69 +630,108 @@ function BatchFormSheet({ visible, onClose }: { visible: boolean; onClose: () =>
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('batchAdm.new')}>
-      <ScrollView>
-        <View style={{ gap: 12 }}>
-          <Txt variant="caption" color={theme.textSecondary}>{t('common.branch')}</Txt>
-          <Row gap={6} wrap>
-            {db.branches.map((branch) => (
-              <Chip key={branch.id} label={branch.name} active={branchId === branch.id} onPress={() => setBranchId(branch.id)} />
-            ))}
-          </Row>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {errors.general ? (
+          <Card color="#EF44441F" style={{ borderColor: '#EF4444', padding: 10 }}>
+            <Txt variant="caption" color="#EF4444">{errors.general}</Txt>
+          </Card>
+        ) : null}
 
-          <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickCourse')}</Txt>
-          <Row gap={6} wrap>
-            {publishedCourses.map((c) => (
-              <Chip key={c.id} label={c.title} active={courseId === c.id} onPress={() => setCourseId(c.id)} />
-            ))}
-          </Row>
+        <Txt variant="caption" color={theme.textSecondary}>{t('common.branch')}</Txt>
+        <Row gap={6} wrap>
+          {db.branches.map((branch) => (
+            <Chip key={branch.id} label={branch.name} active={branchId === branch.id} onPress={() => { setBranchId(branch.id); setErrors((e) => ({ ...e, branchId: '' })); }} />
+          ))}
+        </Row>
+        {errors.branchId ? <Txt variant="micro" color={theme.danger}>{errors.branchId}</Txt> : null}
 
-          <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickInstructor')}</Txt>
-          <Row gap={6} wrap>
-            {volunteers.map((v) => (
-              <Chip key={v.id} label={v.fullName} active={instructorId === v.id} onPress={() => setInstructorId(v.id)} />
-            ))}
-          </Row>
+        <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickCourse')}</Txt>
+        <Row gap={6} wrap>
+          {publishedCourses.map((c) => {
+            const existingBatch = db.batches.find((b) => b.courseId === c.id && b.status !== 'archived');
+            const org = existingBatch?.instructorId ? profileOf(db, existingBatch.instructorId) : null;
+            const takenByOther = Boolean(existingBatch && org && user?.role === 'volunteer' && existingBatch.instructorId !== user.id);
+            return (
+              <Chip
+                key={c.id}
+                label={takenByOther ? `🔒 ${c.title} (${org?.fullName})` : c.title}
+                active={courseId === c.id}
+                onPress={() => {
+                  if (takenByOther) {
+                    toast(`هذا الكورس منظم حالياً بواسطة ${org?.fullName ?? 'منظم آخر'}`, 'warn');
+                  }
+                  setCourseId(c.id);
+                  setErrors((e) => ({ ...e, courseId: '' }));
+                }}
+              />
+            );
+          })}
+        </Row>
+        {errors.courseId ? <Txt variant="micro" color={theme.danger}>{errors.courseId}</Txt> : null}
 
-          <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.days')}</Txt>
-          <Row gap={6} wrap>
-            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-              <Chip key={d} label={t(`dayShort.${d}` as any)} active={days.includes(d)} onPress={() => toggleDay(d)} />
-            ))}
-          </Row>
+        {isConflictWithOtherOrganizer && (
+          <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55', padding: 10 }}>
+            <Row center gap={8}>
+              <Ionicons name="alert-circle" size={20} color={theme.danger} />
+              <Txt variant="micro" color={theme.danger}>
+                تنبيه: هذا الكورس منظم حالياً بواسطة {currentOrganizer?.fullName}. لا يمكنك تنظيم كورس مسند لمنظم آخر.
+              </Txt>
+            </Row>
+          </Card>
+        )}
 
-          <Row gap={10}>
-            <View style={{ flex: 1 }}>
-              <Input label={t('batchAdm.capacity')} value={capacity} onChange={setCapacity} keyboardType="numeric" icon="people" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Input label={t('batchAdm.time')} value={time} onChange={setTime} icon="time" />
-            </View>
-          </Row>
-          <Input label={t('batchAdm.startDate')} value={startDate} onChange={setStartDate} icon="calendar" />
-          <Input label={t('batchAdm.room')} value={room} onChange={setRoom} icon="location" />
+        {user?.role === 'admin' ? (
+          <>
+            <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickInstructor')}</Txt>
+            <Row gap={6} wrap>
+              {volunteers.map((v) => (
+                <Chip key={v.id} label={v.fullName} active={instructorId === v.id} onPress={() => { setInstructorId(v.id); setErrors((e) => ({ ...e, instructorId: '' })); }} />
+              ))}
+            </Row>
+            {errors.instructorId ? <Txt variant="micro" color={theme.danger}>{errors.instructorId}</Txt> : null}
+          </>
+        ) : null}
 
-          {conflict ? (
-            <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55' }}>
-              <Row center gap={8}>
-                <Ionicons name="warning" size={18} color={theme.warn} />
-                <Txt variant="caption" color={theme.warn} style={{ flex: 1 }}>{t('batchAdm.conflict')}</Txt>
-              </Row>
-            </Card>
-          ) : null}
+        <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.days')}</Txt>
+        <Row gap={6} wrap>
+          {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+            <Chip key={d} label={t(`dayShort.${d}` as any)} active={days.includes(d)} onPress={() => toggleDay(d)} />
+          ))}
+        </Row>
+        {errors.days ? <Txt variant="micro" color={theme.danger}>{errors.days}</Txt> : null}
 
-          {preview.length > 0 ? (
-            <Card glass>
-              <Txt variant="caption" color={theme.brand} style={{ marginBottom: 6 }}>👁️ {t('batchAdm.preview')} ({preview.length})</Txt>
-              <Row wrap gap={6}>
-                {preview.map((p) => (
-                  <Tag key={p.seq} label={`${p.seq}: ${formatDate(p.startsAt, lang)}`} color={theme.textSecondary} bg={theme.bg} />
-                ))}
-              </Row>
-            </Card>
-          ) : null}
+        <Row gap={10}>
+          <View style={{ flex: 1 }}>
+            <Input label={t('batchAdm.capacity')} value={capacity} onChange={(v) => { setCapacity(v); setErrors((e) => ({ ...e, capacity: '' })); }} placeholder="25" keyboardType="numeric" icon="people" error={errors.capacity} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Input label={t('batchAdm.time')} value={time} onChange={setTime} placeholder="18:00 (6:00 م)" icon="time" />
+          </View>
+        </Row>
+        <Input label={t('batchAdm.startDate')} value={startDate} onChange={(v) => { setStartDate(v); setErrors((e) => ({ ...e, startDate: '' })); }} placeholder="YYYY-MM-DD (مثال: 2026-09-01)" icon="calendar" error={errors.startDate} />
+        <Input label={t('batchAdm.room')} value={room} onChange={setRoom} placeholder="مثال: قاعة 3 - الدور الثاني" icon="location" />
 
-          <Btn title={t('batchAdm.publish')} size="lg" full loading={saving} onPress={publish} icon="rocket" disabled={!branchId || !course || !instructorId || days.length === 0 || !room.trim() || Boolean(conflict)} />
-        </View>
+        {conflict ? (
+          <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55' }}>
+            <Row center gap={8}>
+              <Ionicons name="warning" size={18} color={theme.warn} />
+              <Txt variant="caption" color={theme.warn} style={{ flex: 1 }}>{t('batchAdm.conflict')}</Txt>
+            </Row>
+          </Card>
+        ) : null}
+
+        {preview.length > 0 ? (
+          <Card glass>
+            <Txt variant="caption" color={theme.brand} style={{ marginBottom: 6 }}>👁️ {t('batchAdm.preview')} ({preview.length})</Txt>
+            <Row wrap gap={6}>
+              {preview.map((p) => (
+                <Tag key={p.seq} label={`${p.seq}: ${formatDate(p.startsAt, lang)}`} color={theme.textSecondary} bg={theme.bg} />
+              ))}
+            </Row>
+          </Card>
+        ) : null}
+
+        <Btn title={t('batchAdm.publish')} size="lg" full loading={saving} onPress={publish} icon="rocket" disabled={!branchId || !course || !instructorId || days.length === 0 || Boolean(conflict)} />
       </ScrollView>
     </Sheet>
   );

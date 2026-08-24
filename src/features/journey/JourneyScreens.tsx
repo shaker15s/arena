@@ -5,6 +5,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
   attendanceOf, attendancePct, batchOf, courseOf, courseStreak, isBatchComplete,
@@ -24,7 +25,9 @@ import { useTabs } from '../../app/RootNavigator';
 
 // ───────────────────────────── S14 رحلتي ─────────────────────────────
 
-export function JourneyScreen({ navigation }: any) {
+export function JourneyScreen({ navigation: propNav }: any) {
+  const hookNav = useNavigation<any>();
+  const navigation = propNav ?? hookNav;
   const { t } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -111,11 +114,11 @@ export function JourneyScreen({ navigation }: any) {
 
 // ───────────────────────────── S15 خريطة الرحلة ─────────────────────────────
 
-const NODE_SIZE = 64;
-
-export function JourneyMapScreen({ route, navigation }: any) {
+export function JourneyMapScreen({ route, navigation: propNav }: any) {
+  const hookNav = useNavigation<any>();
+  const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
   const batchId: string = route.params.batchId;
@@ -128,6 +131,14 @@ export function JourneyMapScreen({ route, navigation }: any) {
   const [sending, setSending] = useState(false);
 
   if (!batch || !course || !user) return null;
+
+  const instructor = profileOf(db, batch.instructorId);
+  const streak = courseStreak(db, user.id, batchId);
+  const myAtt = db.attendance.filter((a) => a.userId === user.id && sessions.some((s) => s.id === a.sessionId));
+  const attendedCount = myAtt.filter((a) => a.status === 'present' || a.status === 'late').length;
+  const excusedCount = myAtt.filter((a) => a.status === 'excused').length;
+  const totalClosed = sessions.filter((s) => s.status === 'closed').length;
+  const attendanceRate = totalClosed === 0 ? 100 : Math.round(((attendedCount + excusedCount) / totalClosed) * 100);
 
   const statusOf = (sess: TrainingSession): 'done' | 'late' | 'current' | 'locked' | 'excused' | 'absent' => {
     const att = attendanceOf(db, sess.id, user.id);
@@ -149,17 +160,14 @@ export function JourneyMapScreen({ route, navigation }: any) {
 
   const nodeMeta = (st: ReturnType<typeof statusOf>) => {
     switch (st) {
-      case 'done': return { color: theme.success, icon: 'checkmark' as const, label: t('map.nodeDone') };
-      case 'late': return { color: theme.warn, icon: 'time' as const, label: t('map.nodeLate') };
-      case 'current': return { color: theme.brand, icon: 'play' as const, label: t('map.nodeCurrent') };
-      case 'excused': return { color: theme.info, icon: 'shield' as const, label: t('map.nodeExcused') };
-      case 'absent': return { color: '#64748B', icon: 'close' as const, label: t('map.nodeAbsent') };
-      default: return { color: theme.textMuted, icon: 'lock-closed' as const, label: t('map.nodeLocked') };
+      case 'done': return { color: theme.success, icon: 'checkmark-circle' as const, label: t('map.nodeDone'), bg: theme.successSoft };
+      case 'late': return { color: theme.warn, icon: 'time' as const, label: t('map.nodeLate'), bg: theme.warnSoft };
+      case 'current': return { color: theme.brand, icon: 'radio-button-on' as const, label: t('map.nodeCurrent'), bg: theme.brandSoft };
+      case 'excused': return { color: theme.info, icon: 'shield-checkmark' as const, label: t('map.nodeExcused'), bg: theme.infoSoft };
+      case 'absent': return { color: theme.danger, icon: 'close-circle' as const, label: t('map.nodeAbsent'), bg: theme.dangerSoft };
+      default: return { color: theme.textMuted, icon: 'lock-closed' as const, label: t('map.nodeLocked'), bg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' };
     }
   };
-
-  const instructor = profileOf(db, batch.instructorId);
-  const streak = courseStreak(db, user.id, batchId);
 
   const submitRating = async () => {
     if (!user) return;
@@ -176,56 +184,219 @@ export function JourneyMapScreen({ route, navigation }: any) {
     }
   };
 
+  const minCertPct = 75;
+  const isEligibleForCert = totalClosed >= sessions.length * 0.75 && attendanceRate >= minCertPct;
+
   return (
     <View style={{ flex: 1 }}>
-      <Header title={course.title} subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`} back={() => navigation.goBack()} right={
-        streak >= 2 ? (
-          <Row center gap={4}>
-            <Flame size={18} />
-            <Txt variant="h3" color={theme.warn}>{streak}</Txt>
-          </Row>
-        ) : undefined
-      } />
-      <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingTop: 10 }}>
-        {/* المسار العمودي المتعرج */}
-        <View style={{ alignItems: 'center' }}>
+      <Header
+        title={course.title}
+        subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`}
+        back={() => navigation.goBack()}
+        right={
+          streak >= 1 ? (
+            <Row center gap={6} style={{ backgroundColor: theme.warnSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Flame size={18} />
+              <Txt variant="h3" color={theme.warn}>{streak}</Txt>
+            </Row>
+          ) : undefined
+        }
+      />
+      <ScrollView contentContainerStyle={{ paddingBottom: 140, paddingTop: 12, paddingHorizontal: spacing.s5, alignItems: 'center' }}>
+        <View style={{ width: '100%', maxWidth: 660, gap: 14 }}>
+          {/* Bento الملخص */}
+          <FadeIn index={0}>
+            <Card style={{ padding: 16 }}>
+              <Row between center>
+                <View style={{ gap: 3 }}>
+                  <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
+                  <Txt variant="h2" color={attendanceRate >= 75 ? theme.success : theme.brand}>{attendanceRate}%</Txt>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                  <Txt variant="caption" color={theme.textMuted}>{t('common.sessions')}</Txt>
+                  <Txt variant="h3">{attendedCount + excusedCount} / {sessions.length}</Txt>
+                </View>
+              </Row>
+              <Spacer size={10} />
+              <ProgressBar progress={sessions.length === 0 ? 0 : (attendedCount + excusedCount) / sessions.length} color={attendanceRate >= 75 ? theme.success : theme.brand} height={8} />
+              <Spacer size={8} />
+              <Row between center>
+                <Txt variant="micro" color={theme.textMuted}>
+                  {batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {batch.schedule.time}
+                </Txt>
+                <Tag label={`الحد الأدنى ${minCertPct}%`} color={theme.certGold} bg={theme.warnSoft} />
+              </Row>
+            </Card>
+          </FadeIn>
+
+          <Spacer size={8} />
+          <Txt variant="h3" style={{ marginHorizontal: 4 }}>{t('journey.map')}</Txt>
+
+          {/* المسار التفاعلي للمحاضرات */}
           {sessions.map((sess, i) => {
             const st = statusOf(sess);
             const meta = nodeMeta(st);
-            const side = i % 2 === 0 ? -1 : 1;
+            const isLiveNow = sess.status === 'live';
+            const att = attendanceOf(db, sess.id, user.id);
+            const isPassed = st === 'done' || st === 'late' || st === 'excused';
+
             return (
-              <React.Fragment key={sess.id}>
-                {i > 0 ? <Connector color={statusNodePassed(sessions[i - 1]) ? theme.success : theme.line} /> : null}
-                <FadeIn index={i}>
-                  <View style={{ alignSelf: side < 0 ? 'flex-start' : 'flex-end', marginHorizontal: '12%' as any, flexDirection: side < 0 ? 'row' : 'row-reverse', alignItems: 'center', gap: 14 }}>
-                    <NodeBubble sess={sess} meta={meta} status={st} />
-                    <View style={{ maxWidth: 170, gap: 3 }}>
-                      <Txt variant="micro" color={theme.textMuted}>{t('common.sessions')} {sess.seq}</Txt>
-                      <Txt variant="caption" numberOfLines={2}>{sess.title}</Txt>
-                      <Row center gap={4}>
-                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: meta.color }} />
-                        <Txt variant="micro" color={meta.color}>{meta.label}</Txt>
-                      </Row>
-                      <Txt variant="micro" color={theme.textMuted}>{formatDate(sess.startsAt, lang)}</Txt>
-                    </View>
-                  </View>
-                </FadeIn>
-              </React.Fragment>
+              <FadeIn key={sess.id} index={i + 1}>
+                <View style={{ width: '100%', position: 'relative' }}>
+                  {/* خط الربط بين العقد */}
+                  {i < sessions.length - 1 ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 56,
+                        right: 28,
+                        bottom: -24,
+                        width: 3,
+                        backgroundColor: isPassed ? theme.success : theme.line,
+                        zIndex: 0,
+                      }}
+                    />
+                  ) : null}
+
+                  <Card
+                    style={{
+                      borderWidth: isLiveNow ? 2 : st === 'current' ? 1.5 : 1,
+                      borderColor: isLiveNow ? theme.danger : st === 'current' ? theme.brand : theme.glassBorder,
+                      backgroundColor: isLiveNow ? (isDark ? 'rgba(255,59,48,0.12)' : 'rgba(255,59,48,0.06)') : undefined,
+                      padding: 16,
+                      zIndex: 1,
+                    }}
+                  >
+                    <Row center gap={14}>
+                      {/* فقاعة العقدة الكبيرة */}
+                      <View
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 24,
+                          backgroundColor: isLiveNow ? theme.danger : meta.bg,
+                          borderWidth: 2,
+                          borderColor: isLiveNow ? theme.danger : meta.color,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          shadowColor: meta.color,
+                          shadowOpacity: isLiveNow || st === 'current' ? 0.35 : 0.08,
+                          shadowRadius: 10,
+                          shadowOffset: { width: 0, height: 3 },
+                        }}
+                      >
+                        <Ionicons
+                          name={isLiveNow ? 'radio-button-on' : meta.icon}
+                          size={24}
+                          color={isLiveNow ? '#fff' : meta.color}
+                        />
+                      </View>
+
+                      {/* تفاصيل المحاضرة */}
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Row between center>
+                          <Row center gap={6}>
+                            <Tag label={`#${sess.seq}`} color={theme.brand} bg={theme.brandSoft} />
+                            <Txt variant="micro" color={theme.textMuted}>{formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}</Txt>
+                          </Row>
+                          <Tag label={isLiveNow ? t('common.liveStatus') : meta.label} color={isLiveNow ? theme.danger : meta.color} bg={isLiveNow ? theme.dangerSoft : meta.bg} />
+                        </Row>
+
+                        <Txt variant="bodyMed" numberOfLines={2}>{sess.title}</Txt>
+
+                        {/* شريط الإجراءات المباشرة */}
+                        {isLiveNow && (!att || att.status === 'absent') ? (
+                          <View style={{ marginTop: 8 }}>
+                            <Btn
+                              title={t('tabs.scan')}
+                              variant="primary"
+                              size="sm"
+                              icon="qr-code"
+                              onPress={() => navigation.navigate('Scanner')}
+                            />
+                          </View>
+                        ) : st === 'absent' ? (
+                          <Row center gap={8} style={{ marginTop: 6 }}>
+                            <Txt variant="micro" color={theme.danger}>{t('history.absent')}</Txt>
+                            <Btn
+                              title={t('excuses.title')}
+                              size="sm"
+                              variant="ghost"
+                              icon="shield"
+                              onPress={() => navigation.navigate('Excuses', { sessionId: sess.id })}
+                            />
+                          </Row>
+                        ) : st === 'done' || st === 'late' ? (
+                          <Row center gap={6} style={{ marginTop: 4 }}>
+                            <Ionicons name="checkmark-circle" size={14} color={theme.success} />
+                            <Txt variant="micro" color={theme.success}>
+                              {st === 'done' ? `+10 ${t('common.points')}` : `+7 ${t('common.points')} (${t('history.late')})`}
+                            </Txt>
+                          </Row>
+                        ) : null}
+                      </View>
+                    </Row>
+                  </Card>
+                </View>
+              </FadeIn>
             );
           })}
-          {/* عقدة الشهادة النهائية */}
-          <Connector color={theme.line} />
-          <FadeIn index={sessions.length}>
-            <View style={{ alignItems: 'center', gap: 6 }}>
-              <View style={{
-                width: NODE_SIZE + 12, height: NODE_SIZE + 12, borderRadius: (NODE_SIZE + 12) / 2,
-                backgroundColor: theme.warnSoft, borderWidth: 3, borderColor: theme.certGold,
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Ionicons name="trophy" size={36} color={theme.certGold} />
+
+          {/* العقدة النهائية: منصة التخرج والشهادة */}
+          <FadeIn index={sessions.length + 1}>
+            <Card
+              style={{
+                backgroundColor: isEligibleForCert ? (isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,215,0,0.18)') : theme.card,
+                borderWidth: 2,
+                borderColor: isEligibleForCert ? theme.certGold : theme.line,
+                padding: 20,
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: theme.warnSoft,
+                  borderWidth: 3,
+                  borderColor: theme.certGold,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: theme.certGold,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 14,
+                  shadowOffset: { width: 0, height: 6 },
+                }}
+              >
+                <Ionicons name="trophy" size={38} color={theme.certGold} />
               </View>
-              <Txt variant="caption" color={theme.certGold}>{t('map.certNode')}</Txt>
-            </View>
+
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <Txt variant="h2" color={theme.certGold}>{t('map.certNode')}</Txt>
+                <Txt variant="caption" color={theme.textSecondary} align="center">
+                  {isEligibleForCert
+                    ? t('certs.congrats')
+                    : `${t('history.commitment')}: ${attendanceRate}% (المطلوب ≥${minCertPct}% للحصول على الشهادة)`}
+                </Txt>
+              </View>
+
+              <Row gap={10} style={{ width: '100%', justifyContent: 'center' }}>
+                <Btn
+                  title={t('certs.title')}
+                  variant={isEligibleForCert ? 'gold' : 'secondary'}
+                  icon="ribbon"
+                  onPress={() => navigation.navigate('Certificates')}
+                />
+                <Btn
+                  title={t('journey.rateCourse')}
+                  variant="ghost"
+                  icon="star"
+                  onPress={() => setRateOpen(true)}
+                />
+              </Row>
+            </Card>
           </FadeIn>
         </View>
       </ScrollView>
@@ -240,31 +411,6 @@ export function JourneyMapScreen({ route, navigation }: any) {
           <Btn title={t('common.send')} full size="lg" loading={sending} onPress={submitRating} icon="star" />
         </View>
       </Sheet>
-    </View>
-  );
-
-  function statusNodePassed(sess: TrainingSession) {
-    const st = statusOf(sess);
-    return st === 'done' || st === 'late' || st === 'excused';
-  }
-}
-
-function Connector({ color }: { color: string }) {
-  return <View style={{ width: 3, height: 26, backgroundColor: color, borderRadius: 2 }} />;
-}
-
-function NodeBubble({ sess, meta, status }: { sess: TrainingSession; meta: { color: string; icon: keyof typeof Ionicons.glyphMap }; status: string }) {
-  const { theme } = useTheme();
-  return (
-    <View style={{
-      width: NODE_SIZE, height: NODE_SIZE, borderRadius: NODE_SIZE / 2,
-      backgroundColor: status === 'locked' ? theme.card : meta.color,
-      borderWidth: status === 'current' ? 3 : 2,
-      borderColor: meta.color,
-      alignItems: 'center', justifyContent: 'center',
-      shadowColor: meta.color, shadowOpacity: status === 'current' ? 0.45 : 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
-    }}>
-      <Ionicons name={meta.icon} size={26} color={status === 'locked' ? theme.textMuted : '#fff'} />
     </View>
   );
 }

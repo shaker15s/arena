@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, Platform, Pressable, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,6 +62,8 @@ export interface TabDef {
   iconActive?: keyof typeof Ionicons.glyphMap;
 }
 
+const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null;
+
 // ─── شريط تنقل عائم بحركة موحدة وحالات وصول واضحة ───
 function TabButton({ tab, active, badge, onPress }: {
   tab: TabDef;
@@ -86,11 +88,14 @@ function TabButton({ tab, active, badge, onPress }: {
       accessibilityLabel={tab.label}
       accessibilityState={{ selected: active }}
       onPress={() => { impactLight(); onPress(); }}
-      style={({ pressed }) => ({
-        flex: 1, minWidth: 54, minHeight: 58,
-        alignItems: 'center', justifyContent: 'center', gap: 3,
-        opacity: pressed ? 0.72 : 1,
-      })}
+      style={({ pressed }) => ([
+        webPointer,
+        {
+          flex: 1, minWidth: 54, minHeight: 58,
+          alignItems: 'center', justifyContent: 'center', gap: 3,
+          opacity: pressed ? 0.72 : 1,
+        },
+      ])}
     >
       <Animated.View pointerEvents="none" style={{
         position: 'absolute', width: 54, height: 36, borderRadius: 18,
@@ -173,6 +178,7 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
                         onPress={() => { impactMedium(); fab.onPress(); }}
                         onPressIn={() => Animated.spring(fabScale, { toValue: 0.9, damping: 20, stiffness: 280, useNativeDriver: true }).start()}
                         onPressOut={() => Animated.spring(fabScale, { toValue: 1, damping: 18, stiffness: 240, useNativeDriver: true }).start()}
+                        style={webPointer}
                       >
                         <LinearGradient
                           colors={[theme.brandGradientFrom, theme.brandGradientTo]}
@@ -361,6 +367,9 @@ function VolunteerStack() {
   return (
     <Stack.Navigator screenOptions={screenOpts}>
       <Stack.Screen name="Tabs" component={VolunteerTabs} />
+      <Stack.Screen name="Courses" component={CoursesScreen} />
+      <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
+      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} />
       <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
       <Stack.Screen name="SessionsHistory" component={SessionsHistoryScreen} />
       <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
