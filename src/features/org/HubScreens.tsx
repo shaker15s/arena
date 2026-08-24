@@ -2,8 +2,8 @@
  * features/org — Hub: S49 قواعد اللعبة + S50 استوديو الشارات + S51 المراسلات + S52 سجل العمليات
  * + S46 إصدار الشهادات.
  */
-import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
@@ -23,12 +23,13 @@ import { spacing, radii } from '../../design/tokens';
 import { timePast, formatDate } from '../../shared/format';
 import { Certificate } from '../../data/types';
 import {
-  issueBatchCertificates, sendBroadcast, setBadgeActive, updateGamificationRule,
+  getAnalytics, issueBatchCertificates, sendBroadcast, setBadgeActive, updateGamificationRule,
+  type AnalyticsScope, type AnalyticsResult,
 } from '../../data/actions';
 
 // ───────────────────────────── Hub (مقسّم) ─────────────────────────────
 
-type HubTab = 'rules' | 'badges' | 'broadcast' | 'audit';
+type HubTab = 'rules' | 'badges' | 'broadcast' | 'audit' | 'analytics';
 
 export function HubScreen() {
   const { t } = useI18n();
@@ -48,14 +49,117 @@ export function HubScreen() {
             { value: 'badges', label: t('badges.title'), icon: 'medal' },
             { value: 'broadcast', label: t('broadcast.title'), icon: 'megaphone' },
             { value: 'audit', label: t('audit.title'), icon: 'document-lock' },
+            { value: 'analytics', label: t('analytics.title'), icon: 'analytics' },
           ]}
         />
         {tab === 'rules' ? <RulesStudio /> : null}
         {tab === 'badges' ? <BadgeStudio /> : null}
         {tab === 'broadcast' ? <BroadcastComposer /> : null}
         {tab === 'audit' ? <AuditLog /> : null}
+        {tab === 'analytics' ? <AnalyticsPanel /> : null}
       </ScrollView>
     </View>
+  );
+}
+
+// ───────────────────────────── S53 التحليلات الخادمية ─────────────────────────────
+
+function AnalyticsPanel() {
+  const { t } = useI18n();
+  const { theme } = useTheme();
+  const { db, user, syncing, refresh } = useApp();
+  const [scope, setScope] = useState<AnalyticsScope>('branch');
+  const [scopeId, setScopeId] = useState<string | null>(null);
+  const [data, setData] = useState<AnalyticsResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { void load(); }, [scope, scopeId]);
+
+  const load = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try {
+      const result = await getAnalytics(scope, scopeId);
+      setData(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Choose the default scope id when a scope with a natural selector is picked.
+  const active = scope === 'branch' ? db.branches : scope === 'course' ? db.courses : scope === 'batch' ? db.batches : [];
+  const scopeLabel = (id: string) =>
+    scope === 'branch' ? (db.branches.find((x) => x.id === id)?.name ?? id)
+    : scope === 'course' ? (db.courses.find((x) => x.id === id)?.title ?? id)
+    : scope === 'batch' ? (courseOf(db, db.batches.find((x) => x.id === id)?.courseId ?? '')?.title ?? id)
+    : id;
+
+  return (
+    <View style={{ gap: 12 }}>
+      <Card glass>
+        <Row center gap={8}>
+          <Ionicons name="stats-chart" size={16} color={theme.brand} />
+          <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('analytics.subtitle')}</Txt>
+        </Row>
+      </Card>
+      <Row gap={6} wrap>
+        {(['branch', 'course', 'batch', 'session'] as AnalyticsScope[]).map((s) => (
+          <Chip key={s} label={t(`analytics.scope.${s}` as any)} active={scope === s} onPress={() => { setScope(s); setScopeId(null); }} />
+        ))}
+      </Row>
+      {active.length > 0 ? (
+        <Row gap={6} wrap>
+          <Chip key="all" label={t('common.all')} active={scopeId == null} onPress={() => setScopeId(null)} />
+          {active.map((item) => (
+            <Chip key={item.id} label={scopeLabel(item.id)} active={scopeId === item.id} onPress={() => setScopeId(item.id)} />
+          ))}
+          {scope === 'session' ? (
+            db.sessions.filter((s) => s.status === 'closed').map((s) => (
+              <Chip key={s.id} label={`${s.seq}`} active={scopeId === s.id} onPress={() => setScopeId(s.id)} />
+            ))
+          ) : null}
+        </Row>
+      ) : null}
+      {loading ? (
+        <Txt variant="caption" color={theme.textMuted} align="center" style={{ padding: 16 }}>{t('common.loading')}</Txt>
+      ) : error ? (
+        <Card color={theme.dangerSoft}><Txt variant="caption" color={theme.danger}>{error}</Txt></Card>
+      ) : data ? (
+        <>
+          <Row gap={10}>
+            <AnalyticsCard label={t('analytics.sessions')} value={data.sessions} color={theme.brand} icon="calendar" />
+            <AnalyticsCard label={t('analytics.enrollments')} value={data.enrollments} color={theme.success} icon="people" />
+            <AnalyticsCard label={t('analytics.attendance')} value={data.attendance} color={theme.teal} icon="checkmark-done" />
+          </Row>
+          <Card>
+            <Row between center>
+              <Row center gap={6}>
+                <Ionicons name="pulse" size={16} color={theme.warn} />
+                <Txt variant="bodyMed">{t('analytics.attendanceRatio')}</Txt>
+              </Row>
+              <Txt variant="h2" color={data.attendanceRatio >= 75 ? theme.success : theme.warn}>{data.attendanceRatio}%</Txt>
+            </Row>
+          </Card>
+          <Btn title={t('common.refresh')} variant="ghost" icon="refresh" onPress={() => { void refresh(); void load(); }} loading={syncing} />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function AnalyticsCard({ label, value, color, icon }: { label: string; value: number; color: string; icon: keyof typeof Ionicons.glyphMap }) {
+  return (
+    <Card style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 14 }}>
+      <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={18} color={color} />
+      </View>
+      <Txt variant="h3">{value}</Txt>
+      <Txt variant="micro" align="center">{label}</Txt>
+    </Card>
   );
 }
 

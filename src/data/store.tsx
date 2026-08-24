@@ -10,7 +10,7 @@ import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
-import { completeMyProfile, updateMyProfile } from './actions';
+import { completeMyProfile, deleteMyAccount, updateMyProfile } from './actions';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
@@ -60,6 +60,7 @@ interface AppCtx {
   updateProfile: (patch: Partial<ProfileDraft>) => Promise<{ ok: boolean; error?: string }>;
   uploadAvatar: (uri: string) => Promise<string | null>;
   logout: () => Promise<void>;
+  deleteMyAccount: (confirm: string) => Promise<{ ok: boolean; error?: string }>;
   unreadCount: number;
   markNotificationsRead: () => void;
 }
@@ -337,6 +338,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     writeCache(emptyDb());
   }, []);
 
+  /** حذف الحساب على الخادم ثم إنهاء الجلسة محليًا. */
+  const deleteAccount = useCallback(async (confirm: string): Promise<{ ok: boolean; error?: string }> => {
+    if (!identity) return { ok: false, error: 'no-session' };
+    try {
+      await deleteMyAccount(confirm);
+      // Auth row removed server-side -> session is invalidated.
+      setProfileId(null);
+      setIdentity(null);
+      setDb(emptyDb());
+      writeCache(emptyDb());
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  }, [identity]);
+
   const unreadCount = useMemo(() => {
     if (!profileId) return 0;
     return db.notifications.filter((n) => n.userId === profileId && !n.read).length;
@@ -362,11 +379,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, loading, syncing,
     lastSyncAt, syncError, online, setOnline, toasts, toast, mutate, touch, refresh,
     signInWithGoogle, completeProfile, updateProfile, uploadAvatar, logout,
-    unreadCount, markNotificationsRead,
+    deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, loading, syncing, lastSyncAt, syncError, online,
     toasts, toast, mutate, touch, refresh, signInWithGoogle, completeProfile, updateProfile,
-    uploadAvatar, logout, unreadCount, markNotificationsRead,
+    uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

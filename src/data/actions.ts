@@ -328,3 +328,60 @@ export async function fetchSupportRequests(): Promise<SupportRequestRow[]> {
   if (error) messageOf(error, 'fetch_support_requests');
   return (data ?? []) as SupportRequestRow[];
 }
+
+// ───────────────────────────── Batch B: account / waitlist / reports / analytics ─────────────────────────────
+
+/** حذف الحساب نهائيًا على الخادم (يتطلب كتابة كلمة التأكيد DELETE). */
+export async function deleteMyAccount(confirm: string): Promise<void> {
+  await rpc('delete_my_account', { p_confirm: confirm });
+}
+
+/** مغادرة مجموعة (يحرر مقعدًا ويُرقّي قائمة الانتظار فورًا). */
+export async function leaveBatch(batchId: string): Promise<void> {
+  await rpc('leave_batch', { p_batch_id: batchId });
+}
+
+/** إزالة طالب من مجموعة (مدير/مدرب) ثم ترقية قائمة الانتظار. */
+export async function removeFromBatch(batchId: string, userId: string): Promise<void> {
+  await rpc('remove_from_batch', { p_batch_id: batchId, p_user_id: userId });
+}
+
+export interface SessionReportData {
+  session_id: string;
+  title: string | null;
+  starts_at: string | null;
+  expected: number;
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  total: number;
+  report?: { done?: string; planned?: string; challenges?: string; submittedAt?: number } | null;
+}
+
+/** تقرير جلسة موثّق خادميًا (المدرب/المشرف فقط). */
+export async function getSessionReport(sessionId: string): Promise<SessionReportData> {
+  return rpc<SessionReportData>('get_session_report', { p_session_id: sessionId });
+}
+
+/** إشعار المتغيبين عن جلسة مغلقة (idempotent). */
+export async function notifySessionAbsentees(sessionId: string): Promise<{ notified: number }> {
+  const result = await rpc<{ notified: number }>('notify_session_absentees', { p_session_id: sessionId });
+  return { notified: result.notified };
+}
+
+export type AnalyticsScope = 'branch' | 'course' | 'batch' | 'session';
+
+export interface AnalyticsResult {
+  scope: AnalyticsScope;
+  scope_id: string | null;
+  sessions: number;
+  enrollments: number;
+  attendance: number;
+  attendanceRatio: number;
+}
+
+/** تحليلات خادمية بمدى محدد (branch/course/batch/session) — تتحقق الصلاحية على الخادم. */
+export async function getAnalytics(scope: AnalyticsScope, scopeId?: string | null): Promise<AnalyticsResult> {
+  return rpc<AnalyticsResult>('get_analytics', { p_scope: scope, p_scope_id: scopeId ?? null });
+}

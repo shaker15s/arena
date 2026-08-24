@@ -12,7 +12,9 @@ import {
   attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
   seatCounts, sessionsOfBatch,
 } from '../../data/engine';
-import { awardKudos } from '../../data/actions';
+import {
+  awardKudos, getSessionReport, notifySessionAbsentees, type SessionReportData,
+} from '../../data/actions';
 import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -246,10 +248,40 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   const { theme } = useTheme();
   const { db, toast, user } = useApp();
   const batch = batchOf(db, route.params.batchId);
+  const [report, setReport] = useState<SessionReportData | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [notifying, setNotifying] = useState(false);
   if (!batch || !user) return null;
   const course = courseOf(db, batch.courseId)!;
   const sessions = sessionsOfBatch(db, batch.id);
   const students = batchStudents(db, batch.id);
+
+  /** فتح تقرير جلسة موثّق من الخادم. */
+  const openReport = async (sessionId: string) => {
+    setReportLoading(true);
+    try {
+      const data = await getSessionReport(sessionId);
+      setReport(data);
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  /** إشعار المتغيبين عن الجلسة (إجراء واحد ذرّي على الخادم). */
+  const notifyAbsentees = async () => {
+    if (!report) return;
+    setNotifying(true);
+    try {
+      const res = await notifySessionAbsentees(report.session_id);
+      toast(t('sess.absenteesNotified', { x: res.notified }), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setNotifying(false);
+    }
+  };
 
   /**
    * بناء صفوف كشف الحضور (طلاب × جلسات) — قابلة لإعادة الاستخدام بين CSV وPDF.
@@ -377,12 +409,60 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
                     <Txt variant="micro" color={theme.textSecondary} numberOfLines={1}>{s.report.done}</Txt>
                   </Row>
                 ) : null}
+                {s.status === 'closed' ? (
+                  <Btn title={t('sess.report')} size="sm" variant="ghost" icon="stats-chart" onPress={() => { void openReport(s.id); }} />
+                ) : null}
               </Card>
             );
           })}
         </FadeIn>
       </ScrollView>
+
+      {/* تقرير الجلسة + إشعار المتغيبين */}
+      <Sheet visible={report != null} onClose={() => setReport(null)} title={report?.title ? `${t('sess.report')} — ${report.title}` : t('sess.report')}>
+        {reportLoading ? (
+          <Txt variant="caption" color={theme.textMuted} align="center" style={{ padding: 20 }}>{t('common.loading')}</Txt>
+        ) : report ? (
+          <View style={{ gap: 10 }}>
+            <Row gap={10}>
+              <ReportStat label={t('history.present')} value={report.present} color={theme.success} />
+              <ReportStat label={t('history.late')} value={report.late} color={theme.warn} />
+              <ReportStat label={t('history.excused')} value={report.excused} color={theme.info} />
+              <ReportStat label={t('history.absent')} value={report.absent} color={theme.danger} />
+            </Row>
+            <Card glass>
+              <Row between center>
+                <Row center gap={6}>
+                  <Ionicons name="people" size={14} color={theme.brand} />
+                  <Txt variant="caption" color={theme.textSecondary}>{t('sess.expected')}</Txt>
+                </Row>
+                <Txt variant="h3">{report.expected}</Txt>
+              </Row>
+              <Spacer size={8} />
+              <Row between center>
+                <Txt variant="caption" color={theme.textSecondary}>{t('sess.attendancePct')}</Txt>
+                <Txt variant="h3" color={report.total === 0 ? theme.textMuted : (report.total - report.absent - report.excused >= report.total * 0.75 ? theme.success : theme.warn)}>
+                  {report.total === 0 ? '—' : `${Math.round(((report.total - report.absent - report.excused) / report.total) * 100)}%`}
+                </Txt>
+              </Row>
+            </Card>
+            {report.absent > 0 ? (
+              <Btn title={t('sess.notifyAbsentees', { x: report.absent })} variant="secondary" icon="notifications" loading={notifying} onPress={notifyAbsentees} />
+            ) : null}
+          </View>
+        ) : null}
+      </Sheet>
     </View>
+  );
+}
+
+function ReportStat({ label, value, color }: { label: string; value: number; color: string }) {
+  const { theme } = useTheme();
+  return (
+    <Card style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 12 }}>
+      <Txt variant="h3" color={color}>{value}</Txt>
+      <Txt variant="micro" color={theme.textMuted} align="center">{label}</Txt>
+    </Card>
   );
 }
 

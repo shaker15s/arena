@@ -270,6 +270,8 @@ export const ar = {
   'course.goToJourney': 'اذهب لرحلتك ←',
   'course.joinedSnack': 'مقعدك محجوز 🎉 تمت إضافتك للمجموعة',
   'course.noBatches': 'لا مجموعات مفتوحة حاليًا — تابع الكورس لاحقًا.',
+  'course.leaveBatch': 'مغادرة المجموعة',
+  'course.leavedBatch': 'تم إلغاء تسجيلك في المجموعة',
   'course.ratingCount': 'تقييمًا',
 
   // ── ورقة الانضمام ──
@@ -533,6 +535,10 @@ export const ar = {
   'sess.exportPdf': 'PDF',
   'sess.exported': 'تم تجهيز ملف الحضور للمشاركة أو الحفظ',
   'sess.report': 'التقرير',
+  'sess.expected': 'المتوقع',
+  'sess.attendancePct': 'نسبة الحضور',
+  'sess.notifyAbsentees': 'إشعار المتغيبين ({x})',
+  'sess.absenteesNotified': 'تم إشعار {x} من المتغيبين',
 
   // ── لوحة المشرف ──
   'dash.title': 'لوحة التحكم',
@@ -665,6 +671,16 @@ export const ar = {
   'broadcast.sent': 'وصلت رسالتك إلى {x} مستخدم ✓',
 
   // ── سجل العمليات ──
+  'analytics.title': 'التحليلات',
+  'analytics.subtitle': 'أرقام خادمية محدّثة حسب الفروع والكورسات والمجموعات والجلسات.',
+  'analytics.scope.branch': 'فرع',
+  'analytics.scope.course': 'كورس',
+  'analytics.scope.batch': 'مجموعة',
+  'analytics.scope.session': 'جلسة',
+  'analytics.sessions': 'الجلسات',
+  'analytics.enrollments': 'الاشتراكات',
+  'analytics.attendance': 'الحضور',
+  'analytics.attendanceRatio': 'نسبة الحضور',
   'audit.title': 'سجل العمليات',
   'audit.actor': 'المنفذ',
   'audit.action': 'الإجراء',
@@ -682,6 +698,11 @@ export const ar = {
   // ── الدعم والمحتوى الإرشادي ──
   'profile.logoutConfirm': 'تسجيل الخروج؟',
   'profile.logoutBody': 'ستحتاج إلى تسجيل الدخول بحساب Google مرة أخرى للعودة إلى حسابك.',
+  'profile.deleteAccount': 'حذف الحساب',
+  'profile.deleteAccountSub': 'حذف بياناتك نهائيًا من الخادم',
+  'profile.deleteBody': 'سيتم حذف حسابك وكل بياناتك (الحضور، النقاط، الشهادات، الإشعارات) نهائيًا ولا يمكن التراجع.',
+  'profile.deleteTypeConfirm': 'اكتب DELETE للتأكيد',
+  'profile.deleteHint': 'حسابك لن يُحذف إلا بعد كتابة كلمة التأكيد.',
   'support.attendanceQ': 'كيف أسجل حضوري؟',
   'support.attendanceA': 'افتح زر «امسح» أثناء الجلسة وامسح رمز QR من شاشة المدرب، أو أدخل الكود الاحتياطي. الرمز يتجدد تلقائيًا لحماية حضورك.',
   'support.absenceQ': 'ماذا أفعل عند الغياب؟',
