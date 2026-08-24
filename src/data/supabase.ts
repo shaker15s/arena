@@ -54,9 +54,15 @@ function sanitizeKey(key: string): string {
 }
 
 // ═══════════════ الإعدادات ═══════════════
-export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').trim();
+export const SUPABASE_URL = (
+  process.env.EXPO_PUBLIC_SUPABASE_URL ||
+  'https://udqgaudtclkbaygftndx.supabase.co'
+).trim();
 
-export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '').trim();
+export const SUPABASE_ANON_KEY = (
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkcWdhdWR0Y2xrYmF5Z2Z0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NTYyNzUsImV4cCI6MjEwMzAzMjI3NX0.AHe8cNJ8-uGKYbUG2UPJ5w2p54uHtEhpoIYhFcYjco4'
+).trim();
 
 /** هل الاتصال الحقيقي مُهيّأ؟ */
 export const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);

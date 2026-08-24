@@ -4,8 +4,6 @@ dist/
 web-build/
 *.log
 .DS_Store
-.env
-.env.*
-!.env.example
+.env.local
 metro-cache/
 .test-build/
