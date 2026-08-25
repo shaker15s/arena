@@ -11,7 +11,7 @@ import {
   attendanceOf, attendancePct, batchOf, courseOf, courseStreak, isBatchComplete,
   profileOf, sessionsOfBatch,
 } from '../../data/engine';
-import { submitCourseRating } from '../../data/actions';
+import { submitCourseRating, issueBatchCertificates } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -188,6 +188,22 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     }
   };
 
+  const myCert = db.certificates.find((c) => c.userId === user.id && c.batchId === batch.id);
+  const [issuingCert, setIssuingCert] = useState(false);
+
+  const handleIssueMyCert = async () => {
+    setIssuingCert(true);
+    try {
+      await issueBatchCertificates(batch.id);
+      await refresh();
+      toast('تم إصدار شهادتك الرسمية بنجاح! مبروك 🎓', 'success');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setIssuingCert(false);
+    }
+  };
+
   const minCertPct = 75;
   const isEligibleForCert = totalClosed >= sessions.length * 0.75 && attendanceRate >= minCertPct;
 
@@ -198,12 +214,21 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`}
         back={() => navigation.goBack()}
         right={
-          streak >= 1 ? (
-            <Row center gap={6} style={{ backgroundColor: theme.warnSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-              <Flame size={18} />
-              <Txt variant="h3" color={theme.warn}>{streak}</Txt>
-            </Row>
-          ) : undefined
+          <Row center gap={6}>
+            <Btn
+              title="⭐ تقييم"
+              size="sm"
+              variant="ghost"
+              icon="star"
+              onPress={() => setRateOpen(true)}
+            />
+            {streak >= 1 ? (
+              <Row center gap={4} style={{ backgroundColor: theme.warnSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                <Flame size={16} />
+                <Txt variant="h3" color={theme.warn}>{streak}</Txt>
+              </Row>
+            ) : null}
+          </Row>
         }
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 140, paddingTop: 12, paddingHorizontal: spacing.s5, alignItems: 'center' }}>
@@ -264,59 +289,45 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
 
                   <Card
                     style={{
-                      borderWidth: isLiveNow ? 2 : st === 'current' ? 1.5 : 1,
-                      borderColor: isLiveNow ? theme.danger : st === 'current' ? theme.brand : theme.glassBorder,
-                      backgroundColor: isLiveNow ? (isDark ? 'rgba(255,59,48,0.12)' : 'rgba(255,59,48,0.06)') : undefined,
-                      padding: 16,
-                      zIndex: 1,
+                      borderColor: isLiveNow ? theme.brand : meta.color + '44',
+                      borderWidth: isLiveNow ? 2 : 1,
+                      backgroundColor: isLiveNow ? theme.brandSoft + '44' : theme.card,
                     }}
                   >
-                    <Row center gap={14}>
-                      {/* فقاعة العقدة الكبيرة */}
+                    <Row center gap={12}>
                       <View
                         style={{
                           width: 48,
                           height: 48,
                           borderRadius: 24,
-                          backgroundColor: isLiveNow ? theme.danger : meta.bg,
-                          borderWidth: 2,
-                          borderColor: isLiveNow ? theme.danger : meta.color,
+                          backgroundColor: meta.bg,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          shadowColor: meta.color,
-                          shadowOpacity: isLiveNow || st === 'current' ? 0.35 : 0.08,
-                          shadowRadius: 10,
-                          shadowOffset: { width: 0, height: 3 },
+                          borderWidth: 2,
+                          borderColor: meta.color,
                         }}
                       >
-                        <Ionicons
-                          name={isLiveNow ? 'radio-button-on' : meta.icon}
-                          size={24}
-                          color={isLiveNow ? '#fff' : meta.color}
-                        />
+                        <Ionicons name={meta.icon} size={22} color={meta.color} />
                       </View>
 
-                      {/* تفاصيل المحاضرة */}
-                      <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flex: 1 }}>
                         <Row between center>
-                          <Row center gap={6}>
-                            <Tag label={`#${sess.seq}`} color={theme.brand} bg={theme.brandSoft} />
-                            <Txt variant="micro" color={theme.textMuted}>{formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}</Txt>
-                          </Row>
-                          <Tag label={isLiveNow ? t('common.liveStatus') : meta.label} color={isLiveNow ? theme.danger : meta.color} bg={isLiveNow ? theme.dangerSoft : meta.bg} />
+                          <Txt variant="bodyMed">{sess.title}</Txt>
+                          <Tag label={meta.label} color={meta.color} bg={meta.bg} />
                         </Row>
+                        <Txt variant="micro" color={theme.textMuted}>
+                          {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
+                        </Txt>
 
-                        <Txt variant="bodyMed" numberOfLines={2}>{sess.title}</Txt>
-
-                        {/* شريط الإجراءات المباشرة */}
-                        {isLiveNow && (!att || att.status === 'absent') ? (
+                        {isLiveNow ? (
                           <View style={{ marginTop: 8 }}>
                             <Btn
-                              title={t('tabs.scan')}
-                              variant="primary"
+                              title="📷 مسح رمز الـ QR لتسجيل الحضور الآن"
                               size="sm"
+                              variant="gold"
                               icon="qr-code"
                               onPress={() => navigation.navigate('Scanner')}
+                              full
                             />
                           </View>
                         ) : st === 'absent' ? (
@@ -350,9 +361,9 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
           <FadeIn index={sessions.length + 1}>
             <Card
               style={{
-                backgroundColor: isEligibleForCert ? (isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,215,0,0.18)') : theme.card,
+                backgroundColor: (myCert || isEligibleForCert) ? (isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,215,0,0.18)') : theme.card,
                 borderWidth: 2,
-                borderColor: isEligibleForCert ? theme.certGold : theme.line,
+                borderColor: (myCert || isEligibleForCert) ? theme.certGold : theme.line,
                 padding: 20,
                 alignItems: 'center',
                 gap: 12,
@@ -379,20 +390,44 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
 
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <Txt variant="h2" color={theme.certGold}>{t('map.certNode')}</Txt>
-                <Txt variant="caption" color={theme.textSecondary} align="center">
-                  {isEligibleForCert
-                    ? t('certs.congrats')
-                    : `${t('history.commitment')}: ${attendanceRate}% (المطلوب ≥${minCertPct}% للحصول على الشهادة)`}
-                </Txt>
+                {myCert ? (
+                  <>
+                    <Txt variant="bodyMed" color={theme.success} align="center">تم إصدار وتوثيق شهادتك الرسمية بنجاح 🎓</Txt>
+                    <Tag label={`رقم الشهادة: ${myCert.serial}`} color={theme.brand} bg="#fff" icon="ribbon" />
+                  </>
+                ) : (
+                  <Txt variant="caption" color={theme.textSecondary} align="center">
+                    {isEligibleForCert
+                      ? 'تهانينا! حققت نسبة الحضور المطلوبة ويمكنك إصدار شهادتك الآن'
+                      : `${t('history.commitment')}: ${attendanceRate}% (المطلوب ≥${minCertPct}% للحصول على الشهادة)`}
+                  </Txt>
+                )}
               </View>
 
-              <Row gap={10} style={{ width: '100%', justifyContent: 'center' }}>
-                <Btn
-                  title={t('certs.title')}
-                  variant={isEligibleForCert ? 'gold' : 'secondary'}
-                  icon="ribbon"
-                  onPress={() => navigation.navigate('Certificates')}
-                />
+              <Row gap={10} style={{ width: '100%', justifyContent: 'center' }} wrap>
+                {myCert ? (
+                  <Btn
+                    title="🎓 عرض وتحميل الشهادة الرسمية"
+                    variant="gold"
+                    icon="ribbon"
+                    onPress={() => navigation.navigate('CertificateViewer', { certId: myCert.id })}
+                  />
+                ) : isEligibleForCert ? (
+                  <Btn
+                    title="🎓 إصدار الشهادة الرسمية الآن"
+                    variant="gold"
+                    icon="ribbon"
+                    loading={issuingCert}
+                    onPress={handleIssueMyCert}
+                  />
+                ) : (
+                  <Btn
+                    title={t('certs.title')}
+                    variant="secondary"
+                    icon="ribbon"
+                    onPress={() => navigation.navigate('Certificates')}
+                  />
+                )}
                 <Btn
                   title={t('journey.rateCourse')}
                   variant="ghost"

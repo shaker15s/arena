@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Platform, StatusBar as RNStatusBar, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -23,6 +23,8 @@ import { observeReducedMotion, isReducedMotion } from '../design/motion';
 import { SUPABASE_ENABLED, exchangeUrlForSession } from '../data/supabase';
 import { useI18n } from '../i18n';
 import { useHaptics } from '../shared/hooks';
+import { BadgeModal } from '../design/celebrations';
+import type { Badge } from '../data/types';
 
 /** S01 — Apple-style Splash: اللوجو يتجمع مع توهج ثم fade */
 function BootSplash() {
@@ -207,6 +209,50 @@ function SetupRequired() {
   );
 }
 
+function GlobalBadgeCelebrationHost() {
+  const { db, user } = useApp();
+  const { lang, t } = useI18n();
+  const { theme } = useTheme();
+  const [activeBadge, setActiveBadge] = useState<Badge | null>(null);
+  const knownBadgesRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+
+  const rarityColor = (r: string) =>
+    r === 'legendary' ? theme.rarityLegendary : r === 'epic' ? theme.rarityEpic : r === 'rare' ? theme.rarityRare : theme.rarityCommon;
+
+  useEffect(() => {
+    if (!user) return;
+    const myBadges = db.userBadges.filter((b) => b.userId === user.id);
+    if (isFirstLoadRef.current) {
+      myBadges.forEach((b) => knownBadgesRef.current.add(b.badgeCode));
+      isFirstLoadRef.current = false;
+      return;
+    }
+    const newlyAdded = myBadges.find((b) => !knownBadgesRef.current.has(b.badgeCode));
+    if (newlyAdded) {
+      knownBadgesRef.current.add(newlyAdded.badgeCode);
+      const badgeInfo = db.badges.find((b) => b.code === newlyAdded.badgeCode);
+      if (badgeInfo) {
+        setActiveBadge(badgeInfo);
+      }
+    }
+  }, [db.userBadges, db.badges, user]);
+
+  if (!activeBadge) return null;
+
+  return (
+    <BadgeModal
+      visible={Boolean(activeBadge)}
+      onClose={() => setActiveBadge(null)}
+      badgeName={lang === 'ar' ? activeBadge.nameAr : activeBadge.nameEn}
+      badgeDesc={lang === 'ar' ? activeBadge.descAr : activeBadge.descEn}
+      rarityLabel={t(`achievements.rarity.${activeBadge.rarity}` as any)}
+      rarityColor={rarityColor(activeBadge.rarity)}
+      icon={activeBadge.icon as any}
+    />
+  );
+}
+
 function Shell() {
   const { ready } = useApp();
   const { theme, isDark } = useTheme();
@@ -253,6 +299,7 @@ function Shell() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       {SUPABASE_ENABLED ? <RootNavigator /> : <SetupRequired />}
       <ToastHost />
+      <GlobalBadgeCelebrationHost />
     </Animated.View>
   );
 }
