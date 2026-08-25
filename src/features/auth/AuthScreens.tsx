@@ -15,6 +15,7 @@ import { Btn, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { GlassCard } from '../../design/glass';
 import { spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
+import { markOnboardingSeen } from '../../shared/onboarding';
 
 // ───────────────────────────── Onboarding (عناوين فقط) ─────────────────────────────
 
@@ -77,7 +78,7 @@ export function OnboardingScreen({ navigation }: any) {
           </LinearGradient>
           <Txt variant="h3">{t('common.appName')}</Txt>
         </Row>
-        <Pressable onPress={() => navigation.replace('SignIn')} style={{ padding: 10 }}>
+        <Pressable onPress={() => { void markOnboardingSeen(); navigation.replace('SignIn'); }} style={{ padding: 10 }}>
           <Txt variant="caption" color={theme.textMuted}>{t('common.skip')}</Txt>
         </Pressable>
       </Row>
@@ -120,7 +121,11 @@ export function OnboardingScreen({ navigation }: any) {
           title={isLast ? t('onboarding.startNow') : t('common.next')}
           size="lg"
           full
-          onPress={() => (isLast ? navigation.replace('SignIn') : go(index + 1))}
+          onPress={() => {
+            if (!isLast) { go(index + 1); return; }
+            void markOnboardingSeen();
+            navigation.replace('SignIn');
+          }}
         />
       </View>
     </View>
@@ -141,17 +146,25 @@ export function SignInScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { signInWithGoogle, configured } = useApp();
+  const { signInWithGoogle, configured, authError } = useApp();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // الوصول لشاشة الدخول يعني أن المستخدم تجاوز الترحيب — لا نعيده إليه لاحقًا.
+  useEffect(() => { void markOnboardingSeen(); }, []);
 
   const submit = async () => {
     setError('');
     setLoading(true);
-    const r = await signInWithGoogle();
-    setLoading(false);
-    if (!r.ok && r.error && r.error !== 'cancelled') {
-      setError(r.error === 'not-configured' ? t('auth.notConfigured') : `${t('auth.googleFailed')}: ${r.error}`);
+    try {
+      const r = await signInWithGoogle();
+      if (!r.ok && r.error && r.error !== 'cancelled') {
+        setError(r.error === 'not-configured' ? t('auth.notConfigured') : `${t('auth.googleFailed')}: ${r.error}`);
+      }
+    } catch (e) {
+      setError(`${t('auth.googleFailed')}: ${(e as Error).message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -230,6 +243,14 @@ export function SignInScreen({ navigation }: any) {
           <>
             <Spacer size={12} />
             <Txt variant="caption" color={theme.danger} align="center">{error}</Txt>
+          </>
+        ) : authError ? (
+          <>
+            <Spacer size={12} />
+            <Txt variant="caption" color={theme.danger} align="center">{t('auth.callbackFailed')}</Txt>
+            {authError !== 'oauth-callback-failed' ? (
+              <Txt variant="caption" color={theme.textMuted} align="center" style={{ marginTop: 4 }}>{authError}</Txt>
+            ) : null}
           </>
         ) : null}
 

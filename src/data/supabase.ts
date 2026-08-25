@@ -107,28 +107,26 @@ export function authRedirectUrl(): string {
   return Linking.createURL('auth/callback');
 }
 
-/** توليد state عشوائي آمن لمنع هجمات CSRF / Session Fixation */
-function generateAuthState(): string {
-  return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-}
-
 /**
  * الدخول بحساب Google — الطريقة الوحيدة للدخول في مسار.
  * الويب: إعادة توجيه كاملة. الموبايل: متصفح آمن + التقاط التوكنات من الـ deep link.
+ *
+ * الحماية ضد CSRF/اختصار الجلسة يقوم عليها PKCE (S256): لا يستطيع أحد
+ * استبدال الـ code بجلسة دون الـ code-verifier المحفوظ على هذا الجهاز فقط.
+ * (أزيل الـ state المخصص هنا لأن Supabase لا يعيده في رابط الرجوع، وكان
+ * التحقق منه يفشل الدخول زورًا عند أي اختلاف.)
  */
 export async function signInWithGoogle(): Promise<{ ok: boolean; error: string | null }> {
   if (!SUPABASE_ENABLED) return { ok: false, error: 'not-configured' };
   const sb = getSupabase();
   const redirectTo = authRedirectUrl();
-  const state = generateAuthState();
-  await secureStorage.setItem('oauth_auth_state', state);
 
   if (Platform.OS === 'web') {
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
-        queryParams: { access_type: 'offline', prompt: 'select_account', state },
+        queryParams: { access_type: 'offline', prompt: 'select_account' },
       },
     });
     return { ok: !error, error: error?.message ?? null };
@@ -139,38 +137,31 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error: string |
     options: {
       redirectTo,
       skipBrowserRedirect: true,
-      queryParams: { prompt: 'select_account', state },
+      queryParams: { prompt: 'select_account' },
     },
   });
   if (error || !data?.url) return { ok: false, error: error?.message ?? 'oauth-url-missing' };
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, { showInRecents: true });
   if (result.type !== 'success' || !result.url) {
-    await secureStorage.removeItem('oauth_auth_state');
     return { ok: false, error: result.type === 'cancel' || result.type === 'dismiss' ? 'cancelled' : 'oauth-failed' };
   }
   return exchangeUrlForSession(result.url);
 }
 
-/** تحويل رابط الرجوع (code أو access_token) إلى جلسة فعلية مع التحقق من الـ state */
+/** تحويل رابط الرجوع (code أو access_token) إلى جلسة فعلية */
 export async function exchangeUrlForSession(url: string): Promise<{ ok: boolean; error: string | null }> {
   const sb = getSupabase();
   const parsed = Linking.parse(url);
   const params = (parsed.queryParams ?? {}) as Record<string, string>;
   const hash = url.includes('#') ? new URLSearchParams(url.split('#')[1]) : null;
 
-  // التحقق من الـ state parameter لحماية الجلسة
-  const returnedState = params.state ?? hash?.get('state');
-  const storedState = await secureStorage.getItem('oauth_auth_state');
-  await secureStorage.removeItem('oauth_auth_state');
-
-  if (storedState && returnedState && storedState !== returnedState) {
-    return { ok: false, error: 'state-mismatch' };
-  }
-
   const code = params.code;
   if (typeof code === 'string' && code) {
-    const { error } = await sb.auth.exchangeCodeForSession(code);
+    // sb_flow_id يحدد فتحة code-verifier الصحيحة في تخزين PKCE — إرساله
+    // مع الكود يمنع فشل الاستبدال بعد أي محاولة سابقة جزئية.
+    const flowId = typeof params.sb_flow_id === 'string' && params.sb_flow_id ? params.sb_flow_id : undefined;
+    const { error } = await sb.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
     return { ok: !error, error: error?.message ?? null };
   }
 
@@ -181,6 +172,43 @@ export async function exchangeUrlForSession(url: string): Promise<{ ok: boolean;
     return { ok: !error, error: error?.message ?? null };
   }
   return { ok: false, error: 'no-session-in-url' };
+}
+
+/**
+ * ويب فقط: بعد رجوع Google يصل `?code=…` (أو `?error=…`) في الرابط.
+ * supabase-js يستبدل الكود بجلسة تلقائيًا عند النجاح وينظف الرابط، أما عند
+ * الفشل فيبقى الكود/الخطأ عالقين في الـ URL وتُعاد المحاولة الفاشلة مع كل
+ * تحميل — فيبدو أن الدخول «يرجعك للأونبوردينج» بلا سبب. تُستدعى هذه الدالة
+ * بعد اكتمال الإقلاع: تنظّف أي بارامترات رجوع متبقية وتُرجع وصف الخطأ
+ * (إن وُجد) ليُعرض على المستخدم.
+ */
+export async function consumeWebAuthCallback(): Promise<{ handled: boolean; error: string | null }> {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.location) {
+    return { handled: false, error: null };
+  }
+  const url = new URL(window.location.href);
+  const hashQuery = url.hash && url.hash.length > 1 ? new URLSearchParams(url.hash.slice(1)) : null;
+  const errorParam =
+    url.searchParams.get('error_description') ||
+    url.searchParams.get('error') ||
+    hashQuery?.get('error_description') ||
+    hashQuery?.get('error') ||
+    null;
+  const isCallback =
+    url.searchParams.has('code') ||
+    url.searchParams.has('error') ||
+    Boolean(hashQuery?.has('access_token')) ||
+    Boolean(hashQuery?.has('error'));
+  if (!isCallback) return { handled: false, error: null };
+
+  for (const key of ['code', 'sb_flow_id', 'state', 'error', 'error_description', 'error_code']) {
+    url.searchParams.delete(key);
+  }
+  const hadTokenHash = Boolean(hashQuery && (hashQuery.has('access_token') || hashQuery.has('error')));
+  const search = url.searchParams.toString();
+  const next = url.pathname + (search ? `?${search}` : '') + (hadTokenHash ? '' : url.hash);
+  window.history.replaceState(window.history.state, '', next);
+  return { handled: true, error: errorParam };
 }
 
 /** بيانات هوية Google الخام (الاسم/الإيميل/الصورة) */

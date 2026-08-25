@@ -198,6 +198,7 @@ export const ar = {
   'auth.verifyCertCta': 'عندك شهادة وتريد التحقق منها؟',
   'auth.continueGoogle': 'المتابعة بحساب Google',
   'auth.googleFailed': 'تعذّر إتمام الدخول بجوجل — حاول مرة أخرى',
+  'auth.callbackFailed': 'فشل استكمال عودة الدخول من جوجل. تأكد أن نطاق هذا الموقع مُضاف في Supabase (Authentication → URL Configuration → Redirect URLs) ثم أعد المحاولة',
   'auth.notConfigured': 'الاتصال بالخادم غير مُهيّأ — أضف EXPO_PUBLIC_SUPABASE_URL و EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'auth.signingIn': 'جارٍ الدخول…',
 
