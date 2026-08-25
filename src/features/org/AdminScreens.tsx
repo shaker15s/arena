@@ -524,6 +524,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
   const [courseId, setCourseId] = useState<string | null>(initialCourseId ?? null);
   const [instructorId, setInstructorId] = useState<string | null>(user?.role === 'volunteer' ? user.id : null);
   const [capacity, setCapacity] = useState('25');
+  const [customSessionsCount, setCustomSessionsCount] = useState('8');
   const [days, setDays] = useState<number[]>([6]);
   const [time, setTime] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -534,8 +535,12 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
   useEffect(() => {
     if (initialCourseId) setCourseId(initialCourseId);
     if (user?.role === 'volunteer') setInstructorId(user.id);
+    if (initialCourseId) {
+      const c = courseOf(db, initialCourseId);
+      if (c?.sessionsCount) setCustomSessionsCount(String(c.sessionsCount));
+    }
     setErrors({});
-  }, [initialCourseId, user, visible]);
+  }, [initialCourseId, user, visible, db]);
 
   const publishedCourses = db.courses.filter((c) => c.status === 'published');
   const volunteers = db.profiles.filter((p) => p.role === 'volunteer' && p.status === 'active');
@@ -556,6 +561,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
   const effectiveTime = time.trim() || '18:00';
   const effectiveStartDate = startDate.trim() || new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
   const effectiveCapacity = parseInt(capacity, 10) || 25;
+  const effectiveSessionsCount = Math.min(100, Math.max(1, parseInt(customSessionsCount, 10) || course?.sessionsCount || 8));
   const effectiveRoom = room.trim() || 'قاعة التدريب الرئيسية';
 
   // معاينة مولّدة تلقائيًا + تحذير تعارض
@@ -566,7 +572,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
     startDate: new Date(effectiveStartDate).getTime(),
     room: effectiveRoom, status: 'scheduled', joinCode: '',
   } : null;
-  const preview = course && draftBatch ? generateSessionsForBatch(draftBatch, course.sessionsCount) : [];
+  const preview = course && draftBatch ? generateSessionsForBatch(draftBatch, effectiveSessionsCount) : [];
   const conflict = instructorId && days.length > 0 ? checkInstructorConflict(db, instructorId, days, effectiveTime) : null;
 
   const validate = () => {
@@ -702,13 +708,20 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
         <Row gap={10}>
           <View style={{ flex: 1 }}>
+            <Input label="عدد المحاضرات" value={customSessionsCount} onChange={setCustomSessionsCount} placeholder="مثال: 25" keyboardType="numeric" icon="calendar" />
+          </View>
+          <View style={{ flex: 1 }}>
             <Input label={t('batchAdm.capacity')} value={capacity} onChange={(v) => { setCapacity(v); setErrors((e) => ({ ...e, capacity: '' })); }} placeholder="25" keyboardType="numeric" icon="people" error={errors.capacity} />
           </View>
+        </Row>
+        <Row gap={10}>
           <View style={{ flex: 1 }}>
             <Input label={t('batchAdm.time')} value={time} onChange={setTime} placeholder="18:00 (6:00 م)" icon="time" />
           </View>
+          <View style={{ flex: 1 }}>
+            <Input label={t('batchAdm.startDate')} value={startDate} onChange={(v) => { setStartDate(v); setErrors((e) => ({ ...e, startDate: '' })); }} placeholder="YYYY-MM-DD" icon="calendar" error={errors.startDate} />
+          </View>
         </Row>
-        <Input label={t('batchAdm.startDate')} value={startDate} onChange={(v) => { setStartDate(v); setErrors((e) => ({ ...e, startDate: '' })); }} placeholder="YYYY-MM-DD (مثال: 2026-09-01)" icon="calendar" error={errors.startDate} />
         <Input label={t('batchAdm.room')} value={room} onChange={setRoom} placeholder="مثال: قاعة 3 - الدور الثاني" icon="location" />
 
         {conflict ? (

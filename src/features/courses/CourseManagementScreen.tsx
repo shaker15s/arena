@@ -8,7 +8,7 @@ import {
   attendancePct, batchStudents, courseOf, isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import {
-  notifySessionAbsentees, startTrainingSession, updateCourse, getBatchRoster,
+  notifySessionAbsentees, startTrainingSession, updateCourse, getBatchRoster, sendBroadcast,
 } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -45,6 +45,10 @@ export function CourseManagementScreen({ route, navigation }: any) {
   const [joinQrOpen, setJoinQrOpen] = useState(false);
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [newBatchOpen, setNewBatchOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
   const [startingSessionId, setStartingSessionId] = useState<string | null>(null);
   const [notifying, setNotifying] = useState(false);
 
@@ -113,6 +117,27 @@ export function CourseManagementScreen({ route, navigation }: any) {
       toast((e as Error).message, 'error');
     } finally {
       setNotifying(false);
+    }
+  };
+
+  const handleSendBroadcast = async () => {
+    if (!batch || !broadcastTitle.trim() || !broadcastBody.trim()) return;
+    setSendingBroadcast(true);
+    try {
+      const count = await sendBroadcast({
+        scope: 'batch',
+        scopeId: batch.id,
+        title: broadcastTitle.trim(),
+        body: broadcastBody.trim(),
+      });
+      toast(`تم إرسال الإشعار بنجاح إلى ${count} طالب!`, 'success');
+      setBroadcastTitle('');
+      setBroadcastBody('');
+      setBroadcastOpen(false);
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setSendingBroadcast(false);
     }
   };
 
@@ -293,6 +318,15 @@ export function CourseManagementScreen({ route, navigation }: any) {
                       <Btn title={t('management.shareLink')} size="sm" variant="secondary" icon="copy" onPress={copyJoinLink} full />
                     </View>
                   </Row>
+                  <Spacer size={8} />
+                  <Btn
+                    title="📢 إرسال إشعار وتنبيه لطلاب المجموعة"
+                    size="sm"
+                    variant="ghost"
+                    icon="megaphone"
+                    onPress={() => setBroadcastOpen(true)}
+                    full
+                  />
                 </Card>
 
                 <Card>
@@ -473,6 +507,47 @@ export function CourseManagementScreen({ route, navigation }: any) {
         initialCourseId={course.id}
         onClose={() => setNewBatchOpen(false)}
       />
+
+      {/* إرسال إشعار للمجموعة */}
+      {batch ? (
+        <Sheet visible={broadcastOpen} onClose={() => setBroadcastOpen(false)} title="📢 إرسال إشعار لطلاب المجموعة">
+          <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+            <Card glass>
+              <Row center gap={8}>
+                <Ionicons name="people" size={18} color={theme.brand} />
+                <Txt variant="bodyMed" color={theme.brand}>
+                  سيصل هذا الإشعار فوراً إلى جميع طلاب المجموعة ({students.length} طالب)
+                </Txt>
+              </Row>
+            </Card>
+            <Input
+              label="عنوان التنبيه"
+              value={broadcastTitle}
+              onChange={setBroadcastTitle}
+              placeholder="مثال: تذكير بموعد المحاضرة القادمة"
+              icon="notifications"
+            />
+            <Input
+              label="نص الرسالة"
+              value={broadcastBody}
+              onChange={setBroadcastBody}
+              placeholder="اكتب التنبيه أو التعليمات للطلاب هنا..."
+              multiline
+            />
+            <Spacer size={8} />
+            <Btn
+              title="إرسال التنبيه الآن"
+              size="lg"
+              variant="primary"
+              icon="paper-plane"
+              loading={sendingBroadcast}
+              disabled={!broadcastTitle.trim() || !broadcastBody.trim()}
+              onPress={handleSendBroadcast}
+              full
+            />
+          </ScrollView>
+        </Sheet>
+      ) : null}
     </View>
   );
 }

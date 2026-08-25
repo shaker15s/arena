@@ -11,6 +11,8 @@ import { attendanceOf, batchOf, courseOf, profileOf } from '../../data/engine';
 import { reviewExcuse } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
+import { DetailedSessionReportSheet } from '../volunteer/LiveSessionScreen';
+import { TrainingSession } from '../../data/types';
 import {
   Avatar, Btn, Card, Empty, FadeIn, Header, Input, Row, Segmented, Spacer,
   Tag, Txt,
@@ -184,6 +186,7 @@ export function ExcusesInboxScreen() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
   const [tab, setTab] = useState<'excuses' | 'reports'>('excuses');
+  const [selectedReportSession, setSelectedReportSession] = useState<TrainingSession | null>(null);
   if (!user) return null;
 
   const myBatchIds = db.batches.filter((b) => b.instructorId === user.id).map((b) => b.id);
@@ -322,7 +325,7 @@ export function ExcusesInboxScreen() {
               const total = db.attendance.filter((a) => a.sessionId === s.id).length;
               return (
                 <FadeIn key={s.id} index={i}>
-                  <Card>
+                  <Card onPress={() => setSelectedReportSession(s)}>
                     <Row between center>
                       <View style={{ flex: 1 }}>
                         <Txt variant="bodyMed">{s.title}</Txt>
@@ -337,6 +340,11 @@ export function ExcusesInboxScreen() {
                         {s.report.challenges ? <ReportLine icon="warning" color={theme.warn} text={s.report.challenges} /> : null}
                       </View>
                     ) : null}
+                    <Spacer size={8} />
+                    <Row center gap={4}>
+                      <Ionicons name="eye" size={13} color={theme.brand} />
+                      <Txt variant="micro" color={theme.brand}>اضغط لعرض تقرير الحضور المفصل وكشف الأسماء</Txt>
+                    </Row>
                   </Card>
                 </FadeIn>
               );
@@ -344,6 +352,30 @@ export function ExcusesInboxScreen() {
           )
         )}
       </ScrollView>
+
+      {selectedReportSession ? (
+        <DetailedSessionReportSheet
+          visible={Boolean(selectedReportSession)}
+          data={{
+            session: selectedReportSession,
+            summary: (() => {
+              const att = db.attendance.filter((a) => a.sessionId === selectedReportSession.id);
+              const present = att.filter((a) => a.status === 'present').length;
+              const late = att.filter((a) => a.status === 'late').length;
+              const excused = att.filter((a) => a.status === 'excused').length;
+              const absent = att.filter((a) => a.status === 'absent').length;
+              return { present, late, excused, absent, total: att.length };
+            })(),
+            report: {
+              done: selectedReportSession.report?.done || '',
+              planned: selectedReportSession.report?.planned || '',
+              challenges: selectedReportSession.report?.challenges || '',
+            },
+            closedAt: selectedReportSession.closedAt || selectedReportSession.report?.submittedAt || Date.now(),
+          }}
+          onClose={() => setSelectedReportSession(null)}
+        />
+      ) : null}
     </View>
   );
 }

@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
   balanceOf, badgeProgress, getWeeklyLeague, levelOf, nearestBadge, profileOf,
-  risingStars,
+  risingStars, gamifOf, courseStreak,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -128,7 +128,7 @@ export function LeagueScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user } = useApp();
-  const [board, setBoard] = useState<'league' | 'rising'>('league');
+  const [board, setBoard] = useState<'league' | 'rising' | 'alltime'>('league');
   if (!user) return null;
 
   const league = getWeeklyLeague(db, user.id);
@@ -137,6 +137,31 @@ export function LeagueScreen({ navigation }: any) {
   const remaining = league.endsAt - Date.now();
   const daysLeft = Math.floor(remaining / 86_400_000);
   const hoursLeft = Math.floor((remaining % 86_400_000) / 3_600_000);
+
+  const allTimeRows = useMemo(() => {
+    return db.profiles
+      .filter((p) => p.role === 'student' && p.status === 'active')
+      .map((st) => {
+        const totalPts = balanceOf(db, st.id);
+        const g = gamifOf(db, st.id);
+        const bestStreak = Math.max(
+          g.currentStreakWeeks,
+          ...db.enrollments
+            .filter((e) => e.userId === st.id && e.status === 'active')
+            .map((e) => courseStreak(db, st.id, e.batchId)),
+          0
+        );
+        const badgesCount = db.userBadges.filter((b) => b.userId === st.id).length;
+        return {
+          user: st,
+          points: totalPts,
+          streak: bestStreak,
+          badgesCount,
+          isYou: st.id === user.id,
+        };
+      })
+      .sort((a, b) => b.points - a.points || b.streak - a.streak);
+  }, [db.profiles, db.pointEvents, db.attendance, db.userBadges, db.gamification, user.id]);
 
   const renderRow = (r: { user: any; xp: number; rank: number; zone: string; isYou: boolean }, i: number) => (
     <FadeIn key={r.user.id} index={Math.min(i, 8)}>
@@ -169,7 +194,7 @@ export function LeagueScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('league.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}>
         {/* درع الفئة */}
         <FadeIn index={0}>
           <Card style={{ alignItems: 'center', paddingVertical: 20, gap: 6 }}>
@@ -194,10 +219,50 @@ export function LeagueScreen({ navigation }: any) {
           options={[
             { value: 'league', label: t(`tier.${league.tier}` as any), icon: 'shield' },
             { value: 'rising', label: t('league.rising'), icon: 'rocket' },
+            { value: 'alltime', label: 'لوحة الصدارة العامة', icon: 'trophy' },
           ]}
         />
 
-        {board === 'rising' ? (
+        {board === 'alltime' ? (
+          <>
+            {allTimeRows.map((r, i) => (
+              <FadeIn key={r.user.id} index={Math.min(i, 8)}>
+                <Card
+                  color={r.isYou ? theme.brandSoft : undefined}
+                  style={{
+                    borderColor: r.isYou ? theme.brand : theme.line,
+                    borderWidth: r.isYou ? 2 : 1,
+                  }}
+                >
+                  <Row center gap={10}>
+                    <Txt variant="h3" color={i === 0 ? theme.certGold : i === 1 ? theme.teal : i === 2 ? theme.brand : theme.textSecondary} style={{ width: 28 }}>
+                      #{i + 1}
+                    </Txt>
+                    <Avatar name={r.user.fullName} color={r.user.avatarColor} size={40} />
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="bodyMed">{r.isYou ? `${r.user.fullName} (${t('league.you')})` : r.user.fullName}</Txt>
+                      <Row center gap={8} style={{ marginTop: 2 }}>
+                        <Row center gap={3}>
+                          <Flame size={13} urgent={r.streak >= 4} />
+                          <Txt variant="micro" color={theme.textMuted}>{r.streak} أسبوع</Txt>
+                        </Row>
+                        <Txt variant="micro" color={theme.textMuted}>·</Txt>
+                        <Row center gap={3}>
+                          <Ionicons name="ribbon" size={13} color={theme.brand} />
+                          <Txt variant="micro" color={theme.textMuted}>{r.badgesCount} شارة</Txt>
+                        </Row>
+                      </Row>
+                    </View>
+                    <Row center gap={4}>
+                      <Ionicons name="sparkles" size={14} color={theme.certGold} />
+                      <Txt variant="h3" color={theme.brand}>{r.points}</Txt>
+                    </Row>
+                  </Row>
+                </Card>
+              </FadeIn>
+            ))}
+          </>
+        ) : board === 'rising' ? (
           <>
             {rising.length === 0 ? <Empty emoji="🌱" title={t('league.firstWeek')} /> : rising.map(renderRow)}
           </>

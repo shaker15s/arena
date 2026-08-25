@@ -69,10 +69,10 @@ export function LiveSessionScreen() {
   }, [hasLive]);
 
   if (!user) return null;
+  const isManager = user.role === 'admin' || user.role === 'supervisor';
   const myBatches = instructorBatches(db, user.id);
-  const allActiveBatches = db.batches.filter((b) => b.status !== 'archived');
-  const effectiveBatches = myBatches.length > 0 ? myBatches : allActiveBatches;
-  const myLive = db.sessions.find((s) => s.status === 'live' && effectiveBatches.some((b) => b.id === s.batchId)) ?? db.sessions.find((s) => s.status === 'live');
+  const effectiveBatches = isManager ? (myBatches.length > 0 ? myBatches : db.batches.filter((b) => b.status !== 'archived')) : myBatches;
+  const myLive = db.sessions.find((s) => s.status === 'live' && effectiveBatches.some((b) => b.id === s.batchId)) ?? (isManager ? db.sessions.find((s) => s.status === 'live') : undefined);
   const batchesWithScheduled = effectiveBatches.filter((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
 
   // الخادم وحده يولّد التوقيع والكود الاحتياطي؛ لا تصل بذرة QR للعميل.
@@ -385,7 +385,7 @@ export function LiveSessionScreen() {
 }
 
 // ── شاشة تقرير المحاضرة المفصل ──
-function DetailedSessionReportSheet({
+export function DetailedSessionReportSheet({
   visible,
   data,
   onClose,
