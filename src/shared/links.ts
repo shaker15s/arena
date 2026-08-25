@@ -1,7 +1,9 @@
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 
-export const PUBLIC_APP_URL = (process.env.EXPO_PUBLIC_APP_URL ?? '').trim().replace(/\/+$/, '');
+export const PUBLIC_APP_URL = (
+  process.env.EXPO_PUBLIC_APP_URL || 'https://rtcc-ruby.vercel.app'
+).trim().replace(/\/+$/, '');
 
 function publicUrl(path: string, key: string, value: string): string {
   const query = `${key}=${encodeURIComponent(value)}`;
