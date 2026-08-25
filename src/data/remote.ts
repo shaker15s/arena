@@ -2,13 +2,16 @@
  * data/remote.ts — طبقة البيانات الحقيقية بين التطبيق و Supabase.
  *
  *  • fetchRemoteDb()  : يقرأ كل الجداول ويحوّلها لشكل `Db` الذي تستهلكه الشاشات.
- *  • pushDelta(a, b)  : يقارن نسختي القاعدة قبل/بعد أي عملية ويكتب الفروق فعليًا
- *                       (INSERT / UPDATE / DELETE) في Postgres — بدون أي محاكاة.
+ *  • subscribeRealtime/applyRealtimePatch : يطبّق التغييرات Incrmental دون تفريغ القاعدة.
+ *
+ * كل الكتابة الحساسة تمر عبر RPCs في data/actions.ts (الحد الأمني الوحيد).
+ * لا يوجد أي مسار كتابة مباشر من العميل إلى الجداول (أزيل pushDelta في 0019).
  *
  * كل المعرّفات المولّدة محليًا صارت UUID v4 (انظر shared/format.ts) لذلك يمكن
  * كتابة السجلات الجديدة بمعرّفاتها كما هي مع الحفاظ على العلاقات بين الجداول.
  */
 import { getSupabase } from './supabase';
+import { deepClone } from '../shared/clone';
 import {
   Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, Db,
   Enrollment, Excuse, GamificationProfile, GamificationRule, KudosQuota, LeagueWeekRow,
@@ -21,9 +24,6 @@ import {
 const ts = (v: string | null | undefined): number | undefined =>
   v ? new Date(v).getTime() : undefined;
 const tsOr = (v: string | null | undefined, fallback = 0): number => ts(v) ?? fallback;
-const iso = (v: number | null | undefined): string | null =>
-  typeof v === 'number' && Number.isFinite(v) ? new Date(v).toISOString() : null;
-const dateOnly = (v: number): string => new Date(v).toISOString().slice(0, 10);
 
 /** جدول فارغ — نقطة البداية قبل أي مزامنة (لا بيانات وهمية إطلاقًا) */
 export function emptyDb(): Db {
@@ -131,6 +131,9 @@ export async function fetchRemoteDb(): Promise<Db> {
       schedule: r.schedule ?? { days: [], time: '18:00', durationMin: 120 },
       startDate: tsOr(r.start_date, Date.now()), room: r.room ?? '',
       status: r.status, joinCode: r.join_code ?? '',
+      geofenceEnabled: Boolean(r.geofence_enabled),
+      latitude: r.latitude ?? undefined, longitude: r.longitude ?? undefined,
+      radiusM: r.radius_m ?? undefined,
     })),
     enrollments: enrollments.map((r): Enrollment => ({
       userId: r.user_id, batchId: r.batch_id,
@@ -141,7 +144,9 @@ export async function fetchRemoteDb(): Promise<Db> {
       id: r.id, batchId: r.batch_id, seq: r.seq, title: r.title ?? '',
       startsAt: tsOr(r.starts_at), durationMin: r.duration_min ?? 120, status: r.status,
       startedAt: ts(r.started_at), closedAt: ts(r.closed_at),
-      qrSeed: r.qr_seed ?? undefined, report: r.report ?? undefined,
+      // SEC-QR-01: qr_seed عمود محظور بنطاق الـ SELECT (لا يصل أصلًا)، ونُصفّره
+      // احتياطًا حتى لا يُخزَّن في الكاش لو تسرّب من أي مسار آخر.
+      qrSeed: undefined, report: r.report ?? undefined,
     })),
     attendance: attendance.map((r): Attendance => ({
       sessionId: r.session_id, userId: r.user_id, status: r.status,
@@ -176,6 +181,11 @@ export async function fetchRemoteDb(): Promise<Db> {
     })),
     certificates: certificates.map((r): Certificate => ({
       id: r.id, userId: r.user_id, batchId: r.batch_id, serial: r.serial, issuedAt: tsOr(r.issued_at),
+      status: r.status === 'revoked' ? 'revoked' : 'active',
+      revokedAt: ts(r.revoked_at), revokedBy: r.revoked_by ?? undefined,
+      revokeReason: r.revoke_reason ?? undefined,
+      reissuedAt: ts(r.reissued_at), reissuedBy: r.reissued_by ?? undefined,
+      reissueCount: r.reissue_count ?? 0,
     })),
     excuses: excuses.map((r): Excuse => ({
       id: r.id, userId: r.user_id, sessionId: r.session_id, reason: r.reason,
@@ -210,93 +220,6 @@ export async function fetchRemoteDb(): Promise<Db> {
   return db;
 }
 
-// ───────────────────────── الكتابة (مزامنة الفروق) ─────────────────────────
-
-interface TableSpec<T> {
-  table: string;
-  /** مفتاح محلي فريد للمقارنة */
-  key: (row: T) => string;
-  /** أعمدة تحديد السجل في قاعدة البيانات (للحذف/التحديث) */
-  match: (row: T) => Record<string, string>;
-  /** التحويل لصف قاعدة البيانات */
-  toRow: (row: T) => Record<string, unknown>;
-  /** عمود تعارض الـ upsert */
-  onConflict: string;
-  /** هل يُسمح بحذف السجلات المفقودة؟ */
-  allowDelete?: boolean;
-}
-
-/**
- * جداول الكتابة المباشرة المسموحة عبر pushDelta.
- *
- * ⚠️ منذ 0005 كل الكتابة "RPC-only" ما عدا `private_notes` (سياسة notes_owner
- * ALL). أي spec آخر هنا كان قنبلة RLS: الـ upsert يُرفض والواجهة تعرض خطأ.
- * الشاشات تستخدم RPCs المدققة في data/actions.ts لكل شيء آخر — لا تضف جدولًا
- * هنا إلا إذا كانت له سياسة INSERT/UPDATE صريحة في آخر migration.
- */
-const SPECS: { [K in keyof Db]?: TableSpec<any> } = {
-  privateNotes: {
-    table: 'private_notes', onConflict: 'instructor_id,user_id',
-    key: (r: PrivateNote) => `${r.instructorId}|${r.userId}`,
-    match: (r: PrivateNote) => ({ instructor_id: r.instructorId, user_id: r.userId }),
-    toRow: (r: PrivateNote) => ({
-      instructor_id: r.instructorId, user_id: r.userId, note: r.note, updated_at: iso(r.updatedAt),
-    }),
-  },
-};
-
-export interface SyncReport {
-  written: number;
-  deleted: number;
-  errors: string[];
-}
-
-/**
- * يقارن نسختين من القاعدة ويكتب الفروق في Supabase.
- * يُستدعى بعد كل عملية `mutate` — أي تغيير في الواجهة يصبح تغييرًا حقيقيًا في السيرفر.
- */
-export async function pushDelta(before: Db, after: Db): Promise<SyncReport> {
-  const sb = getSupabase();
-  const report: SyncReport = { written: 0, deleted: 0, errors: [] };
-
-  for (const tableKey of Object.keys(SPECS) as Array<keyof Db>) {
-    const spec = SPECS[tableKey] as TableSpec<any> | undefined;
-    if (!spec) continue;
-    const prevRows = (before[tableKey] ?? []) as unknown as any[];
-    const nextRows = (after[tableKey] ?? []) as unknown as any[];
-    if (!Array.isArray(prevRows) || !Array.isArray(nextRows)) continue;
-
-    const prevMap = new Map<string, string>();
-    prevRows.forEach((r) => prevMap.set(spec.key(r), JSON.stringify(spec.toRow(r))));
-
-    const upserts: Record<string, unknown>[] = [];
-    const seen = new Set<string>();
-    nextRows.forEach((r) => {
-      const k = spec.key(r);
-      seen.add(k);
-      const row = spec.toRow(r);
-      const serialized = JSON.stringify(row);
-      if (prevMap.get(k) !== serialized) upserts.push(row);
-    });
-
-    if (upserts.length) {
-      const { error } = await sb.from(spec.table).upsert(upserts, { onConflict: spec.onConflict });
-      if (error) report.errors.push(`${spec.table}: ${error.message}`);
-      else report.written += upserts.length;
-    }
-
-    if (spec.allowDelete) {
-      const removed = prevRows.filter((r) => !seen.has(spec.key(r)));
-      for (const r of removed) {
-        const { error } = await sb.from(spec.table).delete().match(spec.match(r));
-        if (error) report.errors.push(`${spec.table} delete: ${error.message}`);
-        else report.deleted += 1;
-      }
-    }
-  }
-  return report;
-}
-
 // ───────────────────────── الزمن الحقيقي ─────────────────────────
 
 /** بيانات حدث Realtime كما يصلها العميل من Supabase. */
@@ -320,9 +243,17 @@ export function subscribeRealtime(onPatch: (p: RealtimePatch) => void): () => vo
       newRow: payload.new ?? null,
       oldRow: payload.old ?? null,
     });
+  // ⚠️ SEC-QR-01: `sessions` القادم من Realtime يكشف الصف كاملًا افتراضيًا،
+  // ومن ضمنه `qr_seed` — وهي بذرة توكنات الحضور التي يُمنع قراءتها عبر
+  // PostgREST (0005 revokes SELECT). استخدام `select` يقتصر على الأعمدة
+  // المسموحة فقط فلا يصل qr_seed للعميل أو الكاش (إصلاح السطر التالي يدافع أيضًا).
+  const sessionsRealtime = {
+    event: '*' as const, schema: 'public', table: 'sessions',
+    select: ['id', 'batch_id', 'seq', 'title', 'starts_at', 'duration_min', 'status', 'started_at', 'closed_at', 'report'],
+  };
   const channel = sb
     .channel('masar-live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, handler)
+    .on('postgres_changes', sessionsRealtime, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, handler)
@@ -343,7 +274,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
   const row = del ? p.oldRow : p.newRow;
   if (!row) return null;
 
-  const next = structuredClone(db);
+  const next = deepClone(db);
   const num = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
   const numOr = (v: unknown, fb: number): number => (v == null ? fb : Number(v));
   const tsVal = (v: unknown): number | undefined => (v == null ? undefined : new Date(String(v)).getTime());
@@ -370,7 +301,9 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         startsAt: tsVal(row.starts_at) ?? 0, durationMin: numOr(row.duration_min, 120),
         status: row.status as TrainingSession['status'],
         startedAt: tsVal(row.started_at), closedAt: tsVal(row.closed_at),
-        qrSeed: row.qr_seed as string | undefined, report: row.report as any,
+        // SEC-QR-01: لا نُخزِّن qr_seed في الكاش أبدًا حتى لو وصله خارج نطاق
+        // الـ select — بذرة التوكن لا يُسمح بها إلا داخل RPCs الخادمية.
+        qrSeed: undefined, report: row.report as any,
       };
       const i = next.sessions.findIndex((x) => x.id === id);
       if (i >= 0) next.sessions[i] = s; else next.sessions.push(s);

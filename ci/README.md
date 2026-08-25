@@ -1,14 +1,25 @@
 # CI Workflow
 
-ملف `github-actions-ci.yml` هو workflow جاهز لـ GitHub Actions:
-typecheck + i18n parity + engine tests + RLS tests + فحص فخ `IN(...,NULL)` في SQL.
+`github-actions-ci.yml` is the source-of-truth workflow (the active copy should live
+at `.github/workflows/ci.yml`). It is **not** committed here because the automation
+token used for this branch lacks the `workflows` permission; activate it by copying
+this template to `.github/workflows/ci.yml` from an account with that permission
+(or via the GitHub UI → Actions), then it runs on every push/PR.
 
-**التفعيل** (خطوة يدوية واحدة — توكن الرفع الحالي لا يملك صلاحية `workflows`):
+Two jobs:
+
+- **quality** (hard gate): `typecheck` + i18n parity + engine tests + RLS tests
+  + SQL `IN(...,NULL)` regression check + `npm audit --audit-level=high`.
+  This job is verified and is the one that must stay green.
+- **database** (best-effort certification, `continue-on-error`): boots the local
+  Supabase stack (`supabase start`) and runs `supabase db reset` against a real
+  Postgres to prove the migration chain (0001→0022) applies cleanly. It needs
+  Docker (available on `ubuntu-latest`) and is non-blocking until the project
+  credentials are wired; promote to a hard gate once `supabase db reset` is verified.
+
+## Regenerating the SQL-Editor upgrade file
 
 ```bash
-mkdir -p .github/workflows
-cp ci/github-actions-ci.yml .github/workflows/ci.yml
-git add .github/workflows/ci.yml && git commit -m "ci: enable workflow" && git push
+node scripts/build-web-editor-sql.js 0014 0015 0016 0017 > supabase/WEB_EDITOR_UPGRADE_3.sql
+node scripts/build-web-editor-sql.js 0018 > supabase/WEB_EDITOR_UPGRADE_4.sql
 ```
-
-أو انسخ محتوى الملف يدويًا إلى `.github/workflows/ci.yml` من واجهة GitHub.

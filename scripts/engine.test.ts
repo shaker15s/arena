@@ -3,12 +3,13 @@
 import {
   attendanceOf, backupCodeOf, balanceOf, currentQrToken, evaluateBadges, evaluateStreakWeek,
   gamifOf, isBatchComplete, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
-  rpcIssueCertificates, rpcManualMark, rpcReviewExcuse, rpcStartSession, rpcSubmitExcuse,
-  rpcUpdateRule, simulateWeekClose,
+  rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
+  rpcStartSession, rpcSubmitExcuse, rpcUpdateRule, simulateWeekClose,
 } from '../src/data/engine';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
-import { hashStr, monthKeyOf, weekStartOf } from '../src/shared/format';
+import { monthKeyOf, weekStartOf } from '../src/shared/format';
+import { qrSignature } from '../src/shared/sha256';
 
 let passed = 0, failed = 0;
 function ok(cond: boolean, name: string, extra?: unknown) {
@@ -42,7 +43,7 @@ const MIN = 60_000;
 
   // توكن منتهي الصلاحية (سلوت قديم) ← expired
   const slot = Math.max(1, qrSlotOf(live0, Date.now()) - 3);
-  const oldHash = hashStr(`${live0.qrSeed}:${live0.id}:${slot}`).slice(0, 10);
+  const oldHash = qrSignature(live0.qrSeed ?? '', live0.id, slot);
   const expired = rpcCheckIn(db, 'u_zyad', `MSRQ:${live0.id}:${slot}:${oldHash}`);
   ok(expired.kind === 'expired', 'توكن قديم ← expired (ضد screenshot)', expired.kind);
 
@@ -67,6 +68,24 @@ const MIN = 60_000;
   // غير منضم للمجموعة
   const outsider = rpcCheckIn(db, IDS.admin, currentQrToken(live0, Date.now()));
   ok(outsider.kind === 'not_enrolled', 'غير المنضم ← not_enrolled', outsider.kind);
+
+  // غيوفنس اختياري (0021): يطبَّق فقط على المجموعات المفعّلة
+  const gfBatch = db.batches.find((b) => b.id === live0.batchId)!;
+  gfBatch.geofenceEnabled = true; gfBatch.latitude = 30.0444; gfBatch.longitude = 31.2357; gfBatch.radiusM = 100;
+  ok(rpcCheckIn(db, IDS.omar, currentQrToken(live0, Date.now())).kind === 'location_required', 'غيوفنس: بلا إحداثيات ← location_required');
+  ok(rpcCheckIn(db, IDS.omar, currentQrToken(live0, Date.now()), Date.now(), 30.5, 31.5).kind === 'offsite', 'غيوفنس: خارج النطاق ← offsite');
+  live0.startedAt = live0.startsAt = Date.now() - 2 * MIN; // أرجعها ضمن النافذة
+  const gfFresh = db.enrollments.find((e) =>
+    e.batchId === live0.batchId && e.status === 'active' && e.userId !== IDS.omar && !attendanceOf(db, live0.id, e.userId),
+  )?.userId;
+  ok(!!gfFresh, 'غيوفنس: طالب جديد جاهز', gfFresh);
+  ok(rpcCheckIn(db, gfFresh!, currentQrToken(live0, Date.now()), Date.now(), 30.0444, 31.2357).kind === 'ok', 'غيوفنس: ضمن النطاق ← ok');
+  // تراجع عن أثر التسجيل التجريبي حتى لا يُفسد قسم الإقفال التالي
+  const gfAtt = db.attendance.findIndex((a) => a.sessionId === live0.id && a.userId === gfFresh);
+  if (gfAtt >= 0) db.attendance.splice(gfAtt, 1);
+  const gfPts = db.pointEvents.findIndex((e) => e.idempotencyKey === `attendance:${live0.id}:${gfFresh}`);
+  if (gfPts >= 0) db.pointEvents.splice(gfPts, 1);
+  gfBatch.geofenceEnabled = false; gfBatch.latitude = undefined; gfBatch.longitude = undefined; gfBatch.radiusM = undefined;
 
   // ═ 2) التسجيل اليدوي والإقفال ═
   console.log('\n═ 2) الإقفال ═');
@@ -153,6 +172,22 @@ const MIN = 60_000;
   ok(!!looked && looked.cert.serial === serials[0], 'التحقق العام بالسيريال يعمل', serials[0].toLowerCase());
   const lookedLower = lookupCertificate(db, serials[0].toLowerCase());
   ok(!!lookedLower, 'التحقق لا يرعى حالة الأحرف');
+
+  // الإلغاء/إعادة الإصدار (0020)
+  const certId = i1.issued[0].id;
+  const badReason = rpcRevokeCertificate(db, IDS.mahmoud, certId, 'x');
+  ok(badReason.ok === false && badReason.error === 'reason_required', 'إلغاء بلا سبب مرفوض');
+  const revoke = rpcRevokeCertificate(db, IDS.mahmoud, certId, 'شهادة خاطئة — إصدار مكرر');
+  ok(revoke.ok === true && db.certificates.find((c) => c.id === certId)!.status === 'revoked', 'الإلغاء يضع الحالة revoked');
+  ok(lookupCertificate(db, serials[0]) === null, 'التحقق يرفض شهادة ملغاة');
+  const reRev = rpcRevokeCertificate(db, IDS.mahmoud, certId, 'محاولة');
+  ok(reRev.ok === false && reRev.error === 'not_active', 'لا يمكن إلغاء شهادة ملغاة مرتين');
+  const reis = rpcReissueCertificate(db, IDS.mahmoud, certId);
+  ok(reis.ok === true && reis.serial !== serials[0], 'إعادة الإصدار بسيريال جديد');
+  ok(db.certificates.find((c) => c.id === certId)!.status === 'active', 'إعادة الإصدار تعيدها active');
+  ok(db.certificates.find((c) => c.id === certId)!.reissueCount === 1, 'عدد مرات إعادة الإصدار يزيد');
+  ok(lookupCertificate(db, serials[0]) === null, 'السيريال القديم لا يتحقق بعد إعادة الإصدار');
+  ok(!!lookupCertificate(db, reis.serial!), 'السيريال الجديد يتحقق');
 
   // ═ 8) قواعد اللعبة: حدود ═
   console.log('\n═ 8) قواعد اللعبة ═');

@@ -19,7 +19,7 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
 }
 
 export interface CheckInResponse {
-  kind: 'ok' | 'already' | 'expired' | 'too_late' | 'no_session' | 'not_enrolled' | 'invalid' | 'rate_limited';
+  kind: 'ok' | 'already' | 'expired' | 'too_late' | 'no_session' | 'not_enrolled' | 'invalid' | 'rate_limited' | 'location_required' | 'offsite';
   status?: 'present' | 'late';
   points?: number;
   session_id?: string;
@@ -64,6 +64,21 @@ export async function updateMyProfile(input: { fullName: string; phone: string; 
   });
 }
 
+/** ملاحظة خاصة من مدرب لطالب — RPC خادمية (لا تتجاوز RLS عبر pushDelta). */
+export async function savePrivateNote(studentId: string, note: string): Promise<void> {
+  await rpc('save_private_note', { p_user_id: studentId, p_note: note });
+}
+
+/** تسجيل توكن الجهاز (Expo Push) لاستقبال الإشعارات — يُستدعى على الأجهزة فقط. */
+export async function registerPushToken(token: string, platform: 'android' | 'ios' | 'web' | 'unknown' = 'unknown'): Promise<void> {
+  await rpc('register_push_token', { p_token: token, p_platform: platform });
+}
+
+/** إلغاء تسجيل توكن الجهاز (عند تسجيل الخروج/الحذف). */
+export async function unregisterPushToken(token: string): Promise<void> {
+  await rpc('unregister_push_token', { p_token: token });
+}
+
 export async function updateUserAccess(
   profileId: string,
   patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null },
@@ -95,8 +110,9 @@ export async function getSessionQrPayload(sessionId: string): Promise<SessionQrP
   return rpc('get_session_qr_payload', { p_session_id: sessionId });
 }
 
-export async function checkInWithToken(payload: string): Promise<CheckInResponse> {
-  return rpc('check_in_with_token', { p_payload: payload });
+export async function checkInWithToken(payload: string, lat?: number, lng?: number): Promise<CheckInResponse> {
+  // نمرّر الإحداثيات للخادم متى توفرت — الخادم هو من يقرّر القبول (geofence).
+  return rpc<CheckInResponse>('check_in_with_token', { p_payload: payload, p_lat: lat ?? null, p_lng: lng ?? null });
 }
 
 export async function manualMarkAttendance(input: {
@@ -171,27 +187,6 @@ export async function updateCourse(input: {
     p_topics: input.topics,
     p_sessions_count: input.sessionsCount,
   });
-}
-
-export async function createSessionForBatch(input: {
-  batchId: string;
-  title: string;
-  seq: number;
-  startsAt: number;
-  durationMin?: number;
-}): Promise<string> {
-  const id = 'sess_' + Math.random().toString(36).slice(2, 9);
-  const { error } = await getSupabase().from('sessions').insert({
-    id,
-    batch_id: input.batchId,
-    title: input.title,
-    seq: input.seq,
-    starts_at: new Date(input.startsAt).toISOString(),
-    duration_min: input.durationMin ?? 120,
-    status: 'scheduled',
-  });
-  if (error) throw new Error(error.message);
-  return id;
 }
 
 export interface NewSessionInput {
@@ -292,6 +287,7 @@ export async function issueBatchCertificates(batchId: string): Promise<number> {
 
 export interface VerifiedCertificate {
   serial: string;
+  status?: 'active' | 'revoked';
   issued_at: string;
   student_name: string;
   course_title: string;
@@ -300,6 +296,16 @@ export interface VerifiedCertificate {
 
 export async function verifyCertificate(serial: string): Promise<VerifiedCertificate | null> {
   return rpc<VerifiedCertificate | null>('verify_certificate', { p_serial: serial.trim() });
+}
+
+/** إلغاء شهادة (مدير فقط) — يوقف التحقق العام على سيريالها. */
+export async function revokeCertificate(certificateId: string, reason: string): Promise<void> {
+  await rpc('revoke_certificate', { p_certificate_id: certificateId, p_reason: reason });
+}
+
+/** إعادة إصدار شهادة ملغاة (مدير فقط) — تُعاد بسيريال جديد. */
+export async function reissueCertificate(certificateId: string): Promise<{ serial: string }> {
+  return rpc<{ serial: string }>('reissue_certificate', { p_certificate_id: certificateId });
 }
 
 export async function sendBroadcast(input: {

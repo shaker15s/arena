@@ -13,6 +13,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useApp } from '../../data/store';
 import { liveSessionForStudent } from '../../data/engine';
 import { checkInWithToken, type CheckInResponse } from '../../data/actions';
+import { getDevicePosition } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
@@ -98,6 +99,14 @@ export function ScannerScreen({ navigation }: any) {
         haptic('error');
         setError({ msg: t('scanner.rateLimited'), icon: 'hourglass' });
         break;
+      case 'location_required':
+        haptic('error');
+        setError({ msg: t('scanner.locationRequired'), icon: 'location' });
+        break;
+      case 'offsite':
+        haptic('error');
+        setError({ msg: t('scanner.offsite'), icon: 'location' });
+        break;
       default:
         haptic('error');
         setError({ msg: t('scanner.invalid'), icon: 'close' });
@@ -109,7 +118,8 @@ export function ScannerScreen({ navigation }: any) {
     setLoading(true);
     setError(null);
     try {
-      const result = await checkInWithToken(payload.trim());
+      const pos = await getDevicePosition();
+      const result = await checkInWithToken(payload.trim(), pos?.lat, pos?.lng);
       interpret(result);
       if (result.kind === 'ok' || result.kind === 'already') await refresh();
       else setTimeout(() => setScanned(false), 1200);

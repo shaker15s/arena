@@ -12,6 +12,7 @@ import {
 } from './types';
 import { HARD_CUTOFF_MIN, LEVEL_THRESHOLDS, QR_ROTATION_MS, RULE_DEFS, levelForPoints } from './rules';
 import { hashStr, monthKeyOf, uid, weekStartOf } from '../shared/format';
+import { backupCode, qrSignature } from '../shared/sha256';
 
 // ───────────────────────────── أدوات عامة ─────────────────────────────
 
@@ -53,6 +54,17 @@ export function gamifOf(db: Db, userId: string): GamificationProfile {
     db.gamification.push(g);
   }
   return g;
+}
+
+/**
+ * قراءة ملف الجيميفيكيشن دون أي أثر جانبي. تُستخدم في دوال القراءة البحتة
+ * التي تُستدعى أثناء الرسم (useMemo) — gamifOf تدفع صفًا جديدًا عند الغياب
+ * وهذا تعديلٌ لا يجوز أثناء رسم مكوّن (LOGIC-01). الكتابة الحقيقية للصف
+ * تتم خادميًا عبر trigger إنشاء الحساب، فغيابه هنا حالة نادرة نعوّضها افتراضيًا.
+ */
+export function gamifGet(db: Db, userId: string): GamificationProfile {
+  return db.gamification.find((x) => x.userId === userId)
+    ?? { userId, currentStreakWeeks: 0, longestStreakWeeks: 0, freezesHeld: 1, leagueTier: 'bronze' };
 }
 
 export function notify(db: Db, userId: string, type: AppNotification['type'], title: string, body: string) {
@@ -130,11 +142,6 @@ export function instructorBatches(db: Db, instructorId: string): Batch[] {
   return db.batches.filter((b) => b.instructorId === instructorId && b.status !== 'archived');
 }
 
-/** الجلسة النشطة للطالب (حية ولم يسجل بعد أو سجل) */
-export function activeLiveSession(db: Db): TrainingSession | undefined {
-  return db.sessions.find((s) => s.status === 'live');
-}
-
 export function nextSessionForUser(db: Db, userId: string): TrainingSession | undefined {
   const ids = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
   return db.sessions
@@ -157,29 +164,25 @@ export function qrSlotOf(session: TrainingSession, now: number): number {
   return Math.max(0, Math.floor((now - session.startedAt) / QR_ROTATION_MS));
 }
 
-/** التوكن المعروض حاليًا على شاشة المدرب */
+/**
+ * التوكن المعروض حاليًا على شاشة المدرب.
+ * يطابق تمامًا خوارزمية الخادم (public._qr_signature): أول 20 حرف hex من SHA-256.
+ */
 export function currentQrToken(session: TrainingSession, now: number): string {
   const slot = qrSlotOf(session, now);
-  const h = hashStr(`${session.qrSeed}:${session.id}:${slot}`).slice(0, 10);
+  const h = qrSignature(session.qrSeed ?? '', session.id, slot);
   return `MSRQ:${session.id}:${slot}:${h}`;
 }
 
 function qrTokenValid(session: TrainingSession, slot: number, h: string, now: number): boolean {
   const current = qrSlotOf(session, now);
   if (slot < current - 1 || slot > current) return false; // مهلة رحمة = نافذة سابقة واحدة فقط
-  return hashStr(`${session.qrSeed}:${session.id}:${slot}`).slice(0, 10) === h;
+  return qrSignature(session.qrSeed ?? '', session.id, slot) === h;
 }
 
-/** الكود الاحتياطي 6 أرقام — ثابت طوال الجلسة */
+/** الكود الاحتياطي 6 أرقام — ثابت طوال الجلسة. يطابق public._backup_code في الخادم. */
 export function backupCodeOf(session: TrainingSession): string {
-  const h = hashStr(`${session.qrSeed}:backup:${session.id}`);
-  let digits = '';
-  for (let i = 0; i < h.length && digits.length < 6; i++) {
-    const c = h.charCodeAt(i);
-    digits += String(c % 10);
-  }
-  while (digits.length < 6) digits += '0';
-  return digits;
+  return backupCode(session.qrSeed ?? '', session.id);
 }
 
 // ───────────────────────────── RPC: check-in ─────────────────────────────
@@ -191,9 +194,22 @@ export type CheckInResult =
   | { kind: 'too_late' }
   | { kind: 'no_session' }
   | { kind: 'not_enrolled' }
-  | { kind: 'invalid' };
+  | { kind: 'invalid' }
+  | { kind: 'location_required' }
+  | { kind: 'offsite' };
 
-export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.now()): CheckInResult {
+/** مسافة هافرساين بالمتر — مرآة _haversine_m في الخادم. */
+export function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLng = rad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371000 * 2 * Math.asin(Math.sqrt(a));
+}
+
+export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.now(), lat?: number, lng?: number): CheckInResult {
   const code = payload.trim();
   // ── توثيق التوكن ──
   let session: TrainingSession | undefined;
@@ -213,6 +229,14 @@ export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.n
     method = 'code';
   } else {
     return { kind: 'invalid' };
+  }
+
+  // ── Geofence اختياري: يطبَّق فقط على المجموعات المفعّلة ──
+  const batch = batchOf(db, session!.batchId);
+  if (batch?.geofenceEnabled) {
+    if (lat == null || lng == null) return { kind: 'location_required' };
+    if (batch.latitude == null || batch.longitude == null) return { kind: 'offsite' };
+    if (haversineM(lat, lng, batch.latitude, batch.longitude) > (batch.radiusM ?? 500)) return { kind: 'offsite' };
   }
 
   // ── صلاحية: منضم للمجموعة؟ ──
@@ -509,7 +533,7 @@ export function evaluateBadges(db: Db, userId: string): Array<{ userId: string; 
 /** تقدم نحو شارة لم تُكسب بعد (يعرض في «أقرب شارة») */
 export function badgeProgress(db: Db, userId: string, code: string): number {
   const myAtt = db.attendance.filter((a) => a.userId === userId && a.status !== 'absent');
-  const g = gamifOf(db, userId);
+  const g = gamifGet(db, userId);
   switch (code) {
     case 'first_step': return Math.min(1, myAtt.length);
     case 'consistent': {
@@ -552,14 +576,14 @@ export interface LeagueRow {
 
 export function getWeeklyLeague(db: Db, viewerId: string, tierOverride?: GamificationProfile['leagueTier']) {
   const viewer = profileOf(db, viewerId);
-  const g = gamifOf(db, viewerId);
+  const g = gamifGet(db, viewerId);
   const tier = tierOverride ?? g.leagueTier;
   const branchId = viewer?.branchId ?? null;
   const weekStart = weekStartOf(Date.now());
 
   const cohort = db.profiles.filter((p) =>
     p.role === 'student' && (branchId == null || p.branchId === branchId) &&
-    gamifOf(db, p.id).leagueTier === tier,
+    gamifGet(db, p.id).leagueTier === tier,
   );
   const promoPct = ruleValue(db, 'league.promotion_pct');
   const relPct = ruleValue(db, 'league.relegation_pct');
@@ -754,6 +778,7 @@ export function rpcIssueCertificates(db: Db, actorId: string, batchId: string): 
       // مرآة محلية للاختبارات فقط — الخادم يولّد سيريالًا عشوائيًا (0005).
       serial: `MSR-${new Date().getFullYear()}-${String(db.certSeq).padStart(6, '0')}`,
       issuedAt: Date.now(),
+      status: 'active', reissueCount: 0,
     };
     db.certificates.push(cert);
     issued.push(cert);
@@ -769,12 +794,43 @@ export function rpcIssueCertificates(db: Db, actorId: string, batchId: string): 
 }
 
 export function lookupCertificate(db: Db, serial: string): { cert: Certificate; user: Profile; course: Course; batch: Batch } | null {
-  const cert = db.certificates.find((c) => c.serial.trim().toUpperCase() === serial.trim().toUpperCase());
+  // التحقق العام يرفض أي شهادة غير نشطة (أُلغيت أو أُعيد إصدارها بسيريال جديد) — يطابق verify_certificate.
+  const cert = db.certificates.find((c) => c.status === 'active' && c.serial.trim().toUpperCase() === serial.trim().toUpperCase());
   if (!cert) return null;
   const batch = batchOf(db, cert.batchId)!;
   const course = courseOf(db, batch.courseId)!;
   const user = profileOf(db, cert.userId)!;
   return { cert, user, course, batch };
+}
+
+/** إلغاء شهادة (مدير فقط) — يطابق public.revoke_certificate في 0020. */
+export function rpcRevokeCertificate(db: Db, actorId: string, certificateId: string, reason: string): { ok: boolean; error?: string } {
+  if (!reason.trim() || reason.trim().length < 3) return { ok: false, error: 'reason_required' };
+  const cert = db.certificates.find((c) => c.id === certificateId);
+  if (!cert || cert.status !== 'active') return { ok: false, error: 'not_active' };
+  cert.status = 'revoked';
+  cert.revokedAt = Date.now();
+  cert.revokedBy = actorId;
+  cert.revokeReason = reason.trim();
+  audit(db, actorId, 'revoke_certificate', certificateId, { reason: reason.trim() });
+  return { ok: true };
+}
+
+/** إعادة إصدار شهادة ملغاة (مدير فقط) — تطابق public.reissue_certificate في 0020. */
+export function rpcReissueCertificate(db: Db, actorId: string, certificateId: string): { ok: boolean; serial?: string; error?: string } {
+  const cert = db.certificates.find((c) => c.id === certificateId);
+  if (!cert || cert.status !== 'revoked') return { ok: false, error: 'not_revoked' };
+  db.certSeq += 1;
+  cert.status = 'active';
+  cert.serial = `MSR-${new Date().getFullYear()}-${String(db.certSeq).padStart(6, '0')}`;
+  cert.revokedAt = undefined;
+  cert.revokedBy = undefined;
+  cert.revokeReason = undefined;
+  cert.reissuedAt = Date.now();
+  cert.reissuedBy = actorId;
+  cert.reissueCount = (cert.reissueCount ?? 0) + 1;
+  audit(db, actorId, 'reissue_certificate', certificateId, { new_serial: cert.serial });
+  return { ok: true, serial: cert.serial };
 }
 
 // ───────────────────────────── التقييمات ─────────────────────────────
@@ -854,7 +910,7 @@ export interface MyGamification {
 }
 
 export function getMyGamification(db: Db, userId: string): MyGamification {
-  const g = gamifOf(db, userId);
+  const g = gamifGet(db, userId);
   const league = getWeeklyLeague(db, userId, g.leagueTier);
   const me = league.rows.find((r) => r.isYou);
   const wk = db.streakWeeks.find((r) => r.userId === userId && r.weekStart === weekStartOf(Date.now()));

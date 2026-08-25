@@ -69,6 +69,11 @@ export interface Batch {
   room: string;
   status: 'scheduled' | 'active' | 'completed' | 'archived';
   joinCode: string;
+  /** Geofence اختياري — يُفعَّل خادميًا على المجموعات المفعّلة فقط. */
+  geofenceEnabled?: boolean;
+  latitude?: number;
+  longitude?: number;
+  radiusM?: number;
 }
 
 export interface Enrollment {
@@ -188,6 +193,13 @@ export interface Certificate {
   batchId: string;
   serial: string;
   issuedAt: number;
+  status: 'active' | 'revoked';
+  revokedAt?: number;
+  revokedBy?: string;
+  revokeReason?: string;
+  reissuedAt?: number;
+  reissuedBy?: string;
+  reissueCount?: number;
 }
 
 export interface Excuse {
