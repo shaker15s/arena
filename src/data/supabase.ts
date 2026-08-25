@@ -54,15 +54,8 @@ function sanitizeKey(key: string): string {
 }
 
 // ═══════════════ الإعدادات ═══════════════
-export const SUPABASE_URL = (
-  process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  'https://udqgaudtclkbaygftndx.supabase.co'
-).trim();
-
-export const SUPABASE_ANON_KEY = (
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkcWdhdWR0Y2xrYmF5Z2Z0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NTYyNzUsImV4cCI6MjEwMzAzMjI3NX0.AHe8cNJ8-uGKYbUG2UPJ5w2p54uHtEhpoIYhFcYjco4'
-).trim();
+export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim();
+export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim();
 
 /** هل الاتصال الحقيقي مُهيّأ؟ */
 export const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -73,7 +66,9 @@ let _client: SupabaseClient<any> | null = null;
 export function getSupabase(): SupabaseClient<any> {
   if (!_client) {
     if (!SUPABASE_ENABLED) {
-      throw new Error('Supabase is not configured: set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY');
+      throw new Error(
+        'Supabase is not configured: Please configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY environment variables.'
+      );
     }
     _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
@@ -100,6 +95,11 @@ export function authRedirectUrl(): string {
   return Linking.createURL('auth/callback');
 }
 
+/** توليد state عشوائي آمن لمنع هجمات CSRF / Session Fixation */
+function generateAuthState(): string {
+  return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+}
+
 /**
  * الدخول بحساب Google — الطريقة الوحيدة للدخول في مسار.
  * الويب: إعادة توجيه كاملة. الموبايل: متصفح آمن + التقاط التوكنات من الـ deep link.
@@ -108,13 +108,15 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error: string |
   if (!SUPABASE_ENABLED) return { ok: false, error: 'not-configured' };
   const sb = getSupabase();
   const redirectTo = authRedirectUrl();
+  const state = generateAuthState();
+  await secureStorage.setItem('oauth_auth_state', state);
 
   if (Platform.OS === 'web') {
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
-        queryParams: { access_type: 'offline', prompt: 'select_account' },
+        queryParams: { access_type: 'offline', prompt: 'select_account', state },
       },
     });
     return { ok: !error, error: error?.message ?? null };
@@ -122,23 +124,37 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error: string |
 
   const { data, error } = await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true, queryParams: { prompt: 'select_account' } },
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+      queryParams: { prompt: 'select_account', state },
+    },
   });
   if (error || !data?.url) return { ok: false, error: error?.message ?? 'oauth-url-missing' };
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, { showInRecents: true });
   if (result.type !== 'success' || !result.url) {
+    await secureStorage.removeItem('oauth_auth_state');
     return { ok: false, error: result.type === 'cancel' || result.type === 'dismiss' ? 'cancelled' : 'oauth-failed' };
   }
   return exchangeUrlForSession(result.url);
 }
 
-/** تحويل رابط الرجوع (code أو access_token) إلى جلسة فعلية */
+/** تحويل رابط الرجوع (code أو access_token) إلى جلسة فعلية مع التحقق من الـ state */
 export async function exchangeUrlForSession(url: string): Promise<{ ok: boolean; error: string | null }> {
   const sb = getSupabase();
   const parsed = Linking.parse(url);
   const params = (parsed.queryParams ?? {}) as Record<string, string>;
   const hash = url.includes('#') ? new URLSearchParams(url.split('#')[1]) : null;
+
+  // التحقق من الـ state parameter لحماية الجلسة
+  const returnedState = params.state ?? hash?.get('state');
+  const storedState = await secureStorage.getItem('oauth_auth_state');
+  await secureStorage.removeItem('oauth_auth_state');
+
+  if (storedState && returnedState && storedState !== returnedState) {
+    return { ok: false, error: 'state-mismatch' };
+  }
 
   const code = params.code;
   if (typeof code === 'string' && code) {

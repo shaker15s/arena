@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, View } from 'react-native';
+import { Animated, I18nManager, Platform, Pressable, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,7 +48,10 @@ export function useTabs() {
 }
 
 const Stack = createNativeStackNavigator<any>();
-const screenOpts = { headerShown: false, animation: 'slide_from_right' as const };
+const screenOpts = {
+  headerShown: false,
+  animation: (I18nManager.isRTL ? 'slide_from_left' : 'slide_from_right') as any,
+};
 const linking = {
   prefixes: [Linking.createURL('/'), ...(PUBLIC_APP_URL ? [PUBLIC_APP_URL] : [])],
   config: { screens: { Verify: 'verify', JoinBatch: 'join' } },
@@ -237,20 +240,44 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   const [tab, setTab] = useState(initial);
   const insets = useSafeAreaInsets();
   const handledRequest = useRef<string | undefined>(undefined);
+  const visitedTabs = useRef<Set<string>>(new Set([initial])).current;
+
   useEffect(() => {
     if (requestedTab && requestedTab !== handledRequest.current && renders[requestedTab]) {
       handledRequest.current = requestedTab;
+      visitedTabs.add(requestedTab);
       setTab(requestedTab);
     }
-  }, [requestedTab, renders]);
-  const ctx = useMemo(() => ({ tab, setTab }), [tab]);
+  }, [requestedTab, renders, visitedTabs]);
+
+  const handleSelectTab = (newTab: string) => {
+    visitedTabs.add(newTab);
+    setTab(newTab);
+  };
+
+  const ctx = useMemo(() => ({ tab, setTab: handleSelectTab }), [tab]);
+
   return (
     <TabsContext.Provider value={ctx}>
       <AppBackground>
-        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 88 + Math.max(insets.bottom, 8) }}>
-          <TabScene key={tab}>{renders[tab]?.()}</TabScene>
+        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 118 + Math.max(insets.bottom, 8) }}>
+          {tabs.map((t) => {
+            const isSelected = t.key === tab;
+            if (!visitedTabs.has(t.key) && !isSelected) return null;
+            return (
+              <View
+                key={t.key}
+                style={{
+                  flex: 1,
+                  display: isSelected ? 'flex' : 'none',
+                }}
+              >
+                <TabScene>{renders[t.key]?.()}</TabScene>
+              </View>
+            );
+          })}
         </ContentFrame>
-        <AppleTabBar tabs={tabs} active={tab} onSelect={setTab} fab={fab} badges={badges} />
+        <AppleTabBar tabs={tabs} active={tab} onSelect={handleSelectTab} fab={fab} badges={badges} />
       </AppBackground>
     </TabsContext.Provider>
   );

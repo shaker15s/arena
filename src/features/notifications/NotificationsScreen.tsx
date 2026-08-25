@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Card, Empty, FadeIn, Header, Row, Txt } from '../../design/components';
+import { Btn, Card, Empty, FadeIn, Header, Row, Txt } from '../../design/components';
 import { spacing } from '../../design/tokens';
 import { sameDay, timePast } from '../../shared/format';
 import { AppNotification } from '../../data/types';
@@ -33,11 +33,7 @@ export function NotificationsScreen({ navigation }: any) {
     .filter((n) => n.userId === user?.id)
     .sort((a, b) => b.createdAt - a.createdAt);
 
-  useEffect(() => {
-    const timer = setTimeout(() => markNotificationsRead(), 800);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const hasUnread = mine.some((n) => !n.read);
 
   const todayRows = mine.filter((n) => sameDay(n.createdAt, Date.now()));
   const yesterdayRows = mine.filter((n) => sameDay(n.createdAt, Date.now() - 86_400_000));
@@ -72,7 +68,21 @@ export function NotificationsScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title={t('notif.title')} back={() => navigation.goBack()} />
+      <Header
+        title={t('notif.title')}
+        back={() => navigation.goBack()}
+        right={
+          hasUnread ? (
+            <Btn
+              title="تحديد الكل كمقروء"
+              size="sm"
+              variant="secondary"
+              icon="checkmark-done"
+              onPress={() => markNotificationsRead()}
+            />
+          ) : null
+        }
+      />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 10, paddingBottom: 60 }}>
         {mine.length === 0 ? (
           <Empty emoji="🔔" title={t('notif.empty')} />

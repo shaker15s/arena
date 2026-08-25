@@ -62,7 +62,7 @@ function AmbientOrb({
 }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (isReducedMotion()) return;
+    if (isReducedMotion()) return undefined;
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(progress, { toValue: 1, duration: 9000, useNativeDriver: true }),
       Animated.timing(progress, { toValue: 0, duration: 9000, useNativeDriver: true }),
@@ -70,6 +70,15 @@ function AmbientOrb({
     loop.start();
     return () => loop.stop();
   }, [progress]);
+
+  const animatedTransform = isReducedMotion()
+    ? []
+    : [
+        { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
+        { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
+        { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
+      ];
+
   return (
     <Animated.View
       pointerEvents="none"
@@ -77,11 +86,7 @@ function AmbientOrb({
         {
           position: 'absolute', width: size, height: size, borderRadius: size / 2,
           backgroundColor: color,
-          transform: [
-            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
-            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
-            { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
-          ],
+          transform: animatedTransform,
         },
         style,
       ]}
@@ -181,7 +186,7 @@ export function GlassCard({
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}>
+      <Pressable accessibilityRole="button" onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}>
         {content}
       </Pressable>
     );

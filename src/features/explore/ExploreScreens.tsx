@@ -81,13 +81,23 @@ export function ExploreScreen({ navigation: propNav }: any) {
             <Input value={query} onChange={setQuery} placeholder={t('explore.searchPlaceholder')} icon="search" />
           </FadeIn>
           <FadeIn index={1}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              accessibilityRole="tablist"
+              contentContainerStyle={{ gap: 8 }}
+            >
               {fields.map((f) => (
                 <Chip key={f} label={f === 'all' ? t('common.all') : f} active={f === field} onPress={() => setField(f)} />
               ))}
             </ScrollView>
             <Spacer size={8} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              accessibilityRole="tablist"
+              contentContainerStyle={{ gap: 8 }}
+            >
               <Chip label={t('common.all')} active={branchId === 'all'} onPress={() => setBranchId('all')} icon="business" />
               {db.branches.map((b) => (
                 <Chip key={b.id} label={b.name.replace('فرع ', '')} active={branchId === b.id} onPress={() => setBranchId(b.id)} icon="business" />

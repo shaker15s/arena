@@ -65,9 +65,20 @@ export async function enqueueCommand(command: OfflineCommand): Promise<void> {
   await writeStore(map);
 }
 
+function generateUUIDv4(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /** مساعد سريع لإنشاء أمر بمعرّف uuid وتخزينه فورًا. */
 export async function pushOfflineCommand(command: string, payload: Record<string, unknown> = {}): Promise<OfflineCommand> {
-  const id = globalThis.crypto?.randomUUID?.() ?? `cmd-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const id = generateUUIDv4();
   const cmd: OfflineCommand = {
     id, command, payload, deviceCreatedAt: Date.now(),
     status: 'pending', attemptCount: 0,

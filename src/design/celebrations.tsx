@@ -17,17 +17,17 @@ import { useI18n } from '../i18n';
 // ── جسيمات الكونفيتي ──
 const CONFETTI_COLORS = ['#007AFF', '#5856D6', '#30D158', '#FF9F0A', '#FF3B30', '#FFB800', '#34C759'];
 
-export function ConfettiBurst({ count = 70 }: { count?: number }) {
+export function ConfettiBurst({ count = 35 }: { count?: number }) {
   const particles = useMemo(() => {
-    return Array.from({ length: count }).map((_, i) => ({
+    return Array.from({ length: Math.min(count, 40) }).map((_, i) => ({
       key: i,
       color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
       x: new Animated.Value(0),
       y: new Animated.Value(0),
       opacity: new Animated.Value(1),
-      dx: (Math.random() - 0.5) * 320,
-      dy: -(80 + Math.random() * 300),
-      size: 5 + Math.random() * 7,
+      dx: (Math.random() - 0.5) * 280,
+      dy: -(60 + Math.random() * 240),
+      size: 5 + Math.random() * 6,
       round: Math.random() > 0.5,
     }));
   }, [count]);
@@ -35,11 +35,11 @@ export function ConfettiBurst({ count = 70 }: { count?: number }) {
   useEffect(() => {
     if (isReducedMotion()) return;
     particles.forEach((p) => {
-      const delay = Math.random() * 160;
+      const delay = Math.random() * 120;
       Animated.parallel([
-        Animated.timing(p.x, { toValue: p.dx, duration: duration.celebration + Math.random() * 500, delay, useNativeDriver: true }),
-        Animated.timing(p.y, { toValue: 340 + Math.random() * 140, duration: duration.celebration + Math.random() * 500, delay, useNativeDriver: true }),
-        Animated.timing(p.opacity, { toValue: 0, duration: duration.celebration + Math.random() * 400, delay: delay + 240, useNativeDriver: true }),
+        Animated.timing(p.x, { toValue: p.dx, duration: duration.celebration + Math.random() * 400, delay, useNativeDriver: true }),
+        Animated.timing(p.y, { toValue: 300 + Math.random() * 120, duration: duration.celebration + Math.random() * 400, delay, useNativeDriver: true }),
+        Animated.timing(p.opacity, { toValue: 0, duration: duration.celebration + Math.random() * 300, delay: delay + 200, useNativeDriver: true }),
       ]).start();
     });
   }, [particles]);
@@ -98,6 +98,7 @@ export function DrawnCheck({ size = 120, color, onDone }: { size?: number; color
 // ── نافذة نجاح موحدة (Apple Glass) ──
 export function CelebrationModal({
   visible, onClose, title, subtitle, points, streakSafe, emoji = '🎉',
+  fly = true,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -106,49 +107,42 @@ export function CelebrationModal({
   points?: number;
   streakSafe?: boolean;
   emoji?: string;
+  fly?: boolean;
 }) {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
-  const [fly, setFly] = useState(false);
   const flyAnim = useRef(new Animated.Value(0)).current;
-  const cardScale = useRef(new Animated.Value(0.85)).current;
-
   useEffect(() => {
-    if (visible) {
-      cardScale.setValue(isReducedMotion() ? 1 : 0.85);
-      if (!isReducedMotion()) Animated.spring(cardScale, { toValue: 1, damping: 15, stiffness: 120, useNativeDriver: true }).start();
-      setFly(false);
+    if (visible && points != null && fly) {
       flyAnim.setValue(0);
-      const t = setTimeout(() => {
-        setFly(true);
-        Animated.timing(flyAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-      }, isReducedMotion() ? 100 : 420);
-      return () => clearTimeout(t);
+      Animated.spring(flyAnim, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 200 }).start();
     }
-    return undefined;
-  }, [visible, flyAnim, cardScale]);
+  }, [visible, points, fly, flyAnim]);
 
   if (!visible) return null;
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.s6 }}>
-        <ConfettiBurst />
-        <Animated.View style={{
-          transform: [{ scale: cardScale }],
-          backgroundColor: isDark ? theme.card : theme.card,
-          borderRadius: radii.xl,
-          padding: spacing.s6,
-          alignItems: 'center',
-          width: '100%',
-          maxWidth: 420,
-          borderWidth: 1,
-          borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
-          shadowColor: '#000',
-          shadowOpacity: 0.15,
-          shadowRadius: 30,
-          shadowOffset: { width: 0, height: 12 },
-          gap: 14,
-        }}>
+      <View style={{ flex: 1, backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.s5 }}>
+        <ConfettiBurst count={30} />
+        <Animated.View
+          accessibilityRole="alert"
+          accessibilityLabel={`${title}. ${subtitle ?? ''}`}
+          style={{
+            backgroundColor: isDark ? theme.card : theme.card,
+            borderRadius: radii.xl,
+            padding: spacing.s6,
+            alignItems: 'center',
+            width: '100%',
+            maxWidth: 380,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
+            shadowColor: '#000',
+            shadowOpacity: 0.15,
+            shadowRadius: 30,
+            shadowOffset: { width: 0, height: 12 },
+            gap: 14,
+          }}
+        >
           <DrawnCheck color={theme.success} />
           <Txt variant="h2" align="center">{title}</Txt>
           {subtitle ? <Txt variant="body" color={theme.textSecondary} align="center">{subtitle}</Txt> : null}
@@ -205,24 +199,28 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.s6 }}>
-        <ConfettiBurst count={50} />
-        <Animated.View style={{
-          transform: [{ scale }, { rotateY: rotateDeg }],
-          backgroundColor: isDark ? theme.card : theme.card,
-          borderRadius: radii.xl,
-          padding: spacing.s6,
-          alignItems: 'center',
-          width: '100%',
-          maxWidth: 420,
-          gap: 14,
-          borderWidth: 1,
-          borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
-          shadowColor: '#000',
-          shadowOpacity: 0.15,
-          shadowRadius: 30,
-          shadowOffset: { width: 0, height: 12 },
-        }}>
+      <View style={{ flex: 1, backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.s5 }}>
+        <ConfettiBurst count={30} />
+        <Animated.View
+          accessibilityRole="alert"
+          accessibilityLabel={`شارة جديدة: ${badgeName}. ${badgeDesc}`}
+          style={{
+            transform: [{ scale }, { rotateY: rotateDeg }],
+            backgroundColor: isDark ? theme.card : theme.card,
+            borderRadius: radii.xl,
+            padding: spacing.s6,
+            alignItems: 'center',
+            width: '100%',
+            maxWidth: 360,
+            gap: 14,
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
+            shadowColor: '#000',
+            shadowOpacity: 0.15,
+            shadowRadius: 30,
+            shadowOffset: { width: 0, height: 12 },
+          }}
+        >
           {/* Badge icon with rarity glow */}
           <View style={{ position: 'relative' }}>
             <View style={{

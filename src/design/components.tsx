@@ -185,14 +185,15 @@ export function Btn({
     : variant === 'gold' ? theme.certGold
     : 'transparent';
   const fg =
-    variant === 'primary' ? '#FFFFFF'
+    variant === 'primary' ? theme.onBrand
     : variant === 'secondary' ? theme.brand
     : variant === 'danger' ? theme.danger
     : variant === 'success' ? theme.success
     : variant === 'gold' ? '#3D2B00'
     : theme.textSecondary;
-  const padV = size === 'lg' ? 16 : size === 'md' ? 13 : 9;
+  const padV = size === 'lg' ? 16 : size === 'md' ? 13 : 10;
   const padH = size === 'lg' ? 24 : size === 'md' ? 18 : 14;
+  const minBtnHeight = size === 'lg' ? 64 : size === 'md' ? 56 : 48;
 
   const press = (v: number) =>
     Animated.spring(scale, { toValue: v, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
@@ -226,7 +227,7 @@ export function Btn({
               borderRadius: radii.button,
               paddingVertical: padV,
               paddingHorizontal: padH,
-              minHeight: size === 'lg' ? 56 : 48,
+              minHeight: minBtnHeight,
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row',
@@ -265,7 +266,7 @@ export function Btn({
             borderRadius: radii.button,
             paddingVertical: padV,
             paddingHorizontal: padH,
-            minHeight: size === 'lg' ? 56 : 48,
+            minHeight: minBtnHeight,
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'row',
@@ -309,16 +310,16 @@ export function Chip({ label, active, onPress, icon }: {
       onPress={onPress ? () => { impactLight(); onPress(); } : undefined}
       style={({ pressed }) => ({
         flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40,
-        backgroundColor: active ? theme.brand : isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+        backgroundColor: active ? theme.brand : theme.glass,
         borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 9,
         borderWidth: 0.5,
-        borderColor: active ? 'transparent' : isDark ? 'rgba(84,84,88,0.3)' : 'rgba(60,60,67,0.15)',
+        borderColor: active ? 'transparent' : theme.line,
         opacity: pressed ? 0.7 : 1,
         transform: [{ scale: pressed ? 0.96 : 1 }],
       })}
     >
-      {icon ? <Ionicons name={icon} size={14} color={active ? '#fff' : theme.textSecondary} /> : null}
-      <Txt variant="caption" color={active ? '#fff' : theme.textSecondary}>{label}</Txt>
+      {icon ? <Ionicons name={icon} size={14} color={active ? theme.onBrand : theme.textSecondary} /> : null}
+      <Txt variant="caption" color={active ? theme.onBrand : theme.textSecondary}>{label}</Txt>
     </Pressable>
   );
 }
@@ -474,6 +475,7 @@ export function ProgressBar({ progress, color, height = 8, track }: {
 }) {
   const { theme, isDark } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
+  const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
   useEffect(() => {
     Animated.timing(anim, {
       toValue: Math.min(1, Math.max(0, progress)),
@@ -483,7 +485,11 @@ export function ProgressBar({ progress, color, height = 8, track }: {
   }, [progress, anim]);
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   return (
-    <View style={{ height, borderRadius: height, backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)', overflow: 'hidden' }}>
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: pct }}
+      style={{ height, borderRadius: height, backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)', overflow: 'hidden' }}
+    >
       <Animated.View style={{ height, borderRadius: height, backgroundColor: color ?? theme.brand, width }} />
     </View>
   );
@@ -587,6 +593,8 @@ export function CountUp({ value, variant = 'numberHero', color, duration: dur = 
 
 export function FadeIn({ children, index = 0, delay = 0, style }: { children: React.ReactNode; index?: number; delay?: number; style?: ViewStyle | ViewStyle[] }) {
   const anim = useRef(new Animated.Value(0)).current;
+  const runningAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+
   useEffect(() => {
     const finalDelay = delay > 0 ? Math.min(delay, 420) : staggerDelay(index);
     if (isReducedMotion()) {
@@ -598,16 +606,17 @@ export function FadeIn({ children, index = 0, delay = 0, style }: { children: Re
         damping: 20,
         stiffness: 150,
       });
-      if (finalDelay > 0) {
-        Animated.sequence([
-          Animated.delay(finalDelay),
-          springAnim
-        ]).start();
-      } else {
-        springAnim.start();
-      }
+      const composed = finalDelay > 0
+        ? Animated.sequence([Animated.delay(finalDelay), springAnim])
+        : springAnim;
+      runningAnimRef.current = composed;
+      composed.start();
     }
+    return () => {
+      runningAnimRef.current?.stop();
+    };
   }, [anim, index, delay]);
+
   return (
     <Animated.View style={[{
       opacity: anim,
@@ -647,14 +656,17 @@ export function Empty({ emoji, title, body, cta, onCta }: {
   return (
     <FadeIn>
       <View style={{ alignItems: 'center', paddingVertical: spacing.s10, paddingHorizontal: spacing.s6, gap: 12 }}>
-        <View style={{
-          width: 92, height: 92, borderRadius: 30,
-          alignItems: 'center', justifyContent: 'center',
-          backgroundColor: theme.brandSoft,
-          borderWidth: 1, borderColor: `${theme.brand}22`,
-          transform: [{ rotate: '-3deg' }],
-        }}>
-          <Text style={{ fontSize: 44, transform: [{ rotate: '3deg' }] }}>{emoji}</Text>
+        <View
+          accessible={false}
+          style={{
+            width: 92, height: 92, borderRadius: 30,
+            alignItems: 'center', justifyContent: 'center',
+            backgroundColor: theme.brandSoft,
+            borderWidth: 1, borderColor: `${theme.brand}22`,
+            transform: [{ rotate: '-3deg' }],
+          }}
+        >
+          <Text accessible={false} style={{ fontSize: 44, transform: [{ rotate: '3deg' }] }}>{emoji}</Text>
         </View>
         <Txt variant="h2" align="center">{title}</Txt>
         {body ? <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 340 }}>{body}</Txt> : null}
@@ -829,14 +841,17 @@ export function Sheet({ visible, onClose, children, title }: {
             {title ? (
               <Row between center style={{ marginBottom: 12 }}>
                 <Txt variant="h2" style={{ flex: 1 }}>{title}</Txt>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('common.close')}
-                  onPress={onClose}
-                  style={[webPointer, { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }]}
-                >
-                  <Ionicons name="close" size={18} color={theme.textSecondary} />
-                </Pressable>
+                <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('common.close') || 'Close dialog'}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    onPress={onClose}
+                    style={[webPointer, { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }]}
+                  >
+                    <Ionicons name="close" size={18} color={theme.textSecondary} />
+                  </Pressable>
+                </View>
               </Row>
             ) : null}
 

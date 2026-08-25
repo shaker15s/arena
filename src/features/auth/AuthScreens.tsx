@@ -203,12 +203,16 @@ export function SignInScreen({ navigation }: any) {
 
         <FadeIn index={3}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('auth.continueGoogle')}
+            accessibilityHint="تسجيل الدخول الآمن بحساب Google"
             onPress={submit}
             disabled={loading || !configured}
             style={({ pressed }) => ({
               backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF',
               borderRadius: 16,
               paddingVertical: 16,
+              minHeight: 56,
               alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
               borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(60,60,67,0.12)',
               opacity: !configured ? 0.5 : pressed ? 0.85 : 1,

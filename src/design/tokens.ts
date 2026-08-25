@@ -1,11 +1,10 @@
 /**
  * design/tokens.ts — المصدر الوحيد للألوان/التايب/المسافات (وثيقة 05)
  * تصميم أبل الزجاجي (Liquid Glass) — فخامة وشفافية وسلاسة
- * ممنوع أي لون أو مسافة أو خط حرفي خارج هذا الملف.
  */
 
 export const spacing = {
-  s1: 4, s2: 8, s3: 12, s4: 16, s5: 20, s6: 24, s8: 32, s10: 40, s12: 48,
+  s1: 4, s2: 8, s3: 12, s4: 16, s5: 20, s6: 24, s7: 28, s8: 32, s9: 36, s10: 40, s11: 44, s12: 48,
 } as const;
 
 export const radii = {
@@ -43,6 +42,9 @@ export interface ThemeColors {
   brandGradientFrom: string;
   brandGradientTo: string;
   brandGradientMid: string;
+  onBrand: string;
+  onSuccess: string;
+  onDark: string;
   teal: string;
   success: string;
   successSoft: string;
@@ -86,6 +88,9 @@ export const lightTheme: ThemeColors = {
   brandGradientFrom: '#007AFF',
   brandGradientTo: '#5856D6',
   brandGradientMid: '#5E5CE6',
+  onBrand: '#FFFFFF',
+  onSuccess: '#FFFFFF',
+  onDark: '#FFFFFF',
   teal: '#30D158',
   success: '#34C759',
   successSoft: '#E8F9ED',
@@ -118,7 +123,7 @@ export const lightTheme: ThemeColors = {
   cardElevated: 'rgba(255, 255, 255, 0.9)',
   surfaceGlass: 'rgba(255, 255, 255, 0.65)',
   backdropBlur: 'rgba(249, 249, 249, 0.94)',
-  separator: 'rgba(60, 60, 67, 0.1)',
+  separator: 'rgba(60, 60, 67, 0.18)',
 };
 
 export const darkTheme: ThemeColors = {
