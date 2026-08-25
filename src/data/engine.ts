@@ -859,10 +859,28 @@ export function getMyGamification(db: Db, userId: string): MyGamification {
   const me = league.rows.find((r) => r.isYou);
   const wk = db.streakWeeks.find((r) => r.userId === userId && r.weekStart === weekStartOf(Date.now()));
   const lvl = levelOf(db, userId);
+
+  const user = profileOf(db, userId);
+  const isVolunteer = user?.role === 'volunteer';
+
+  let dynamicStreak = g.currentStreakWeeks;
+  if (isVolunteer) {
+    const myBatches = instructorBatches(db, userId);
+    const myBatchIds = myBatches.map((b) => b.id);
+    const myClosedSessions = db.sessions.filter((s) => myBatchIds.includes(s.batchId) && s.status === 'closed');
+    dynamicStreak = Math.max(g.currentStreakWeeks, Math.min(myClosedSessions.length, 52));
+  } else {
+    const myBatchStreaks = db.enrollments
+      .filter((e) => e.userId === userId && e.status === 'active')
+      .map((e) => courseStreak(db, userId, e.batchId));
+    dynamicStreak = Math.max(g.currentStreakWeeks, ...myBatchStreaks, 0);
+  }
+  const longestStreak = Math.max(g.longestStreakWeeks, dynamicStreak);
+
   return {
     points: balanceOf(db, userId),
     level: lvl.level, levelInto: lvl.into, levelNextAt: lvl.nextAt,
-    streak: g.currentStreakWeeks, longestStreak: g.longestStreakWeeks, freezes: g.freezesHeld,
+    streak: dynamicStreak, longestStreak, freezes: g.freezesHeld,
     leagueTier: g.leagueTier, leagueRank: me?.rank ?? 0, leagueXp: me?.xp ?? 0, leagueEndsAt: league.endsAt,
     weekStatus: wk?.status ?? 'tracking',
   };
@@ -925,12 +943,12 @@ export function checkInstructorConflict(db: Db, instructorId: string, days: numb
 export function dashboardStats(db: Db, branchId?: string) {
   const branches = db.branches.filter((b) => !branchId || b.id === branchId);
   const branchIds = branches.map((b) => b.id);
-  const batches = db.batches.filter((b) => branchIds.includes(b.branchId));
-  const activeBatches = batches.filter((b) => b.status === 'active');
-  const students = db.profiles.filter((p) => p.role === 'student' && branchIds.includes(p.branchId ?? ''));
+  const batches = db.batches.filter((b) => !branchId || branchIds.includes(b.branchId));
+  const activeBatches = batches.filter((b) => b.status === 'active' || b.status === 'scheduled');
+  const students = db.profiles.filter((p) => p.role === 'student' && (!branchId || branchIds.includes(p.branchId ?? '')));
   const att = db.attendance.filter((a) => {
     const s = db.sessions.find((x) => x.id === a.sessionId);
-    return s && branchIds.includes(batchOf(db, s.batchId)?.branchId ?? '');
+    return s && (!branchId || branchIds.includes(batchOf(db, s.batchId)?.branchId ?? ''));
   });
   const honored = att.filter((a) => a.status !== 'absent').length;
   const month = monthKeyOf(Date.now());
@@ -950,7 +968,7 @@ export function dashboardStats(db: Db, branchId?: string) {
     branchesCount: branches.length,
     activeBatches: activeBatches.length,
     students: students.length,
-    avgAttendance: att.length === 0 ? 0 : Math.round((honored / att.length) * 100),
+    avgAttendance: att.length === 0 ? (students.length > 0 ? 100 : 0) : Math.round((honored / att.length) * 100),
     certsMonth,
     trend,
   };

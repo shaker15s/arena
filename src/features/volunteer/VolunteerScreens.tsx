@@ -51,13 +51,13 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
     return s && batches.some((b) => b.id === s.batchId) && e.status === 'pending';
   }).length;
 
-  // متوسط حضور مجموعاتي
-  const monthKey = monthKeyOf(Date.now());
+  // متوسط حضور مجموعاتي التدريبية
+  const myClosedSessions = db.sessions.filter((s) => batches.some((b) => b.id === s.batchId) && s.status === 'closed');
+  const myAttendanceRows = db.attendance.filter((a) => myClosedSessions.some((s) => s.id === a.sessionId));
   const monthAttendance = (() => {
-    const sess = db.sessions.filter((s) => batches.some((b) => b.id === s.batchId) && s.status === 'closed' && monthKeyOf(s.startsAt) === monthKey);
-    const rows = db.attendance.filter((a) => sess.some((s) => s.id === a.sessionId));
-    if (rows.length === 0) return 0;
-    return Math.round((rows.filter((a) => a.status !== 'absent').length / rows.length) * 100);
+    if (myAttendanceRows.length === 0) return batches.length > 0 ? 100 : 0;
+    const honored = myAttendanceRows.filter((a) => a.status !== 'absent').length;
+    return Math.round((honored / myAttendanceRows.length) * 100);
   })();
 
   return (
