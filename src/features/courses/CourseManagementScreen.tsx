@@ -8,7 +8,7 @@ import {
   attendancePct, batchStudents, courseOf, isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import {
-  notifySessionAbsentees, startTrainingSession, updateCourse, createSessionForBatch, getBatchRoster,
+  notifySessionAbsentees, startTrainingSession, updateCourse, getBatchRoster,
 } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';

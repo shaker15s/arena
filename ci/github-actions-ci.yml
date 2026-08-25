@@ -47,3 +47,18 @@ jobs:
             exit 1
           fi
           echo "OK — no broken CHECK constraints"
+
+  database:
+    name: supabase · db reset (best-effort)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase & apply migrations
+        run: supabase start
+      - name: Reset DB from empty & apply all migrations
+        run: supabase db reset

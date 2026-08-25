@@ -11,10 +11,11 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { useApp } from '../../data/store';
+import { revokeCertificate, reissueCertificate } from '../../data/actions';
 import { batchOf, courseOf, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Row, Spacer, Tag, Txt } from '../../design/components';
+import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Input, Row, Spacer, Tag, Txt } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
@@ -58,7 +59,11 @@ export function CertificatesScreen({ navigation }: any) {
                         <Ionicons name="barcode" size={13} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>{cert.serial}</Txt>
                       </Row>
-                      <Tag label={t('verify.verified')} color={theme.success} bg={theme.successSoft} icon="shield-checkmark" />
+                      {cert.status === 'revoked' ? (
+                        <Tag label={t('certs.statusRevoked')} color={theme.danger} bg={theme.dangerSoft} icon="ban" />
+                      ) : (
+                        <Tag label={t('verify.verified')} color={theme.success} bg={theme.successSoft} icon="shield-checkmark" />
+                      )}
                     </Row>
                   </View>
                 </Card>
@@ -77,10 +82,13 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, toast } = useApp();
+  const { db, user, toast, refresh } = useApp();
   const cert = db.certificates.find((c) => c.id === route.params.certId);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [reason, setReason] = useState('');
+  const [acting, setActing] = useState(false);
   const stamp = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -129,7 +137,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
       } else {
         const file = await Print.printToFileAsync({ html, base64: false });
         if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: share ? t('certs.sharePng') : t('certs.downloadPdf') });
+          await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: share ? t('certs.sharePdf') : t('certs.downloadPdf') });
         } else {
           toast(file.uri, 'success');
         }
@@ -138,6 +146,37 @@ export function CertificateViewerScreen({ route, navigation }: any) {
       toast((error as Error).message, 'error');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const isManager = !!user && (user.role === 'admin' || user.role === 'supervisor');
+
+  const doRevoke = async () => {
+    if (!reason.trim()) return;
+    setActing(true);
+    try {
+      await revokeCertificate(cert.id, reason.trim());
+      await refresh();
+      setRevoking(false);
+      setReason('');
+      toast(t('certs.rejected'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const doReissue = async () => {
+    setActing(true);
+    try {
+      await reissueCertificate(cert.id);
+      await refresh();
+      toast(t('certs.reissued'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setActing(false);
     }
   };
 
@@ -188,12 +227,18 @@ export function CertificateViewerScreen({ route, navigation }: any) {
                 <Animated.View style={{
                   transform: [{ scale: stamp.interpolate({ inputRange: [0, 1], outputRange: [1.8, 1] }) }, { rotate: '-12deg' }],
                   opacity: stamp,
-                  borderWidth: 3, borderColor: theme.certGold, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
+                  borderWidth: 3, borderColor: cert.status === 'revoked' ? theme.danger : theme.certGold,
+                  borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
                 }}>
-                  <Txt variant="h3" color={theme.certGold} align="center">{t('verify.verified')}</Txt>
+                  <Txt variant="h3" color={cert.status === 'revoked' ? theme.danger : theme.certGold} align="center">
+                    {cert.status === 'revoked' ? t('certs.statusRevoked') : t('verify.verified')}
+                  </Txt>
                 </Animated.View>
                 <Txt variant="micro" color="#95804A" align="center">{t('certs.serial')}</Txt>
                 <Txt variant="caption" color="#3D2B00" style={{ letterSpacing: 1 }}>{cert.serial}</Txt>
+                {cert.status === 'revoked' ? (
+                  <Txt variant="micro" color={theme.danger} align="center">{t('certs.revokeHint')}</Txt>
+                ) : null}
               </View>
             </Row>
           </View>
@@ -205,8 +250,40 @@ export function CertificateViewerScreen({ route, navigation }: any) {
             <Btn title={t('certs.downloadPdf')} icon="download" variant="ghost" loading={exporting} onPress={() => { void exportCertificate(false); }} full />
           </Row>
           <Spacer size={8} />
-          <Btn title={t('certs.sharePng')} icon="share-social" variant="ghost" loading={exporting} full onPress={() => { void exportCertificate(true); }} />
+          <Btn title={t('certs.sharePdf')} icon="share-social" variant="ghost" loading={exporting} full onPress={() => { void exportCertificate(true); }} />
         </FadeIn>
+
+        {isManager ? (
+          <FadeIn index={3}>
+            <Card noPad style={{ overflow: 'hidden' }}>
+              <View style={{ padding: 16, gap: 10 }}>
+                <Txt variant="h3">{t('certs.manage')}</Txt>
+                {cert.status === 'active' && !revoking ? (
+                  <Btn title={t('certs.revoke')} icon="ban" variant="danger" full onPress={() => setRevoking(true)} />
+                ) : null}
+                {cert.status === 'revoked' ? (
+                  <Btn title={t('certs.reissue')} icon="refresh" variant="success" full loading={acting} onPress={() => { void doReissue(); }} />
+                ) : null}
+                {revoking ? (
+                  <>
+                    <Input
+                      label={t('certs.revokeReason')}
+                      value={reason}
+                      onChange={setReason}
+                      multiline
+                      maxLength={400}
+                      placeholder={t('certs.revokeHint')}
+                    />
+                    <Row gap={10}>
+                      <Btn title={t('common.cancel')} variant="ghost" full onPress={() => { setRevoking(false); setReason(''); }} />
+                      <Btn title={t('certs.revokeConfirm')} icon="ban" variant="danger" full loading={acting} disabled={!reason.trim()} onPress={() => { void doRevoke(); }} />
+                    </Row>
+                  </>
+                ) : null}
+              </View>
+            </Card>
+          </FadeIn>
+        ) : null}
       </ScrollView>
     </View>
   );

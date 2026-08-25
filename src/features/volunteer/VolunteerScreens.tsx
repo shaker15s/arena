@@ -14,7 +14,7 @@ import {
   seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import {
-  awardKudos, getSessionReport, notifySessionAbsentees, type SessionReportData,
+  awardKudos, getSessionReport, notifySessionAbsentees, savePrivateNote, type SessionReportData,
 } from '../../data/actions';
 import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
@@ -560,7 +560,7 @@ function ReportStat({ label, value, color }: { label: string; value: number; col
 export function StudentRecordScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, mutate, refresh, toast } = useApp();
+  const { db, user, refresh, toast } = useApp();
   const student = db.profiles.find((p) => p.id === route.params.userId);
   const batch = batchOf(db, route.params.batchId);
   const [note, setNote] = useState('');
@@ -583,12 +583,14 @@ export function StudentRecordScreen({ route, navigation }: any) {
   const left = quota - spent;
 
   const saveNote = async () => {
-    await mutate((d) => {
-      const row = d.privateNotes.find((n) => n.instructorId === user.id && n.userId === student.id);
-      if (row) { row.note = note; row.updatedAt = Date.now(); }
-      else d.privateNotes.push({ instructorId: user.id, userId: student.id, note, updatedAt: Date.now() });
-    });
-    toast(t('student.privateNoteSaved'), 'success');
+    if (!note.trim()) return;
+    try {
+      await savePrivateNote(student.id, note.trim());
+      await refresh();
+      toast(t('student.privateNoteSaved'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    }
   };
 
   const sendKudos = async () => {

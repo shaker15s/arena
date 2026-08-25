@@ -164,6 +164,10 @@ export interface Database {
           room: string | null;
           status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
           join_code: string | null;
+          geofence_enabled: boolean;
+          latitude: number | null;
+          longitude: number | null;
+          radius_m: number;
           created_at?: string;
         };
         Insert: {
@@ -177,6 +181,10 @@ export interface Database {
           room?: string | null;
           status?: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
           join_code?: string | null;
+          geofence_enabled?: boolean;
+          latitude?: number | null;
+          longitude?: number | null;
+          radius_m?: number;
           created_at?: string;
         };
         Update: {
@@ -190,6 +198,10 @@ export interface Database {
           room?: string | null;
           status?: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
           join_code?: string | null;
+          geofence_enabled?: boolean;
+          latitude?: number | null;
+          longitude?: number | null;
+          radius_m?: number;
           created_at?: string;
         };
       };
@@ -455,6 +467,13 @@ export interface Database {
           batch_id: string;
           serial: string;
           issued_at: string;
+          status: 'active' | 'revoked';
+          revoked_at: string | null;
+          revoked_by: string | null;
+          revoke_reason: string | null;
+          reissued_at: string | null;
+          reissued_by: string | null;
+          reissue_count: number;
         };
         Insert: {
           id?: string;
@@ -462,6 +481,13 @@ export interface Database {
           batch_id: string;
           serial: string;
           issued_at?: string;
+          status?: 'active' | 'revoked';
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_reason?: string | null;
+          reissued_at?: string | null;
+          reissued_by?: string | null;
+          reissue_count?: number;
         };
         Update: {
           id?: string;
@@ -469,6 +495,13 @@ export interface Database {
           batch_id?: string;
           serial?: string;
           issued_at?: string;
+          status?: 'active' | 'revoked';
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_reason?: string | null;
+          reissued_at?: string | null;
+          reissued_by?: string | null;
+          reissue_count?: number;
         };
       };
       excuses: {
@@ -699,29 +732,84 @@ export interface Database {
           updated_at?: string;
         };
       };
-    };
-    Functions: {
-      get_user_gamification: {
-        Args: { p_user_id: string };
-        Returns: {
-          points: number;
-          streak: number;
-          level: number;
-          tier: 'bronze' | 'silver' | 'gold' | 'ruby' | 'master';
+      push_tokens: {
+        Row: {
+          user_id: string;
+          token: string;
+          platform: 'android' | 'ios' | 'web' | 'unknown';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          token: string;
+          platform: 'android' | 'ios' | 'web' | 'unknown';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          token?: string;
+          platform?: 'android' | 'ios' | 'web' | 'unknown';
+          created_at?: string;
+          updated_at?: string;
         };
       };
-      check_in_session: {
+    };
+    Functions: {
+      update_course_details: {
         Args: {
-          p_session_id: string;
-          p_user_id: string;
-          p_method: string;
+          p_course_id: string;
+          p_title: string;
+          p_field: string;
+          p_description: string;
+          p_topics: string[];
+          p_sessions_count: number;
         };
+        Returns: { ok: boolean };
+      };
+      update_my_profile: {
+        Args: { p_full_name: string; p_phone: string; p_avatar_url?: string | null };
+        Returns: { ok: boolean };
+      };
+      complete_my_profile: {
+        Args: {
+          p_full_name: string;
+          p_phone: string;
+          p_avatar_url?: string | null;
+          p_branch_id?: string | null;
+          p_gender?: string | null;
+        };
+        Returns: { ok: boolean; profile_id: string };
+      };
+      check_in_with_token: {
+        Args: { p_payload: string; p_lat?: number | null; p_lng?: number | null };
         Returns: {
-          success: boolean;
+          kind: string;
+          status?: 'present' | 'late';
           points?: number;
-          status?: string;
-          error?: string;
+          session_id?: string;
         };
+      };
+      save_private_note: {
+        Args: { p_user_id: string; p_note: string };
+        Returns: { ok: boolean };
+      };
+      revoke_certificate: {
+        Args: { p_certificate_id: string; p_reason: string };
+        Returns: { ok: boolean; status: string };
+      };
+      reissue_certificate: {
+        Args: { p_certificate_id: string };
+        Returns: { ok: boolean; status: string; serial: string };
+      };
+      register_push_token: {
+        Args: { p_token: string; p_platform?: string };
+        Returns: { ok: boolean };
+      };
+      unregister_push_token: {
+        Args: { p_token: string };
+        Returns: { ok: boolean };
       };
     };
   };

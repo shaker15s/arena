@@ -10,14 +10,16 @@ import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
-import { completeMyProfile, deleteMyAccount, updateMyProfile } from './actions';
+import { completeMyProfile, deleteMyAccount, registerPushToken, updateMyProfile } from './actions';
+import { getDevicePushToken } from '../shared/push';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
-import { applyRealtimePatch, emptyDb, fetchRemoteDb, pushDelta, subscribeRealtime } from './remote';
+import { applyRealtimePatch, emptyDb, fetchRemoteDb, subscribeRealtime } from './remote';
 import { runCommandOnServer } from './actions';
 import { clearCommands, loadCommands, markApplied, markFailed, pruneCommands, pushOfflineCommand } from '../shared/offline';
+import { deepClone } from '../shared/clone';
 
 const CACHE_KEY = 'masar.cache.v2';
 
@@ -53,11 +55,8 @@ interface AppCtx {
   setOnline: (v: boolean) => void;
   toasts: Toast[];
   toast: (message: string, kind?: Toast['kind']) => void;
-  /** تنفيذ عملية على القاعدة ثم كتابة الفروق في Supabase */
-  mutate: <R>(fn: (db: Db) => R) => Promise<R>;
   /** كتابة قابلة للتأجيل: فورية أونلاين، مؤجلة أوفلاين وتُعاد تلقائيًا */
   submitOrQueue: (command: string, payload: Record<string, unknown>) => Promise<{ status: 'applied' | 'queued'; error?: string }>;
-  touch: () => void;
   refresh: () => Promise<void>;
   signInWithGoogle: () => Promise<{ ok: boolean; error: string | null }>;
   completeProfile: (draft: ProfileDraft) => Promise<{ ok: boolean; error?: string }>;
@@ -331,6 +330,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [profileId, refresh, flushOfflineQueue]);
 
+  // ── تسجيل توكن الجهاز (Push) بعد الدخول — محايد على الويب (لا-أوب) ──
+  useEffect(() => {
+    if (!profileId || !SUPABASE_ENABLED) return;
+    let cancelled = false;
+    void (async () => {
+      const push = await getDevicePushToken();
+      if (!push || cancelled) return;
+      try {
+        await registerPushToken(push.token, push.platform);
+      } catch {
+        // غير حرج — نستمر بدون إشعارات.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [profileId]);
+
   // ── مراقبة الاتصال على الويب ──
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -344,46 +359,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('offline', down);
     };
   }, [refresh, flushOfflineQueue]);
-
-  /** تعديل متفائل محليًا + كتابة الفروق فعليًا في Supabase */
-  const mutate = useCallback(async <R,>(fn: (db: Db) => R): Promise<R> => {
-    const before = dbRef.current;
-    const draft = structuredClone(before);
-    const result = fn(draft);
-    dbRef.current = draft;
-    setDb(draft);
-    writeCache(draft);
-
-    if (SUPABASE_ENABLED) {
-      setSyncing(true);
-      try {
-        const rep = await pushDelta(before, draft);
-        if (rep.errors.length) {
-          // لا نترك الواجهة تدّعي نجاح تغيير رفضه الخادم.
-          dbRef.current = before;
-          setDb(before);
-          writeCache(before);
-          setSyncError(rep.errors[0]);
-          toast(rep.errors[0], 'error');
-          void refresh();
-        } else {
-          setSyncError(null);
-          setLastSyncAt(Date.now());
-        }
-      } catch (e) {
-        dbRef.current = before;
-        setDb(before);
-        writeCache(before);
-        setSyncError((e as Error).message);
-        setOnline(false);
-      } finally {
-        setSyncing(false);
-      }
-    }
-    return result;
-  }, [refresh, toast]);
-
-  const touch = useCallback(() => setDb((prev) => ({ ...prev })), []);
 
   // ── الدخول بجوجل ──
   const signInWithGoogle = useCallback(async () => {
@@ -479,7 +454,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!hasUnread) return;
     // تحديث متفائل محلي، والكتابة الفعلية عبر RPC خادمية (0014) لأن upsert
     // المباشر على notifications ترفضه RLS. أوفلاين: يدخل الطابور ويُعاد تلقائيًا.
-    const next = structuredClone(dbRef.current);
+    const next = deepClone(dbRef.current);
     next.notifications.forEach((n) => { if (n.userId === profileId) n.read = true; });
     dbRef.current = next;
     setDb(next);
@@ -496,12 +471,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppCtx>(() => ({
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, loading, syncing,
-    lastSyncAt, syncError, online, setOnline, toasts, toast, mutate, submitOrQueue, touch, refresh,
+    lastSyncAt, syncError, online, setOnline, toasts, toast, submitOrQueue, refresh,
     signInWithGoogle, completeProfile, updateProfile, uploadAvatar, logout,
     deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, loading, syncing, lastSyncAt, syncError, online,
-    toasts, toast, mutate, submitOrQueue, touch, refresh, signInWithGoogle, completeProfile, updateProfile,
+    toasts, toast, submitOrQueue, refresh, signInWithGoogle, completeProfile, updateProfile,
     uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 

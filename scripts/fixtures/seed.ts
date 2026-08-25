@@ -333,6 +333,7 @@ export function buildSeedDb(): Db {
       id: `cert_g3_${userId}`, userId, batchId: IDS.g3,
       serial: `MSR-2026-${String(certSeq).padStart(6, '0')}`,
       issuedAt: now - (31 - i * 0.1) * DAY,
+      status: 'active', reissueCount: 0,
     });
     pushPoints(userId, 100, 'course.complete', now - 31 * DAY, 'batch', IDS.g3);
   });
