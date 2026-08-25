@@ -13,7 +13,7 @@
 import { getSupabase } from './supabase';
 import { deepClone } from '../shared/clone';
 import {
-  Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, Db,
+  Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, CourseRole, Db,
   Enrollment, Excuse, GamificationProfile, GamificationRule, KudosQuota, LeagueWeekRow,
   AppNotification, PointEvent, PrivateNote, Profile, CourseRating, StreakWeek,
   TrainingSession, UserBadge,
@@ -32,6 +32,7 @@ export function emptyDb(): Db {
     sessions: [], attendance: [], pointEvents: [], streakWeeks: [], gamification: [],
     badges: [], userBadges: [], leagueWeeks: [], certificates: [], excuses: [], ratings: [],
     rules: [], audit: [], kudosQuotas: [], notifications: [], privateNotes: [],
+    courseRoles: [], domainEvents: [],
     certSeq: 0, seedVersion: 0,
   };
 }
@@ -83,7 +84,7 @@ export async function fetchRemoteDb(): Promise<Db> {
   const [
     profiles, branches, committees, courses, batches, batchStats, enrollments, sessions, attendance,
     pointEvents, streakWeeks, gamification, badges, userBadges, leagueWeeks, certificates,
-    excuses, ratings, rules, audit, kudosQuotas, notifications, privateNotes,
+    excuses, ratings, rules, audit, kudosQuotas, notifications, privateNotes, courseRoles,
   ] = await Promise.all([
     callRows<any>('list_visible_profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
     selectAll<any>('courses'), selectAll<any>('batches'), callRows<any>('get_batch_stats'), selectAll<any>('enrollments'),
@@ -94,6 +95,7 @@ export async function fetchRemoteDb(): Promise<Db> {
     selectAll<any>('excuses'), selectAll<any>('course_ratings'), selectAll<any>('gamification_rules'),
     selectRecent<any>('audit_log'), selectAll<any>('kudos_quotas'), selectAll<any>('notifications'),
     selectAll<any>('private_notes'),
+    selectAll<any>('course_roles').catch(() => []),
   ]);
   const statsByBatch = new Map(batchStats.map((r: any) => [r.batch_id, r]));
 
@@ -108,7 +110,6 @@ export async function fetchRemoteDb(): Promise<Db> {
       branchId: r.branch_id ?? null,
       avatarUrl: r.avatar_url ?? null,
       avatarColor: r.avatar_color ?? '#007AFF',
-      // لا نفترض نوعًا لمن لم يحدده — كانت ?? 'm' تسجل الجميع ذكورًا زورًا.
       gender: (r.gender === 'f' ? 'f' : r.gender === 'm' ? 'm' : null) as Profile['gender'],
       status: r.status ?? 'active',
       joinedAt: tsOr(r.joined_at, Date.now()),
@@ -119,7 +120,7 @@ export async function fetchRemoteDb(): Promise<Db> {
     })),
     committees: committees.map((r): Committee => ({ id: r.id, branchId: r.branch_id, name: r.name })),
     courses: courses.map((r): Course => ({
-      id: r.id, committeeId: r.committee_id ?? '', title: r.title, field: r.field,
+      id: r.id, ownerId: r.owner_id ?? null, committeeId: r.committee_id ?? '', title: r.title, field: r.field,
       description: r.description ?? '', topics: r.topics ?? [],
       sessionsCount: r.sessions_count ?? 0, status: r.status, color: r.color ?? '#007AFF',
     })),
@@ -214,6 +215,11 @@ export async function fetchRemoteDb(): Promise<Db> {
     privateNotes: privateNotes.map((r): PrivateNote => ({
       instructorId: r.instructor_id, userId: r.user_id, note: r.note, updatedAt: tsOr(r.updated_at),
     })),
+    courseRoles: courseRoles.map((r): CourseRole => ({
+      id: r.id, courseId: r.course_id, userId: r.user_id, role: r.role,
+      createdAt: tsOr(r.created_at),
+    })),
+    domainEvents: [],
     certSeq: certificates.length,
     seedVersion: 0,
   };
@@ -448,6 +454,17 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
       };
       const i = next.excuses.findIndex((x) => x.id === id);
       if (i >= 0) next.excuses[i] = ex; else next.excuses.push(ex);
+      break;
+    }
+    case 'course_roles': {
+      const id = str(row.id);
+      if (del) { next.courseRoles = next.courseRoles.filter((x) => x.id !== id); break; }
+      const cr: CourseRole = {
+        id, courseId: str(row.course_id), userId: str(row.user_id), role: row.role as CourseRole['role'],
+        createdAt: tsVal(row.created_at) ?? Date.now(),
+      };
+      const i = next.courseRoles.findIndex((x) => x.id === id);
+      if (i >= 0) next.courseRoles[i] = cr; else next.courseRoles.push(cr);
       break;
     }
     default:

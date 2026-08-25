@@ -142,6 +142,48 @@ export function instructorBatches(db: Db, instructorId: string): Batch[] {
   return db.batches.filter((b) => b.instructorId === instructorId && b.status !== 'archived');
 }
 
+export function canManageCourse(db: Db, courseId: string, userId: string): boolean {
+  const user = profileOf(db, userId);
+  if (!user) return false;
+  if (user.role === 'admin' || user.role === 'supervisor') return true;
+  const course = courseOf(db, courseId);
+  if (course?.ownerId === userId) return true;
+  if (db.courseRoles?.some((r) => r.courseId === courseId && r.userId === userId && ['owner', 'organizer', 'coordinator'].includes(r.role))) {
+    return true;
+  }
+  return db.batches.some((b) => b.courseId === courseId && b.instructorId === userId && b.status !== 'archived');
+}
+
+export function courseOrganizers(db: Db, courseId: string): Profile[] {
+  const userIds = db.courseRoles?.filter((r) => r.courseId === courseId).map((r) => r.userId) ?? [];
+  const course = courseOf(db, courseId);
+  if (course?.ownerId && !userIds.includes(course.ownerId)) {
+    userIds.push(course.ownerId);
+  }
+  return db.profiles.filter((p) => userIds.includes(p.id));
+}
+
+export function cancelSessionInEngine(db: Db, sessionId: string, reason: string, cancelledBy?: string) {
+  const sess = db.sessions.find((s) => s.id === sessionId);
+  if (!sess) return;
+  sess.status = 'cancelled';
+  sess.qrSeed = undefined;
+  sess.report = {
+    done: '',
+    planned: '',
+    challenges: reason,
+    submittedAt: Date.now(),
+  };
+  audit(db, cancelledBy ?? 'system', 'cancel_session', sessionId, { reason });
+}
+
+export function rescheduleSessionInEngine(db: Db, sessionId: string, startsAt: number, reason?: string) {
+  const sess = db.sessions.find((s) => s.id === sessionId);
+  if (!sess) return;
+  sess.startsAt = startsAt;
+  audit(db, 'system', 'reschedule_session', sessionId, { startsAt, reason });
+}
+
 export function nextSessionForUser(db: Db, userId: string): TrainingSession | undefined {
   const ids = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
   return db.sessions

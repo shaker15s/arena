@@ -37,16 +37,29 @@ export interface Committee {
   name: string;
 }
 
+export type CourseStatus = 'draft' | 'pending_approval' | 'published' | 'running' | 'completed' | 'archived' | 'cancelled';
+
 export interface Course {
   id: string;
+  ownerId?: string | null;
   committeeId: string;
   title: string;
   field: string;
   description: string;
   topics: string[];
   sessionsCount: number;
-  status: 'draft' | 'published' | 'archived';
+  status: CourseStatus;
   color: string;
+}
+
+export type CourseRoleType = 'owner' | 'organizer' | 'coordinator' | 'instructor_delegate';
+
+export interface CourseRole {
+  id: string;
+  courseId: string;
+  userId: string;
+  role: CourseRoleType;
+  createdAt: number;
 }
 
 export interface BatchSchedule {
@@ -54,6 +67,8 @@ export interface BatchSchedule {
   time: string;   // "18:00"
   durationMin: number;
 }
+
+export type BatchStatus = 'scheduled' | 'active' | 'completed' | 'archived' | 'cancelled';
 
 export interface Batch {
   id: string;
@@ -67,7 +82,7 @@ export interface Batch {
   schedule: BatchSchedule;
   startDate: number;
   room: string;
-  status: 'scheduled' | 'active' | 'completed' | 'archived';
+  status: BatchStatus;
   joinCode: string;
   /** Geofence اختياري — يُفعَّل خادميًا على المجموعات المفعّلة فقط. */
   geofenceEnabled?: boolean;
@@ -83,7 +98,7 @@ export interface Enrollment {
   joinedAt: number;
 }
 
-export type SessionStatus = 'scheduled' | 'live' | 'closed';
+export type SessionStatus = 'scheduled' | 'live' | 'closed' | 'cancelled';
 
 export interface TrainingSession {
   id: string;
@@ -97,6 +112,17 @@ export interface TrainingSession {
   closedAt?: number;
   qrSeed?: string; // بذرة توكنات الدوران (سيرفري)
   report?: SessionReport;
+}
+
+export interface DomainEvent {
+  id: string;
+  eventType: string;
+  entityType: string;
+  entityId: string;
+  actorId?: string | null;
+  semanticKey: string;
+  payload?: Record<string, any>;
+  createdAt: number;
 }
 
 export interface SessionReport {
@@ -287,6 +313,8 @@ export interface Db {
   kudosQuotas: KudosQuota[];
   notifications: AppNotification[];
   privateNotes: PrivateNote[];
+  courseRoles: CourseRole[];
+  domainEvents: DomainEvent[];
   certSeq: number;
   seedVersion: number;
 }

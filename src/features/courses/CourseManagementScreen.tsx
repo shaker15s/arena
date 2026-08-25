@@ -5,20 +5,24 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { useApp } from '../../data/store';
 import {
-  attendancePct, batchStudents, courseOf, isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
+  attendancePct, batchStudents, canManageCourse, courseOf, courseOrganizers,
+  isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import {
-  notifySessionAbsentees, startTrainingSession, updateCourse, getBatchRoster, sendBroadcast,
+  assignCourseRole, cancelBatch, cancelTrainingSession, getBatchRoster, getDetailedCourseAnalytics,
+  notifySessionAbsentees, rescheduleTrainingSession, revokeCourseRole, sendBroadcast,
+  startTrainingSession, updateCourse, type DetailedCourseAnalytics,
 } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row, Segmented, Sheet, Spacer, Stars, Tag, Txt,
+  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row,
+  Segmented, Sheet, Spacer, Stars, Tag, Txt,
 } from '../../design/components';
 import { spacing } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
 import { publicJoinUrl } from '../../shared/links';
-import type { TrainingSession } from '../../data/types';
+import type { CourseRoleType, TrainingSession } from '../../data/types';
 import { BatchFormSheet } from '../org/AdminScreens';
 
 export function CourseManagementScreen({ route, navigation }: any) {
@@ -35,13 +39,17 @@ export function CourseManagementScreen({ route, navigation }: any) {
     if (!courseId || !user) return [];
     return db.batches
       .filter((batch) => batch.courseId === courseId)
-      .filter((batch) => user.role === 'admin' || user.role === 'supervisor' || batch.instructorId === user.id)
+      .filter((batch) => user.role === 'admin' || user.role === 'supervisor' || canManageCourse(db, courseId, user.id) || batch.instructorId === user.id)
       .sort((a, b) => b.startDate - a.startDate);
-  }, [courseId, db.batches, user]);
+  }, [courseId, db.batches, db.courseRoles, user]);
 
   const [batchId, setBatchId] = useState<string>(requestedBatchId ?? allowedBatches[0]?.id ?? '');
-  const [tab, setTab] = useState<'overview' | 'students' | 'sessions' | 'reviews'>('overview');
+  const [tab, setTab] = useState<'overview' | 'sessions' | 'students' | 'staff' | 'analytics' | 'reviews'>('overview');
   const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
+  const [rescheduleSession, setRescheduleSession] = useState<TrainingSession | null>(null);
+  const [cancelSessionTarget, setCancelSessionTarget] = useState<TrainingSession | null>(null);
+  const [cancelBatchTarget, setCancelBatchTarget] = useState<string | null>(null);
+  const [assignRoleOpen, setAssignRoleOpen] = useState(false);
   const [joinQrOpen, setJoinQrOpen] = useState(false);
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [newBatchOpen, setNewBatchOpen] = useState(false);
@@ -51,6 +59,18 @@ export function CourseManagementScreen({ route, navigation }: any) {
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
   const [startingSessionId, setStartingSessionId] = useState<string | null>(null);
   const [notifying, setNotifying] = useState(false);
+  const [analytics, setAnalytics] = useState<DetailedCourseAnalytics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  useEffect(() => {
+    if (courseId && tab === 'analytics') {
+      setLoadingAnalytics(true);
+      void getDetailedCourseAnalytics(courseId)
+        .then((res) => { setAnalytics(res); })
+        .catch(() => {})
+        .finally(() => setLoadingAnalytics(false));
+    }
+  }, [courseId, tab]);
 
   if (!user || !course) return (
     <View style={{ flex: 1 }}>
@@ -69,6 +89,11 @@ export function CourseManagementScreen({ route, navigation }: any) {
   const branch = batch ? db.branches.find((item) => item.id === batch.branchId) : undefined;
   const instructor = batch ? profileOf(db, batch.instructorId) : undefined;
   const joinUrl = batch ? publicJoinUrl(batch.joinCode) : '';
+  const owner = course.ownerId ? profileOf(db, course.ownerId) : undefined;
+  const organizers = courseOrganizers(db, course.id);
+  const rolesList = db.courseRoles?.filter((r) => r.courseId === course.id) ?? [];
+
+  const isCourseManager = user.role === 'admin' || user.role === 'supervisor' || canManageCourse(db, course.id, user.id);
 
   const copyJoinLink = async () => {
     if (!batch) return;
@@ -104,6 +129,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
     : status === 'completed' && candidateBatchId && isBatchComplete(db, candidateBatchId)
       ? { label: t('common.closedStatus'), color: theme.brand }
       : status === 'completed' ? { label: t('management.incompleteData'), color: theme.danger }
+      : status === 'cancelled' ? { label: 'ملغاة', color: theme.danger }
       : status === 'scheduled' ? { label: t('common.scheduledStatus'), color: theme.warn }
       : { label: t('common.archived'), color: theme.textMuted };
 
@@ -145,58 +171,68 @@ export function CourseManagementScreen({ route, navigation }: any) {
     <View style={{ flex: 1 }}>
       <Header
         title={course.title}
-        subtitle={t('management.subtitle')}
+        subtitle="نظام تشغيل وإدارة الكورس"
         back={() => navigation.goBack()}
         right={
           <Row gap={6}>
-            <Btn
-              title="تعديل الكورس"
-              size="sm"
-              variant="secondary"
-              icon="create-outline"
-              onPress={() => setEditCourseOpen(true)}
-            />
-            <Btn
-              title={t('batchAdm.new')}
-              size="sm"
-              icon="add"
-              onPress={() => setNewBatchOpen(true)}
-            />
+            {isCourseManager ? (
+              <Btn
+                title="تعديل المنهج"
+                size="sm"
+                variant="secondary"
+                icon="create-outline"
+                onPress={() => setEditCourseOpen(true)}
+              />
+            ) : null}
+            {isCourseManager ? (
+              <Btn
+                title={t('batchAdm.new')}
+                size="sm"
+                icon="add"
+                onPress={() => setNewBatchOpen(true)}
+              />
+            ) : null}
           </Row>
         }
       />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
       >
-        <Card color={course.color + '18'} style={{ borderColor: course.color + '55' }}>
+        {/* بطاقة ملخص الكورس والمالك */}
+        <Card color={course.color + '14'} style={{ borderColor: course.color + '44' }}>
           <Row center gap={12}>
             <View style={{ width: 54, height: 54, borderRadius: 17, backgroundColor: course.color, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="book" size={25} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Txt variant="h2">{course.title}</Txt>
-              <Txt variant="caption" color={theme.textSecondary}>{course.field} · {t('explore.sessionsCount', { x: course.sessionsCount })}</Txt>
+              <Txt variant="caption" color={theme.textSecondary}>
+                {course.field} · {t('explore.sessionsCount', { x: course.sessionsCount })}
+                {owner ? ` · المالك: ${owner.fullName}` : ''}
+              </Txt>
             </View>
-            <Tag label={t(`common.${course.status}` as any)} color={course.color} bg={course.color + '1F'} />
+            <Tag label={course.status === 'published' ? 'منشور' : course.status === 'running' ? 'جارٍ التدريب' : course.status} color={course.color} bg={course.color + '1F'} />
           </Row>
           {course.description ? <Txt variant="body" color={theme.textSecondary} style={{ marginTop: 10 }}>{course.description}</Txt> : null}
-          <Spacer size={12} />
+          <Spacer size={10} />
           <Row gap={8}>
-            <View style={{ flex: 1 }}>
-              <Btn
-                title="تعديل بيانات الكورس والمحاور"
-                variant="ghost"
-                size="sm"
-                icon="create"
-                onPress={() => setEditCourseOpen(true)}
-                full
-              />
-            </View>
-            {batch && (
+            {isCourseManager ? (
               <View style={{ flex: 1 }}>
                 <Btn
-                  title="🚀 بدء محاضرة حية الآن"
+                  title="تعديل المنهج والمحاور"
+                  variant="ghost"
+                  size="sm"
+                  icon="create"
+                  onPress={() => setEditCourseOpen(true)}
+                  full
+                />
+              </View>
+            ) : null}
+            {batch && batch.status !== 'cancelled' && (
+              <View style={{ flex: 1 }}>
+                <Btn
+                  title="🚀 بدء المحاضرة الحية"
                   variant="primary"
                   size="sm"
                   icon="play"
@@ -209,7 +245,8 @@ export function CourseManagementScreen({ route, navigation }: any) {
           </Row>
         </Card>
 
-        <Row gap={9}>
+        {/* مؤشرات الأداء السريعة */}
+        <Row gap={8}>
           <Metric value={String(allowedBatches.length)} label={t('management.groups')} color={theme.brand} />
           <Metric value={String(allCounts)} label={t('management.registrants')} color={theme.success} />
           <Metric value={String(active)} label={t('common.active')} color={theme.warn} />
@@ -228,6 +265,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
           </Card>
         ) : (
           <>
+            {/* اختيار الدفعة */}
             <Txt variant="caption" color={theme.textSecondary}>{t('management.pickGroup')}</Txt>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {allowedBatches.map((item, index) => {
@@ -244,20 +282,23 @@ export function CourseManagementScreen({ route, navigation }: any) {
               })}
             </ScrollView>
 
+            {/* التبويبات الموحدة */}
             <Segmented
               value={tab}
               onChange={(value) => setTab(value as typeof tab)}
               options={[
-                { value: 'overview', label: t('management.details'), icon: 'information-circle' },
-                { value: 'students', label: `${t('management.registrants')} (${counts.taken})`, icon: 'people' },
-                { value: 'sessions', label: `${t('common.sessions')} (${sessions.length})`, icon: 'calendar' },
+                { value: 'overview', label: 'نظرة عامة', icon: 'information-circle' },
+                { value: 'sessions', label: `المحاضرات (${sessions.length})`, icon: 'calendar' },
+                { value: 'students', label: `الطلاب (${counts.taken})`, icon: 'people' },
+                { value: 'staff', label: `المنظمين (${rolesList.length + (owner ? 1 : 0)})`, icon: 'shield' },
+                { value: 'analytics', label: 'التحليلات', icon: 'analytics' },
                 { value: 'reviews', label: `التقييمات (${db.ratings.filter((r) => r.courseId === course.id).length})`, icon: 'star' },
               ]}
             />
 
+            {/* 1) تبويب النظرة العامة */}
             {batch && tab === 'overview' ? (
               <View style={{ gap: 10 }}>
-                {/* بطاقة تقدم المحاضرات المنجزة */}
                 <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '33' }}>
                   <Row center between>
                     <View>
@@ -267,8 +308,8 @@ export function CourseManagementScreen({ route, navigation }: any) {
                       </Txt>
                     </View>
                     <Tag
-                      label={isBatchComplete(db, batch.id) ? 'مكتملة الدورة' : batch.status === 'active' ? 'قيد التدريب' : 'مجدولة'}
-                      color={isBatchComplete(db, batch.id) ? theme.brand : theme.success}
+                      label={isBatchComplete(db, batch.id) ? 'مكتملة الدورة' : batch.status === 'active' ? 'قيد التدريب' : batch.status === 'cancelled' ? 'ملغاة' : 'مجدولة'}
+                      color={isBatchComplete(db, batch.id) ? theme.brand : batch.status === 'cancelled' ? theme.danger : theme.success}
                       bg="#fff"
                     />
                   </Row>
@@ -300,7 +341,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
                   <Info icon="key" label={t('management.joinCode')} value={batch.joinCode || '—'} />
                 </Card>
 
-                {/* بطاقة رابط وQR الانضمام الفوري للطلاب */}
+                {/* كود ورابط الانضمام */}
                 <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44' }}>
                   <Row center between>
                     <Row center gap={8}>
@@ -327,8 +368,20 @@ export function CourseManagementScreen({ route, navigation }: any) {
                     onPress={() => setBroadcastOpen(true)}
                     full
                   />
+                  {isCourseManager && batch.status !== 'cancelled' && (
+                    <Btn
+                      title="⚠️ إلغاء هذه الدفعة"
+                      size="sm"
+                      variant="danger"
+                      icon="close-circle"
+                      style={{ marginTop: 6 }}
+                      onPress={() => setCancelBatchTarget(batch.id)}
+                      full
+                    />
+                  )}
                 </Card>
 
+                {/* نسبة الإشغال والمقاعد */}
                 <Card>
                   <Row between>
                     <Txt variant="bodyMed">{t('batchAdm.occupancy')}</Txt>
@@ -338,6 +391,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
                   <ProgressBar progress={counts.taken / Math.max(batch.capacity, 1)} color={counts.taken >= batch.capacity ? theme.danger : theme.success} />
                 </Card>
 
+                {/* المحاور */}
                 {course.topics.length > 0 ? (
                   <Card>
                     <Txt variant="h3">{t('management.topics')}</Txt>
@@ -353,6 +407,73 @@ export function CourseManagementScreen({ route, navigation }: any) {
               </View>
             ) : null}
 
+            {/* 2) تبويب المحاضرات الميدانية */}
+            {batch && tab === 'sessions' ? (
+              sessions.length === 0 ? <Empty emoji="🗓️" title={t('management.noSessions')} /> : sessions.map((session) => {
+                const attendance = db.attendance.filter((item) => item.sessionId === session.id);
+                const honored = attendance.filter((item) => item.status !== 'absent').length;
+                return (
+                  <Card key={session.id} onPress={() => setSelectedSession(session)}>
+                    <Row center gap={10}>
+                      <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: course.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
+                        <Txt variant="bodyMed" color={course.color}>{session.seq}</Txt>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="bodyMed">{session.title}</Txt>
+                        <Txt variant="micro" color={theme.textMuted}>{formatDate(session.startsAt, lang)} · {formatTime(session.startsAt, lang)}</Txt>
+                      </View>
+                      <Tag
+                        label={session.status === 'closed' ? `${t('management.closed')} · ${honored}/${counts.taken}` : session.status === 'live' ? t('management.live') : session.status === 'cancelled' ? 'ملغاة' : t('common.scheduledStatus')}
+                        color={session.status === 'closed' ? theme.textMuted : session.status === 'live' ? theme.success : session.status === 'cancelled' ? theme.danger : theme.warn}
+                        bg={session.status === 'live' ? theme.successSoft : theme.bg}
+                        icon={session.status === 'closed' ? 'checkmark-circle' : session.status === 'live' ? 'radio' : session.status === 'cancelled' ? 'close-circle' : 'time'}
+                      />
+                    </Row>
+                    {session.status === 'scheduled' ? (
+                      <Row gap={8} style={{ marginTop: 10 }}>
+                        <View style={{ flex: 2 }}>
+                          <Btn
+                            title="🚀 بدء المحاضرة الحية"
+                            size="sm"
+                            variant="primary"
+                            icon="play"
+                            loading={startingSessionId === session.id}
+                            onPress={() => handleStartLive(session)}
+                            full
+                          />
+                        </View>
+                        {isCourseManager && (
+                          <>
+                            <View style={{ flex: 1 }}>
+                              <Btn
+                                title="تعديل الموعد"
+                                size="sm"
+                                variant="secondary"
+                                icon="calendar"
+                                onPress={() => setRescheduleSession(session)}
+                                full
+                              />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Btn
+                                title="إلغاء"
+                                size="sm"
+                                variant="danger"
+                                icon="close"
+                                onPress={() => setCancelSessionTarget(session)}
+                                full
+                              />
+                            </View>
+                          </>
+                        )}
+                      </Row>
+                    ) : null}
+                  </Card>
+                );
+              })
+            ) : null}
+
+            {/* 3) تبويب الطلاب */}
             {batch && tab === 'students' ? (
               students.length === 0 ? (
                 <Empty emoji="👥" title={counts.taken === 0 ? t('management.noStudents') : t('management.studentLoadFailed')} />
@@ -377,51 +498,116 @@ export function CourseManagementScreen({ route, navigation }: any) {
               })
             ) : null}
 
-            {batch && tab === 'sessions' ? (
-              sessions.length === 0 ? <Empty emoji="🗓️" title={t('management.noSessions')} /> : sessions.map((session) => {
-                const attendance = db.attendance.filter((item) => item.sessionId === session.id);
-                const honored = attendance.filter((item) => item.status !== 'absent').length;
-                return (
-                  <Card key={session.id} onPress={() => setSelectedSession(session)}>
+            {/* 4) تبويب فريق العمل والمنظمين */}
+            {tab === 'staff' ? (
+              <View style={{ gap: 10 }}>
+                {isCourseManager && (
+                  <Btn
+                    title="➕ تعيين منظم أو منسق جديد للكورس"
+                    variant="primary"
+                    icon="person-add"
+                    onPress={() => setAssignRoleOpen(true)}
+                  />
+                )}
+                {owner ? (
+                  <Card>
                     <Row center gap={10}>
-                      <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: course.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                        <Txt variant="bodyMed" color={course.color}>{session.seq}</Txt>
-                      </View>
+                      <Avatar name={owner.fullName} color={owner.avatarColor} size={42} />
                       <View style={{ flex: 1 }}>
-                        <Txt variant="bodyMed">{session.title}</Txt>
-                        <Txt variant="micro" color={theme.textMuted}>{formatDate(session.startsAt, lang)} · {formatTime(session.startsAt, lang)}</Txt>
+                        <Txt variant="bodyMed">{owner.fullName}</Txt>
+                        <Txt variant="micro" color={theme.textMuted}>{owner.phone} {owner.email ? `· ${owner.email}` : ''}</Txt>
                       </View>
-                      <Tag
-                        label={session.status === 'closed' ? `${t('management.closed')} · ${honored}/${counts.taken}` : session.status === 'live' ? t('management.live') : t('common.scheduledStatus')}
-                        color={session.status === 'closed' ? theme.textMuted : session.status === 'live' ? theme.success : theme.warn}
-                        bg={session.status === 'live' ? theme.successSoft : theme.bg}
-                        icon={session.status === 'closed' ? 'checkmark-circle' : session.status === 'live' ? 'radio' : 'time'}
-                      />
+                      <Tag label="مالك الكورس" color={theme.certGold} bg={theme.certGold + '1F'} icon="star" />
                     </Row>
-                    {session.status === 'scheduled' ? (
-                      <View style={{ marginTop: 10 }}>
-                        <Btn
-                          title="🚀 بدء المحاضرة وتوليد الـ QR الآن"
-                          size="sm"
-                          variant="primary"
-                          icon="play"
-                          loading={startingSessionId === session.id}
-                          onPress={() => handleStartLive(session)}
-                          full
-                        />
-                      </View>
-                    ) : null}
                   </Card>
-                );
-              })
+                ) : null}
+                {rolesList.length === 0 ? (
+                  <Empty emoji="🛡️" title="لا يوجد منظمون مفوّضون حالياً" body="يمكن لمالك الكورس أو المشرف تفويض منظمين إضافيين لإدارة المجموعات" />
+                ) : (
+                  rolesList.map((cr) => {
+                    const prof = profileOf(db, cr.userId);
+                    return (
+                      <Card key={cr.id}>
+                        <Row center gap={10}>
+                          <Avatar name={prof?.fullName ?? 'عضو'} color={prof?.avatarColor ?? theme.brand} size={42} />
+                          <View style={{ flex: 1 }}>
+                            <Txt variant="bodyMed">{prof?.fullName ?? 'منظم مفوض'}</Txt>
+                            <Txt variant="micro" color={theme.textMuted}>{prof?.phone} {prof?.email ? `· ${prof.email}` : ''}</Txt>
+                          </View>
+                          <Tag
+                            label={cr.role === 'organizer' ? 'منظم كورس' : cr.role === 'coordinator' ? 'منسق' : 'مفوض تدريس'}
+                            color={theme.brand}
+                            bg={theme.brandSoft}
+                          />
+                          {isCourseManager && (
+                            <Btn
+                              title=""
+                              size="sm"
+                              variant="danger"
+                              icon="trash"
+                              onPress={async () => {
+                                try {
+                                  await revokeCourseRole({ courseId: course.id, userId: cr.userId, role: cr.role });
+                                  await refresh();
+                                  toast('تم إلغاء التفويض بنجاح', 'success');
+                                } catch (e) {
+                                  toast((e as Error).message, 'error');
+                                }
+                              }}
+                            />
+                          )}
+                        </Row>
+                      </Card>
+                    );
+                  })
+                )}
+              </View>
             ) : null}
 
+            {/* 5) تبويب التحليلات ومسار التحويل (Analytics Funnel) */}
+            {tab === 'analytics' ? (
+              <View style={{ gap: 12 }}>
+                {loadingAnalytics ? (
+                  <Card style={{ padding: 20, alignItems: 'center' }}>
+                    <Txt variant="caption" color={theme.textMuted}>جاري تحميل التحليلات الشاملة للكورس...</Txt>
+                  </Card>
+                ) : analytics ? (
+                  <>
+                    <Card glass>
+                      <Txt variant="h3">قمع التحويل وإتمام الكورس (Course Funnel)</Txt>
+                      <Spacer size={12} />
+                      <Row gap={8}>
+                        <Metric value={String(analytics.funnel.totalEnrollments)} label="إجمالي المسجلين" color={theme.brand} />
+                        <Metric value={String(analytics.funnel.activeStudents)} label="الطلاب النشطون" color={theme.success} />
+                        <Metric value={String(analytics.funnel.certifiedStudents)} label="الخريجون المعتمدون" color={theme.teal} />
+                      </Row>
+                      <Spacer size={10} />
+                      <Row gap={8}>
+                        <Metric value={`${analytics.funnel.avgAttendancePct}%`} label="متوسط الحضور" color={theme.success} />
+                        <Metric value={String(analytics.funnel.avgRating)} label="متوسط التقييم ⭐" color={theme.certGold} />
+                        <Metric value={String(analytics.funnel.ratedCount)} label="عدد المقيّمين" color={theme.brand} />
+                      </Row>
+                    </Card>
+
+                    <Card>
+                      <Txt variant="h3">إحصاءات المجموعات والدفعات</Txt>
+                      <Spacer size={8} />
+                      <Info icon="layers" label="إجمالي الدفعات المنشأة" value={String(analytics.totalBatches)} />
+                      <Info icon="play-circle" label="الدفعات النشطة حالياً" value={String(analytics.activeBatches)} />
+                      <Info icon="checkmark-done" label="الدفعات المكتملة المتخرجة" value={String(analytics.completedBatches)} />
+                    </Card>
+                  </>
+                ) : null}
+              </View>
+            ) : null}
+
+            {/* 6) تبويب التقييمات */}
             {tab === 'reviews' ? (
               (() => {
                 const reviews = db.ratings.filter((r) => r.courseId === course.id).sort((a, b) => b.createdAt - a.createdAt);
                 const avgStars = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1) : null;
                 return reviews.length === 0 ? (
-                  <Empty emoji="⭐" title="لا توجد تقييمات أو آراء مسجلة حتى الآن" body="تظهر تقييمات الطلاب وآراؤهم بعد حضورهم وإكمال المحاضرات" />
+                  <Empty emoji="⭐" title="لا توجد تقييمات أو آراء مسجلة حتى الآن" body="تظهر تقييمات الطلاب وآراؤهم بعد تسجيلهم وتجربتهم للمحاضرات" />
                 ) : (
                   <View style={{ gap: 10 }}>
                     <Card glass>
@@ -494,7 +680,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
         />
       ) : null}
 
-      {/* تعديل الكورس */}
+      {/* تعديل المنهج */}
       <EditCourseSheet
         visible={editCourseOpen}
         course={course}
@@ -506,6 +692,40 @@ export function CourseManagementScreen({ route, navigation }: any) {
         visible={newBatchOpen}
         initialCourseId={course.id}
         onClose={() => setNewBatchOpen(false)}
+      />
+
+      {/* نافذة تعديل موعد المحاضرة */}
+      {rescheduleSession && (
+        <RescheduleSessionSheet
+          visible={Boolean(rescheduleSession)}
+          session={rescheduleSession}
+          onClose={() => setRescheduleSession(null)}
+        />
+      )}
+
+      {/* نافذة إلغاء المحاضرة */}
+      {cancelSessionTarget && (
+        <CancelSessionSheet
+          visible={Boolean(cancelSessionTarget)}
+          session={cancelSessionTarget}
+          onClose={() => setCancelSessionTarget(null)}
+        />
+      )}
+
+      {/* نافذة إلغاء الدفعة */}
+      {cancelBatchTarget && (
+        <CancelBatchSheet
+          visible={Boolean(cancelBatchTarget)}
+          batchId={cancelBatchTarget}
+          onClose={() => setCancelBatchTarget(null)}
+        />
+      )}
+
+      {/* نافذة تعيين منظم جديد */}
+      <AssignCourseRoleSheet
+        visible={assignRoleOpen}
+        courseId={course.id}
+        onClose={() => setAssignRoleOpen(false)}
       />
 
       {/* إرسال إشعار للمجموعة */}
@@ -549,6 +769,236 @@ export function CourseManagementScreen({ route, navigation }: any) {
         </Sheet>
       ) : null}
     </View>
+  );
+}
+
+function RescheduleSessionSheet({
+  visible,
+  session,
+  onClose,
+}: {
+  visible: boolean;
+  session: TrainingSession;
+  onClose: () => void;
+}) {
+  const { refresh, toast } = useApp();
+  const [dateStr, setDateStr] = useState(new Date(session.startsAt).toISOString().split('T')[0]);
+  const [timeStr, setTimeStr] = useState(formatTime(session.startsAt, 'en') || '18:00');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const parts = timeStr.trim().split(':');
+      const targetDate = new Date(dateStr);
+      targetDate.setHours(parseInt(parts[0] || '18', 10), parseInt(parts[1] || '0', 10), 0, 0);
+      await rescheduleTrainingSession({
+        sessionId: session.id,
+        startsAt: targetDate.getTime(),
+        reason: reason.trim() || undefined,
+      });
+      await refresh();
+      toast('تم تعديل موعد المحاضرة وإشعار الطلاب بنجاح!', 'success');
+      onClose();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title="تعديل موعد المحاضرة">
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+        <Input label="التاريخ الجديد (YYYY-MM-DD)" value={dateStr} onChange={setDateStr} icon="calendar" />
+        <Input label="الوقت الجديد (HH:MM)" value={timeStr} onChange={setTimeStr} icon="time" placeholder="18:00" />
+        <Input label="سبب التعديل (يصل للطلاب في الإشعار)" value={reason} onChange={setReason} multiline />
+        <Spacer size={8} />
+        <Btn title="حفظ وتأكيد الموعد" size="lg" loading={saving} onPress={save} icon="checkmark-circle" full />
+      </ScrollView>
+    </Sheet>
+  );
+}
+
+function CancelSessionSheet({
+  visible,
+  session,
+  onClose,
+}: {
+  visible: boolean;
+  session: TrainingSession;
+  onClose: () => void;
+}) {
+  const { refresh, toast } = useApp();
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleCancel = async () => {
+    setSaving(true);
+    try {
+      await cancelTrainingSession({
+        sessionId: session.id,
+        reason: reason.trim() || 'إلغاء المحاضرة من قبل الإدارة',
+      });
+      await refresh();
+      toast('تم إلغاء المحاضرة وتنبيه الطلاب بنجاح!', 'success');
+      onClose();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={`إلغاء المحاضرة — ${session.title}`}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+        <Card color="#EF444415" style={{ borderColor: '#EF4444' }}>
+          <Txt variant="caption" color="#EF4444">
+            تنبيه: سيتم إلغاء هذه المحاضرة وإرسال إشعار فوري لجميع الطلاب المسجلين بالسبب المذكور أدناه.
+          </Txt>
+        </Card>
+        <Input label="سبب الإلغاء" value={reason} onChange={setReason} placeholder="مثال: عذر طارئ للمدرب أو إجازة رسمية" multiline />
+        <Spacer size={8} />
+        <Btn title="تأكيد إلغاء المحاضرة" size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="close-circle" full />
+      </ScrollView>
+    </Sheet>
+  );
+}
+
+function CancelBatchSheet({
+  visible,
+  batchId,
+  onClose,
+}: {
+  visible: boolean;
+  batchId: string;
+  onClose: () => void;
+}) {
+  const { refresh, toast } = useApp();
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleCancel = async () => {
+    setSaving(true);
+    try {
+      await cancelBatch({
+        batchId,
+        reason: reason.trim() || 'إلغاء الدفعة التدريبية',
+      });
+      await refresh();
+      toast('تم إلغاء الدفعة بنجاح!', 'success');
+      onClose();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title="إلغاء الدفعة التدريبية بالكامل">
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+        <Card color="#EF444415" style={{ borderColor: '#EF4444' }}>
+          <Txt variant="caption" color="#EF4444">
+            تحذير: سيتم إلغاء الدفعة بالكامل وإيقاف جميع محاضراتها القادمة وإشعار الطلاب المسجلين.
+          </Txt>
+        </Card>
+        <Input label="سبب إلغاء الدفعة" value={reason} onChange={setReason} multiline />
+        <Spacer size={8} />
+        <Btn title="تأكيد إلغاء الدفعة" size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="trash" full />
+      </ScrollView>
+    </Sheet>
+  );
+}
+
+function AssignCourseRoleSheet({
+  visible,
+  courseId,
+  onClose,
+}: {
+  visible: boolean;
+  courseId: string;
+  onClose: () => void;
+}) {
+  const { db, refresh, toast } = useApp();
+  const { theme } = useTheme();
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRole, setSelectedRole] = useState<CourseRoleType>('organizer');
+  const [saving, setSaving] = useState(false);
+
+  const candidates = db.profiles.filter((p) => p.role !== 'student' && p.status === 'active');
+
+  const handleAssign = async () => {
+    if (!selectedUserId) {
+      toast('يرجى اختيار العضو المطلوب تفويضه', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      await assignCourseRole({
+        courseId,
+        userId: selectedUserId,
+        role: selectedRole,
+      });
+      await refresh();
+      toast('تم تفويض العضو بنجاح!', 'success');
+      onClose();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title="تفويض منظم أو منسق للكورس">
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+        <Txt variant="caption" color={theme.textSecondary}>اختر الدور المطلوب منحه:</Txt>
+        <Segmented
+          value={selectedRole}
+          onChange={(v) => setSelectedRole(v as CourseRoleType)}
+          options={[
+            { value: 'organizer', label: 'منظم كورس' },
+            { value: 'coordinator', label: 'منسق' },
+            { value: 'instructor_delegate', label: 'مفوض تدريس' },
+          ]}
+        />
+        <Spacer size={6} />
+        <Txt variant="caption" color={theme.textSecondary}>اختر العضو من المتطوعين والمشرفين:</Txt>
+        {candidates.map((cand) => (
+          <Card
+            key={cand.id}
+            color={selectedUserId === cand.id ? theme.brandSoft : undefined}
+            style={{ borderColor: selectedUserId === cand.id ? theme.brand : theme.line }}
+            onPress={() => setSelectedUserId(cand.id)}
+          >
+            <Row center gap={10}>
+              <Avatar name={cand.fullName} color={cand.avatarColor} size={36} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="bodyMed">{cand.fullName}</Txt>
+                <Txt variant="micro" color={theme.textMuted}>{cand.role} · {cand.phone}</Txt>
+              </View>
+              {selectedUserId === cand.id ? (
+                <Ionicons name="checkmark-circle" size={22} color={theme.brand} />
+              ) : null}
+            </Row>
+          </Card>
+        ))}
+        <Spacer size={8} />
+        <Btn
+          title="تأكيد التفويض"
+          size="lg"
+          variant="primary"
+          icon="shield-checkmark"
+          loading={saving}
+          disabled={!selectedUserId}
+          onPress={handleAssign}
+          full
+        />
+      </ScrollView>
+    </Sheet>
   );
 }
 

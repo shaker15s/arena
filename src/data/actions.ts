@@ -561,3 +561,80 @@ export async function runCommandOnServer(
 export async function markMyNotificationsRead(): Promise<{ ok: boolean; updated: number }> {
   return rpc('mark_notifications_read');
 }
+
+export async function assignCourseRole(input: {
+  courseId: string;
+  userId: string;
+  role: 'owner' | 'organizer' | 'coordinator' | 'instructor_delegate';
+}): Promise<void> {
+  await rpc('assign_course_role', {
+    p_course_id: input.courseId,
+    p_user_id: input.userId,
+    p_role: input.role,
+  });
+}
+
+export async function revokeCourseRole(input: {
+  courseId: string;
+  userId: string;
+  role: 'owner' | 'organizer' | 'coordinator' | 'instructor_delegate';
+}): Promise<void> {
+  await rpc('revoke_course_role', {
+    p_course_id: input.courseId,
+    p_user_id: input.userId,
+    p_role: input.role,
+  });
+}
+
+export async function cancelTrainingSession(input: {
+  sessionId: string;
+  reason?: string;
+}): Promise<void> {
+  await rpc('cancel_training_session', {
+    p_session_id: input.sessionId,
+    p_reason: input.reason ?? 'إلغاء المحاضرة من قبل الإدارة',
+  });
+}
+
+export async function rescheduleTrainingSession(input: {
+  sessionId: string;
+  startsAt: number;
+  reason?: string;
+}): Promise<void> {
+  await rpc('reschedule_training_session', {
+    p_session_id: input.sessionId,
+    p_starts_at: new Date(input.startsAt).toISOString(),
+    p_reason: input.reason ?? null,
+  });
+}
+
+export async function cancelBatch(input: {
+  batchId: string;
+  reason?: string;
+}): Promise<void> {
+  await rpc('cancel_batch', {
+    p_batch_id: input.batchId,
+    p_reason: input.reason ?? 'إلغاء الدفعة التدريبية',
+  });
+}
+
+export interface DetailedCourseAnalytics {
+  ok: boolean;
+  totalBatches: number;
+  activeBatches: number;
+  completedBatches: number;
+  funnel: {
+    totalEnrollments: number;
+    activeStudents: number;
+    certifiedStudents: number;
+    ratedCount: number;
+    avgRating: number;
+    avgAttendancePct: number;
+  };
+}
+
+export async function getDetailedCourseAnalytics(courseId: string): Promise<DetailedCourseAnalytics> {
+  return rpc<DetailedCourseAnalytics>('get_detailed_course_analytics', {
+    p_course_id: courseId,
+  });
+}

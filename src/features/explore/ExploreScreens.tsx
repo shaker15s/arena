@@ -39,7 +39,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
 
   const debouncedQuery = useDebounce(query, 250);
 
-  const published = useMemo(() => db.courses.filter((c) => c.status === 'published'), [db.courses]);
+  const published = useMemo(() => db.courses.filter((c) => c.status === 'published' || c.status === 'running'), [db.courses]);
   const fields = useMemo(() => ['all', ...new Set(published.map((c) => c.field))], [published]);
 
   const filtered = useMemo(() => {
