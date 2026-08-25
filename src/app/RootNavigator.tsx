@@ -283,8 +283,8 @@ function StudentTabs({ navigation, route }: any) {
   );
 }
 
-// ─── تبويبات المتطوع ───
-function VolunteerTabs() {
+// ─── تبويبات المتطوع/المدرب ───
+function VolunteerTabs({ route }: any) {
   const { t } = useI18n();
   const { db, user } = useApp();
   const pendingExcuses = user
@@ -293,6 +293,7 @@ function VolunteerTabs() {
   return (
     <TabsScaffold
       initial="today"
+      requestedTab={route?.params?.tab}
       maxWidth={940}
       tabs={[
         { key: 'today', label: t('tabs.today'), icon: 'sunny-outline', iconActive: 'sunny' },
@@ -314,11 +315,12 @@ function VolunteerTabs() {
 }
 
 // ─── تبويبات المشرف/الأدمن ───
-function AdminTabs() {
+function AdminTabs({ route }: any) {
   const { t } = useI18n();
   return (
     <TabsScaffold
       initial="dash"
+      requestedTab={route?.params?.tab}
       maxWidth={1120}
       tabs={[
         { key: 'dash', label: t('tabs.dashboard'), icon: 'grid-outline', iconActive: 'grid' },

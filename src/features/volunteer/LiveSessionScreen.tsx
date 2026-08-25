@@ -1,10 +1,10 @@
 /**
  * features/volunteer — S32 الجلسة الحية (شاشة البروجكتور).
  * QR دوّار كل 25 ثانية + كود احتياطي + عداد حضور حي + آخر الواصلين
- * + رصد يدوي بسبب إلزامي + إنهاء ← تقرير 3 حقول + محاسبة تلقائية.
+ * + رصد يدوي بسبب إلزامي + إنهاء ← تقرير 3 حقول + محاسبة تلقائية + كشف تقرير مفصل.
  */
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Platform, ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -14,7 +14,7 @@ import { useApp } from '../../data/store';
 import { batchOf, batchStudents, courseOf, instructorBatches, profileOf, sessionsOfBatch } from '../../data/engine';
 import {
   closeTrainingSession, getSessionQrPayload, manualMarkAttendance,
-  startTrainingSession, getBatchRoster, type SessionQrPayload,
+  startTrainingSession, getBatchRoster, notifySessionAbsentees, type SessionQrPayload,
 } from '../../data/actions';
 import { QR_ROTATION_MS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
@@ -24,9 +24,9 @@ import {
   Spacer, Tag, Txt,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
-import { spacing, radii } from '../../design/tokens';
+import { spacing } from '../../design/tokens';
 import { formatTime } from '../../shared/format';
-import { Batch, TrainingSession } from '../../data/types';
+import { TrainingSession } from '../../data/types';
 
 export function LiveSessionScreen() {
   const { t, lang } = useI18n();
@@ -43,6 +43,12 @@ export function LiveSessionScreen() {
   const [challenges, setChallenges] = useState('');
   const [closing, setClosing] = useState(false);
   const [closedSummary, setClosedSummary] = useState<null | { present: number; absent: number; total: number }>(null);
+  const [closedSessionReport, setClosedSessionReport] = useState<null | {
+    session: TrainingSession;
+    summary: { present: number; late: number; absent: number; excused: number; total: number };
+    report: { done: string; planned: string; challenges: string };
+    closedAt: number;
+  }>(null);
   const [qrPayload, setQrPayload] = useState<SessionQrPayload | null>(null);
 
   // نبضة ساعة للتدوير (كل 500ms)
@@ -114,13 +120,20 @@ export function LiveSessionScreen() {
   const endAndReport = async () => {
     if (!myLive) return;
     setClosing(true);
-    const report = { done: done.trim(), planned: planned.trim(), challenges: challenges.trim(), submittedAt: Date.now() };
+    const reportData = { done: done.trim(), planned: planned.trim(), challenges: challenges.trim(), submittedAt: Date.now() };
+    const closingLiveSession = myLive;
     try {
-      const summary = await closeTrainingSession(myLive.id, report);
+      const summary = await closeTrainingSession(myLive.id, reportData);
       await refresh();
       setReportStep(false);
       setEndConfirm(false);
       setClosedSummary({ present: summary.present + summary.late, absent: summary.absent, total: summary.total });
+      setClosedSessionReport({
+        session: closingLiveSession,
+        summary,
+        report: reportData,
+        closedAt: Date.now(),
+      });
       toast(t('live.closedSnack'), 'success');
       toast(t('report.sent'), 'success');
     } catch (error) {
@@ -154,6 +167,17 @@ export function LiveSessionScreen() {
                   <Txt variant="caption" color={theme.textMuted}>{t('history.absent')}</Txt>
                 </View>
               </Row>
+              {closedSessionReport ? (
+                <View style={{ marginTop: 12 }}>
+                  <Btn
+                    title="📊 عرض تقرير المحاضرة المفصل وكشف الحاضرين"
+                    variant="primary"
+                    icon="document-text"
+                    full
+                    onPress={() => setReportStep(true)}
+                  />
+                </View>
+              ) : null}
             </Card>
           ) : null}
           {batchesWithScheduled.length > 0 ? (
@@ -191,6 +215,15 @@ export function LiveSessionScreen() {
             </View>
           ) : null}
         </ScrollView>
+
+        {/* نافذة التقرير التفصيلي بعد الإغلاق */}
+        {closedSessionReport ? (
+          <DetailedSessionReportSheet
+            visible={Boolean(closedSessionReport && reportStep)}
+            data={closedSessionReport}
+            onClose={() => setReportStep(false)}
+          />
+        ) : null}
         {renderClosedModal()}
       </View>
     );
@@ -315,7 +348,7 @@ export function LiveSessionScreen() {
       </Sheet>
 
       {/* تقرير الجلسة — 3 حقول فقط */}
-      <Sheet visible={reportStep} onClose={() => {}} title={`${t('report.title')} — ${myLive.title}`}>
+      <Sheet visible={reportStep && !closedSessionReport} onClose={() => {}} title={`${t('report.title')} — ${myLive.title}`}>
         <ScrollView>
           <View style={{ gap: 12 }}>
             <Card glass>
@@ -341,7 +374,7 @@ export function LiveSessionScreen() {
   function renderClosedModal() {
     return (
       <CelebrationModal
-        visible={closedSummary != null}
+        visible={closedSummary != null && !closedSessionReport}
         onClose={() => setClosedSummary(null)}
         title={t('live.closedSnack')}
         subtitle={closedSummary ? t('report.summary', { x: closedSummary.present, y: closedSummary.total }) : undefined}
@@ -349,6 +382,156 @@ export function LiveSessionScreen() {
       />
     );
   }
+}
+
+// ── شاشة تقرير المحاضرة المفصل ──
+function DetailedSessionReportSheet({
+  visible,
+  data,
+  onClose,
+}: {
+  visible: boolean;
+  data: {
+    session: TrainingSession;
+    summary: { present: number; late: number; absent: number; excused: number; total: number };
+    report: { done: string; planned: string; challenges: string };
+    closedAt: number;
+  };
+  onClose: () => void;
+}) {
+  const { db, toast, refresh } = useApp();
+  const { t, lang } = useI18n();
+  const { theme } = useTheme();
+  const batch = batchOf(db, data.session.batchId);
+  const course = batch ? courseOf(db, batch.courseId) : undefined;
+  const attRows = db.attendance.filter((a) => a.sessionId === data.session.id);
+  const [notifying, setNotifying] = useState(false);
+
+  const durationMin = data.session.startedAt
+    ? Math.round((data.closedAt - data.session.startedAt) / 60000)
+    : data.session.durationMin;
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={`📋 تقرير المحاضرة — ${data.session.title}`}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }} showsVerticalScrollIndicator={false}>
+        {/* معلومات المحاضرة */}
+        <Card glass>
+          <Txt variant="h2">{course?.title ?? 'الكورس'}</Txt>
+          <Txt variant="caption" color={theme.textSecondary}>
+            المحاضرة #{data.session.seq} · {batch?.room ?? 'القاعة'} · استغرقت {durationMin} دقيقة
+          </Txt>
+          <Spacer size={8} />
+          <Row center gap={12}>
+            <Txt variant="micro" color={theme.textMuted}>
+              بدأت: {data.session.startedAt ? formatTime(data.session.startedAt, lang) : '—'}
+            </Txt>
+            <Txt variant="micro" color={theme.textMuted}>
+              أُغلقت: {formatTime(data.closedAt, lang)}
+            </Txt>
+          </Row>
+        </Card>
+
+        {/* إحصائيات الحضور */}
+        <Row gap={8}>
+          <Card style={{ flex: 1, alignItems: 'center', padding: 10 }}>
+            <Txt variant="h2" color={theme.success}>{data.summary.present + data.summary.late}</Txt>
+            <Txt variant="micro" color={theme.textMuted}>{t('history.present')}</Txt>
+          </Card>
+          <Card style={{ flex: 1, alignItems: 'center', padding: 10 }}>
+            <Txt variant="h2" color={theme.danger}>{data.summary.absent}</Txt>
+            <Txt variant="micro" color={theme.textMuted}>{t('history.absent')}</Txt>
+          </Card>
+          <Card style={{ flex: 1, alignItems: 'center', padding: 10 }}>
+            <Txt variant="h2" color={theme.brand}>{data.summary.total}</Txt>
+            <Txt variant="micro" color={theme.textMuted}>{t('common.students')}</Txt>
+          </Card>
+        </Row>
+
+        {/* التقرير التدريبي الثلاثي */}
+        {(data.report.done || data.report.planned || data.report.challenges) ? (
+          <Card style={{ gap: 8 }}>
+            <Txt variant="h3">📝 تقرير المدرب المعتمد</Txt>
+            {data.report.done ? (
+              <View>
+                <Txt variant="micro" color={theme.textMuted}>✍️ {t('report.done')}</Txt>
+                <Txt variant="body">{data.report.done}</Txt>
+              </View>
+            ) : null}
+            {data.report.planned ? (
+              <View>
+                <Txt variant="micro" color={theme.textMuted}>📌 {t('report.planned')}</Txt>
+                <Txt variant="body">{data.report.planned}</Txt>
+              </View>
+            ) : null}
+            {data.report.challenges ? (
+              <View>
+                <Txt variant="micro" color={theme.textMuted}>⚠️ {t('report.challenges')}</Txt>
+                <Txt variant="body">{data.report.challenges}</Txt>
+              </View>
+            ) : null}
+          </Card>
+        ) : null}
+
+        {/* كشف الحاضرين الفعلي */}
+        <Card noPad>
+          <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: theme.line }}>
+            <Txt variant="h3">👥 سجل الحضور المسجل ({attRows.length})</Txt>
+          </View>
+          {attRows.length === 0 ? (
+            <View style={{ padding: 16 }}>
+              <Txt variant="caption" color={theme.textMuted} align="center">لا توجد تسجيلات</Txt>
+            </View>
+          ) : (
+            attRows.map((att, i) => {
+              const st = profileOf(db, att.userId);
+              return (
+                <Row key={att.userId} center gap={10} style={{ padding: 12, borderBottomWidth: i < attRows.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
+                  <Avatar name={st?.fullName ?? 'طالب'} color={st?.avatarColor ?? theme.brand} size={36} />
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="bodyMed">{st?.fullName ?? 'طالب مسجل'}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>
+                      {st?.phone ? `${st.phone} · ` : ''}
+                      {att.method === 'manual' ? 'تحضير يدوي' : att.method === 'code' ? 'كود الطوارئ' : 'مسح الـ QR'}
+                      {att.checkedInAt ? ` · ${formatTime(att.checkedInAt, lang)}` : ''}
+                    </Txt>
+                  </View>
+                  <Tag
+                    label={att.status === 'late' ? 'متأخر' : att.status === 'excused' ? 'معذور' : 'حاضر'}
+                    color={att.status === 'late' ? theme.warn : att.status === 'excused' ? theme.info : theme.success}
+                    bg={att.status === 'late' ? theme.warnSoft : att.status === 'excused' ? theme.brandSoft : theme.successSoft}
+                  />
+                </Row>
+              );
+            })
+          )}
+        </Card>
+
+        {data.summary.absent > 0 ? (
+          <Btn
+            title={`🔔 إرسال إشعار للطلاب الغائبين (${data.summary.absent})`}
+            variant="secondary"
+            icon="notifications"
+            loading={notifying}
+            onPress={async () => {
+              setNotifying(true);
+              try {
+                const res = await notifySessionAbsentees(data.session.id);
+                toast(t('sess.absenteesNotified', { x: res.notified }), 'success');
+                await refresh();
+              } catch (e) {
+                toast((e as Error).message, 'error');
+              } finally {
+                setNotifying(false);
+              }
+            }}
+            full
+          />
+        ) : null}
+
+        <Btn title="إغلاق التقرير" size="lg" full variant="ghost" onPress={onClose} />
+      </ScrollView>
+    </Sheet>
+  );
 }
 
 // ── حلقة عداد التدوير ──
@@ -375,6 +558,7 @@ function RingCountdown({ progress, size }: { progress: number; size: number }) {
   );
 }
 
+// ── ورقة الرصد اليدوي (S33) ──
 function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onClose: () => void; session: TrainingSession }) {
   const { t } = useI18n();
   const { theme } = useTheme();
@@ -392,21 +576,23 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
   const localStudents = batchStudents(db, session.batchId);
 
   useEffect(() => {
-    if (visible && localStudents.length === 0) {
+    if (visible) {
       let active = true;
       const load = async () => {
         setLoadingRoster(true);
         try {
           const res = await getBatchRoster(session.batchId);
-          if (active) {
+          if (active && res.students) {
             setRosterStudents(res.students.map((s) => ({
               id: s.id,
-              fullName: s.full_name || 'Unknown',
-              avatarColor: s.avatar_color || '#333',
+              fullName: s.full_name || 'طالب مسجل',
+              avatarColor: s.avatar_color || theme.brand,
+              phone: s.phone || '',
+              email: s.email || '',
             })));
           }
         } catch (error) {
-          if (active) toast((error as Error).message, 'error');
+          // Fallback to local cache
         } finally {
           if (active) setLoadingRoster(false);
         }
@@ -414,14 +600,23 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
       void load();
       return () => { active = false; };
     }
-  }, [visible, localStudents.length, session.batchId, toast]);
+  }, [visible, session.batchId, theme.brand]);
 
-  const sourceStudents = localStudents.length > 0 ? localStudents : rosterStudents;
+  // دمج الطلاب من الكاش المحلي ومن الـ roster القادم من الخادم
+  const allStudentsMap = new Map<string, { id: string; fullName: string; avatarColor: string; phone?: string; email?: string }>();
+  localStudents.forEach((st) => allStudentsMap.set(st.id, { id: st.id, fullName: st.fullName, avatarColor: st.avatarColor, phone: st.phone || '', email: st.email || '' }));
+  rosterStudents.forEach((st) => {
+    if (!allStudentsMap.has(st.id)) allStudentsMap.set(st.id, st);
+  });
+
+  const sourceStudents = Array.from(allStudentsMap.values());
 
   const students = sourceStudents.filter((st) => {
     const r = db.attendance.find((a) => a.sessionId === session.id && a.userId === st.id);
     const already = r && r.status !== 'absent';
-    return !already && (query.trim() === '' || st.fullName.includes(query.trim()));
+    const q = query.trim().toLowerCase();
+    const match = q === '' || st.fullName.toLowerCase().includes(q) || (st.phone && st.phone.includes(q));
+    return !already && match;
   });
 
   const submit = async () => {
@@ -445,9 +640,9 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
   return (
     <Sheet visible={visible} onClose={onClose} title={t('manual.title')}>
       <View style={{ gap: 12 }}>
-        <Input value={query} onChange={setQuery} placeholder={t('manual.searchPlaceholder')} icon="search" />
-        <View style={{ maxHeight: 200 }}>
-          {loadingRoster ? (
+        <Input value={query} onChange={setQuery} placeholder="بحث بالاسم أو رقم الهاتف..." icon="search" />
+        <View style={{ maxHeight: 240 }}>
+          {loadingRoster && sourceStudents.length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center' }}>
               <Txt color={theme.textMuted}>{t('common.loading')}</Txt>
             </View>
@@ -456,7 +651,9 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
               <View style={{ gap: 6 }}>
                 {students.length === 0 ? (
                   <View style={{ padding: 20, alignItems: 'center' }}>
-                    <Txt color={theme.textMuted}>{t('common.empty') || 'No students found'}</Txt>
+                    <Txt color={theme.textMuted}>
+                      {sourceStudents.length === 0 ? 'لا يوجد طلاب مسجلين في هذه المجموعة' : 'تم رصد جميع الطلاب المسجلين بالكامل! ✨'}
+                    </Txt>
                   </View>
                 ) : (
                   students.map((st) => {
@@ -464,9 +661,12 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
                     return (
                       <Card key={st.id} onPress={() => setSelected(st.id)} color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line, padding: 10 }}>
                         <Row center gap={8}>
-                          <Avatar name={st.fullName} color={st.avatarColor} size={32} />
-                          <Txt variant="bodyMed">{st.fullName}</Txt>
-                          {active ? <Ionicons name="checkmark-circle" size={18} color={theme.brand} /> : null}
+                          <Avatar name={st.fullName} color={st.avatarColor} size={34} />
+                          <View style={{ flex: 1 }}>
+                            <Txt variant="bodyMed">{st.fullName}</Txt>
+                            {st.phone ? <Txt variant="micro" color={theme.textMuted}>{st.phone}</Txt> : null}
+                          </View>
+                          {active ? <Ionicons name="checkmark-circle" size={20} color={theme.brand} /> : null}
                         </Row>
                       </Card>
                     );

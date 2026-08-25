@@ -169,11 +169,15 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     }
   };
 
+  const [instructorStars, setInstructorStars] = useState(5);
+  const [venueStars, setVenueStars] = useState(5);
+
   const submitRating = async () => {
     if (!user) return;
     setSending(true);
     try {
-      await submitCourseRating({ courseId: course.id, stars, comment: comment.trim() || undefined });
+      const detailedComment = `[المدرب: ${instructorStars}/5 | المكان والتنظيم: ${venueStars}/5] ${comment.trim()}`.trim();
+      await submitCourseRating({ courseId: course.id, stars, comment: detailedComment || undefined });
       await refresh();
       setRateOpen(false);
       toast(t('journey.ratingThanks'), 'success');
@@ -401,15 +405,34 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         </View>
       </ScrollView>
 
-      {/* S26 — تقييم الكورس */}
-      <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title={t('journey.rateCourse')}>
-        <View style={{ gap: 14, alignItems: 'center' }}>
-          <Stars value={stars} size={36} onRate={setStars} />
-          <View style={{ alignSelf: 'stretch' }}>
-            <Input value={comment} onChange={setComment} placeholder={t('excuses.reasonPlaceholder')} multiline />
-          </View>
-          <Btn title={t('common.send')} full size="lg" loading={sending} onPress={submitRating} icon="star" />
-        </View>
+      {/* S26 — تقييم الكورس متعدد المحاور */}
+      <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title="⭐ تقييم التجربة التدريبية">
+        <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+          <Card glass style={{ gap: 6, alignItems: 'center' }}>
+            <Txt variant="caption" color={theme.textSecondary}>⭐ التقييم العام للدورة التدريبية</Txt>
+            <Stars value={stars} size={32} onRate={setStars} />
+          </Card>
+
+          <Card glass style={{ gap: 6, alignItems: 'center' }}>
+            <Txt variant="caption" color={theme.textSecondary}>👨‍🏫 تقييم أداء المدرب وجودة الشرح</Txt>
+            <Stars value={instructorStars} size={28} onRate={setInstructorStars} />
+          </Card>
+
+          <Card glass style={{ gap: 6, alignItems: 'center' }}>
+            <Txt variant="caption" color={theme.textSecondary}>🏢 تقييم المكان والقاعة والتنظيم</Txt>
+            <Stars value={venueStars} size={28} onRate={setVenueStars} />
+          </Card>
+
+          <Input
+            label="رأيك وملاحظاتك بالتفصيل (اختياري)"
+            value={comment}
+            onChange={setComment}
+            placeholder="اكتب انطباعك، ما أعجبك وما يمكن تحسينه..."
+            multiline
+          />
+
+          <Btn title="إرسال التقييم المعتمد" full size="lg" loading={sending} onPress={submitRating} icon="checkmark-circle" />
+        </ScrollView>
       </Sheet>
     </View>
   );

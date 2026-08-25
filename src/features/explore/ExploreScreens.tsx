@@ -228,18 +228,21 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
     setJoinBatch(b);
   };
 
+  const [joinedBatchData, setJoinedBatchData] = useState<null | { batch: Batch; waitlist: boolean }>(null);
+
   const confirmJoin = async () => {
     if (!joinBatch) return;
     if (!user) {
       navigation.navigate('SignIn');
       return;
     }
+    const currentJoinBatch = joinBatch;
     setJoining(true);
     try {
       const result = await joinBatchOnServer(joinBatch.id);
       await refresh();
       setJoinBatch(null);
-      setCelebrate({ waitlist: result.status === 'waitlist' });
+      setJoinedBatchData({ batch: currentJoinBatch, waitlist: result.status === 'waitlist' });
       toast(result.status === 'waitlist' ? t('joinCode.waitlist') : t('joinCode.joined'), 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
@@ -607,13 +610,70 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
         ) : null}
       </Sheet>
 
-      <CelebrationModal
-        visible={celebrate != null}
-        onClose={() => setCelebrate(null)}
-        title={celebrate?.waitlist ? t('join.waitlisted') : t('join.reserved')}
-        subtitle={t('course.joinedSnack')}
-        emoji="🎉"
-      />
+      {/* نافذة تأكيد التسجيل التفاعلية والانتقال المباشر */}
+      <Sheet visible={joinedBatchData != null} onClose={() => setJoinedBatchData(null)} title={joinedBatchData?.waitlist ? '⏳ تم الانضمام لقائمة الانتظار' : '🎉 تم تأكيد التسجيل بنجاح!'}>
+        {joinedBatchData ? (
+          <View style={{ gap: 14, paddingBottom: 20 }}>
+            <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', padding: 14 }}>
+              <Txt variant="h2" color={theme.brand}>{course.title}</Txt>
+              <Spacer size={4} />
+              <Txt variant="caption" color={theme.textSecondary}>
+                المدرب: {profileOf(db, joinedBatchData.batch.instructorId)?.fullName ?? 'معتمد'} · {joinedBatchData.batch.room}
+              </Txt>
+              <Spacer size={6} />
+              <Row center gap={6}>
+                <Ionicons name="time" size={15} color={theme.brand} />
+                <Txt variant="caption" color={theme.textSecondary}>
+                  المواعيد: {joinedBatchData.batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} الساعة {joinedBatchData.batch.schedule.time}
+                </Txt>
+              </Row>
+              <Spacer size={4} />
+              <Row center gap={6}>
+                <Ionicons name="flag" size={15} color={theme.success} />
+                <Txt variant="bodyMed" color={theme.success}>
+                  أول محاضرة: {(() => {
+                    const next = sessionsOfBatch(db, joinedBatchData.batch.id).find((s) => s.status === 'scheduled');
+                    return next ? `${formatDate(next.startsAt, lang)} · ${formatTime(next.startsAt, lang)}` : 'تبدأ قريباً';
+                  })()}
+                </Txt>
+              </Row>
+            </Card>
+
+            <View style={{ gap: 8 }}>
+              <Btn
+                title="🗺️ الانتقال لخريطة مسار الكورس والمحاضرات"
+                variant="primary"
+                size="lg"
+                icon="map"
+                full
+                onPress={() => {
+                  const bId = joinedBatchData.batch.id;
+                  setJoinedBatchData(null);
+                  navigation.navigate('JourneyMap', { batchId: bId });
+                }}
+              />
+              <Btn
+                title="📷 جاهز للحضور؟ امسح رمز الـ QR"
+                variant="gold"
+                size="md"
+                icon="qr-code"
+                full
+                onPress={() => {
+                  setJoinedBatchData(null);
+                  navigation.navigate('Scanner');
+                }}
+              />
+              <Btn
+                title="متابعة استكشاف باقي الكورسات"
+                variant="ghost"
+                size="md"
+                full
+                onPress={() => setJoinedBatchData(null)}
+              />
+            </View>
+          </View>
+        ) : null}
+      </Sheet>
 
       <BatchFormSheet
         visible={createBatchOpen}

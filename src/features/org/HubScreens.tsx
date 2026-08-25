@@ -41,17 +41,23 @@ export function HubScreen() {
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
         <Header title={t('tabs.hub')} />
-        <Segmented
-          value={tab}
-          onChange={(v) => setTab(v as HubTab)}
-          options={[
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
+          {[
             { value: 'rules', label: t('studio.title'), icon: 'options' },
             { value: 'badges', label: t('badges.title'), icon: 'medal' },
             { value: 'broadcast', label: t('broadcast.title'), icon: 'megaphone' },
             { value: 'audit', label: t('audit.title'), icon: 'document-lock' },
             { value: 'analytics', label: t('analytics.title'), icon: 'analytics' },
-          ]}
-        />
+          ].map((item) => (
+            <Chip
+              key={item.value}
+              label={item.label}
+              icon={item.icon as any}
+              active={tab === item.value}
+              onPress={() => setTab(item.value as HubTab)}
+            />
+          ))}
+        </ScrollView>
         {tab === 'rules' ? <RulesStudio /> : null}
         {tab === 'badges' ? <BadgeStudio /> : null}
         {tab === 'broadcast' ? <BroadcastComposer /> : null}
