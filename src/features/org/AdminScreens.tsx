@@ -35,7 +35,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, user, refresh, syncing } = useApp();
+  const { db, user, unreadCount, refresh, syncing } = useApp();
   const [branchFilter, setBranchFilter] = useState<string>('all');
   if (!user) return null;
 
@@ -54,7 +54,43 @@ export function DashboardScreen({ navigation: propNav }: any) {
           />
         }
       >
-        <Header title={t('dash.title')} subtitle={`${t('dash.hello')} ${user.fullName} 👋`} />
+        <Header
+          title={t('dash.title')}
+          subtitle={`${t('dash.hello')} ${user.fullName} 👋`}
+          right={
+            <Pressable
+              onPress={() => navigation.navigate('Notifications')}
+              style={({ pressed }) => ({
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: theme.line + '55',
+                alignItems: 'center', justifyContent: 'center',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Ionicons name="notifications-outline" size={21} color={theme.text} />
+              {unreadCount > 0 ? (
+                <View style={{
+                  position: 'absolute',
+                  top: 2,
+                  end: 2,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: theme.danger,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 4,
+                  borderWidth: 2,
+                  borderColor: theme.bg,
+                }}>
+                  <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 9, lineHeight: 11, fontWeight: '700' }}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Txt>
+                </View>
+              ) : null}
+            </Pressable>
+          }
+        />
 
         {/* فلتر الفروع */}
         <Row gap={8} wrap>

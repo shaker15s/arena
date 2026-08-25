@@ -138,7 +138,24 @@ export function TodayScreen() {
             >
               <Ionicons name="notifications-outline" size={21} color={theme.text} />
               {unreadCount > 0 ? (
-                <View style={{ position: 'absolute', top: 8, end: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 2, borderColor: theme.bg }} />
+                <View style={{
+                  position: 'absolute',
+                  top: 2,
+                  end: 2,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: theme.danger,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 4,
+                  borderWidth: 2,
+                  borderColor: theme.bg,
+                }}>
+                  <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 9, lineHeight: 11, fontWeight: '700' }}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Txt>
+                </View>
               ) : null}
             </Pressable>
           </Row>

@@ -259,6 +259,11 @@ export function subscribeRealtime(onPatch: (p: RealtimePatch) => void): () => vo
     .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'certificates' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, handler)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handler)
     .subscribe();
   return () => { void sb.removeChannel(channel); };
 }
@@ -281,6 +286,88 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
   const str = (v: unknown): string => (v == null ? '' : String(v));
 
   switch (p.table) {
+    case 'courses': {
+      const id = str(row.id);
+      if (del) { next.courses = next.courses.filter((c) => c.id !== id); break; }
+      const c: Course = {
+        id, title: str(row.title), description: str(row.description ?? ''),
+        field: str(row.field ?? ''), topics: Array.isArray(row.topics) ? row.topics : [],
+        sessionsCount: numOr(row.sessions_count, 10), committeeId: str(row.committee_id ?? ''),
+        status: (row.status as Course['status']) ?? 'published',
+        color: str(row.color ?? '#0A84FF'),
+      };
+      const i = next.courses.findIndex((x) => x.id === id);
+      if (i >= 0) next.courses[i] = c; else next.courses.push(c);
+      break;
+    }
+    case 'batches': {
+      const id = str(row.id);
+      if (del) { next.batches = next.batches.filter((b) => b.id !== id); break; }
+      const b: Batch = {
+        id, courseId: str(row.course_id), branchId: str(row.branch_id),
+        instructorId: str(row.instructor_id), capacity: numOr(row.capacity, 30),
+        room: str(row.room ?? ''), joinCode: str(row.code ?? row.join_code ?? ''),
+        schedule: (row.schedule as any) ?? { days: [0, 2], time: '18:00', durationMin: 120 },
+        startDate: tsVal(row.start_date ?? row.created_at) ?? Date.now(),
+        status: (row.status as Batch['status']) ?? 'active',
+        enrolledCount: next.enrollments.filter((e) => e.batchId === id && e.status === 'active').length,
+        waitlistCount: next.enrollments.filter((e) => e.batchId === id && e.status === 'waitlist').length,
+      };
+      const i = next.batches.findIndex((x) => x.id === id);
+      if (i >= 0) {
+        b.enrolledCount = next.batches[i].enrolledCount;
+        b.waitlistCount = next.batches[i].waitlistCount;
+        next.batches[i] = b;
+      } else {
+        next.batches.push(b);
+      }
+      break;
+    }
+    case 'certificates': {
+      const id = str(row.id);
+      if (del) { next.certificates = next.certificates.filter((c) => c.id !== id); break; }
+      const cert: Certificate = {
+        id, userId: str(row.user_id), batchId: str(row.batch_id), serial: str(row.serial),
+        issuedAt: tsVal(row.issued_at) ?? Date.now(),
+        status: (row.status as Certificate['status']) ?? 'active',
+        revokedAt: tsVal(row.revoked_at),
+        revokedBy: (row.revoked_by as string) ?? undefined,
+        revokeReason: (row.revocation_reason ?? row.revoke_reason) as string | undefined,
+        reissuedAt: tsVal(row.reissued_at),
+        reissuedBy: (row.reissued_by as string) ?? undefined,
+        reissueCount: numOr(row.reissued_count ?? row.reissue_count, 0),
+      };
+      const i = next.certificates.findIndex((x) => x.id === id);
+      if (i >= 0) next.certificates[i] = cert; else next.certificates.unshift(cert);
+      break;
+    }
+    case 'user_badges': {
+      const userId = str(row.user_id); const badgeCode = str(row.badge_code);
+      if (!userId || !badgeCode) return null;
+      const key = (ub: UserBadge) => ub.userId === userId && ub.badgeCode === badgeCode;
+      if (del) { next.userBadges = next.userBadges.filter((ub) => !key(ub)); break; }
+      const ub: UserBadge = {
+        userId, badgeCode, awardedAt: tsVal(row.awarded_at ?? row.unlocked_at) ?? Date.now(),
+      };
+      const i = next.userBadges.findIndex(key);
+      if (i >= 0) next.userBadges[i] = ub; else next.userBadges.push(ub);
+      break;
+    }
+    case 'profiles': {
+      const id = str(row.id);
+      if (del) { next.profiles = next.profiles.filter((p) => p.id !== id); break; }
+      const prof: Profile = {
+        id, authUserId: (row.user_id as string) ?? null, fullName: str(row.full_name),
+        phone: str(row.phone ?? ''), email: (row.email as string) ?? null,
+        role: row.role as Profile['role'], status: row.status as Profile['status'],
+        branchId: (row.branch_id as string) ?? null, avatarUrl: row.avatar_url as string | undefined,
+        avatarColor: str(row.avatar_color ?? '#0A84FF'), gender: (row.gender as any) ?? null,
+        joinedAt: tsVal(row.created_at ?? row.joined_at) ?? Date.now(),
+      };
+      const i = next.profiles.findIndex((x) => x.id === id);
+      if (i >= 0) next.profiles[i] = prof; else next.profiles.push(prof);
+      break;
+    }
     case 'notifications': {
       const id = str(row.id);
       if (del) { next.notifications = next.notifications.filter((n) => n.id !== id); break; }

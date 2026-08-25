@@ -286,7 +286,7 @@ function StudentTabs({ navigation, route }: any) {
 // ─── تبويبات المتطوع/المدرب ───
 function VolunteerTabs({ route }: any) {
   const { t } = useI18n();
-  const { db, user } = useApp();
+  const { db, user, unreadCount } = useApp();
   const pendingExcuses = user
     ? db.excuses.filter((e) => e.status === 'pending').length
     : 0;
@@ -302,7 +302,7 @@ function VolunteerTabs({ route }: any) {
         { key: 'inbox', label: t('tabs.inbox'), icon: 'file-tray-outline', iconActive: 'file-tray' },
         { key: 'profile', label: t('tabs.profile'), icon: 'person-outline', iconActive: 'person' },
       ]}
-      badges={{ inbox: pendingExcuses }}
+      badges={{ inbox: pendingExcuses, profile: Math.min(unreadCount, 99) }}
       renders={{
         today: () => <VolunteerTodayScreen />,
         batches: () => <MyBatchesScreen />,
@@ -317,6 +317,7 @@ function VolunteerTabs({ route }: any) {
 // ─── تبويبات المشرف/الأدمن ───
 function AdminTabs({ route }: any) {
   const { t } = useI18n();
+  const { unreadCount } = useApp();
   return (
     <TabsScaffold
       initial="dash"
@@ -329,6 +330,7 @@ function AdminTabs({ route }: any) {
         { key: 'hub', label: t('tabs.hub'), icon: 'options-outline', iconActive: 'options' },
         { key: 'profile', label: t('tabs.profile'), icon: 'person-outline', iconActive: 'person' },
       ]}
+      badges={{ profile: Math.min(unreadCount, 99) }}
       renders={{
         dash: () => <DashboardScreen />,
         org: () => <OrgManagerScreen />,
