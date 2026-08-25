@@ -14,6 +14,7 @@ import { completeMyProfile, deleteMyAccount, registerPushToken, updateMyProfile 
 import { getDevicePushToken } from '../shared/push';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
+  consumeWebAuthCallback,
   signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
 import { applyRealtimePatch, emptyDb, fetchRemoteDb, subscribeRealtime } from './remote';
@@ -47,6 +48,8 @@ interface AppCtx {
   identity: GoogleIdentity | null;
   /** دخل بجوجل لكنه لم يُكمل بياناته (رقم الموبايل/الفرع) بعد */
   needsProfile: boolean;
+  /** آخر خطأ من رجوع OAuth على الويب (راجع بلا جلسة) — يُعرض في شاشة الدخول */
+  authError: string | null;
   loading: boolean;
   syncing: boolean;
   lastSyncAt: number | null;
@@ -114,6 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeq = useRef(0);
@@ -245,6 +249,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     cacheOwner = authUser.id;
     setIdentity(identityOf(authUser));
+    setAuthError(null);
     setLoading(true);
     try {
       const sb = getSupabase();
@@ -293,6 +298,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const { data: { session } } = await sb.auth.getSession();
           if (isMounted) {
             await applySession(session);
+            // ويب: رجعنا من جوجل بلا جلسة؟ نظّف بارامترات الرجوع من الـ URL
+            // وأظهر سبب الفشل — بدل إعادة المستخدم للأونبوردينج بصمت.
+            if (Platform.OS === 'web') {
+              const callback = await consumeWebAuthCallback();
+              if (isMounted && callback.handled && !session) {
+                setAuthError(callback.error ?? 'oauth-callback-failed');
+              }
+            }
             // Realtime incremental: طبّق التغيير محليًا بدل سحب كل الجداول؛
             // إن تعذّر (جدول/حدث غير مُعالج) نعمل refresh كامل.
             unsubRealtime = subscribeRealtime((patch) => {
@@ -362,6 +375,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ── الدخول بجوجل ──
   const signInWithGoogle = useCallback(async () => {
+    setAuthError(null);
     const r = await sbSignInWithGoogle();
     if (r.ok && Platform.OS !== 'web') {
       const sb = getSupabase();
@@ -470,12 +484,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const needsProfile = Boolean(identity) && (!user || (user.status !== 'disabled' && !user.phone));
 
   const value = useMemo<AppCtx>(() => ({
-    ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, loading, syncing,
+    ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, authError, loading, syncing,
     lastSyncAt, syncError, online, setOnline, toasts, toast, submitOrQueue, refresh,
     signInWithGoogle, completeProfile, updateProfile, uploadAvatar, logout,
     deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
-    ready, db, user, identity, needsProfile, loading, syncing, lastSyncAt, syncError, online,
+    ready, db, user, identity, needsProfile, authError, loading, syncing, lastSyncAt, syncError, online,
     toasts, toast, submitOrQueue, refresh, signInWithGoogle, completeProfile, updateProfile,
     uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);

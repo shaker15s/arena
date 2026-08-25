@@ -16,6 +16,7 @@ import { isReducedMotion } from '../design/motion';
 import { radii, spacing } from '../design/tokens';
 import { useHaptics } from '../shared/hooks';
 import { PUBLIC_APP_URL } from '../shared/links';
+import { hasSeenOnboarding } from '../shared/onboarding';
 
 import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
 import { VerifyScreen } from '../features/verify/VerifyScreen';
@@ -435,8 +436,24 @@ function AdminStack() {
 }
 
 function AuthStack() {
+  const { authError } = useApp();
+  const [initial, setInitial] = useState<'Onboarding' | 'SignIn' | null>(null);
+
+  // الأونبوردينج يظهر مرة واحدة فقط: من رآه (أو حاول الدخول للتو وفشل)
+  // يبدأ من شاشة الدخول مباشرة بدل إعادته للشريحة الأولى كل مرة.
+  useEffect(() => {
+    let isMounted = true;
+    void (async () => {
+      const seen = await hasSeenOnboarding();
+      if (isMounted) setInitial(seen || authError ? 'SignIn' : 'Onboarding');
+    })();
+    return () => { isMounted = false; };
+  }, [authError]);
+
+  if (!initial) return null;
+
   return (
-    <Stack.Navigator screenOptions={screenOpts} initialRouteName="Onboarding">
+    <Stack.Navigator screenOptions={screenOpts} initialRouteName={initial}>
       <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />

@@ -196,6 +196,7 @@ export const en: Record<DictKey, string> = {
   'auth.verifyCertCta': 'Have a certificate to verify?',
   'auth.continueGoogle': 'Continue with Google',
   'auth.googleFailed': 'Google sign-in could not be completed — please try again',
+  'auth.callbackFailed': 'Google sign-in redirect could not be completed. Make sure this site\'s domain is listed in Supabase (Authentication → URL Configuration → Redirect URLs), then try again',
   'auth.notConfigured': 'Backend not configured — set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'auth.signingIn': 'Signing in…',
 
