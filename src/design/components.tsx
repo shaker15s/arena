@@ -918,7 +918,7 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
       onPress={() => { impactLight(); onChange(!value); }}
       hitSlop={8}
     >
-      <Animated.View style={{ width: 51, height: 31, borderRadius: 16, backgroundColor: bg, justifyContent: 'center' }}>
+      <Animated.View style={{ width: 51, height: 31, borderRadius: 16, backgroundColor: bg, justifyContent: 'center', direction: 'ltr' }}>
         <Animated.View style={{ width: 27, height: 27, borderRadius: 14, backgroundColor: '#fff', transform: [{ translateX: translate }], shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3 }} />
       </Animated.View>
     </Pressable>

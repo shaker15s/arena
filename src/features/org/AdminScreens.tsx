@@ -760,7 +760,11 @@ export function UsersScreen() {
       if (roleFilter !== 'all' && p.role !== roleFilter) return false;
       if (debouncedQuery.trim()) {
         const q = debouncedQuery.trim().toLowerCase();
-        return p.fullName.toLowerCase().includes(q) || p.phone.includes(q);
+        return (
+          p.fullName.toLowerCase().includes(q) ||
+          p.phone.includes(q) ||
+          (p.email && p.email.toLowerCase().includes(q))
+        );
       }
       return true;
     });
@@ -768,11 +772,11 @@ export function UsersScreen() {
 
   const selUser = selected ? profileOf(db, selected) : null;
 
-  const changeAccess = async (profileId: string, patch: { role?: Role; status?: 'active' | 'disabled' }) => {
+  const changeAccess = async (profileId: string, patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null }) => {
     try {
       await updateUserAccess(profileId, patch);
       await refresh();
-      toast(patch.role ? t('users.roleChanged') : t('users.statusChanged'), 'success');
+      toast(patch.role ? t('users.roleChanged') : patch.branchId !== undefined ? 'تم تحديث الفرع للمستخدم' : t('users.statusChanged'), 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
     }
@@ -792,7 +796,7 @@ export function UsersScreen() {
         }
       >
         <Header title={t('users.title')} />
-        <Input value={query} onChange={setQuery} placeholder={t('users.searchPlaceholder')} icon="search" />
+        <Input value={query} onChange={setQuery} placeholder="بحث بالاسم أو رقم الهاتف أو البريد الإلكتروني..." icon="search" />
         <Row gap={6} wrap>
           {roles.map((r) => (
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
@@ -806,7 +810,7 @@ export function UsersScreen() {
                 <Avatar name={p.fullName} color={p.avatarColor} size={40} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyMed">{p.fullName}</Txt>
-                  <Txt variant="micro" color={theme.textMuted}>{p.phone}</Txt>
+                  <Txt variant="micro" color={theme.textMuted}>{p.phone || 'بدون هاتف'} · {p.email || 'بدون بريد'}</Txt>
                 </View>
                 <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
               </Row>
@@ -822,10 +826,15 @@ export function UsersScreen() {
             <View style={{ gap: 12 }}>
               <Row center gap={12}>
                 <Avatar name={selUser.fullName} color={selUser.avatarColor} size={56} />
-                <View>
+                <View style={{ flex: 1 }}>
                   <Txt variant="h3">{selUser.fullName}</Txt>
-                  <Txt variant="caption" color={theme.textSecondary}>{selUser.phone} · {roleLabel[selUser.role]}</Txt>
-                  <Txt variant="micro" color={theme.textMuted}>{db.branches.find((b) => b.id === selUser.branchId)?.name ?? '—'}</Txt>
+                  <Txt variant="caption" color={theme.textSecondary}>{selUser.phone || '—'} · {roleLabel[selUser.role]}</Txt>
+                  {selUser.email ? (
+                    <Txt variant="caption" color={theme.brand} style={{ marginTop: 2 }}>✉️ {selUser.email}</Txt>
+                  ) : null}
+                  <Txt variant="micro" color={theme.textMuted} style={{ marginTop: 2 }}>
+                    📍 {db.branches.find((b) => b.id === selUser.branchId)?.name ?? 'غير محدد بفرع'}
+                  </Txt>
                 </View>
               </Row>
 
@@ -843,8 +852,27 @@ export function UsersScreen() {
                       />
                     ))}
                   </Row>
+
+                  <Spacer size={4} />
+                  <Txt variant="caption" color={theme.textSecondary}>🏢 تعيين / تغيير الفرع (إدارة الفرع):</Txt>
+                  <Row gap={6} wrap>
+                    <Chip
+                      label="بدون فرع (عام)"
+                      active={!selUser.branchId}
+                      onPress={() => { void changeAccess(selUser.id, { branchId: null }); }}
+                    />
+                    {db.branches.map((b) => (
+                      <Chip
+                        key={b.id}
+                        label={b.name}
+                        active={selUser.branchId === b.id}
+                        onPress={() => { void changeAccess(selUser.id, { branchId: b.id }); }}
+                      />
+                    ))}
+                  </Row>
+
                   {selUser.id !== user.id ? (
-                    <Row gap={8}>
+                    <Row gap={8} style={{ marginTop: 8 }}>
                       <Btn
                         title={selUser.status === 'active' ? t('users.deactivate') : t('users.activate')}
                         variant={selUser.status === 'active' ? 'danger' : 'success'}

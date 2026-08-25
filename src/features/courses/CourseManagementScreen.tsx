@@ -7,11 +7,13 @@ import { useApp } from '../../data/store';
 import {
   attendancePct, batchStudents, courseOf, isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
-import { notifySessionAbsentees, startTrainingSession, updateCourse, createSessionForBatch } from '../../data/actions';
+import {
+  notifySessionAbsentees, startTrainingSession, updateCourse, createSessionForBatch, getBatchRoster,
+} from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row, Segmented, Sheet, Spacer, Tag, Txt,
+  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row, Segmented, Sheet, Spacer, Stars, Tag, Txt,
 } from '../../design/components';
 import { spacing } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
@@ -38,7 +40,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
   }, [courseId, db.batches, user]);
 
   const [batchId, setBatchId] = useState<string>(requestedBatchId ?? allowedBatches[0]?.id ?? '');
-  const [tab, setTab] = useState<'overview' | 'students' | 'sessions'>('overview');
+  const [tab, setTab] = useState<'overview' | 'students' | 'sessions' | 'reviews'>('overview');
   const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
   const [joinQrOpen, setJoinQrOpen] = useState(false);
   const [editCourseOpen, setEditCourseOpen] = useState(false);
@@ -224,17 +226,44 @@ export function CourseManagementScreen({ route, navigation }: any) {
                 { value: 'overview', label: t('management.details'), icon: 'information-circle' },
                 { value: 'students', label: `${t('management.registrants')} (${counts.taken})`, icon: 'people' },
                 { value: 'sessions', label: `${t('common.sessions')} (${sessions.length})`, icon: 'calendar' },
+                { value: 'reviews', label: `التقييمات (${db.ratings.filter((r) => r.courseId === course.id).length})`, icon: 'star' },
               ]}
             />
 
             {batch && tab === 'overview' ? (
               <View style={{ gap: 10 }}>
+                {/* بطاقة تقدم المحاضرات المنجزة */}
+                <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '33' }}>
+                  <Row center between>
+                    <View>
+                      <Txt variant="caption" color={theme.textSecondary}>تقدم المحاضرات المنجزة</Txt>
+                      <Txt variant="h2" color={theme.brand}>
+                        {sessions.filter((s) => s.status === 'closed').length} / {sessions.length} محاضرة
+                      </Txt>
+                    </View>
+                    <Tag
+                      label={isBatchComplete(db, batch.id) ? 'مكتملة الدورة' : batch.status === 'active' ? 'قيد التدريب' : 'مجدولة'}
+                      color={isBatchComplete(db, batch.id) ? theme.brand : theme.success}
+                      bg="#fff"
+                    />
+                  </Row>
+                  <Spacer size={8} />
+                  <ProgressBar
+                    progress={sessions.length > 0 ? sessions.filter((s) => s.status === 'closed').length / sessions.length : 0}
+                    color={theme.brand}
+                    height={8}
+                  />
+                </Card>
+
                 <Card>
                   <Row center gap={10}>
                     {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={44} /> : null}
                     <View style={{ flex: 1 }}>
                       <Txt variant="micro" color={theme.textMuted}>{t('management.instructor')}</Txt>
                       <Txt variant="bodyMed">{instructor?.fullName ?? t('management.unassigned')}</Txt>
+                      {instructor?.phone || instructor?.email ? (
+                        <Txt variant="micro" color={theme.textMuted}>{instructor.phone} {instructor.email ? `· ${instructor.email}` : ''}</Txt>
+                      ) : null}
                     </View>
                     <Tag label={statusMeta(batch.status, batch.id).label} color={statusMeta(batch.status, batch.id).color} bg={statusMeta(batch.status, batch.id).color + '1F'} />
                   </Row>
@@ -302,7 +331,9 @@ export function CourseManagementScreen({ route, navigation }: any) {
                         <Avatar name={student.fullName} color={student.avatarColor} size={42} />
                         <View style={{ flex: 1 }}>
                           <Txt variant="bodyMed">{student.fullName}</Txt>
-                          <Txt variant="micro" color={theme.textMuted}>{student.phone || student.email || t('management.noContact')}</Txt>
+                          <Txt variant="micro" color={theme.textMuted}>
+                            {student.phone || 'بدون هاتف'} {student.email ? `· ${student.email}` : ''}
+                          </Txt>
                         </View>
                         <Tag label={`${stat.pct}% ${t('management.attendance')}`} color={stat.pct >= 75 ? theme.success : theme.warn} bg={stat.pct >= 75 ? theme.successSoft : theme.warnSoft} />
                       </Row>
@@ -349,6 +380,53 @@ export function CourseManagementScreen({ route, navigation }: any) {
                   </Card>
                 );
               })
+            ) : null}
+
+            {tab === 'reviews' ? (
+              (() => {
+                const reviews = db.ratings.filter((r) => r.courseId === course.id).sort((a, b) => b.createdAt - a.createdAt);
+                const avgStars = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1) : null;
+                return reviews.length === 0 ? (
+                  <Empty emoji="⭐" title="لا توجد تقييمات أو آراء مسجلة حتى الآن" body="تظهر تقييمات الطلاب وآراؤهم بعد حضورهم وإكمال المحاضرات" />
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    <Card glass>
+                      <Row center between>
+                        <View>
+                          <Txt variant="caption" color={theme.textSecondary}>متوسط تقييم الطلاب</Txt>
+                          <Row center gap={6}>
+                            <Txt variant="h1" color={theme.certGold}>{avgStars}</Txt>
+                            <Stars value={parseFloat(avgStars || '5')} size={20} />
+                          </Row>
+                        </View>
+                        <Tag label={`${reviews.length} تقييم`} color={theme.brand} bg={theme.brandSoft} />
+                      </Row>
+                    </Card>
+                    {reviews.map((rev) => {
+                      const reviewer = profileOf(db, rev.userId);
+                      return (
+                        <Card key={`${rev.userId}-${rev.createdAt}`}>
+                          <Row center between style={{ marginBottom: 6 }}>
+                            <Row center gap={8}>
+                              <Avatar name={reviewer?.fullName ?? 'طالب'} color={reviewer?.avatarColor ?? theme.brand} size={32} />
+                              <View>
+                                <Txt variant="bodyMed">{reviewer?.fullName ?? 'طالب مسجل'}</Txt>
+                                <Txt variant="micro" color={theme.textMuted}>{formatDate(rev.createdAt, lang)}</Txt>
+                              </View>
+                            </Row>
+                            <Stars value={rev.stars} size={15} />
+                          </Row>
+                          {rev.comment ? (
+                            <Txt variant="body" color={theme.textSecondary} style={{ marginTop: 4 }}>
+                              "{rev.comment}"
+                            </Txt>
+                          ) : null}
+                        </Card>
+                      );
+                    })}
+                  </View>
+                );
+              })()
             ) : null}
           </>
         )}
@@ -536,7 +614,25 @@ function SessionDetailSheet({
   const { db } = useApp();
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const students = batchStudents(db, batchId);
+  const localStudents = batchStudents(db, batchId);
+  const [roster, setRoster] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (localStudents.length === 0) {
+      void getBatchRoster(batchId).then((res) => {
+        if (res.students) setRoster(res.students);
+      }).catch(() => {});
+    }
+  }, [batchId, localStudents.length]);
+
+  const students = localStudents.length > 0 ? localStudents : roster.map((r) => ({
+    id: r.id,
+    fullName: r.full_name,
+    avatarColor: theme.brand,
+    phone: r.phone ?? '',
+    email: r.email ?? '',
+  }));
+
   const attRows = db.attendance.filter((a) => a.sessionId === session.id);
 
   const present = attRows.filter((a) => a.status === 'present').length;
@@ -632,7 +728,8 @@ function SessionDetailSheet({
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed">{st.fullName}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>
-                        {att?.method ? `${t('common.manual')}: ${att.method}` : ''}
+                        {st.phone ? `${st.phone} ` : ''}{st.email ? `· ${st.email} ` : ''}
+                        {att?.method ? `· ${t('common.manual')}: ${att.method}` : ''}
                         {att?.checkedInAt ? ` · ${formatTime(att.checkedInAt, lang)}` : ''}
                       </Txt>
                     </View>

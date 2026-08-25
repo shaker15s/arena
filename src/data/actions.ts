@@ -66,12 +66,13 @@ export async function updateMyProfile(input: { fullName: string; phone: string; 
 
 export async function updateUserAccess(
   profileId: string,
-  patch: { role?: Role; status?: 'active' | 'disabled' },
+  patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null },
 ): Promise<void> {
   await rpc('admin_update_user_access', {
     p_profile_id: profileId,
     p_role: patch.role ?? null,
     p_status: patch.status ?? null,
+    p_branch_id: patch.branchId !== undefined ? patch.branchId : null,
   });
 }
 

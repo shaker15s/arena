@@ -630,7 +630,10 @@ export function StudentRecordScreen({ route, navigation }: any) {
           <Card style={{ alignItems: 'center', paddingVertical: 18, gap: 8 }}>
             <Avatar name={student.fullName} color={student.avatarColor} size={72} />
             <Txt variant="h2">{student.fullName}</Txt>
-            <Txt variant="caption" color={theme.textSecondary}>{course.title} · {student.phone}</Txt>
+            <Txt variant="caption" color={theme.textSecondary}>{course.title} · {student.phone || 'بدون هاتف'}</Txt>
+            {student.email ? (
+              <Txt variant="caption" color={theme.brand}>✉️ {student.email}</Txt>
+            ) : null}
             <Row gap={16} style={{ marginTop: 4 }}>
               <View style={{ alignItems: 'center' }}>
                 <Txt variant="h3" color={pct >= 75 ? theme.success : theme.warn}>{pct}%</Txt>
