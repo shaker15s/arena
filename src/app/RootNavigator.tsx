@@ -95,14 +95,15 @@ function TabButton({ tab, active, badge, onPress }: {
       style={({ pressed }) => ([
         webPointer,
         {
-          flex: 1, minWidth: 54, minHeight: 58,
-          alignItems: 'center', justifyContent: 'center', gap: 3,
+          flex: 1, minWidth: 0, minHeight: 54, flexShrink: 1,
+          alignItems: 'center', justifyContent: 'center', gap: 2,
+          paddingHorizontal: 2,
           opacity: pressed ? 0.72 : 1,
         },
       ])}
     >
       <Animated.View pointerEvents="none" style={{
-        position: 'absolute', width: 54, height: 36, borderRadius: 18,
+        position: 'absolute', width: 46, height: 34, borderRadius: 17,
         backgroundColor: isDark ? 'rgba(10,132,255,0.17)' : 'rgba(0,122,255,0.11)',
         opacity: progress,
         transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }],
@@ -116,7 +117,7 @@ function TabButton({ tab, active, badge, onPress }: {
       }}>
         <Ionicons
           name={active ? (tab.iconActive ?? tab.icon) : tab.icon}
-          size={22}
+          size={21}
           color={active ? theme.brand : theme.textMuted}
         />
         {badge && badge > 0 ? (
@@ -126,11 +127,11 @@ function TabButton({ tab, active, badge, onPress }: {
             minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center',
             paddingHorizontal: 4, borderWidth: 2, borderColor: theme.card,
           }}>
-            <Txt variant="micro" color="#fff" style={{ fontSize: 9 }}>{badge > 99 ? '99+' : badge}</Txt>
+            <Txt variant="micro" color="#fff" style={{ fontSize: 9, lineHeight: 11 }}>{badge > 99 ? '99+' : badge}</Txt>
           </View>
         ) : null}
       </Animated.View>
-      <Txt variant="micro" color={active ? theme.brand : theme.textMuted} style={{ fontSize: 10 }} numberOfLines={1}>
+      <Txt variant="micro" color={active ? theme.brand : theme.textMuted} style={{ fontSize: 10, lineHeight: 13, textAlign: 'center' }} numberOfLines={1}>
         {tab.label}
       </Txt>
     </Pressable>
@@ -152,30 +153,30 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom, 8) }}
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingBottom: Math.max(insets.bottom, 8) }}
     >
       <View style={{
-        width: '100%', maxWidth: 720, alignSelf: 'center',
-        minHeight: 72, borderRadius: 28,
-        shadowColor: '#000', shadowOpacity: isDark ? 0.38 : 0.15,
-        shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 18,
+        width: '100%', maxWidth: 640, alignSelf: 'center',
+        minHeight: 68, borderRadius: 26,
+        shadowColor: '#000', shadowOpacity: isDark ? 0.34 : 0.13,
+        shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 16,
       }}>
-        <View style={{ position: 'absolute', inset: 0 as any, borderRadius: 28, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', inset: 0 as any, borderRadius: 26, overflow: 'hidden' }}>
           <BlurView intensity={isDark ? 55 : 80} tint={isDark ? 'dark' : 'light'} style={{ flex: 1 }} />
           <View pointerEvents="none" style={{
             position: 'absolute', inset: 0 as any,
             backgroundColor: isDark ? 'rgba(24,24,28,0.72)' : 'rgba(255,255,255,0.76)',
-            borderWidth: 1, borderColor: theme.glassBorder, borderRadius: 28,
+            borderWidth: 1, borderColor: theme.glassBorder, borderRadius: 26,
           }} />
         </View>
-        <View accessibilityRole="tablist" style={{ flexDirection: 'row', alignItems: 'center', minHeight: 72, paddingHorizontal: 6, paddingVertical: 6 }}>
+        <View accessibilityRole="tablist" style={{ flexDirection: 'row', alignItems: 'center', minHeight: 68, paddingHorizontal: 4, paddingVertical: 6 }}>
           {tabs.map((tab, index) => {
             const showFabHere = fab && index === Math.floor(tabs.length / 2);
             return (
               <React.Fragment key={tab.key}>
                 {showFabHere ? (
-                  <View style={{ flex: 1, minWidth: 58, alignItems: 'center', justifyContent: 'center' }}>
-                    <Animated.View style={{ transform: [{ scale: fabScale }], marginTop: -31 }}>
+                  <View style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
+                    <Animated.View style={{ transform: [{ scale: fabScale }], marginTop: -27 }}>
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={fab.label}
@@ -187,18 +188,18 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
                         <LinearGradient
                           colors={[theme.brandGradientFrom, theme.brandGradientTo]}
                           style={{
-                            width: 58, height: 58, borderRadius: 20,
+                            width: 52, height: 52, borderRadius: 18,
                             alignItems: 'center', justifyContent: 'center',
                             borderWidth: 3, borderColor: theme.bg,
                             shadowColor: theme.brand, shadowOpacity: 0.38,
-                            shadowRadius: 17, shadowOffset: { width: 0, height: 9 }, elevation: 14,
+                            shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 12,
                           }}
                         >
-                          <Ionicons name={fab.icon} size={25} color="#fff" />
+                          <Ionicons name={fab.icon} size={23} color="#fff" />
                         </LinearGradient>
                       </Pressable>
                     </Animated.View>
-                    {fab.label ? <Txt variant="micro" color={theme.textMuted} style={{ fontSize: 10, marginTop: 1 }}>{fab.label}</Txt> : null}
+                    {fab.label ? <Txt variant="micro" color={theme.textMuted} style={{ fontSize: 10, lineHeight: 13 }}>{fab.label}</Txt> : null}
                   </View>
                 ) : null}
                 <TabButton tab={tab} active={tab.key === active} badge={badges?.[tab.key]} onPress={() => onSelect(tab.key)} />
@@ -261,7 +262,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   return (
     <TabsContext.Provider value={ctx}>
       <AppBackground>
-        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 118 + Math.max(insets.bottom, 8) }}>
+        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 104 + Math.max(insets.bottom, 8) }}>
           {tabs.map((t) => {
             const isSelected = t.key === tab;
             if (!visitedTabs.has(t.key) && !isSelected) return null;

@@ -182,16 +182,22 @@ export const fonts = {
   bold: 'IBMPlexSansArabic_700Bold',
 } as const;
 
+/**
+ * سلم التايبوغرافيا — مضبوط للعربية:
+ * - أحجام أصغر وأكثر توازنًا (كانت كبيرة فوق الحد على الموبايل).
+ * - line-height أوسع نسبيًا حتى لا تُقطع الحروف العربية (امتدادات صاعدة/نازلة + تشكيل).
+ * - لا قيم كسرية في الحجم حتى لا يهتز رسم الحروف.
+ */
 export const typography = {
-  display: { fontSize: 36, lineHeight: 44, fontFamily: fonts.bold },
-  h1: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
-  h2: { fontSize: 22, lineHeight: 28, fontFamily: fonts.semibold },
-  h3: { fontSize: 17, lineHeight: 24, fontFamily: fonts.semibold },
-  body: { fontSize: 15.5, lineHeight: 24, fontFamily: fonts.regular },
-  bodyMed: { fontSize: 15.5, lineHeight: 24, fontFamily: fonts.medium },
-  caption: { fontSize: 13, lineHeight: 18, fontFamily: fonts.medium },
-  micro: { fontSize: 11, lineHeight: 14, fontFamily: fonts.medium },
-  numberHero: { fontSize: 32, lineHeight: 40, fontFamily: fonts.bold },
+  display: { fontSize: 30, lineHeight: 38, fontFamily: fonts.bold },
+  h1: { fontSize: 24, lineHeight: 32, fontFamily: fonts.bold },
+  h2: { fontSize: 20, lineHeight: 28, fontFamily: fonts.semibold },
+  h3: { fontSize: 16, lineHeight: 23, fontFamily: fonts.semibold },
+  body: { fontSize: 15, lineHeight: 23, fontFamily: fonts.regular },
+  bodyMed: { fontSize: 15, lineHeight: 23, fontFamily: fonts.medium },
+  caption: { fontSize: 13, lineHeight: 19, fontFamily: fonts.medium },
+  micro: { fontSize: 11, lineHeight: 16, fontFamily: fonts.medium },
+  numberHero: { fontSize: 28, lineHeight: 34, fontFamily: fonts.bold },
 } as const;
 
 // مستويات مسار (وثيقة 04 §2.3)

@@ -65,7 +65,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         </View>
       ) : null}
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, paddingBottom: 110 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 110 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

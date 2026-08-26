@@ -3,7 +3,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';

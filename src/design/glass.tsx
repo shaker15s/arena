@@ -298,11 +298,11 @@ export function GlassHeader({ title, subtitle, right }: {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.s5, paddingVertical: spacing.s2 }}>
       <View style={{ flex: 1 }}>
-        <Animated.Text style={{ color: theme.text, fontSize: 28, lineHeight: 36, fontFamily: 'IBMPlexSansArabic_700Bold' }}>
+        <Animated.Text style={{ color: theme.text, fontSize: 24, lineHeight: 32, fontFamily: 'IBMPlexSansArabic_700Bold', includeFontPadding: false }}>
           {title}
         </Animated.Text>
         {subtitle ? (
-          <Animated.Text style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 18, fontFamily: 'IBMPlexSansArabic_500Medium', marginTop: 2 }}>
+          <Animated.Text style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 19, fontFamily: 'IBMPlexSansArabic_500Medium', marginTop: 2, includeFontPadding: false }}>
             {subtitle}
           </Animated.Text>
         ) : null}
@@ -341,10 +341,10 @@ export function StatBubble({ value, label, icon, color, onPress }: {
       transform: [{ scale: pressed ? 0.97 : 1 }],
     })}>
       {icon ?? null}
-      <Animated.Text style={{ color: color ?? theme.text, fontSize: 22, fontFamily: 'IBMPlexSansArabic_700Bold' }}>
+      <Animated.Text numberOfLines={1} style={{ color: color ?? theme.text, fontSize: 20, lineHeight: 26, fontFamily: 'IBMPlexSansArabic_700Bold', includeFontPadding: false }}>
         {String(value)}
       </Animated.Text>
-      <Animated.Text style={{ color: theme.textMuted, fontSize: 11, fontFamily: 'IBMPlexSansArabic_500Medium' }}>
+      <Animated.Text numberOfLines={1} style={{ color: theme.textMuted, fontSize: 11, lineHeight: 15, fontFamily: 'IBMPlexSansArabic_500Medium', includeFontPadding: false }}>
         {label}
       </Animated.Text>
     </Pressable>
@@ -363,7 +363,7 @@ export function GradientText({ text, style }: { text: string; style?: ViewStyle 
     >
       {/* Gradient fills text on web, fallback to brand color */}
       <Animated.Text style={{
-        fontSize: 28,
+        fontSize: 24,
         fontFamily: 'IBMPlexSansArabic_700Bold',
         color: theme.brand,
         opacity: 0,
@@ -372,9 +372,10 @@ export function GradientText({ text, style }: { text: string; style?: ViewStyle 
         {text}
       </Animated.Text>
       <Animated.Text style={{
-        fontSize: 28,
+        fontSize: 24,
         fontFamily: 'IBMPlexSansArabic_700Bold',
         color: theme.brand,
+        includeFontPadding: false,
       }}>
         {text}
       </Animated.Text>

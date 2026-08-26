@@ -33,27 +33,27 @@
       }
       #boot-splash .logo {
         width: 96px; height: 96px; border-radius: 28px;
-        background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        background: linear-gradient(135deg, #007AFF, #5856D6);
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-size: 44px; font-weight: 700;
         animation: masar-glow 1.2s ease-in-out infinite alternate;
       }
-      #boot-splash .title { margin-top: 18px; font-size: 28px; font-weight: 700; color: #0F172A; }
-      #boot-splash .caption { margin-top: 6px; font-size: 14px; color: #64748B; }
+      #boot-splash .title { margin-top: 16px; font-size: 24px; font-weight: 700; color: #0F172A; letter-spacing: 0; }
+      #boot-splash .caption { margin-top: 6px; font-size: 13px; color: #64748B; }
       #boot-splash .spinner {
         margin-top: 28px; width: 30px; height: 30px; border-radius: 50%;
-        border: 3px solid #E0E7FF; border-top-color: #4F46E5;
+        border: 3px solid #E0E7FF; border-top-color: #007AFF;
         animation: masar-spin 0.8s linear infinite;
       }
       @keyframes masar-spin { to { transform: rotate(360deg); } }
       @keyframes masar-glow {
-        from { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.35); }
-        to { box-shadow: 0 0 44px 6px rgba(79, 70, 229, 0.45); }
+        from { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.35); }
+        to { box-shadow: 0 0 44px 6px rgba(0, 122, 255, 0.45); }
       }
       @media (prefers-color-scheme: dark) {
         #boot-splash { background: #0B1220; }
         #boot-splash .title { color: #F1F5F9; }
-        #boot-splash .spinner { border-color: #1E293B; border-top-color: #818CF8; }
+        #boot-splash .spinner { border-color: #1E293B; border-top-color: #0A84FF; }
       }
     </style>
   </head>

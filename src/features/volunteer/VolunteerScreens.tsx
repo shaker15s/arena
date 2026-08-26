@@ -3,7 +3,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -35,7 +34,6 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user, unreadCount, refresh, syncing } = useApp();
   const tabs = useTabs();
   const [creating, setCreating] = useState(false);
@@ -63,7 +61,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -245,7 +243,6 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user, refresh, syncing } = useApp();
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<'my' | 'all'>('my');
@@ -259,7 +256,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

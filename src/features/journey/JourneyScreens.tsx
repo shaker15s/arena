@@ -3,7 +3,6 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -30,7 +29,6 @@ export function JourneyScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user } = useApp();
   const tabs = useTabs();
   if (!user) return null;
@@ -43,7 +41,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 120 }}>
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {myEnrollments.length === 0 ? (
@@ -119,7 +117,6 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
   const batchId: string = route.params.batchId;
   const batch = batchOf(db, batchId);
@@ -480,7 +477,6 @@ type Filter = 'all' | AttendanceStatus;
 export function AttendanceHistoryScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user } = useApp();
   const batchId: string | undefined = route.params?.batchId;
   const [filter, setFilter] = useState<Filter>('all');

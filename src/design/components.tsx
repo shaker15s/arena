@@ -38,8 +38,13 @@ export function Txt({
   return (
     <Text
       numberOfLines={numberOfLines}
+      allowFontScaling
+      maxFontSizeMultiplier={1.4}
       style={[
-        { color: color ?? theme.text, textAlign: align ?? 'auto', writingDirection: 'auto' as const },
+        // includeFontPadding=false يجعل ارتفاع السطر مطابقًا لـ lineHeight
+        // فلا تُقصّ امتدادات الحروف العربية ولا تتزحزح النصوص عن مركزها (أندرويد).
+        { includeFontPadding: false },
+        { color: color ?? theme.text, textAlign: align ?? 'auto' },
         base,
         bold ? { fontFamily: typography.h3.fontFamily } : null,
         style,
@@ -240,7 +245,7 @@ export function Btn({
             ) : (
               <>
                 {icon ? <Ionicons name={icon} size={18} color="#fff" /> : null}
-                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 17 : 15 }}>{title}</Text>
+                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
               </>
             )}
           </LinearGradient>
@@ -282,7 +287,7 @@ export function Btn({
         ) : (
           <>
             {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
-            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 17 : 15 }}>{title}</Text>
+            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
           </>
         )}
       </Pressable>
@@ -559,7 +564,7 @@ export function Avatar({ name, color, size = 44, ring }: { name: string; color: 
       shadowColor: color, shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
       elevation: 6,
     }}>
-      <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size * 0.34 }}>{initials}</Text>
+      <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size * 0.34, includeFontPadding: false }}>{initials}</Text>
     </View>
   );
 }
@@ -743,8 +748,9 @@ export function Header({ title, subtitle, back, right }: {
 }) {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s3 }}>
+    <View style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}>
       <Row between center>
         <Row center gap={12} style={{ flex: 1 }}>
           {back ? (

@@ -4,7 +4,6 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -34,7 +33,6 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user, unreadCount, refresh, syncing } = useApp();
   const [branchFilter, setBranchFilter] = useState<string>('all');
   if (!user) return null;
@@ -44,7 +42,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -216,7 +214,6 @@ function KpiCard({ icon, color, value, suffix, label, index }: { icon: keyof typ
 export function OrgManagerScreen() {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, refresh, toast } = useApp();
   const [branchSheet, setBranchSheet] = useState(false);
   const [committeeSheet, setCommitteeSheet] = useState<string | null>(null);
@@ -259,7 +256,7 @@ export function OrgManagerScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
         {db.branches.length === 0 ? (
           <Empty emoji="🏢" title={t('org.branches')} body={t('wizard.s1Body')} cta={t('org.newBranch')} onCta={() => setBranchSheet(true)} />
@@ -791,7 +788,6 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 export function UsersScreen() {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, toast, user, refresh, syncing } = useApp();
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -834,7 +830,7 @@ export function UsersScreen() {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

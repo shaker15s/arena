@@ -3,7 +3,6 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { toDataURL as qrToDataUrl } from 'qrcode';
@@ -81,7 +80,6 @@ export function CertificatesScreen({ navigation }: any) {
 export function CertificateViewerScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user, toast, refresh } = useApp();
   const cert = db.certificates.find((c) => c.id === route.params.certId);
   const [copied, setCopied] = useState(false);

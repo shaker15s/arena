@@ -4,7 +4,6 @@
  */
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { verifyCertificate } from '../../data/actions';
 import type { VerifiedCertificate } from '../../data/actions';
@@ -17,7 +16,6 @@ import { formatDate } from '../../shared/format';
 export function VerifyScreen({ navigation, route }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const [serial, setSerial] = useState<string>(route?.params?.serial ?? '');
   const [result, setResult] = useState<VerifiedCertificate | 'not-found' | 'error' | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,7 +36,7 @@ export function VerifyScreen({ navigation, route }: any) {
   const found = result && typeof result !== 'string' ? result : null;
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
       <Header title={t('verify.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 16 }}>
         <FadeIn index={1}>

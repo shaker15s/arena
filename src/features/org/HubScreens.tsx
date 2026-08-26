@@ -4,7 +4,6 @@
  */
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
@@ -34,12 +33,11 @@ type HubTab = 'rules' | 'badges' | 'broadcast' | 'audit' | 'analytics';
 export function HubScreen() {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<HubTab>('rules');
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
         <Header title={t('tabs.hub')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
           {[
