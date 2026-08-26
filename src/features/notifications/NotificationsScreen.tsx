@@ -3,7 +3,6 @@
  */
 import React, { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';

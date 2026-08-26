@@ -4,7 +4,6 @@
  */
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import { attendanceOf, batchOf, courseOf, profileOf } from '../../data/engine';
@@ -181,7 +180,6 @@ export function ExcusesScreen({ navigation }: any) {
 export function ExcusesInboxScreen() {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -224,7 +222,7 @@ export function ExcusesInboxScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 120 }}>
         <Header title={t('inbox.title')} />
         <Segmented
           value={tab}

@@ -214,19 +214,19 @@ export function TodayScreen() {
                     elevation: 12,
                   }}
                 >
-                  <Row between center>
-                    <View style={{ flex: 1, gap: 8 }}>
+                  <Row center>
+                    <View style={{ flex: 1, gap: 8, minWidth: 0 }}>
                       <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
-                      <Txt variant="h2" color="#fff">{liveCourse?.title ?? ''}</Txt>
-                      <Txt variant="caption" color="rgba(255,255,255,0.85)">{liveSess.title}</Txt>
+                      <Txt variant="h2" color="#fff" numberOfLines={2}>{liveCourse?.title ?? ''}</Txt>
+                      <Txt variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>{liveSess.title}</Txt>
                       <Txt variant="micro" color="rgba(255,255,255,0.65)">
                         {t('today.endsIn')}: {formatDuration(checkinEndsAt - now, lang)}
                       </Txt>
                       <Spacer size={6} />
                       <View style={{
                         backgroundColor: 'rgba(255,255,255,0.2)',
-                        borderRadius: radii.button,
-                        paddingVertical: 12, paddingHorizontal: 18,
+                        borderRadius: radii.pill,
+                        paddingVertical: 10, paddingHorizontal: 16,
                         flexDirection: 'row', alignItems: 'center', gap: 8,
                         alignSelf: 'flex-start',
                       }}>
@@ -234,7 +234,7 @@ export function TodayScreen() {
                         <Txt variant="bodyMed" color="#fff">{t('today.checkInNow')}</Txt>
                       </View>
                     </View>
-                    <Ionicons name="qr-code-outline" size={90} color="rgba(255,255,255,0.15)" />
+                    <Ionicons name="qr-code-outline" size={72} color="rgba(255,255,255,0.18)" style={{ marginStart: 6 }} />
                   </Row>
                 </LinearGradient>
               </Pressable>

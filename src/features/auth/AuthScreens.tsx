@@ -89,16 +89,16 @@ export function OnboardingScreen({ navigation }: any) {
             <LinearGradient
               colors={[slide.from + '20', slide.to + '15']}
               style={{
-                width: Math.min(220, width * 0.5),
-                height: Math.min(220, width * 0.5),
-                borderRadius: 60,
+                width: Math.min(196, width * 0.46),
+                height: Math.min(196, width * 0.46),
+                borderRadius: 54,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderWidth: 1,
                 borderColor: slide.from + '30',
               }}
             >
-              <Ionicons name={slide.icon} size={100} color={slide.from} />
+              <Ionicons name={slide.icon} size={82} color={slide.from} />
             </LinearGradient>
           </Animated.View>
           <View style={{ alignItems: 'center', gap: 10, maxWidth: 520 }}>

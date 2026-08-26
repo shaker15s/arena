@@ -3,7 +3,6 @@
  */
 import React, { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -22,7 +21,6 @@ import { gamifOf } from '../../data/engine';
 export function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
   const { theme, preference, setTheme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { db, user, logout, deleteMyAccount, online, syncing, lastSyncAt, refresh, toast } = useApp();
   const [langSheet, setLangSheet] = useState(false);
@@ -62,7 +60,7 @@ export function ProfileScreen() {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
       >
         <Header title={t('profile.title')} />
