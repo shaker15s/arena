@@ -116,7 +116,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const hookNav = useNavigation<any>();
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { db, user, refresh, toast } = useApp();
   const batchId: string = route.params.batchId;
   const batch = batchOf(db, batchId);
@@ -162,7 +162,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
       case 'current': return { color: theme.brand, icon: 'radio-button-on' as const, label: t('map.nodeCurrent'), bg: theme.brandSoft };
       case 'excused': return { color: theme.info, icon: 'shield-checkmark' as const, label: t('map.nodeExcused'), bg: theme.infoSoft };
       case 'absent': return { color: theme.danger, icon: 'close-circle' as const, label: t('map.nodeAbsent'), bg: theme.dangerSoft };
-      default: return { color: theme.textMuted, icon: 'lock-closed' as const, label: t('map.nodeLocked'), bg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' };
+      default: return { color: theme.textMuted, icon: 'lock-closed' as const, label: t('map.nodeLocked'), bg: theme.fill };
     }
   };
 
@@ -358,7 +358,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
           <FadeIn index={sessions.length + 1}>
             <Card
               style={{
-                backgroundColor: (myCert || isEligibleForCert) ? (isDark ? 'rgba(255,215,0,0.12)' : 'rgba(255,215,0,0.18)') : theme.card,
+                backgroundColor: (myCert || isEligibleForCert) ? theme.certSoft : theme.card,
                 borderWidth: 2,
                 borderColor: (myCert || isEligibleForCert) ? theme.certGold : theme.line,
                 padding: 20,

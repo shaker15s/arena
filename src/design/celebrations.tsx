@@ -128,14 +128,14 @@ export function CelebrationModal({
           accessibilityRole="alert"
           accessibilityLabel={`${title}. ${subtitle ?? ''}`}
           style={{
-            backgroundColor: isDark ? theme.card : theme.card,
+            backgroundColor: theme.card,
             borderRadius: radii.xl,
             padding: spacing.s6,
             alignItems: 'center',
             width: '100%',
             maxWidth: 380,
             borderWidth: 1,
-            borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
+            borderColor: theme.glassBorder,
             shadowColor: '#000',
             shadowOpacity: 0.15,
             shadowRadius: 30,
@@ -206,7 +206,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
           accessibilityLabel={`شارة جديدة: ${badgeName}. ${badgeDesc}`}
           style={{
             transform: [{ scale }, { rotateY: rotateDeg }],
-            backgroundColor: isDark ? theme.card : theme.card,
+            backgroundColor: theme.card,
             borderRadius: radii.xl,
             padding: spacing.s6,
             alignItems: 'center',
@@ -214,7 +214,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
             maxWidth: 360,
             gap: 14,
             borderWidth: 1,
-            borderColor: isDark ? 'rgba(84,84,88,0.35)' : 'rgba(255,255,255,0.5)',
+            borderColor: theme.glassBorder,
             shadowColor: '#000',
             shadowOpacity: 0.15,
             shadowRadius: 30,

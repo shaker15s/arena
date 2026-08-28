@@ -113,7 +113,7 @@ export function OnboardingScreen({ navigation }: any) {
           {SLIDES.map((_, i) => (
             <View key={i} style={{
               height: 8, width: i === index ? 28 : 8, borderRadius: 4,
-              backgroundColor: i === index ? theme.brand : isDark ? 'rgba(120,120,128,0.3)' : 'rgba(120,120,128,0.15)',
+              backgroundColor: i === index ? theme.brand : theme.fillStrong,
             }} />
           ))}
         </Row>
@@ -173,12 +173,12 @@ export function SignInScreen({ navigation }: any) {
       <View style={{
         position: 'absolute', top: -60, right: -80,
         width: 320, height: 320, borderRadius: 160,
-        backgroundColor: isDark ? 'rgba(10,132,255,0.10)' : 'rgba(0,122,255,0.05)',
+        backgroundColor: theme.orbPrimary,
       }} />
       <View style={{
         position: 'absolute', bottom: -40, left: -70,
         width: 280, height: 280, borderRadius: 140,
-        backgroundColor: isDark ? 'rgba(175,82,222,0.10)' : 'rgba(88,86,214,0.05)',
+        backgroundColor: theme.orbSecondary,
       }} />
 
       <View style={{ flex: 1, width: '100%', maxWidth: 580, alignSelf: 'center', padding: spacing.s6, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }}>
@@ -336,7 +336,7 @@ export function CompleteProfileScreen() {
         <Pressable onPress={pickAvatar}>
           <View style={{
             width: 104, height: 104, borderRadius: 52, overflow: 'hidden',
-            backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+            backgroundColor: theme.fill,
             alignItems: 'center', justifyContent: 'center',
             borderWidth: 2, borderColor: theme.brand,
           }}>

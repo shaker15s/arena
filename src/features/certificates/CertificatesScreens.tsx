@@ -15,7 +15,7 @@ import { batchOf, courseOf, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Input, Row, Spacer, Tag, Txt } from '../../design/components';
-import { spacing, radii } from '../../design/tokens';
+import { spacing, radii, certPaper } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
 import { publicVerifyUrl } from '../../shared/links';
@@ -185,7 +185,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
         <FadeIn index={0}>
           {/* تصميم الشهادة الرسمي */}
           <View style={{
-            backgroundColor: '#FFFDF5',
+            backgroundColor: certPaper.bg,
             borderRadius: radii.xl,
             borderWidth: 3, borderColor: theme.certGold,
             padding: 24, alignItems: 'center', gap: 10,
@@ -199,26 +199,26 @@ export function CertificateViewerScreen({ route, navigation }: any) {
             </View>
 
             <Ionicons name="ribbon" size={40} color={theme.certGold} />
-            <Txt variant="h2" color="#7A5C00" align="center">{t('certs.of')}</Txt>
+            <Txt variant="h2" color={certPaper.inkSoft} align="center">{t('certs.of')}</Txt>
 
-            <Txt variant="caption" color="#95804A">{t('certs.awardedTo')}</Txt>
-            <Txt variant="display" color="#3D2B00" align="center">{student.fullName}</Txt>
+            <Txt variant="caption" color={certPaper.inkMuted}>{t('certs.awardedTo')}</Txt>
+            <Txt variant="display" color={certPaper.ink} align="center">{student.fullName}</Txt>
 
-            <Txt variant="caption" color="#95804A">{t('certs.forCompleting')}</Txt>
-            <Txt variant="h3" color="#7A5C00" align="center">{course.title}</Txt>
+            <Txt variant="caption" color={certPaper.inkMuted}>{t('certs.forCompleting')}</Txt>
+            <Txt variant="h3" color={certPaper.inkSoft} align="center">{course.title}</Txt>
 
             <Row center gap={6}>
-              <Ionicons name="business" size={13} color="#95804A" />
-              <Txt variant="caption" color="#95804A">{branch?.name ?? t('certs.issuedBy')}</Txt>
+              <Ionicons name="business" size={13} color={certPaper.inkMuted} />
+              <Txt variant="caption" color={certPaper.inkMuted}>{branch?.name ?? t('certs.issuedBy')}</Txt>
             </Row>
-            <Txt variant="micro" color="#95804A">{formatDate(cert.issuedAt, lang)}</Txt>
+            <Txt variant="micro" color={certPaper.inkMuted}>{formatDate(cert.issuedAt, lang)}</Txt>
 
-            <View style={{ height: 1, alignSelf: 'stretch', backgroundColor: '#E8D9A8', marginVertical: 4 }} />
+            <View style={{ height: 1, alignSelf: 'stretch', backgroundColor: certPaper.line, marginVertical: 4 }} />
 
             <Row center gap={14}>
-              <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E8D9A8' }}>
+              <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: certPaper.line }}>
                 {/* QR يوجّه فعليًا لصفحة التحقق العام — وليس توكنًا ميتًا غير موصول */}
-                <QRCode value={verifyUrl} size={88} color="#3D2B00" backgroundColor="#fff" />
+                <QRCode value={verifyUrl} size={88} color={certPaper.ink} backgroundColor="#fff" />
               </View>
               <View style={{ flex: 1, gap: 4, alignItems: 'center' }}>
                 {/* الختم ينطبع بأنيميشن */}
@@ -232,8 +232,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
                     {cert.status === 'revoked' ? t('certs.statusRevoked') : t('verify.verified')}
                   </Txt>
                 </Animated.View>
-                <Txt variant="micro" color="#95804A" align="center">{t('certs.serial')}</Txt>
-                <Txt variant="caption" color="#3D2B00" style={{ letterSpacing: 1 }}>{cert.serial}</Txt>
+                <Txt variant="micro" color={certPaper.inkMuted} align="center">{t('certs.serial')}</Txt>
+                <Txt variant="caption" color={certPaper.ink} style={{ letterSpacing: 1 }}>{cert.serial}</Txt>
                 {cert.status === 'revoked' ? (
                   <Txt variant="micro" color={theme.danger} align="center">{t('certs.revokeHint')}</Txt>
                 ) : null}

@@ -213,6 +213,7 @@ export async function fetchRemoteDb(): Promise<Db> {
       type: r.type, read: Boolean(r.read), createdAt: tsOr(r.created_at),
     })),
     privateNotes: privateNotes.map((r): PrivateNote => ({
+      id: r.id,
       instructorId: r.instructor_id, userId: r.user_id, note: r.note, updatedAt: tsOr(r.updated_at),
     })),
     courseRoles: courseRoles.map((r): CourseRole => ({
@@ -265,11 +266,6 @@ export function subscribeRealtime(onPatch: (p: RealtimePatch) => void): () => vo
     .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'certificates' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_badges' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handler)
     .subscribe();
   return () => { void sb.removeChannel(channel); };
 }

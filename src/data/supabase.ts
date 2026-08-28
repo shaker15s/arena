@@ -72,7 +72,7 @@ export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || D
 /** هل الاتصال الحقيقي مُهيّأ؟ */
 export const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
-let _client: SupabaseClient<any> | null = null;
+let _client: SupabaseClient<Database> | null = null;
 
 /** الحصول على عميل Supabase (Singleton) */
 export function getSupabase(): SupabaseClient<any> {

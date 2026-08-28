@@ -88,7 +88,7 @@ const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null
 
 // ───────────────────────────── بطاقات زجاجية ─────────────────────────────
 
-export function Card({ children, style, glass, color, noPad, onPress, solid }: {
+export function Card({ children, style, glass, color, noPad, onPress, solid, heavy }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
   /** مُبقاة للتوافق — الزجاج صار الأساس */
@@ -98,6 +98,8 @@ export function Card({ children, style, glass, color, noPad, onPress, solid }: {
   onPress?: () => void;
   /** بطاقة معتمة بلا ضبابية (للحالات التي تحتاج تباينًا كاملًا) */
   solid?: boolean;
+  /** ضبابية حقيقية للحالات الاستثنائية فقط (hero/عائم) — الافتراضي سطح زجاجي بلا blur للأداء */
+  heavy?: boolean;
 }) {
   const { theme, isDark } = useTheme();
   const { impactLight } = useHaptics();
@@ -126,7 +128,7 @@ export function Card({ children, style, glass, color, noPad, onPress, solid }: {
 
   const content = (
     <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glass : color ?? theme.card, transform: [{ scale }] }, style]}>
-      {useGlass ? (
+      {useGlass && heavy ? (
         <BlurView
           intensity={isDark ? 34 : 42}
           tint={isDark ? 'dark' : 'light'}
@@ -305,13 +307,14 @@ export function Spinner({ color }: { color?: string }) {
 export function Chip({ label, active, onPress, icon }: {
   label: string; active?: boolean; onPress?: () => void; icon?: keyof typeof Ionicons.glyphMap;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { impactLight } = useHaptics();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: Boolean(active) }}
       accessibilityLabel={label}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       onPress={onPress ? () => { impactLight(); onPress(); } : undefined}
       style={({ pressed }) => ({
         flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40,
@@ -343,10 +346,10 @@ export function Segmented<T extends string>({ options, value, onChange }: {
   value: T;
   onChange: (v: T) => void;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { impactLight } = useHaptics();
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)', borderRadius: radii.pill, padding: 3 }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: theme.fill, borderRadius: radii.pill, padding: 3 }}>
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -358,7 +361,7 @@ export function Segmented<T extends string>({ options, value, onChange }: {
             onPress={() => { impactLight(); onChange(opt.value); }}
             style={{
               flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: active ? (isDark ? 'rgba(60,60,67,0.5)' : theme.card) : 'transparent',
+              backgroundColor: active ? theme.card : 'transparent',
               borderRadius: radii.pill, paddingVertical: 9,
               shadowColor: active ? '#000' : 'transparent',
               shadowOpacity: active ? 0.05 : 0,
@@ -391,7 +394,7 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   onIconPress?: () => void;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -415,9 +418,9 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
       <View
         style={{
           flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', gap: 10,
-          backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+          backgroundColor: theme.fill,
           borderRadius: radii.button, borderWidth: error || focused ? 1.5 : 0.5,
-          borderColor: error ? theme.danger : focused ? theme.brand : isDark ? 'rgba(84,84,88,0.3)' : 'rgba(60,60,67,0.15)',
+          borderColor: error ? theme.danger : focused ? theme.brand : theme.fillBorder,
           paddingHorizontal: 16, paddingVertical: multiline ? 12 : 4, minHeight: multiline ? 96 : 54,
           shadowColor: focused ? theme.brand : 'transparent',
           shadowOpacity: focused ? 0.12 : 0,
@@ -478,7 +481,7 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
 export function ProgressBar({ progress, color, height = 8, track }: {
   progress: number; color?: string; height?: number; track?: string;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
   useEffect(() => {
@@ -493,7 +496,7 @@ export function ProgressBar({ progress, color, height = 8, track }: {
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: pct }}
-      style={{ height, borderRadius: height, backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)', overflow: 'hidden' }}
+      style={{ height, borderRadius: height, backgroundColor: theme.fill, overflow: 'hidden' }}
     >
       <Animated.View style={{ height, borderRadius: height, backgroundColor: color ?? theme.brand, width }} />
     </View>
@@ -503,7 +506,7 @@ export function ProgressBar({ progress, color, height = 8, track }: {
 export function StatRing({ size = 72, stroke = 7, progress, color, children }: {
   size?: number; stroke?: number; progress: number; color?: string; children?: React.ReactNode;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.spring(anim, { toValue: progress, useNativeDriver: false, damping: 18, stiffness: 150 }).start();
@@ -515,7 +518,7 @@ export function StatRing({ size = 72, stroke = 7, progress, color, children }: {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke={isDark ? 'rgba(84,84,88,0.3)' : 'rgba(120,120,128,0.12)'} strokeWidth={stroke} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={theme.fill} strokeWidth={stroke} fill="none" />
         <AnimatedCircle
           cx={size / 2} cy={size / 2} r={r}
           stroke={color ?? theme.brand} strokeWidth={stroke} fill="none"
@@ -686,7 +689,7 @@ export function Empty({ emoji, title, body, cta, onCta }: {
 export function Shimmer({ width = '100%', height = 14, radius = 10, style }: {
   width?: number | string; height?: number; radius?: number; style?: ViewStyle;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (isReducedMotion()) {
@@ -706,7 +709,7 @@ export function Shimmer({ width = '100%', height = 14, radius = 10, style }: {
     <Animated.View
       style={[{
         width: width as number, height, borderRadius: radius,
-        backgroundColor: isDark ? 'rgba(84,84,88,0.3)' : 'rgba(120,120,128,0.12)',
+        backgroundColor: theme.fill,
         opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.9] }),
       }, style]}
     />
@@ -746,7 +749,7 @@ export { useDebounce, useHaptics } from '../shared/hooks';
 export function Header({ title, subtitle, back, right }: {
   title: string; subtitle?: string; back?: () => void; right?: React.ReactNode;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   return (
@@ -761,7 +764,7 @@ export function Header({ title, subtitle, back, right }: {
               onPress={back}
               style={({ pressed }) => ({
               width: 44, height: 44, borderRadius: 15,
-              backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+              backgroundColor: theme.fill,
               alignItems: 'center', justifyContent: 'center',
               opacity: pressed ? 0.7 : 1,
             })}>
@@ -832,7 +835,7 @@ export function Sheet({ visible, onClose, children, title }: {
               maxHeight: '92%',
               borderWidth: 1,
               borderBottomWidth: 0,
-              borderColor: isDark ? 'rgba(84,84,88,0.42)' : 'rgba(255,255,255,0.72)',
+              borderColor: theme.glassBorder,
               shadowColor: '#000',
               shadowOpacity: 0.28,
               shadowRadius: 36,
@@ -842,7 +845,7 @@ export function Sheet({ visible, onClose, children, title }: {
               flexDirection: 'column',
             }}
           >
-            <View style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: isDark ? 'rgba(174,174,178,0.32)' : 'rgba(60,60,67,0.18)', marginBottom: 12 }} />
+            <View style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: theme.separator, marginBottom: 12 }} />
             
             {title ? (
               <Row between center style={{ marginBottom: 12 }}>
@@ -884,7 +887,7 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
   right?: React.ReactNode;
   danger?: boolean;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { impactLight } = useHaptics();
   return (
     <Pressable
@@ -895,10 +898,10 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
         webPointer,
         {
           flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
-          backgroundColor: isDark ? 'rgba(28,28,30,0.72)' : 'rgba(255,255,255,0.72)',
+          backgroundColor: theme.glass,
           borderRadius: radii.cardSm, padding: 14,
           borderWidth: 0.5,
-          borderColor: isDark ? 'rgba(84,84,88,0.25)' : 'rgba(255,255,255,0.5)',
+          borderColor: theme.glassBorder,
           opacity: pressed ? 0.7 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
@@ -921,14 +924,14 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
 // ───────────────────────────── Switch ─────────────────────────────
 
 export function CustomSwitch({ value, onChange, color }: { value: boolean; onChange: (v: boolean) => void; color?: string }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { impactLight } = useHaptics();
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
   useEffect(() => {
     Animated.spring(anim, { toValue: value ? 1 : 0, useNativeDriver: false, damping: 22, stiffness: 260 }).start();
   }, [value, anim]);
   const bg = anim.interpolate({ inputRange: [0, 1], outputRange: [
-    isDark ? 'rgba(120,120,128,0.32)' : '#E5E5EA',
+    theme.fillStrong,
     color ?? theme.brand,
   ]});
   const translate = anim.interpolate({ inputRange: [0, 1], outputRange: [2, 22] });

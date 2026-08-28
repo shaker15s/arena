@@ -6,7 +6,7 @@
  * ذرّي على الخادم؛ لا يثق المسار بمعرّف مستخدم أو توقيت قادم من العميل.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, View } from 'react-native';
+import { Animated, Platform, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
@@ -270,7 +270,6 @@ export function ScannerScreen({ navigation }: any) {
 }
 
 function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const { TextInput } = require('react-native');
   return (
     <TextInput
       value={value}
@@ -279,6 +278,7 @@ function CodeInput({ value, onChange }: { value: string; onChange: (v: string) =
       maxLength={6}
       placeholder="••••••"
       placeholderTextColor="#5B6478"
+      accessibilityLabel="رمز الحضور 6 أرقام"
       style={{
         backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
         paddingVertical: 12, paddingHorizontal: 14, fontSize: 22, letterSpacing: 8,

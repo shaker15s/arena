@@ -460,7 +460,7 @@ export function buildSeedDb(): Db {
     ],
     kudosQuotas: [{ instructorId: IDS.sara, month: monthKeyOf(now), spent: 25 }],
     notifications,
-    privateNotes: [{ instructorId: IDS.sara, userId: 'u_omar', note: 'مهتم ومتفاعل — رشّحه لمشروع المعرض', updatedAt: now - 2 * DAY }],
+    privateNotes: [{ id: 'pn_1', instructorId: IDS.sara, userId: 'u_omar', note: 'مهتم ومتفاعل — رشّحه لمشروع المعرض', updatedAt: now - 2 * DAY }],
     courseRoles: [],
     domainEvents: [],
     certSeq,

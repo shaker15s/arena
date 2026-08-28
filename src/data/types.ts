@@ -283,6 +283,7 @@ export interface AppNotification {
 }
 
 export interface PrivateNote {
+  id: string;
   instructorId: string;
   userId: string;
   note: string;

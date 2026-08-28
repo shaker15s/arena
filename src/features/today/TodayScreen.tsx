@@ -32,22 +32,13 @@ export function TodayScreen() {
   const navigation = useNavigation<any>();
   const tabs = useTabs();
 
-  const [flameTaps, setFlameTaps] = useState(0);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const flameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFlameTap = () => {
+    setShowEasterEgg(true);
     if (flameTimer.current) clearTimeout(flameTimer.current);
-    setFlameTaps(prev => {
-      const next = prev + 1;
-      if (next >= 7) {
-        setShowEasterEgg(true);
-        setTimeout(() => setShowEasterEgg(false), 3000);
-        return 0;
-      }
-      return next;
-    });
-    flameTimer.current = setTimeout(() => setFlameTaps(0), 2000);
+    flameTimer.current = setTimeout(() => setShowEasterEgg(false), 3000);
   };
 
   const gam = useMemo(() => (user ? getMyGamification(db, user.id) : null), [db, user]);
@@ -94,11 +85,11 @@ export function TodayScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Background gradient orbs */}
+      {/* Background gradient orb */}
       <View style={{
         position: 'absolute', top: -80, right: -60,
         width: 300, height: 300, borderRadius: 150,
-        backgroundColor: isDark ? 'rgba(10,132,255,0.06)' : 'rgba(0,122,255,0.04)',
+        backgroundColor: theme.orbPrimary,
       }} />
 
       {!online ? (
@@ -128,10 +119,13 @@ export function TodayScreen() {
               </View>
             </Row>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('notif.title')}
+              accessibilityHint={unreadCount > 0 ? `${unreadCount}` : undefined}
               onPress={() => navigation.navigate('Notifications')}
               style={({ pressed }) => ({
                 width: 44, height: 44, borderRadius: 22,
-                backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+                backgroundColor: theme.fill,
                 alignItems: 'center', justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
               })}
@@ -152,7 +146,7 @@ export function TodayScreen() {
                   borderWidth: 2,
                   borderColor: theme.bg,
                 }}>
-                  <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 9, lineHeight: 11, fontWeight: '700' }}>
+                  <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 10, lineHeight: 13, fontWeight: '700' }}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Txt>
                 </View>
@@ -168,13 +162,10 @@ export function TodayScreen() {
               <StatBubble
                 value={gam.streak}
                 label={t('today.streakLabel')}
-                icon={
-                  <Pressable onPress={handleFlameTap}>
-                    <Flame size={20} urgent={streakUrgent} />
-                  </Pressable>
-                }
+                icon={<Flame size={20} urgent={streakUrgent} />}
                 color="#FF9F0A"
                 onPress={() => navigation.navigate('Achievements')}
+                onLongPress={handleFlameTap}
               />
               <StatBubble
                 value={gam.points}
@@ -381,7 +372,12 @@ export function TodayScreen() {
 function QuickAction({ icon, label, color, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; onPress: () => void }) {
   const { theme, isDark } = useTheme();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}
+    >
       <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
         <View style={{
           width: 46, height: 46, borderRadius: 14,

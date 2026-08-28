@@ -428,7 +428,7 @@ export function evaluateStreakWeek(db: Db, userId: string, weekStart: number): S
   const myBatchIds = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
   const weekSessions = db.sessions.filter((s) => myBatchIds.includes(s.batchId) && weekStartOf(s.startsAt) === weekStart);
   const closed = weekSessions.filter((s) => s.status === 'closed');
-  const g = gamifOf(db, userId);
+  const g = gamifGet(db, userId);
   const maxFreeze = ruleValue(db, 'streak.freeze_max_hold');
 
   // تتبع جزئي: ما زالت هناك جلسات في الأسبوع لم تُغلق
@@ -550,7 +550,7 @@ export function evaluateBadges(db: Db, userId: string): Array<{ userId: string; 
     return s && a.status === 'present' && a.checkedInAt != null && a.checkedInAt < s.startsAt;
   }).length;
   if (early >= 10) push(awardBadge(db, userId, 'early_bird'));
-  const g = gamifOf(db, userId);
+  const g = gamifGet(db, userId);
   if (g.currentStreakWeeks >= 8) push(awardBadge(db, userId, 'super_streak'));
   // الكمال: شهر كامل بكل محاضراته مع مد 4+ محاضرات
   const months = [...new Set(db.pointEvents.filter((e) => e.userId === userId).map((e) => monthKeyOf(e.createdAt)))];

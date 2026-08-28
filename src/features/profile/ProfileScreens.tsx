@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import * as ImagePicker from 'expo-image-picker';
-import { balanceOf, levelOf } from '../../data/engine';
+import { balanceOf, levelOf, gamifGet } from '../../data/engine';
 import { ThemePref, useTheme } from '../../design/theme';
 import { Lang, useI18n } from '../../i18n';
 import {
@@ -16,7 +16,6 @@ import {
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
-import { gamifOf } from '../../data/engine';
 
 export function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
@@ -47,7 +46,7 @@ export function ProfileScreen() {
   if (!user) return null;
   const points = balanceOf(db, user.id);
   const { level } = levelOf(db, user.id);
-  const gam = gamifOf(db, user.id);
+  const gam = gamifGet(db, user.id);
   const levelMeta = levels[level - 1];
 
   const roleLabel: Record<string, string> = {
@@ -156,7 +155,7 @@ export function ProfileScreen() {
 
         {showDevInfo && (
           <FadeIn>
-            <Card style={{ marginTop: 4, padding: 12, backgroundColor: isDark ? '#111' : '#EEE', borderColor: theme.brand, borderWidth: 1 }}>
+            <Card style={{ marginTop: 4, padding: 12, backgroundColor: theme.card, borderColor: theme.brand, borderWidth: 1 }}>
               <Txt variant="h3" color={theme.brand} align="center">Developer Mode</Txt>
               <Spacer size={8} />
               <Txt variant="caption" color={theme.textSecondary}>User ID: {user.id}</Txt>
@@ -268,7 +267,7 @@ function MiniStat({ label, value, icon, color }: { label: string; value: string;
 function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useI18n();
   const { user, updateProfile, uploadAvatar, toast } = useApp();
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const [name, setName] = useState(user?.fullName ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [avatar, setAvatar] = useState<string | null>(user?.avatarUrl ?? null);
@@ -316,7 +315,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
           <View style={{
             width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
             alignItems: 'center', justifyContent: 'center',
-            backgroundColor: isDark ? 'rgba(120,120,128,0.24)' : 'rgba(120,120,128,0.12)',
+            backgroundColor: theme.fill,
             borderWidth: 2, borderColor: theme.brand,
           }}>
             {uploading ? <ActivityIndicator color={theme.brand} />

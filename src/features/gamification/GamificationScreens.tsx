@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
   balanceOf, badgeProgress, getWeeklyLeague, levelOf, nearestBadge, profileOf,
-  risingStars, gamifOf, courseStreak,
+  risingStars, gamifGet, courseStreak,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -142,7 +142,7 @@ export function LeagueScreen({ navigation }: any) {
       .filter((p) => p.role === 'student' && p.status === 'active')
       .map((st) => {
         const totalPts = balanceOf(db, st.id);
-        const g = gamifOf(db, st.id);
+        const g = gamifGet(db, st.id);
         const bestStreak = Math.max(
           g.currentStreakWeeks,
           ...db.enrollments

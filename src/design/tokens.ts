@@ -57,6 +57,8 @@ export interface ThemeColors {
   flameFrom: string;
   flameTo: string;
   certGold: string;
+  /** خلفية ذهبية ناعمة لحظة أهلية/حصول الشهادة */
+  certSoft: string;
   bg: string;
   bgGradientFrom: string;
   bgGradientTo: string;
@@ -79,6 +81,16 @@ export interface ThemeColors {
   surfaceGlass: string;
   backdropBlur: string;
   separator: string;
+  /** حشوة تحكم خفيفة (chips، segmented، أزرار ثانوية، حقول) */
+  fill: string;
+  /** حشوة تحكم أثقل (داكن دائمًا أعمق) */
+  fillStrong: string;
+  /** حد الحشوات الخفيفة */
+  fillBorder: string;
+  /** كرات الخلفية المحيطة — الأزرق والبنفسجي والأخضر */
+  orbPrimary: string;
+  orbSecondary: string;
+  orbTertiary: string;
 }
 
 export const lightTheme: ThemeColors = {
@@ -103,6 +115,7 @@ export const lightTheme: ThemeColors = {
   flameFrom: '#FF9F0A',
   flameTo: '#FF3B30',
   certGold: '#FFB800',
+  certSoft: 'rgba(255, 215, 0, 0.18)',
   bg: '#F5F5FA',
   bgGradientFrom: '#FAFBFF',
   bgGradientTo: '#EEEEF6',
@@ -124,6 +137,12 @@ export const lightTheme: ThemeColors = {
   surfaceGlass: 'rgba(255, 255, 255, 0.65)',
   backdropBlur: 'rgba(249, 249, 249, 0.94)',
   separator: 'rgba(60, 60, 67, 0.18)',
+  fill: 'rgba(120, 120, 128, 0.12)',
+  fillStrong: 'rgba(120, 120, 128, 0.2)',
+  fillBorder: 'rgba(60, 60, 67, 0.15)',
+  orbPrimary: 'rgba(0, 122, 255, 0.085)',
+  orbSecondary: 'rgba(88, 86, 214, 0.065)',
+  orbTertiary: 'rgba(48, 209, 88, 0.035)',
 };
 
 export const darkTheme: ThemeColors = {
@@ -136,6 +155,7 @@ export const darkTheme: ThemeColors = {
   brandGradientMid: '#5E5CE6',
   teal: '#30D158',
   bg: '#000000',
+  certSoft: 'rgba(255, 215, 0, 0.12)',
   bgGradientFrom: '#1C1C1E',
   bgGradientTo: '#000000',
   card: '#1C1C1E',
@@ -156,6 +176,12 @@ export const darkTheme: ThemeColors = {
   surfaceGlass: 'rgba(28, 28, 30, 0.65)',
   backdropBlur: 'rgba(22, 22, 24, 0.94)',
   separator: 'rgba(84, 84, 88, 0.2)',
+  fill: 'rgba(120, 120, 128, 0.24)',
+  fillStrong: 'rgba(120, 120, 128, 0.32)',
+  fillBorder: 'rgba(84, 84, 88, 0.3)',
+  orbPrimary: 'rgba(10, 132, 255, 0.12)',
+  orbSecondary: 'rgba(94, 92, 230, 0.1)',
+  orbTertiary: 'rgba(48, 209, 88, 0.055)',
 };
 
 export const oledTheme: ThemeColors = {
@@ -174,6 +200,15 @@ export const themes: Record<ThemeName, ThemeColors> = {
   oled: oledTheme,
 };
 
+/** ورق الشهادة — ألوان ثابتة عبر الثيمات (تطابق قالب PDF المُصدَّر) */
+export const certPaper = {
+  bg: '#FFFDF5',
+  ink: '#3D2B00',
+  inkSoft: '#7A5C00',
+  inkMuted: '#95804A',
+  line: '#E8D9A8',
+} as const;
+
 // خط IBM Plex Sans Arabic بأوزانه
 export const fonts = {
   regular: 'IBMPlexSansArabic_400Regular',
@@ -189,15 +224,15 @@ export const fonts = {
  * - لا قيم كسرية في الحجم حتى لا يهتز رسم الحروف.
  */
 export const typography = {
-  display: { fontSize: 30, lineHeight: 38, fontFamily: fonts.bold },
-  h1: { fontSize: 24, lineHeight: 32, fontFamily: fonts.bold },
-  h2: { fontSize: 20, lineHeight: 28, fontFamily: fonts.semibold },
-  h3: { fontSize: 16, lineHeight: 23, fontFamily: fonts.semibold },
-  body: { fontSize: 15, lineHeight: 23, fontFamily: fonts.regular },
-  bodyMed: { fontSize: 15, lineHeight: 23, fontFamily: fonts.medium },
-  caption: { fontSize: 13, lineHeight: 19, fontFamily: fonts.medium },
-  micro: { fontSize: 11, lineHeight: 16, fontFamily: fonts.medium },
-  numberHero: { fontSize: 28, lineHeight: 34, fontFamily: fonts.bold },
+  display: { fontSize: 30, lineHeight: 40, fontFamily: fonts.bold },
+  h1: { fontSize: 24, lineHeight: 33, fontFamily: fonts.bold },
+  h2: { fontSize: 20, lineHeight: 29, fontFamily: fonts.semibold },
+  h3: { fontSize: 16, lineHeight: 24, fontFamily: fonts.semibold },
+  body: { fontSize: 15, lineHeight: 24, fontFamily: fonts.regular },
+  bodyMed: { fontSize: 15, lineHeight: 24, fontFamily: fonts.medium },
+  caption: { fontSize: 13, lineHeight: 20, fontFamily: fonts.medium },
+  micro: { fontSize: 11, lineHeight: 17, fontFamily: fonts.medium },
+  numberHero: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
 } as const;
 
 // مستويات مسار (وثيقة 04 §2.3)

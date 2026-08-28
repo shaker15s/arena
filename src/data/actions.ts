@@ -91,11 +91,29 @@ export async function updateUserAccess(
   });
 }
 
+// Rate limiter helper for sensitive actions
+const callTimestamps: Record<string, number[]> = {};
+
+function checkClientRateLimit(key: string, maxCalls: number, windowMs: number): boolean {
+  const now = Date.now();
+  const timestamps = (callTimestamps[key] ?? []).filter((t) => now - t < windowMs);
+  if (timestamps.length >= maxCalls) {
+    callTimestamps[key] = timestamps;
+    return false;
+  }
+  timestamps.push(now);
+  callTimestamps[key] = timestamps;
+  return true;
+}
+
 export async function joinBatch(batchId: string): Promise<{ status: 'active' | 'waitlist'; already: boolean }> {
   return rpc('join_batch', { p_batch_id: batchId });
 }
 
 export async function joinBatchByCode(code: string): Promise<{ batchId: string; status: 'active' | 'waitlist'; already: boolean }> {
+  if (!checkClientRateLimit('join_batch_by_code', 5, 10000)) {
+    throw new ActionError('لقد تجاوزت حد المحاولات المسموح به، يرجى الانتظار بضع ثوانٍ', 'rate_limited');
+  }
   const result = await rpc<{ batch_id: string; status: 'active' | 'waitlist'; already: boolean }>('join_batch_by_code', {
     p_join_code: code.trim(),
   });
@@ -111,6 +129,9 @@ export async function getSessionQrPayload(sessionId: string): Promise<SessionQrP
 }
 
 export async function checkInWithToken(payload: string, lat?: number, lng?: number): Promise<CheckInResponse> {
+  if (!checkClientRateLimit('check_in_with_token', 6, 5000)) {
+    return { kind: 'rate_limited' };
+  }
   // نمرّر الإحداثيات للخادم متى توفرت — الخادم هو من يقرّر القبول (geofence).
   return rpc<CheckInResponse>('check_in_with_token', { p_payload: payload, p_lat: lat ?? null, p_lng: lng ?? null });
 }
