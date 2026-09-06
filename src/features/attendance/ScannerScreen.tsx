@@ -93,7 +93,7 @@ export function ScannerScreen({ navigation }: any) {
         break;
       case 'not_enrolled':
         haptic('error');
-        setError({ msg: t('scanner.noSession'), icon: 'search' });
+        setError({ msg: t('scanner.notEnrolled'), icon: 'person-remove' });
         break;
       case 'rate_limited':
         haptic('error');
@@ -276,7 +276,14 @@ export function ScannerScreen({ navigation }: any) {
         subtitle={
           success?.already
             ? undefined
-            : success ? (success.status === 'present' ? t('scanner.presentTag') : t('scanner.lateTag')) + (success.badges > 0 ? ` · ${t('achievements.newBadge')}` : '') : undefined
+            : success
+              ? [
+                  liveSess?.title,
+                  success.status === 'present' ? t('scanner.presentTag') : t('scanner.lateTag'),
+                  success.points > 0 ? `+${success.points}` : null,
+                  success.badges > 0 ? t('achievements.newBadge') : null,
+                ].filter(Boolean).join(' · ')
+              : undefined
         }
         points={success && !success.already ? success.points : undefined}
         streakSafe

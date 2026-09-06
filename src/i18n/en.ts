@@ -320,6 +320,7 @@ export const en: Record<DictKey, string> = {
   'scanner.expired': 'This code expired — scan the current code on the instructor screen',
   'scanner.tooLate': 'Check-in window closed — you can submit an excuse to your instructor',
   'scanner.noSession': 'No active session matches this code',
+  'scanner.notEnrolled': 'You are not enrolled in this session’s batch — join from Explore first',
   'scanner.invalid': 'Invalid code',
   'scanner.pointsEarned': '+{x} pts',
   'scanner.streakSafe': 'Your week streak is safe 🔥',
@@ -555,6 +556,10 @@ export const en: Record<DictKey, string> = {
   'dash.issueCerts': 'Issue certificates',
   'dash.broadcast': 'Broadcast',
   'dash.hello': 'Hello',
+  'dash.needsAttention': 'Needs your attention',
+  'dash.pendingExcuses': '{x} excuses awaiting review',
+  'dash.liveSessions': '{x} live sessions now',
+  'dash.readyCerts': 'Completed batches waiting for certificates',
 
   'wizard.title': 'Start your center',
   'wizard.step': 'Step {x} of 6',

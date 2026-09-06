@@ -333,6 +333,7 @@ export const ar = {
   'scanner.expired': 'هذا الرمز انتهى — امسح الرمز الحالي من شاشة المدرب',
   'scanner.tooLate': 'انتهت نافذة التسجيل — يمكنك تقديم عذر للمدرب',
   'scanner.noSession': 'لا جلسة نشطة بهذا الرمز',
+  'scanner.notEnrolled': 'لست مسجّلًا في مجموعة هذه الجلسة — انضم أولًا من استكشف',
   'scanner.invalid': 'الرمز غير صحيح',
   'scanner.pointsEarned': '+{x} نقطة',
   'scanner.streakSafe': 'ستريك الأسبوع في أمان 🔥',
@@ -587,6 +588,10 @@ export const ar = {
   'dash.issueCerts': 'إصدار شهادات',
   'dash.broadcast': 'مراسلة جماعية',
   'dash.hello': 'أهلًا',
+  'dash.needsAttention': 'يحتاج تدخلك',
+  'dash.pendingExcuses': '{x} أعذار بانتظار المراجعة',
+  'dash.liveSessions': '{x} جلسات حية الآن',
+  'dash.readyCerts': 'مجموعات مكتملة بانتظار إصدار شهادات',
 
   // ── المعالج ──
   'wizard.title': 'ابدأ مركزك',

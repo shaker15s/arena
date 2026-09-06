@@ -21,7 +21,7 @@ import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { easing, isReducedMotion } from '../../design/motion';
-import { Batch, type Role } from '../../data/types';
+import { Batch, type Db, type Role } from '../../data/types';
 import {
   createBatchWithSessions, createBranch, createCommittee, createCourse, updateUserAccess,
 } from '../../data/actions';
@@ -100,6 +100,8 @@ export function DashboardScreen({ navigation: propNav }: any) {
           ))}
         </Row>
 
+        <NeedsAttention db={db} t={t} navigation={navigation} />
+
         {/* KPI Bento */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <KpiCard icon="business" color={theme.brand} value={stats.branchesCount} label={t('dash.branches')} index={0} />
@@ -171,6 +173,29 @@ export function DashboardScreen({ navigation: propNav }: any) {
         </FadeIn>
       </ScrollView>
     </View>
+  );
+}
+
+function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) => string; navigation: any }) {
+  const pendingExcuses = db.excuses.filter((e) => e.status === 'pending').length;
+  const liveSessions = db.sessions.filter((s) => s.status === 'live').length;
+  const completedWithoutCert = db.batches.filter((b) => b.status === 'completed' && !db.certificates.some((c) => c.batchId === b.id)).length;
+  if (pendingExcuses + liveSessions + completedWithoutCert === 0) return null;
+  return (
+    <FadeIn index={0}>
+      <Card>
+        <Txt variant="h3" style={{ marginBottom: 10 }}>{t('dash.needsAttention')}</Txt>
+        {pendingExcuses > 0 ? (
+          <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('Inbox')} />
+        ) : null}
+        {liveSessions > 0 ? (
+          <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} />
+        ) : null}
+        {completedWithoutCert > 0 ? (
+          <ListRow icon="ribbon" title={t('dash.readyCerts')} subtitle={String(completedWithoutCert)} onPress={() => navigation.navigate('IssueCertificates')} />
+        ) : null}
+      </Card>
+    </FadeIn>
   );
 }
 

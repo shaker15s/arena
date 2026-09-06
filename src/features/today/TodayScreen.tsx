@@ -168,40 +168,10 @@ export function TodayScreen() {
           </Row>
         </FadeIn>
 
-        {/* ── شريط المؤشرات الثلاثة — Glass Bubbles ── */}
-        {gam ? (
-          <FadeIn index={1}>
-            <Row gap={10} style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4 }}>
-              <StatBubble
-                value={gam.streak}
-                label={t('today.streakLabel')}
-                icon={<Flame size={20} urgent={streakUrgent} />}
-                color="#FF9F0A"
-                onPress={() => navigation.navigate('Achievements')}
-                onLongPress={handleFlameTap}
-              />
-              <StatBubble
-                value={gam.points}
-                label={t('today.pointsLabel')}
-                icon={<Ionicons name="star" size={20} color={theme.certGold} />}
-                color={theme.certGold}
-                onPress={() => navigation.navigate('Wallet')}
-              />
-              <StatBubble
-                value={gam.leagueXp > 0 && gam.leagueRank > 0 ? `#${gam.leagueRank}` : '—'}
-                label={t(`tier.${gam.leagueTier}` as any)}
-                icon={<Ionicons name="shield" size={20} color={leagueTierColors[gam.leagueTier]} />}
-                color={leagueTierColors[gam.leagueTier]}
-                onPress={() => navigation.navigate('League')}
-              />
-            </Row>
-          </FadeIn>
-        ) : null}
-
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
-          {/* ── بطاقة الجلسة الحية — Gradient Premium ── */}
+          {/* Task-first: live check-in before KPIs (spec §06 / §44) */}
           {liveSess && !alreadyChecked ? (
-            <FadeIn index={2}>
+            <FadeIn index={1}>
               <Pressable onPress={() => navigation.navigate('Scanner')}>
                 <LinearGradient
                   colors={[theme.brandGradientFrom, theme.brandGradientTo]}
@@ -244,7 +214,38 @@ export function TodayScreen() {
               </Pressable>
             </FadeIn>
           ) : null}
+        </View>
 
+        {gam ? (
+          <FadeIn index={2}>
+            <Row gap={10} style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4, marginTop: spacing.s3 }}>
+              <StatBubble
+                value={gam.streak}
+                label={t('today.streakLabel')}
+                icon={<Flame size={20} urgent={streakUrgent} />}
+                color="#FF9F0A"
+                onPress={() => navigation.navigate('Achievements')}
+                onLongPress={handleFlameTap}
+              />
+              <StatBubble
+                value={gam.points}
+                label={t('today.pointsLabel')}
+                icon={<Ionicons name="star" size={20} color={theme.certGold} />}
+                color={theme.certGold}
+                onPress={() => navigation.navigate('Wallet')}
+              />
+              <StatBubble
+                value={gam.leagueXp > 0 && gam.leagueRank > 0 ? `#${gam.leagueRank}` : '—'}
+                label={t(`tier.${gam.leagueTier}` as any)}
+                icon={<Ionicons name="shield" size={20} color={leagueTierColors[gam.leagueTier]} />}
+                color={leagueTierColors[gam.leagueTier]}
+                onPress={() => navigation.navigate('League')}
+              />
+            </Row>
+          </FadeIn>
+        ) : null}
+
+        <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {/* ── المحاضرة القادمة ── */}
           {nextSess && nextCourse ? (
             <FadeIn index={3}>
