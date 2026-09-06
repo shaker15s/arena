@@ -251,7 +251,7 @@ export function haversineM(lat1: number, lng1: number, lat2: number, lng2: numbe
   return 6371000 * 2 * Math.asin(Math.sqrt(a));
 }
 
-export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.now(), lat?: number, lng?: number): CheckInResult {
+export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.now(), lat?: number, lng?: number, deviceFingerprint?: string): CheckInResult {
   const code = payload.trim();
   // ── توثيق التوكن ──
   let session: TrainingSession | undefined;
@@ -300,8 +300,9 @@ export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.n
     existing.status = status;
     existing.checkedInAt = now;
     existing.method = method;
+    if (deviceFingerprint) existing.deviceFingerprint = deviceFingerprint;
   } else {
-    db.attendance.push({ sessionId: session.id, userId, status, checkedInAt: now, method });
+    db.attendance.push({ sessionId: session.id, userId, status, checkedInAt: now, method, deviceFingerprint });
   }
   const pts = status === 'present' ? ruleValue(db, 'points.present') : ruleValue(db, 'points.late');
   grantPoints(db, {
@@ -313,6 +314,20 @@ export function rpcCheckIn(db: Db, userId: string, payload: string, now = Date.n
   const newBadges = evaluateBadges(db, userId);
 
   return { kind: 'ok', status, points: pts, session, streakSafe: true, already: false, newBadges };
+}
+
+/** تسجيل الانصراف وتوثيق مدة بقاء المتدرب الفعلية (Check-out) */
+export function rpcCheckOut(db: Db, userId: string, sessionId: string, now = Date.now()): { ok: boolean; error?: string; durationMin?: number } {
+  const att = attendanceOf(db, sessionId, userId);
+  if (!att || att.status === 'absent') {
+    return { ok: false, error: 'not_checked_in' };
+  }
+  if (att.checkedOutAt) {
+    return { ok: true, durationMin: Math.round((att.checkedOutAt - (att.checkedInAt ?? now)) / 60_000) };
+  }
+  att.checkedOutAt = now;
+  const durationMin = Math.round((now - (att.checkedInAt ?? now)) / 60_000);
+  return { ok: true, durationMin };
 }
 
 // ───────────────────────────── RPC: الجلسات للمدرب ─────────────────────────────

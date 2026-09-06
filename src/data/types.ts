@@ -139,8 +139,10 @@ export interface Attendance {
   userId: string;
   status: AttendanceStatus;
   checkedInAt?: number;
+  checkedOutAt?: number;
   method?: 'qr' | 'code' | 'manual';
   note?: string;
+  deviceFingerprint?: string;
 }
 
 export type PointReason =

@@ -19,6 +19,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
+import { SessionCompleteCelebration } from './SessionCompleteCelebration';
 import { MasarMascot } from '../../design/mascot';
 import { spacing, radii } from '../../design/tokens';
 import { easing, isReducedMotion } from '../../design/motion';
@@ -270,28 +271,16 @@ export function ScannerScreen({ navigation }: any) {
         ) : null}
       </View>
 
-      {/* S18 — لحظة النجاح */}
-      <CelebrationModal
+      {/* S18 — لحظة النجاح بنمط Duolingo */}
+      <SessionCompleteCelebration
         visible={success != null}
         onClose={() => {
           setSuccess(null);
           navigation.goBack();
         }}
-        title={success?.already ? t('scanner.already') : t('scanner.success')}
-        subtitle={
-          success?.already
-            ? undefined
-            : success
-              ? [
-                  liveSess?.title,
-                  success.status === 'present' ? t('scanner.presentTag') : t('scanner.lateTag'),
-                  success.points > 0 ? `+${success.points}` : null,
-                  success.badges > 0 ? t('achievements.newBadge') : null,
-                ].filter(Boolean).join(' · ')
-              : undefined
-        }
-        points={success && !success.already ? success.points : undefined}
-        streakSafe
+        points={success && !success.already ? success.points : 0}
+        status={success?.status ?? 'present'}
+        sessionTitle={liveSess?.title}
       />
     </View>
   );

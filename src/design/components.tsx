@@ -37,8 +37,9 @@ export function Txt({
 }) {
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
-  // سلم نصوص متجاوب: يمنع «الأبعاد الكبيرة» على الشاشات الضيقة بلا كسر التخطيط.
+  // سلم نصوص متجاوب مع معايرة الخط العربي (1.35x fontSize لمنع قص الحروف الممتدة).
   const base = scaleType(typography[variant], width);
+  const calibratedLineHeight = Math.max(base.lineHeight, Math.round(base.fontSize * 1.35));
   return (
     <Text
       numberOfLines={numberOfLines}
@@ -53,6 +54,7 @@ export function Txt({
         { includeFontPadding: false },
         { color: color ?? theme.text, textAlign: align ?? 'auto' },
         base,
+        { lineHeight: calibratedLineHeight },
         bold ? { fontFamily: typography.h3.fontFamily } : null,
         style,
       ]}
@@ -601,7 +603,7 @@ export function CountUp({ value, variant = 'numberHero', color, duration: dur = 
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
   }, [value, dur]);
-  return <Txt variant={variant} color={color}>{String(display)}</Txt>;
+  return <Txt variant={variant} color={color} style={{ fontVariant: ['tabular-nums'] }}>{String(display)}</Txt>;
 }
 
 // ───────────────────────────── أنيميشن دخول متدرج ─────────────────────────────

@@ -25,19 +25,29 @@ export function GlassSurface({
   borderless?: boolean;
 }) {
   const { theme, isDark } = useTheme();
+  const isAndroid = Platform.OS === 'android';
   return (
-    <View style={[{ borderRadius: radius, overflow: 'hidden' }, Platform.OS === 'web' ? { backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as any : null, style]}>
-      <BlurView
-        intensity={intensity}
-        tint={isDark ? 'dark' : 'light'}
-        style={StyleSheet.absoluteFill}
-      />
+    <View
+      style={[
+        { borderRadius: radius, overflow: 'hidden' },
+        Platform.OS === 'web' ? ({ backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as any) : null,
+        isAndroid ? { backgroundColor: tintColor ?? (isDark ? 'rgba(30, 41, 59, 0.94)' : 'rgba(255, 255, 255, 0.94)'), elevation: 4 } : null,
+        style,
+      ]}
+    >
+      {!isAndroid && (
+        <BlurView
+          intensity={intensity}
+          tint={isDark ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       <View
         pointerEvents="none"
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: tintColor ?? theme.glass,
+            backgroundColor: isAndroid ? 'transparent' : (tintColor ?? theme.glass),
             borderRadius: radius,
             borderWidth: borderless ? 0 : 1,
             borderColor: theme.glassBorder,

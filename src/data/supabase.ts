@@ -57,17 +57,10 @@ function sanitizeKey(key: string): string {
 }
 
 // ═══════════════ الإعدادات ═══════════════
-// القيم الافتراضية هنا هي قيم Supabase العامة (anon + project URL) وهي آمنة
-// للتضمين لأنها تُرسل للعميل أصلًا ومحمية بسياسات RLS. يمكن تجاوزها عبر
-// متغيرات البيئة محليًا أو على منصة الاستضافة.
-const DEFAULT_SUPABASE_URL = 'https://udqgaudtclkbaygftndx.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
-  'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkcWdhdWR0Y2xrYmF5Z2Z0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NTYyNzUsImV4cCI6MjEwMzAzMjI3NX0.' +
-  'AHe8cNJ8-uGKYbUG2UPJ5w2p54uHtEhpoIYhFcYjco4';
-
-export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL).trim();
-export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY).trim();
+// تعتمد الإعدادات حصراً على متغيرات البيئة الآمنة (من .env أو منصة النشر)
+// لمنع تضمين أي مفاتيح مشروع افتراضية داخل الكود المصدري (وفق توجيهات التدقيق الأمني).
+export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim();
+export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim();
 
 /** هل الاتصال الحقيقي مُهيّأ؟ */
 export const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
