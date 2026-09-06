@@ -20,6 +20,8 @@ import {
 import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
+import { matchesAny } from '../../shared/search';
+import { getCourseOverview } from '../../data/actions';
 import { CelebrationModal } from '../../design/celebrations';
 import { batchStudents } from '../../data/engine';
 import { BatchFormSheet } from '../org/AdminScreens';
@@ -50,8 +52,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         if (!inBranch) return false;
       }
       if (debouncedQuery.trim()) {
-        const q = debouncedQuery.trim().toLowerCase();
-        return c.title.toLowerCase().includes(q) || c.field.toLowerCase().includes(q) || c.description.toLowerCase().includes(q);
+        return matchesAny([c.title, c.field, c.description], debouncedQuery);
       }
       return true;
     });
@@ -106,7 +107,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
           </FadeIn>
 
           {filtered.length === 0 ? (
-            <Empty emoji="🧭" title={t('explore.noResults')} />
+            <Empty emoji="🧭" title={t('explore.noResults')} body={t('explore.noResultsBody')} />
           ) : (
             filtered.map((course, i) => (
               <CourseCard key={course.id} course={course} index={i} onPress={() => navigation.navigate('CourseDetails', { courseId: course.id })} />
@@ -211,6 +212,11 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
   );
   const stats = courseRatingStats(db, courseId);
   const reviews = db.ratings.filter((r) => r.courseId === courseId).sort((a, b) => b.createdAt - a.createdAt);
+
+  React.useEffect(() => {
+    if (!courseId) return;
+    void getCourseOverview(courseId).catch(() => {});
+  }, [courseId]);
 
   if (!course) return null;
 

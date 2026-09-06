@@ -260,6 +260,9 @@ export const en: Record<DictKey, string> = {
   'explore.waitlist': 'Join the waitlist',
   'explore.onWaitlist': 'On the waitlist ⏳',
   'explore.noResults': 'No matching results',
+  'explore.noResultsBody': 'Try another word or clear filters — search ignores hamza and diacritics.',
+  'users.resultCount': '{x} users',
+  'common.lastSync': 'Updated just now',
   'explore.rating': 'Rating',
 
   'course.about': 'About',

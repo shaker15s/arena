@@ -267,6 +267,9 @@ export const ar = {
   'explore.waitlist': 'انضم لقائمة الانتظار',
   'explore.onWaitlist': 'في قائمة الانتظار ⏳',
   'explore.noResults': 'لا نتائج مطابقة',
+  'explore.noResultsBody': 'جرّب كلمة أخرى أو امسح الفلتر — البحث يتجاهل الهمزات والتشكيل.',
+  'users.resultCount': '{x} مستخدم',
+  'common.lastSync': 'آخر تحديث منذ قليل',
   'explore.rating': 'التقييم',
 
   // ── تفاصيل الكورس ──

@@ -3,7 +3,7 @@
  * S44 فورم المجموعات (أهم فورم: معاينة تلقائية + تحذير تعارض) + S47 المستخدمون.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -20,6 +20,7 @@ import {
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
+import { matchesAny } from '../../shared/search';
 import { easing, isReducedMotion } from '../../design/motion';
 import { Batch, type Db, type Role } from '../../data/types';
 import {
@@ -33,7 +34,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, unreadCount, refresh, syncing } = useApp();
+  const { db, user, unreadCount, refresh, syncing, lastSyncAt } = useApp();
   const [branchFilter, setBranchFilter] = useState<string>('all');
   if (!user) return null;
 
@@ -100,6 +101,9 @@ export function DashboardScreen({ navigation: propNav }: any) {
           ))}
         </Row>
 
+        {lastSyncAt ? (
+          <Txt variant="micro" color={theme.textMuted}>{t('common.lastSync')}</Txt>
+        ) : null}
         <NeedsAttention db={db} t={t} navigation={navigation} />
 
         {/* KPI Bento */}
@@ -831,12 +835,7 @@ export function UsersScreen() {
     return db.profiles.filter((p) => {
       if (roleFilter !== 'all' && p.role !== roleFilter) return false;
       if (debouncedQuery.trim()) {
-        const q = debouncedQuery.trim().toLowerCase();
-        return (
-          p.fullName.toLowerCase().includes(q) ||
-          p.phone.includes(q) ||
-          (p.email && p.email.toLowerCase().includes(q))
-        );
+        return matchesAny([p.fullName, p.phone, p.email], debouncedQuery);
       }
       return true;
     });
@@ -874,21 +873,27 @@ export function UsersScreen() {
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
           ))}
         </Row>
-        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} /> : null}
-        {list.map((p, i) => (
-          <FadeIn key={p.id} index={Math.min(i, 8)}>
-            <Card onPress={() => setSelected(p.id)}>
+        <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
+        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} body={t('explore.noResultsBody')} /> : null}
+        <FlatList
+          data={list}
+          keyExtractor={(p) => p.id}
+          scrollEnabled={false}
+          initialNumToRender={20}
+          windowSize={8}
+          renderItem={({ item: p }) => (
+            <Card onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
               <Row center gap={10}>
                 <Avatar name={p.fullName} color={p.avatarColor} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="bodyMed">{p.fullName}</Txt>
+                  <Txt variant="bodyMed" numberOfLines={2}>{p.fullName}</Txt>
                   <Txt variant="micro" color={theme.textMuted}>{p.phone || 'بدون هاتف'} · {p.email || 'بدون بريد'}</Txt>
                 </View>
                 <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
               </Row>
             </Card>
-          </FadeIn>
-        ))}
+          )}
+        />
       </ScrollView>
 
       {/* S48 تفاصيل المستخدم */}

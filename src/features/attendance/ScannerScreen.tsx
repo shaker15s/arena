@@ -13,6 +13,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useApp } from '../../data/store';
 import { liveSessionForStudent } from '../../data/engine';
 import { checkInWithToken, type CheckInResponse } from '../../data/actions';
+import { track } from '../../shared/analytics';
 import { clearPositionCache, getDevicePosition, getLocationPermissionState } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -73,6 +74,7 @@ export function ScannerScreen({ navigation }: any) {
     switch (r.kind) {
       case 'ok':
         haptic('success');
+        track('checkin_ok', { status: r.status ?? 'present' });
         setSuccess({ points: r.points ?? 0, status: r.status ?? 'present', already: false, badges: 0 });
         break;
       case 'already':
@@ -293,6 +295,7 @@ export function ScannerScreen({ navigation }: any) {
 }
 
 function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useI18n();
   return (
     <TextInput
       value={value}
@@ -301,7 +304,7 @@ function CodeInput({ value, onChange }: { value: string; onChange: (v: string) =
       maxLength={6}
       placeholder="••••••"
       placeholderTextColor="#5B6478"
-      accessibilityLabel="رمز الحضور 6 أرقام"
+      accessibilityLabel={t('scanner.codePlaceholder')}
       style={{
         backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
         paddingVertical: 12, paddingHorizontal: 14, fontSize: 22, letterSpacing: 8,

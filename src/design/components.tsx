@@ -46,7 +46,7 @@ export function Txt({
       adjustsFontSizeToFit={shrink ?? (numberOfLines === 1 ? true : undefined)}
       minimumFontScale={numberOfLines === 1 || shrink ? 0.85 : undefined}
       allowFontScaling
-      maxFontSizeMultiplier={1.4}
+      maxFontSizeMultiplier={2}
       style={[
         // includeFontPadding=false يجعل ارتفاع السطر مطابقًا لـ lineHeight
         // فلا تُقصّ امتدادات الحروف العربية ولا تتزحزح النصوص عن مركزها (أندرويد).
