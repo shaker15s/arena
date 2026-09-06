@@ -9,7 +9,8 @@ import {
   isBatchComplete, profileOf, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import {
-  assignCourseRole, cancelBatch, cancelTrainingSession, getBatchRoster, getDetailedCourseAnalytics,
+  assignCourseRole, cancelBatch, cancelTrainingSession, getBatchRoster, getCourseOverview,
+  getDetailedCourseAnalytics, getSessionRoster,
   notifySessionAbsentees, rescheduleTrainingSession, revokeCourseRole, sendBroadcast,
   startTrainingSession, updateCourse, type DetailedCourseAnalytics,
 } from '../../data/actions';
@@ -71,6 +72,11 @@ export function CourseManagementScreen({ route, navigation }: any) {
         .finally(() => setLoadingAnalytics(false));
     }
   }, [courseId, tab]);
+
+  useEffect(() => {
+    if (!courseId) return;
+    void getCourseOverview(courseId).catch(() => {});
+  }, [courseId]);
 
   if (!user || !course) return (
     <View style={{ flex: 1 }}>
@@ -1141,6 +1147,9 @@ function SessionDetailSheet({
   const { theme } = useTheme();
   const localStudents = batchStudents(db, batchId);
   const [roster, setRoster] = useState<any[]>([]);
+  const [sessionRows, setSessionRows] = useState<Array<{
+    user_id: string; status: string; checked_in_at: string | null; method: string | null;
+  }>>([]);
 
   useEffect(() => {
     if (localStudents.length === 0) {
@@ -1148,7 +1157,10 @@ function SessionDetailSheet({
         if (res.students) setRoster(res.students);
       }).catch(() => {});
     }
-  }, [batchId, localStudents.length]);
+    void getSessionRoster(session.id).then((rows) => {
+      if (Array.isArray(rows)) setSessionRows(rows);
+    }).catch(() => {});
+  }, [batchId, localStudents.length, session.id]);
 
   const students = localStudents.length > 0 ? localStudents : roster.map((r) => ({
     id: r.id,
@@ -1158,7 +1170,15 @@ function SessionDetailSheet({
     email: r.email ?? '',
   }));
 
-  const attRows = db.attendance.filter((a) => a.sessionId === session.id);
+  const attRows = sessionRows.length > 0
+    ? sessionRows.map((r) => ({
+      sessionId: session.id,
+      userId: r.user_id,
+      status: r.status as 'present' | 'late' | 'absent' | 'excused',
+      checkedInAt: r.checked_in_at ? new Date(r.checked_in_at).getTime() : undefined,
+      method: (r.method as 'qr' | 'code' | 'manual' | undefined) ?? undefined,
+    }))
+    : db.attendance.filter((a) => a.sessionId === session.id);
 
   const present = attRows.filter((a) => a.status === 'present').length;
   const late = attRows.filter((a) => a.status === 'late').length;

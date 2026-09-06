@@ -89,11 +89,12 @@ export async function fetchRemoteDb(): Promise<Db> {
     callRows<any>('list_visible_profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
     selectAll<any>('courses'), selectAll<any>('batches'), callRows<any>('get_batch_stats'), selectAll<any>('enrollments'),
     selectAll<any>('sessions', 'id,batch_id,seq,title,starts_at,duration_min,status,started_at,closed_at,report,created_at'),
-    selectAll<any>('attendance'), selectAll<any>('point_events'),
+    // DATA-001: الجداول المنزلقة تُقرأ بأحدث الصفوف بدل تفريغ كامل التاريخ في الجهاز.
+    selectRecent<any>('attendance', '*', 8_000), selectRecent<any>('point_events', '*', 4_000),
     selectAll<any>('streak_weeks'), selectAll<any>('gamification'), selectAll<any>('badges', '*', 'code'),
     selectAll<any>('user_badges'), selectAll<any>('league_weeks'), selectAll<any>('certificates'),
     selectAll<any>('excuses'), selectAll<any>('course_ratings'), selectAll<any>('gamification_rules'),
-    selectRecent<any>('audit_log'), selectAll<any>('kudos_quotas'), selectAll<any>('notifications'),
+    selectRecent<any>('audit_log'), selectAll<any>('kudos_quotas'), selectRecent<any>('notifications', '*', 500),
     selectAll<any>('private_notes'),
     selectAll<any>('course_roles').catch(() => []),
   ]);
