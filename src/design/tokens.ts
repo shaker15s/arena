@@ -5,14 +5,19 @@
 
 export const spacing = {
   s1: 4, s2: 8, s3: 12, s4: 16, s5: 20, s6: 24, s7: 28, s8: 32, s9: 36, s10: 40, s11: 44, s12: 48,
+  xs: 4, sm: 8, md: 16, lg: 24, xl: 32,
 } as const;
 
 export const radii = {
-  xl: 32,      // شاشات وحوارات — Apple-style أكبر
-  card: 24,    // بطاقات — أكبر وأنعم
-  cardSm: 18,  // بطاقات صغيرة
-  button: 16,  // أزرار
-  pill: 999,   // Chips/حبوب
+  sm: 8,
+  md: 12,
+  lg: 18,
+  cardSm: 18,
+  button: 16,
+  card: 24,
+  xl: 32,
+  pill: 999,
+  full: 999,
 } as const;
 
 export const sizes = {
