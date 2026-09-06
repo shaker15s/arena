@@ -764,6 +764,24 @@ export const ar = {
 
   // ── متفرقات أخطاء ──
   'error.network': 'تعذّر الاتصال — تحقق من الإنترنت ثم أعد المحاولة',
+  'common.noPhone': 'بدون هاتف',
+  'vtoday.orgTools': 'أدوات تنظيم الكورسات',
+  'vtoday.createGroup': 'إنشاء مجموعة',
+  'vtoday.createGroupSub': 'بدء دفعة جديدة لكورس',
+  'vtoday.courses': 'الكورسات',
+  'vtoday.coursesSub': 'استكشاف وإدارة المواد',
+  'batches.mineChip': 'مجموعاتي المنظمة ({x})',
+  'batches.allChip': 'كل مجموعات الأكاديمية ({x})',
+  'batches.emptyTitle': 'لا توجد مجموعات بعد',
+  'batches.emptyBody': 'يمكنك كمنظم البدء في تنظيم أول دفعة لكورس واختيار المواعيد والقاعة واستقبال الطلاب فوراً',
+  'batches.emptyCta': 'إنشاء وتنظيم مجموعة جديدة',
+  'batches.browseCatalog': 'تصفح كتالوج الكورسات',
+  'destroy.batchTitle': 'إلغاء الدفعة التدريبية بالكامل',
+  'destroy.batchBody': 'تحذير: سيُلغى {sessions} محاضرة قادمة ويُشعر {students} طالبًا. لا يمكن التراجع.',
+  'destroy.sessionBody': 'تنبيه: سيتم إلغاء هذه المحاضرة وإرسال إشعار فوري لجميع الطلاب المسجلين بالسبب المذكور أدناه.',
+  'destroy.confirmBatch': 'تأكيد إلغاء الدفعة',
+  'destroy.confirmSession': 'تأكيد إلغاء المحاضرة',
+  'destroy.reason': 'سبب الإلغاء',
 };
 
 export type DictKey = keyof typeof ar;

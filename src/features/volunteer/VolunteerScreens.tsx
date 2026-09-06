@@ -178,22 +178,22 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
 
         {/* أدوات المنظم السريعة */}
         <FadeIn index={3}>
-          <Txt variant="h3">أدوات تنظيم الكورسات</Txt>
+          <Txt variant="h3">{t('vtoday.orgTools')}</Txt>
           <Spacer size={8} />
           <Row gap={8}>
             <View style={{ flex: 1 }}>
               <ListRow
                 icon="add-circle"
-                title="إنشاء مجموعة"
-                subtitle="بدء دفعة جديدة لكورس"
+                title={t('vtoday.createGroup')}
+                subtitle={t('vtoday.createGroupSub')}
                 onPress={() => setCreating(true)}
               />
             </View>
             <View style={{ flex: 1 }}>
               <ListRow
                 icon="albums"
-                title="الكورسات"
-                subtitle="استكشاف وإدارة المواد"
+                title={t('vtoday.courses')}
+                subtitle={t('vtoday.coursesSub')}
                 onPress={() => navigation.navigate('Courses')}
               />
             </View>
@@ -290,22 +290,22 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
         />
 
         <Row gap={8}>
-          <Chip label={`مجموعاتي المنظمة (${myBatches.length})`} active={filter === 'my'} onPress={() => setFilter('my')} />
-          <Chip label={`كل مجموعات الأكاديمية (${allBatches.length})`} active={filter === 'all'} onPress={() => setFilter('all')} />
+          <Chip label={t('batches.mineChip', { x: myBatches.length })} active={filter === 'my'} onPress={() => setFilter('my')} />
+          <Chip label={t('batches.allChip', { x: allBatches.length })} active={filter === 'all'} onPress={() => setFilter('all')} />
         </Row>
 
         {batches.length === 0 ? (
           <FadeIn index={0}>
             <Empty
               emoji="📚"
-              title="لا توجد مجموعات بعد"
-              body="يمكنك كمنظم البدء في تنظيم أول دفعة لكورس واختيار المواعيد والقاعة واستقبال الطلاب فوراً"
-              cta="➕ إنشاء وتنظيم مجموعة جديدة"
+              title={t('batches.emptyTitle')}
+              body={t('batches.emptyBody')}
+              cta={t('batches.emptyCta')}
               onCta={() => setCreating(true)}
             />
             <Spacer size={12} />
             <Btn
-              title="تصفح كتالوج الكورسات"
+              title={t('batches.browseCatalog')}
               variant="secondary"
               icon="albums"
               full
@@ -676,7 +676,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
           <Card style={{ alignItems: 'center', paddingVertical: 18, gap: 8 }}>
             <Avatar name={student.fullName} color={student.avatarColor} size={72} />
             <Txt variant="h2">{student.fullName}</Txt>
-            <Txt variant="caption" color={theme.textSecondary}>{course.title} · {student.phone || 'بدون هاتف'}</Txt>
+            <Txt variant="caption" color={theme.textSecondary}>{course.title} · {student.phone || t('common.noPhone')}</Txt>
             {student.email ? (
               <Txt variant="caption" color={theme.brand}>✉️ {student.email}</Txt>
             ) : null}

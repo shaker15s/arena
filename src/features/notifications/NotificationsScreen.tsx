@@ -15,6 +15,7 @@ import { SUPABASE_ENABLED } from '../../data/supabase';
 import { spacing } from '../../design/tokens';
 import { sameDay, timePast } from '../../shared/format';
 import { AppNotification } from '../../data/types';
+import { screenForNotification } from '../../shared/notifyRoute';
 
 const TYPE_META: Record<AppNotification['type'], { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   session: { icon: 'calendar', color: '#4F46E5' },
@@ -85,10 +86,8 @@ export function NotificationsScreen({ navigation }: any) {
             <FadeIn key={n.id} index={Math.min(i, 6)}>
               <Card
                 onPress={() => {
-                  if (n.type === 'session') navigation.navigate('Scanner');
-                  else if (n.type === 'excuse') navigation.navigate('Excuses');
-                  else if (n.type === 'cert') navigation.navigate('Certificates');
-                  else if (n.type === 'badge' || n.type === 'league' || n.type === 'streak') navigation.navigate('Achievements');
+                  const dest = screenForNotification(n.type, user?.role);
+                  if (dest) navigation.navigate(dest.name, dest.params);
                 }}
                 style={{ opacity: n.read ? 0.85 : 1, borderColor: n.read ? theme.line : theme.brand + '55' }}
               >

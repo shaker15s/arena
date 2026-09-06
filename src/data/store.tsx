@@ -12,6 +12,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
 import { completeMyProfile, deleteMyAccount, registerPushToken, updateMyProfile } from './actions';
 import { getDevicePushToken, subscribeToPush } from '../shared/push';
+import { openNotificationRoute } from '../app/navRef';
 import { addBreadcrumb } from '../shared/telemetry';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
@@ -364,7 +365,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // إشعار وارد أو نقر عليه ⇒ نحدّث البيانات كي تعكس الواجهة الحدث فورًا.
     const unsubscribe = subscribeToPush({
       onReceived: () => { void refresh(); },
-      onOpened: () => { void refresh(); },
+      onOpened: (e) => {
+        void refresh();
+        const type = String(e.data?.type ?? e.data?.kind ?? '');
+        if (type) openNotificationRoute(type, dbRef.current.profiles.find((p) => p.id === profileId)?.role);
+      },
     });
     return () => { cancelled = true; unsubscribe(); };
   }, [profileId, refresh]);

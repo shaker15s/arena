@@ -837,6 +837,7 @@ function CancelSessionSheet({
   onClose: () => void;
 }) {
   const { refresh, toast } = useApp();
+  const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -845,10 +846,10 @@ function CancelSessionSheet({
     try {
       await cancelTrainingSession({
         sessionId: session.id,
-        reason: reason.trim() || 'إلغاء المحاضرة من قبل الإدارة',
+        reason: reason.trim() || t('destroy.reason'),
       });
       await refresh();
-      toast('تم إلغاء المحاضرة وتنبيه الطلاب بنجاح!', 'success');
+      toast(t('common.done'), 'success');
       onClose();
     } catch (e) {
       toast((e as Error).message, 'error');
@@ -858,16 +859,14 @@ function CancelSessionSheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={`إلغاء المحاضرة — ${session.title}`}>
+    <Sheet visible={visible} onClose={onClose} title={`${t('destroy.confirmSession')} — ${session.title}`}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
         <Card color="#EF444415" style={{ borderColor: '#EF4444' }}>
-          <Txt variant="caption" color="#EF4444">
-            تنبيه: سيتم إلغاء هذه المحاضرة وإرسال إشعار فوري لجميع الطلاب المسجلين بالسبب المذكور أدناه.
-          </Txt>
+          <Txt variant="caption" color="#EF4444">{t('destroy.sessionBody')}</Txt>
         </Card>
-        <Input label="سبب الإلغاء" value={reason} onChange={setReason} placeholder="مثال: عذر طارئ للمدرب أو إجازة رسمية" multiline />
+        <Input label={t('destroy.reason')} value={reason} onChange={setReason} multiline />
         <Spacer size={8} />
-        <Btn title="تأكيد إلغاء المحاضرة" size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="close-circle" full />
+        <Btn title={t('destroy.confirmSession')} size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="close-circle" full />
       </ScrollView>
     </Sheet>
   );
@@ -882,19 +881,22 @@ function CancelBatchSheet({
   batchId: string;
   onClose: () => void;
 }) {
-  const { refresh, toast } = useApp();
+  const { db, refresh, toast } = useApp();
+  const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const students = batchStudents(db, batchId).length;
+  const sessions = sessionsOfBatch(db, batchId).filter((s) => s.status !== 'closed' && s.status !== 'cancelled').length;
 
   const handleCancel = async () => {
     setSaving(true);
     try {
       await cancelBatch({
         batchId,
-        reason: reason.trim() || 'إلغاء الدفعة التدريبية',
+        reason: reason.trim() || t('destroy.reason'),
       });
       await refresh();
-      toast('تم إلغاء الدفعة بنجاح!', 'success');
+      toast(t('common.done'), 'success');
       onClose();
     } catch (e) {
       toast((e as Error).message, 'error');
@@ -904,16 +906,16 @@ function CancelBatchSheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="إلغاء الدفعة التدريبية بالكامل">
+    <Sheet visible={visible} onClose={onClose} title={t('destroy.batchTitle')}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
         <Card color="#EF444415" style={{ borderColor: '#EF4444' }}>
           <Txt variant="caption" color="#EF4444">
-            تحذير: سيتم إلغاء الدفعة بالكامل وإيقاف جميع محاضراتها القادمة وإشعار الطلاب المسجلين.
+            {t('destroy.batchBody', { sessions, students })}
           </Txt>
         </Card>
-        <Input label="سبب إلغاء الدفعة" value={reason} onChange={setReason} multiline />
+        <Input label={t('destroy.reason')} value={reason} onChange={setReason} multiline />
         <Spacer size={8} />
-        <Btn title="تأكيد إلغاء الدفعة" size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="trash" full />
+        <Btn title={t('destroy.confirmBatch')} size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="trash" full />
       </ScrollView>
     </Sheet>
   );
