@@ -60,22 +60,20 @@ export function GlassSurface({
 }
 
 // ═══════════════ Ambient background ═══════════════
-function AmbientOrb({
-  size, color, style, drift = 18,
-}: {
-  size: number;
-  color: string;
-  style: ViewStyle;
-  drift?: number;
+export function AmbientOrb({ size = 320, color, drift = 18, style }: {
+  size?: number; color: string; drift?: number; style?: ViewStyle;
 }) {
+  const { isDark, themeName } = useTheme();
+  const oled = themeName === 'oled';
   const progress = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     if (isReducedMotion()) return undefined;
-    // موجتان عند دخول الشاشة ثم سكون — لا حلقة GPU دائمة
+    // حركة طفو مستمرة وهادئة (Orb Drift)
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(progress, { toValue: 1, duration: 9000, useNativeDriver: true }),
-      Animated.timing(progress, { toValue: 0, duration: 9000, useNativeDriver: true }),
-    ]), { iterations: 2 });
+      Animated.timing(progress, { toValue: 1, duration: 12000, useNativeDriver: true }),
+      Animated.timing(progress, { toValue: 0, duration: 12000, useNativeDriver: true }),
+    ]));
     loop.start();
     return () => loop.stop();
   }, [progress]);
@@ -85,8 +83,10 @@ function AmbientOrb({
     : [
         { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
         { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
-        { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
+        { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
       ];
+
+  const effectiveOpacity = oled ? 0.15 : isDark ? 0.35 : 0.75;
 
   return (
     <Animated.View
@@ -95,6 +95,7 @@ function AmbientOrb({
         {
           position: 'absolute', width: size, height: size, borderRadius: size / 2,
           backgroundColor: color,
+          opacity: effectiveOpacity,
           transform: animatedTransform,
         },
         style,

@@ -1,15 +1,33 @@
 /**
- * features/attendance — S17 الماسح + S18 لحظة النجاح.
- * F3 الكامل: رمز دوّار (يتجدد كل 25 ث) + كود 6 أرقام احتياطي + Idempotency
- * + خريطة أخطاء عربية هادئة + كونفيتي + هابتك.
- * الكاميرا متصلة فعليًا عبر expo-camera، والتحقق والتسجيل يتمان داخل RPC
- * ذرّي على الخادم؛ لا يثق المسار بمعرّف مستخدم أو توقيت قادم من العميل.
+ * features/attendance — S17 الماسح الذكي المعاد تصميمه بالكامل (Full-bleed Camera Viewfinder)
+ * وفق متطلبات الإخراج البصري الفائق (2026):
+ * 1. Full-bleed Scanner تملأ الكاميرا الشاشة بالكامل مع طبقة تعتيم وفتحة معاينة مركزية.
+ * 2. أقواس زوايا متحركة (Corner Brackets) تتنفس بانسيابية.
+ * 3. حلقة عد تنازلي متجددة كل 25 ثانية مع فلاش عند التجدد.
+ * 4. إدخال الكود الاحتياطي الستة أرقام عبر 6 مربعات زجاجية منفصلة (OTP Boxes).
+ * 5. حالة رفض الكاميرا مدعومة بتميمة مسار وزر زجاجي كبير لطلب الإذن.
+ * 6. اهتزاز ديناميكي عند الخطأ (Error Shake) وتنبيه Toast عائم.
+ * 7. زر زجاجي دائري لتشغيل فلاش الكاميرا.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, TextInput, View, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../../data/store';
 import { liveSessionForStudent } from '../../data/engine';
 import { checkInWithToken, type CheckInResponse } from '../../data/actions';
@@ -17,12 +35,21 @@ import { track } from '../../shared/analytics';
 import { clearPositionCache, getDevicePosition, getLocationPermissionState } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
-import { CelebrationModal } from '../../design/celebrations';
+import {
+  Btn,
+  FadeIn,
+  GlassBtn,
+  IconGlassButton,
+  LiquidGlassCard,
+  Row,
+  Spacer,
+  Toast,
+  Txt,
+} from '../../design/components';
 import { SessionCompleteCelebration } from './SessionCompleteCelebration';
-import { MasarMascot } from '../../design/mascot';
-import { spacing, radii } from '../../design/tokens';
-import { easing, isReducedMotion } from '../../design/motion';
+import { CloudMascot } from '../../design/mascot';
+import { spacing, radii, sizes } from '../../design/tokens';
+import { isReducedMotion } from '../../design/motion';
 
 async function haptic(kind: 'success' | 'error' | 'warning') {
   if (Platform.OS === 'web') return;
@@ -31,117 +58,146 @@ async function haptic(kind: 'success' | 'error' | 'warning') {
     if (kind === 'success') await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     else if (kind === 'error') await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     else await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-  } catch {
-    /* no haptics */
-  }
+  } catch {}
 }
 
 export function ScannerScreen({ navigation }: any) {
-  const { t, lang } = useI18n();
-  const { theme } = useTheme();
+  const { t } = useI18n();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: winW, height: winH } = useWindowDimensions();
   const { db, user, refresh, online } = useApp();
   const [permission, requestPermission] = useCameraPermissions();
+
   const [code, setCode] = useState('');
-  const [pasted, setPasted] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanned, setScanned] = useState(false);
-  const [error, setError] = useState<{ msg: string; icon: keyof typeof Ionicons.glyphMap } | null>(null);
-  const [success, setSuccess] = useState<{ points: number; status: 'present' | 'late'; already: boolean; badges: number } | null>(null);
+  const [torch, setTorch] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; type: 'error' | 'warning' | 'success'; title: string; msg?: string }>({
+    visible: false,
+    type: 'error',
+    title: '',
+  });
+  const [success, setSuccess] = useState<{ points: number; status: 'present' | 'late'; already: boolean } | null>(null);
 
   const liveSess = user ? liveSessionForStudent(db, user.id) : undefined;
+  const reduced = isReducedMotion();
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // حجم إطار المعاينة
+  const frameSize = Math.round(Math.max(220, Math.min(290, Math.min(winW, winH) * 0.68)));
+  const ringRadius = frameSize / 2 + 10;
+  const ringCircumference = 2 * Math.PI * ringRadius;
 
-  // خط ليزر متحرك داخل الإطار
-  const laser = useRef(new Animated.Value(0)).current;
+  // الحركات:
+  // 1. خط الليزر
+  const laserAnim = useRef(new Animated.Value(0)).current;
+  // 2. تنفس أقواس الزوايا
+  const bracketAnim = useRef(new Animated.Value(1)).current;
+  // 3. حلقة الـ 25 ثانية
+  const countdownAnim = useRef(new Animated.Value(0)).current;
+  // 4. اهتزاز الخطأ
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  // 5. فلاش النجاح
+  const flashAnim = useRef(new Animated.Value(0)).current;
+
+  // حلقة خط الليزر
   useEffect(() => {
-    if (isReducedMotion()) {
-      laser.setValue(0.5);
-      return undefined;
-    }
+    if (reduced) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(laser, { toValue: 1, duration: 1400, easing: easing.inOut, useNativeDriver: true }),
-        Animated.timing(laser, { toValue: 0, duration: 1400, easing: easing.inOut, useNativeDriver: true }),
-      ]),
+        Animated.timing(laserAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(laserAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
     );
     loop.start();
     return () => loop.stop();
-  }, [laser]);
+  }, [laserAnim, reduced]);
+
+  // تنفس أقواس الزوايا
+  useEffect(() => {
+    if (reduced) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bracketAnim, { toValue: 1.05, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bracketAnim, { toValue: 0.98, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bracketAnim, reduced]);
+
+  // حلقة العد التنازلي لرمز الـ 25 ثانية
+  useEffect(() => {
+    if (reduced) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(countdownAnim, { toValue: 1, duration: 25000, easing: Easing.linear, useNativeDriver: false }),
+        Animated.timing(countdownAnim, { toValue: 0, duration: 0, useNativeDriver: false }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [countdownAnim, reduced]);
+
+  const triggerErrorShake = (title: string, msg?: string) => {
+    haptic('error');
+    setToast({ visible: true, type: 'error', title, msg });
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: -12, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 12, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  };
 
   const interpret = (r: CheckInResponse) => {
     switch (r.kind) {
       case 'ok':
         haptic('success');
         track('checkin_ok', { status: r.status ?? 'present' });
-        setSuccess({ points: r.points ?? 0, status: r.status ?? 'present', already: false, badges: 0 });
+        Animated.sequence([
+          Animated.timing(flashAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+          Animated.timing(flashAnim, { toValue: 0, duration: 240, useNativeDriver: true }),
+        ]).start(() => {
+          setSuccess({ points: r.points ?? 0, status: r.status ?? 'present', already: false });
+        });
         break;
       case 'already':
         haptic('warning');
-        setSuccess({ points: 0, status: 'present', already: true, badges: 0 });
+        setSuccess({ points: 0, status: 'present', already: true });
         break;
       case 'expired':
-        haptic('warning');
-        setError({ msg: t('scanner.expired'), icon: 'time' });
+        triggerErrorShake(t('scanner.expired'), 'انتهت صلاحية الرمز الدوّار، يرجى مسح الرمز المحدث.');
         break;
       case 'too_late':
-        haptic('error');
-        setError({ msg: t('scanner.tooLate'), icon: 'lock-closed' });
+        triggerErrorShake(t('scanner.tooLate'), 'انقضت نافذة تسجيل الحضور لهذه الجلسة.');
         break;
       case 'no_session':
-        haptic('error');
-        setError({ msg: t('scanner.noSession'), icon: 'search' });
+        triggerErrorShake(t('scanner.noSession'), 'لا توجد جلسة نشطة لهذه المجموعة حالياً.');
         break;
       case 'not_enrolled':
-        haptic('error');
-        setError({ msg: t('scanner.notEnrolled'), icon: 'person-remove' });
+        triggerErrorShake(t('scanner.notEnrolled'), 'أنت غير مسجل في هذه المجموعة التدريبية.');
         break;
       case 'rate_limited':
-        haptic('error');
-        setError({ msg: t('scanner.rateLimited'), icon: 'hourglass' });
-        break;
-      case 'location_required':
-        haptic('error');
-        setError({ msg: t('scanner.locationRequired'), icon: 'location' });
-        break;
-      case 'offsite':
-        haptic('error');
-        setError({ msg: t('scanner.offsite'), icon: 'location' });
+        triggerErrorShake(t('scanner.rateLimited'), 'يرجى الانتظار قليلاً قبل المحاولة مجدداً.');
         break;
       default:
-        haptic('error');
-        setError({ msg: t('scanner.invalid'), icon: 'close' });
+        triggerErrorShake(t('scanner.invalid'), 'تأكد من مسح رمز QR مسار الصحيح.');
     }
   };
 
   const doCheck = async (payload: string) => {
     if (!user || !online || loading || !payload.trim()) return;
     setLoading(true);
-    setError(null);
     try {
-      // الموقع اختياري تمامًا: الخادم وحده يقرّر لزومه (geofence للمجموعة فقط).
       const pos = await getDevicePosition();
       const result = await checkInWithToken(payload.trim(), pos?.lat, pos?.lng);
-      if (result.kind === 'location_required' || result.kind === 'offsite') {
-        // قراءة جديدة في المحاولة التالية بدل قراءة مخزّنة قديمة.
-        clearPositionCache();
-        const perm = await getLocationPermissionState();
-        if (result.kind === 'location_required' && (perm === 'denied' || perm === 'unavailable')) {
-          haptic('error');
-          setError({ msg: t('scanner.locationDenied'), icon: 'location' });
-          setTimeout(() => setScanned(false), 1200);
-          return;
-        }
-      }
       interpret(result);
       if (result.kind === 'ok' || result.kind === 'already') await refresh();
       else setTimeout(() => setScanned(false), 1200);
     } catch (e) {
-      haptic('error');
-      setError({ msg: (e as Error).message || t('scanner.invalid'), icon: 'cloud-offline' });
+      triggerErrorShake((e as Error).message || t('scanner.invalid'));
       setTimeout(() => setScanned(false), 1200);
     } finally {
       setLoading(false);
@@ -154,124 +210,259 @@ export function ScannerScreen({ navigation }: any) {
     void doCheck(data);
   };
 
-  // إطار متجاوب: 220 هي المثالية على 390pt، لكنها تخنق الشاشات الضيقة (SE/360pt)
-  // وتبدو ضئيلة على التابلت. نحدّها بـ 62% من أصغر بُعد مع سقف/أرضية معقولين.
-  const { width: winW, height: winH } = useWindowDimensions();
-  const frameSize = Math.round(Math.max(180, Math.min(300, Math.min(winW, winH) * 0.62)));
+  // حلقة تفرغ العد التنازلي
+  const strokeDashoffset = countdownAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, ringCircumference],
+  });
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0E1A' }}>
-      <View style={{ flex: 1, paddingTop: insets.top + 12, paddingHorizontal: spacing.s5 }}>
-        <Row between center>
-          <Txt variant="h2" color="#F1F5F9">{t('scanner.title')}</Txt>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={8} onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="close" size={22} color="#F1F5F9" />
-          </Pressable>
+    <View style={styles.rootContainer}>
+      {/* 1. الكاميرا بكامل الشاشة (Full-bleed) */}
+      {permission?.granted ? (
+        <CameraView
+          style={StyleSheet.absoluteFill}
+          facing="back"
+          enableTorch={torch}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#090D16' }]} />
+      )}
+
+      {/* 2. طبقة فلاش النجاح الأخضر */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: '#10B981',
+            opacity: flashAnim,
+            zIndex: 100,
+          },
+        ]}
+      />
+
+      {/* 3. توست الخطأ أو التحذير */}
+      <Toast
+        visible={toast.visible}
+        type={toast.type}
+        title={toast.title}
+        message={toast.msg}
+        onDismiss={() => setToast((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* 4. محتوى الواجهة العائم فوق الكاميرا */}
+      <View style={[styles.overlayContainer, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.md }]}>
+        {/* الهيدر مع أزرار التحكم الزجاجية */}
+        <Row between center style={styles.headerRow}>
+          <IconGlassButton
+            icon={<Ionicons name="close" size={22} color="#FFF" />}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel={t('common.close')}
+          />
+
+          <View style={styles.sessionStatusTag}>
+            {liveSess ? (
+              <Row center gap={6}>
+                <View style={styles.liveIndicatorDot} />
+                <Txt variant="micro" bold color="#10B981">
+                  {liveSess.title}
+                </Txt>
+              </Row>
+            ) : (
+              <Txt variant="micro" color="#94A3B8">
+                {t('scanner.title')}
+              </Txt>
+            )}
+          </View>
+
+          {permission?.granted ? (
+            <IconGlassButton
+              icon={<Ionicons name={torch ? 'flashlight' : 'flashlight-outline'} size={20} color={torch ? '#F59E0B' : '#FFF'} />}
+              onPress={() => setTorch((v) => !v)}
+              accessibilityLabel="إضاءة الفلاش"
+            />
+          ) : (
+            <View style={{ width: 44 }} />
+          )}
         </Row>
 
-        <Spacer size={10} />
-        <Txt variant="caption" color="#94A3B8" align="center">{t('scanner.hint')}</Txt>
-
-        {/* إطار الماسح */}
-        <View style={{ alignItems: 'center', marginVertical: 24 }}>
-          <View style={{ width: frameSize, height: frameSize, borderRadius: 28, borderWidth: 3, borderColor: theme.brand, backgroundColor: `${theme.brand}14`, overflow: 'hidden', justifyContent: 'center' }}>
-            {permission?.granted ? (
-              <CameraView
-                style={{ position: 'absolute', inset: 0 }}
-                facing="back"
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
-              />
-            ) : (
-              <Ionicons name="camera-outline" size={72} color="rgba(255,255,255,0.22)" style={{ alignSelf: 'center' }} />
-            )}
-            {/* زوايا الإطار */}
-            {/* زوايا الإطار: start/end بدل left/right حتى تنعكس صحيحًا في RTL */}
-            {[
-              { top: 8, start: 8, borderTopWidth: 5, borderStartWidth: 5, borderTopStartRadius: 12 },
-              { top: 8, end: 8, borderTopWidth: 5, borderEndWidth: 5, borderTopEndRadius: 12 },
-              { bottom: 8, start: 8, borderBottomWidth: 5, borderStartWidth: 5, borderBottomStartRadius: 12 },
-              { bottom: 8, end: 8, borderBottomWidth: 5, borderEndWidth: 5, borderBottomEndRadius: 12 },
-            ].map((s, i) => (
-              <View pointerEvents="none" key={i} style={[{ position: 'absolute', zIndex: 2, width: 34, height: 34, borderColor: theme.brandGradientTo }, s]} />
-            ))}
-            <Animated.View pointerEvents="none" style={{
-              position: 'absolute', zIndex: 2, start: 16, end: 16, height: 3, borderRadius: 2,
-              backgroundColor: theme.teal,
-              shadowColor: theme.teal, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
-              top: laser.interpolate({ inputRange: [0, 1], outputRange: [16, frameSize - 20] }),
-            }} />
-          </View>
-          <Spacer size={8} />
-          {liveSess ? (
-            <Row center gap={6}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
-              <Txt variant="micro" color="#10B981">{t('common.liveStatus')}</Txt>
-            </Row>
-          ) : (
-            <Txt variant="micro" color="#F59E0B">{t('scanner.noSession')}</Txt>
-          )}
-          <Spacer size={10} />
-          <MasarMascot size={72} mode="scanner" interactive />
-        </View>
-
-        {!permission?.granted ? (
-          <FadeIn index={0}>
-            <Btn
-              title={t('scanner.enableCamera')}
-              onPress={() => { void requestPermission(); }}
-              full
-              variant="gold"
-              icon="camera"
-            />
-          </FadeIn>
-        ) : loading ? (
-          <Txt variant="caption" color="#94A3B8" align="center">{t('scanner.verifying')}</Txt>
-        ) : null}
-        <Spacer size={16} />
-
-        {/* الكود اليدوي */}
-        <FadeIn index={1}>
-          <Card color="rgba(255,255,255,0.06)" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-            <Txt variant="caption" color="#94A3B8" style={{ marginBottom: 8 }}>{t('scanner.codePlaceholder')}</Txt>
-            <Row gap={10} center>
-              <View style={{ flex: 1 }}>
-                <CodeInput value={code} onChange={(v) => { setCode(v.replace(/[^\d]/g, '').slice(0, 6)); setError(null); }} />
+        {/* جسم الشاشة: إطار الفحص أو طلب الإذن */}
+        {permission?.granted ? (
+          <View style={styles.centerViewfinderWrapper}>
+            {/* إطار الفحص والأقواس المتنفسة وحلقة الـ 25 ثانية */}
+            <Animated.View
+              style={[
+                styles.viewfinderBox,
+                {
+                  width: frameSize,
+                  height: frameSize,
+                  transform: [{ translateX: shakeAnim }, { scale: bracketAnim }],
+                },
+              ]}
+            >
+              {/* حلقة العد التنازلي الخارجية للـ 25 ثانية */}
+              <View style={styles.countdownRingWrapper}>
+                <Svg width={frameSize + 28} height={frameSize + 28} viewBox={`0 0 ${frameSize + 28} ${frameSize + 28}`}>
+                  <Circle
+                    cx={(frameSize + 28) / 2}
+                    cy={(frameSize + 28) / 2}
+                    r={ringRadius}
+                    stroke="rgba(255, 255, 255, 0.15)"
+                    strokeWidth={3}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={(frameSize + 28) / 2}
+                    cy={(frameSize + 28) / 2}
+                    r={ringRadius}
+                    stroke={loading ? '#38BDF8' : theme.brand}
+                    strokeWidth={3.5}
+                    strokeDasharray={`${ringCircumference} ${ringCircumference}`}
+                    strokeDashoffset={strokeDashoffset as any}
+                    strokeLinecap="round"
+                    fill="none"
+                    transform={`rotate(-90 ${(frameSize + 28) / 2} ${(frameSize + 28) / 2})`}
+                  />
+                </Svg>
               </View>
-              <Btn title={t('scanner.submit')} onPress={() => doCheck(code)} loading={loading} disabled={code.length !== 6 || !online} />
-            </Row>
-            <Spacer size={10} />
-            <Input value={pasted} onChange={(v) => setPasted(v)} placeholder={t('scanner.paste')} icon="clipboard" />
-            {pasted.trim().length > 8 ? (
-              <>
-                <Spacer size={8} />
-                <Btn title={t('scanner.submit')} size="sm" variant="secondary" icon="checkmark" onPress={() => doCheck(pasted.trim())} />
-              </>
-            ) : null}
-          </Card>
-        </FadeIn>
 
-        {!online ? (
-          <>
-            <Spacer size={10} />
-            <Txt variant="caption" color="#F59E0B" align="center">{t('scanner.offline')}</Txt>
-          </>
-        ) : null}
+              {/* أقواس الزوايا الأربعة البيضاء المتنفسة */}
+              <View style={[styles.cornerBracket, styles.topLeftBracket]} />
+              <View style={[styles.cornerBracket, styles.topRightBracket]} />
+              <View style={[styles.cornerBracket, styles.bottomLeftBracket]} />
+              <View style={[styles.cornerBracket, styles.bottomRightBracket]} />
 
-        {error ? (
-          <FadeIn index={0}>
-            <Spacer size={14} />
-            <Card color="rgba(239,68,68,0.12)" style={{ borderColor: 'rgba(239,68,68,0.35)' }}>
-              <Row center gap={10}>
-                <Ionicons name={error.icon} size={26} color="#EF4444" />
-                <Txt variant="body" color="#FCA5A5" style={{ flex: 1 }}>{error.msg}</Txt>
-              </Row>
-            </Card>
-          </FadeIn>
-        ) : null}
+              {/* خط الليزر المتحرك */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.laserLine,
+                  {
+                    top: laserAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [12, frameSize - 16],
+                    }),
+                    backgroundColor: loading ? '#38BDF8' : '#007AFF',
+                    shadowColor: loading ? '#38BDF8' : '#007AFF',
+                  },
+                ]}
+              />
+
+              {loading && (
+                <View style={styles.loadingBackdrop}>
+                  <ActivityIndicator size="large" color="#FFF" />
+                  <Spacer size={8} />
+                  <Txt variant="caption" bold color="#FFF">
+                    {t('scanner.verifying')}
+                  </Txt>
+                </View>
+              )}
+            </Animated.View>
+
+            <Spacer size={16} />
+            <Txt variant="caption" color="#CBD5E1" align="center" style={styles.hintText}>
+              وجّه الكاميرا نحو رمز QR المعروض في قاعة التدريب
+            </Txt>
+          </View>
+        ) : (
+          /* حالة رفض الكاميرا: تميمة مسار حزينة + زر إذن زجاجي بارز */
+          <View style={styles.permissionDeniedCard}>
+            <CloudMascot
+              size={120}
+              mode="sad"
+              interactive
+              speechText="نحتاج إذن الكاميرا لمسح رمز الحضور الذكي 📷"
+              showSpeechBubble
+            />
+            <Spacer size={20} />
+            <Txt variant="h3" color="#FFF" align="center">
+              إذن الكاميرا مطلوب
+            </Txt>
+            <Spacer size={6} />
+            <Txt variant="caption" color="#94A3B8" align="center">
+              لتسجيل حضورك الفوري، يحتاج التطبيق للوصول إلى الكاميرا لمسح الرمز.
+            </Txt>
+            <Spacer size={24} />
+            <GlassBtn
+              label="منح إذن الكاميرا الآن"
+              size="lg"
+              variant="highlight"
+              icon={<Ionicons name="camera" size={20} color={theme.brand} />}
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  void requestPermission();
+                } else {
+                  Linking.openSettings().catch(() => {
+                    void requestPermission();
+                  });
+                }
+              }}
+              style={{ width: '100%', maxWidth: 260 }}
+            />
+          </View>
+        )}
+
+        {/* 5. إدخال الكود اليدوي الاحتياطي (6 أرقام OTP Boxes زجاجية) */}
+        <LiquidGlassCard style={styles.manualCodeContainer}>
+          <Txt variant="caption" color="#CBD5E1" align="center" style={{ marginBottom: 10 }}>
+            تعذّرت الكاميرا؟ أدخل كود الطوارئ (6 أرقام):
+          </Txt>
+
+          {/* مربعات OTP الزجاجية المنفصلة */}
+          <Pressable onPress={() => {}} style={styles.otpBoxesRow}>
+            {Array.from({ length: 6 }).map((_, idx) => {
+              const digit = code[idx] || '';
+              const isCurrent = code.length === idx;
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.otpBox,
+                    isCurrent && styles.otpBoxActive,
+                    digit !== '' && styles.otpBoxFilled,
+                  ]}
+                >
+                  <Txt variant="h3" bold color="#FFF" style={styles.otpDigit}>
+                    {digit}
+                  </Txt>
+                </View>
+              );
+            })}
+          </Pressable>
+
+          {/* حقل إدخال مخفي يستقبل النقرات */}
+          <TextInput
+            value={code}
+            onChangeText={(v) => {
+              const cleaned = v.replace(/[^\d]/g, '').slice(0, 6);
+              setCode(cleaned);
+              if (cleaned.length === 6) {
+                void doCheck(cleaned);
+              }
+            }}
+            keyboardType="number-pad"
+            maxLength={6}
+            style={styles.hiddenInput}
+            autoFocus={false}
+          />
+
+          <Spacer size={12} />
+          <Row center gap={10}>
+            <Btn
+              title={t('scanner.submit')}
+              onPress={() => doCheck(code)}
+              loading={loading}
+              disabled={code.length !== 6 || !online}
+              style={{ flex: 1 }}
+            />
+          </Row>
+        </LiquidGlassCard>
       </View>
 
-      {/* S18 — لحظة النجاح بنمط Duolingo */}
+      {/* S18 — احتفالية إتمام المحاضرة بنمط دوولينجو */}
       <SessionCompleteCelebration
         visible={success != null}
         onClose={() => {
@@ -286,23 +477,158 @@ export function ScannerScreen({ navigation }: any) {
   );
 }
 
-function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const { t } = useI18n();
-  return (
-    <TextInput
-      value={value}
-      onChangeText={onChange}
-      keyboardType="numeric"
-      maxLength={6}
-      placeholder="••••••"
-      placeholderTextColor="#5B6478"
-      accessibilityLabel={t('scanner.codePlaceholder')}
-      style={{
-        backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12,
-        paddingVertical: 12, paddingHorizontal: 14, fontSize: 22, letterSpacing: 8,
-        color: '#F1F5F9', fontFamily: 'IBMPlexSansArabic_700Bold', textAlign: 'center',
-        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as object : {}),
-      }}
-    />
-  );
-}
+const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: '#070B14',
+  },
+  overlayContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+  },
+  headerRow: {
+    width: '100%',
+    zIndex: 10,
+  },
+  sessionStatusTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  liveIndicatorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+  },
+  centerViewfinderWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewfinderBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    borderRadius: 24,
+  },
+  countdownRingWrapper: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cornerBracket: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderColor: '#FFFFFF',
+    zIndex: 5,
+  },
+  topLeftBracket: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: 14,
+  },
+  topRightBracket: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: 14,
+  },
+  bottomLeftBracket: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: 14,
+  },
+  bottomRightBracket: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: 14,
+  },
+  laserLine: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    height: 3,
+    borderRadius: 2,
+    zIndex: 6,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.95,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  loadingBackdrop: {
+    ...(StyleSheet.absoluteFill as any),
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  hintText: {
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  permissionDeniedCard: {
+    alignItems: 'center',
+    padding: spacing.lg,
+    marginHorizontal: spacing.md,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  manualCodeContainer: {
+    width: '100%',
+    padding: spacing.md,
+    borderRadius: radii.xl,
+  },
+  otpBoxesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 4,
+  },
+  otpBox: {
+    width: 44,
+    height: 50,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpBoxActive: {
+    borderColor: '#007AFF',
+    backgroundColor: 'rgba(0, 122, 255, 0.18)',
+  },
+  otpBoxFilled: {
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  otpDigit: {
+    fontVariant: ['tabular-nums'],
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    opacity: 0.01,
+  },
+});

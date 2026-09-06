@@ -11,11 +11,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
+import { Btn, FadeIn, GlassBtn, Input, Row, SegmentedProgressBar, Spacer, Txt } from '../../design/components';
 import { GlassCard } from '../../design/glass';
 import { radii, sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { markOnboardingSeen } from '../../shared/onboarding';
+import { CloudMascot } from '../../design/mascot';
 
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
@@ -221,20 +222,14 @@ export function OnboardingScreen({ navigation }: any) {
           </LinearGradient>
           <Txt variant="h3">{t('common.appName')}</Txt>
         </Row>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('onboarding.skipSetup')}
-          hitSlop={12}
+        <GlassBtn
+          label={t('common.skip')}
+          size="sm"
           onPress={() => {
             void markOnboardingSeen();
             navigation.replace('SignIn');
           }}
-          style={{ paddingVertical: 8, paddingHorizontal: 12, minHeight: sizes.touchTarget, justifyContent: 'center' }}
-        >
-          <Txt variant="caption" color={theme.textMuted} bold>
-            {t('common.skip')}
-          </Txt>
-        </Pressable>
+        />
       </Row>
 
       {/* المحتوى الرئيسي: الرسم التوضيحي والنصوص المنمقة */}
@@ -353,25 +348,18 @@ export function OnboardingScreen({ navigation }: any) {
         </Animated.View>
       </View>
 
-      {/* الشريط السفلي: شريط التقدم وزر الـ CTA بمقاس 52pt المعتمد (D2 & D3 & D4) */}
+      {/* الشريط السفلي: شريط التقدم وزر الـ CTA بمقاس 52pt المعتمد */}
       <View style={{ gap: 20 }}>
-        {/* شريط التقدم المرن والنابض مع لون الـ Accent (Amber) */}
-        <Row center gap={8} style={{ justifyContent: 'center' }}>
-          {SLIDES.map((_, i) => {
-            const isActive = i === index;
-            return (
-              <View
-                key={i}
-                style={{
-                  height: 6,
-                  width: isActive ? 28 : 8,
-                  borderRadius: 3,
-                  backgroundColor: isActive ? theme.accent : theme.fillStrong,
-                }}
-              />
-            );
-          })}
-        </Row>
+        {/* شريط التقدم المتفرق بنمط دوولينجو المعتمد بلون البراند الأزرق الموحد */}
+        <View style={{ width: '100%', maxWidth: 240, alignSelf: 'center' }}>
+          <SegmentedProgressBar
+            totalSegments={SLIDES.length}
+            currentSegment={index}
+            activeColor={theme.brand}
+            segmentHeight={6}
+            gap={8}
+          />
+        </View>
 
         {/* زر الـ CTA المتفاعل (52pt) */}
         <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
@@ -412,20 +400,15 @@ export function OnboardingScreen({ navigation }: any) {
         </Animated.View>
 
         {/* الرابط الثانوي المباشر لتسجيل الدخول */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('onboarding.haveAccount')}
-          hitSlop={10}
+        <GlassBtn
+          label={t('onboarding.haveAccount')}
+          size="sm"
           onPress={() => {
             void markOnboardingSeen();
             navigation.replace('SignIn');
           }}
-          style={{ alignSelf: 'center', paddingVertical: 4, minHeight: sizes.touchTarget, justifyContent: 'center' }}
-        >
-          <Txt variant="caption" color={theme.textMuted} bold>
-            {t('onboarding.haveAccount')}
-          </Txt>
-        </Pressable>
+          style={{ alignSelf: 'center' }}
+        />
       </View>
     </View>
   );
@@ -494,9 +477,44 @@ export function SignInScreen({ navigation }: any) {
             <Image source={require('../../../assets/adaptive-icon.png')} style={{ width: 58, height: 58 }} resizeMode="contain" />
           </LinearGradient>
         </FadeIn>
-        <Spacer size={24} />
+        <Spacer size={16} />
         <FadeIn index={1}>
           <Txt variant="display">{t('auth.welcomeTitle')}</Txt>
+          <Spacer size={6} />
+          <Txt variant="caption" color={theme.textSecondary}>
+            منظومة إدارة التدريب الذكية — حضورك، ستريكك، وشهاداتك في مكان واحد
+          </Txt>
+        </FadeIn>
+
+        <Spacer size={20} />
+        <FadeIn index={2}>
+          <View style={{ alignItems: 'center', marginVertical: 8 }}>
+            <CloudMascot
+              size={110}
+              mode="idle"
+              interactive
+              speechText="أهلاً بك في مسار! سجّل دخولك بحساب Google للمتابعة ✨"
+              showSpeechBubble
+            />
+          </View>
+        </FadeIn>
+
+        {/* مميزات الأمان الموثوقة */}
+        <FadeIn index={2}>
+          <Row center gap={12} style={{ justifyContent: 'center', marginVertical: 12 }}>
+            <Row center gap={4}>
+              <Ionicons name="shield-checkmark" size={14} color={theme.success} />
+              <Txt variant="micro" color={theme.textMuted}>دخول آمن ومشفر</Txt>
+            </Row>
+            <Row center gap={4}>
+              <Ionicons name="flash" size={14} color={theme.accent} />
+              <Txt variant="micro" color={theme.textMuted}>حضور فوري</Txt>
+            </Row>
+            <Row center gap={4}>
+              <Ionicons name="ribbon" size={14} color={theme.certGold} />
+              <Txt variant="micro" color={theme.textMuted}>شهادات معتمدة</Txt>
+            </Row>
+          </Row>
         </FadeIn>
 
         <View style={{ flex: 1 }} />

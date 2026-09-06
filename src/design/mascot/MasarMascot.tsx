@@ -39,6 +39,8 @@ export interface MasarMascotProps {
   speechText?: string;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  onQuoteChange?: (quote: string) => void;
+  hideFloatingBubble?: boolean;
 }
 
 const CHEERFUL_PHRASES: Record<MascotMode, string[]> = {
@@ -81,6 +83,8 @@ export function MasarMascot({
   speechText,
   style,
   onPress,
+  onQuoteChange,
+  hideFloatingBubble = false,
 }: MasarMascotProps) {
   const [showSpeech, setShowSpeech] = useState(false);
   const [currentPhrase, setCurrentPhrase] = useState('');
@@ -219,6 +223,7 @@ export function MasarMascot({
     const phrases = CHEERFUL_PHRASES[mode];
     const picked = speechText || phrases[Math.floor(Math.random() * phrases.length)];
     setCurrentPhrase(picked);
+    if (onQuoteChange) onQuoteChange(picked);
     setShowSpeech(true);
 
     Animated.timing(speechOpacity, {
@@ -244,7 +249,7 @@ export function MasarMascot({
   return (
     <View style={[styles.wrapper, style]}>
       {/* فقاعة الحديث التفاعلية (Speech Bubble) */}
-      {showSpeech && (
+      {showSpeech && !hideFloatingBubble && (
         <Animated.View style={[styles.speechBubble, { opacity: speechOpacity }]}>
           <Txt variant="caption" color="#1E293B" align="center">
             {currentPhrase}

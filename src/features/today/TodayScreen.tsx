@@ -16,7 +16,7 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CountUp, FadeIn, Flame, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
+  Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
@@ -36,6 +36,7 @@ export function TodayScreen() {
   const tabs = useTabs();
 
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const [activeMascotQuote, setActiveMascotQuote] = useState<string | null>(null);
   const flameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFlameTap = () => {
@@ -178,39 +179,54 @@ export function TodayScreen() {
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {/* ── تميمة مسار التفاعلية (Duolingo Style Companion) ── */}
           <FadeIn index={1}>
-            <Card
+            <LiquidGlassCard
               style={{
                 padding: spacing.s4,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 14,
-                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.72)' : 'rgba(255, 255, 255, 0.92)',
-                borderWidth: 1,
-                borderColor: theme.glassBorder,
               }}
             >
               <MasarMascot
-                size={74}
+                size={78}
                 mode={streakUrgent ? 'streak_fire' : liveSess ? 'greeting' : 'greeting'}
                 interactive
+                hideFloatingBubble
+                onQuoteChange={(q) => setActiveMascotQuote(q)}
               />
               <View style={{ flex: 1, gap: 4 }}>
-                <Txt variant="bodyMed" color={theme.text}>
-                  {streakUrgent
+                <Txt variant="bodyMed" bold color={theme.text}>
+                  {activeMascotQuote
+                    ? 'صقر مسار («فطن») يقول لك: 🦅'
+                    : streakUrgent
                     ? 'المحاضرة بدأت الآن! 🔥'
                     : liveSess
                     ? 'لديك جلسة تدريبية نشطة! 🚀'
                     : `مرحباً ${firstName}! جاهز لليوم؟`}
                 </Txt>
-                <Txt variant="caption" color={theme.textSecondary}>
-                  {streakUrgent
-                    ? 'سجّل حضورك سريعاً لتحافظ على الستريك وتكسب النقاط!'
-                    : liveSess
-                    ? 'امسح رمز الحضور وابدأ رحلة التميز.'
-                    : 'المس الصقر فطن لرسالة تحفيزية، وتابع جدولك.'}
-                </Txt>
+                <View
+                  style={{
+                    backgroundColor: activeMascotQuote
+                      ? (isDark ? 'rgba(0, 122, 255, 0.14)' : 'rgba(0, 122, 255, 0.07)')
+                      : 'transparent',
+                    padding: activeMascotQuote ? 8 : 0,
+                    borderRadius: radii.sm,
+                    borderWidth: activeMascotQuote ? 1 : 0,
+                    borderColor: 'rgba(0, 122, 255, 0.25)',
+                  }}
+                >
+                  <Txt variant="caption" color={activeMascotQuote ? theme.brand : theme.textSecondary}>
+                    {activeMascotQuote
+                      ? activeMascotQuote
+                      : streakUrgent
+                      ? 'سجّل حضورك سريعاً لتحافظ على الستريك وتكسب النقاط!'
+                      : liveSess
+                      ? 'امسح رمز الحضور وابدأ رحلة التميز.'
+                      : 'المس الصقر فطن لرسالة تحفيزية، وتابع جدولك.'}
+                  </Txt>
+                </View>
               </View>
-            </Card>
+            </LiquidGlassCard>
           </FadeIn>
 
           {/* Task-first: live check-in before KPIs (spec §06 / §44) */}

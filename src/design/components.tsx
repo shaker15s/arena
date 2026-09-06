@@ -1002,3 +1002,8 @@ export { ScrollView };
 export { LiquidGlassCard } from './components/LiquidGlassCard';
 export { Skeleton, TodayCardSkeleton } from './components/SkeletonLoader';
 export { Toast } from './components/Toast';
+export { SegmentedProgressBar } from './components/SegmentedProgressBar';
+export { GlassBtn, IconGlassButton } from './components/GlassBtn';
+export { XPBar } from './components/XPBar';
+export { BentoGrid, BentoItem } from './components/BentoGrid';
+export { StreakCalendarGrid } from './components/StreakCalendarGrid';
