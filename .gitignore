@@ -9,3 +9,8 @@ web-build/
 !.env.example
 metro-cache/
 .test-build/
+
+# .github/workflows/ci.yml can't be pushed by the Arena GitHub App (no `workflows`
+# scope). The authoritative copy lives in ci/github-actions-ci.yml — copy it to
+# .github/workflows/ci.yml locally to activate CI.
+.github/workflows/

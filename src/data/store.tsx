@@ -12,6 +12,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
 import { completeMyProfile, deleteMyAccount, registerPushToken, updateMyProfile } from './actions';
 import { getDevicePushToken, subscribeToPush } from '../shared/push';
+import { addBreadcrumb } from '../shared/telemetry';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   consumeWebAuthCallback,
@@ -155,6 +156,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSyncError(null);
         setOnline(true);
       } catch (error) {
+        // فتات سياق: أغلب أعطال الواجهة تسبقها مزامنة فاشلة — نريدها في التقرير.
+        addBreadcrumb('net', `refresh failed: ${(error as Error).message}`);
         setSyncError((error as Error).message);
         setOnline(false);
       } finally {
@@ -201,6 +204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           // خطأ شبكة/جلسة: يبقى pending ويُعاد في الدورة القادمة (حتى MAX_ATTEMPTS).
+          addBreadcrumb('net', `offline command failed: ${c.command}`);
           await markFailed(c.id, (error as Error).message);
         }
       }

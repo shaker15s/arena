@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { captureError } from './telemetry';
 
 interface Props { children: React.ReactNode }
 interface State { error: Error | null }
@@ -18,9 +19,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // لا يوجد نظام تتبع أخطاء بعد؛ نسجل في الكونسول للتشخيص المحلي.
-    // eslint-disable-next-line no-console
-    console.error('[masar] uncaught error:', error, info.componentStack);
+    // عطل قاتل: أسقط الشجرة فعليًا ووصل المستخدم لشاشة الخطأ.
+    // captureError يسجّل في الكونسول ويرسل للخادم، ولا يرمي أبدًا.
+    captureError(error, { fatal: true, componentStack: info.componentStack ?? undefined });
   }
 
   private reset = () => this.setState({ error: null });

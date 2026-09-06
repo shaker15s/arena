@@ -275,7 +275,9 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                       style={{
                         position: 'absolute',
                         top: 56,
-                        right: 28,
+                        // العقدة (48px) أول عنصر في الصف، فمركزها 28 من البداية
+                        // المنطقية — `start` ينعكس صحيحًا في RTL وLTR معًا.
+                        start: 28,
                         bottom: -24,
                         width: 3,
                         backgroundColor: isPassed ? theme.success : theme.line,

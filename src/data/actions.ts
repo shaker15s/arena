@@ -97,6 +97,34 @@ export async function setPushPreferences(prefs: PushPreferences): Promise<void> 
   await rpc('set_push_preferences', { p_prefs: prefs });
 }
 
+/**
+ * إرسال عطل عميل إلى سجل الأعطال الخادمي (OPS-01).
+ * صامت تمامًا: أي فشل يُبتلع — الرصد لا يجب أن يُسقط التطبيق أو يزعج المستخدم.
+ */
+export async function logClientError(input: {
+  message: string;
+  stack?: string;
+  componentStack?: string;
+  fatal: boolean;
+  platform: string;
+  appVersion: string;
+  breadcrumbs: unknown[];
+}): Promise<void> {
+  try {
+    await rpc('log_client_error', {
+      p_message: input.message,
+      p_stack: input.stack ?? null,
+      p_component_stack: input.componentStack ?? null,
+      p_fatal: input.fatal,
+      p_platform: input.platform,
+      p_app_version: input.appVersion,
+      p_breadcrumbs: input.breadcrumbs,
+    });
+  } catch {
+    /* الرصد لا يُسقط التطبيق */
+  }
+}
+
 /** قراءة تفضيلات الإشعارات للمستخدم الحالي (RLS: صفّه فقط). الغياب = الافتراضي. */
 export async function getPushPreferences(): Promise<PushPreferences> {
   const { data, error } = await getSupabase()

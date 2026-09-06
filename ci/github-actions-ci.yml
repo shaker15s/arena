@@ -31,6 +31,12 @@ jobs:
       - name: i18n key parity (ar ↔ en)
         run: npm run parity
 
+      - name: RPC contract (client calls must exist server-side)
+        run: npm run rpc:check
+
+      - name: RPC types in sync with migrations
+        run: npm run rpc:types
+
       - name: Engine behavioral tests
         run: npm run test:engine
 
@@ -47,6 +53,42 @@ jobs:
             exit 1
           fi
           echo "OK — no broken CHECK constraints"
+
+      - name: SQL migration sanity (balanced transactions & dollar-quotes)
+        run: |
+          fail=0
+          for f in supabase/migrations/*.sql; do
+            b=$(grep -c '^BEGIN;' "$f" || true)
+            c=$(grep -c '^COMMIT;' "$f" || true)
+            d=$(grep -o '\$\$' "$f" | wc -l)
+            if [ "$b" != "$c" ]; then
+              echo "::error file=$f::BEGIN/COMMIT mismatch (BEGIN=$b COMMIT=$c)"; fail=1
+            fi
+            if [ $((d % 2)) -ne 0 ]; then
+              echo "::error file=$f::unbalanced \$\$ dollar-quote delimiters ($d)"; fail=1
+            fi
+          done
+          [ "$fail" = "0" ] && echo "OK — migrations balanced"
+          exit $fail
+
+      - name: Security — SECURITY DEFINER must pin search_path
+        run: |
+          # A SECURITY DEFINER function without a fixed search_path is a
+          # privilege-escalation vector (schema hijacking). Only real code lines
+          # count -- SQL comments mentioning the phrase are not declarations.
+          if grep -rn "SECURITY DEFINER" supabase/migrations/ --include="*.sql" \
+            | grep -v "SET search_path" \
+            | grep -vE "^[^:]+:[0-9]+:[[:space:]]*--"; then
+            echo "::error::SECURITY DEFINER function without 'SET search_path = public, pg_temp'"
+            exit 1
+          fi
+          echo "OK — every SECURITY DEFINER pins search_path"
+
+      - name: Dependency audit (high & critical only)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Web export (bundle must build)
+        run: npm run export:web
 
   database:
     name: supabase · db reset (best-effort)

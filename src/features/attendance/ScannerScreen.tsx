@@ -6,7 +6,7 @@
  * ذرّي على الخادم؛ لا يثق المسار بمعرّف مستخدم أو توقيت قادم من العميل.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, TextInput, View } from 'react-native';
+import { Animated, Platform, Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
@@ -150,7 +150,10 @@ export function ScannerScreen({ navigation }: any) {
     void doCheck(data);
   };
 
-  const frameSize = 220;
+  // إطار متجاوب: 220 هي المثالية على 390pt، لكنها تخنق الشاشات الضيقة (SE/360pt)
+  // وتبدو ضئيلة على التابلت. نحدّها بـ 62% من أصغر بُعد مع سقف/أرضية معقولين.
+  const { width: winW, height: winH } = useWindowDimensions();
+  const frameSize = Math.round(Math.max(180, Math.min(300, Math.min(winW, winH) * 0.62)));
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0A0E1A' }}>
@@ -179,16 +182,17 @@ export function ScannerScreen({ navigation }: any) {
               <Ionicons name="camera-outline" size={72} color="rgba(255,255,255,0.22)" style={{ alignSelf: 'center' }} />
             )}
             {/* زوايا الإطار */}
+            {/* زوايا الإطار: start/end بدل left/right حتى تنعكس صحيحًا في RTL */}
             {[
-              { top: 8, left: 8, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 12 },
-              { top: 8, right: 8, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 12 },
-              { bottom: 8, left: 8, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 12 },
-              { bottom: 8, right: 8, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 12 },
+              { top: 8, start: 8, borderTopWidth: 5, borderStartWidth: 5, borderTopStartRadius: 12 },
+              { top: 8, end: 8, borderTopWidth: 5, borderEndWidth: 5, borderTopEndRadius: 12 },
+              { bottom: 8, start: 8, borderBottomWidth: 5, borderStartWidth: 5, borderBottomStartRadius: 12 },
+              { bottom: 8, end: 8, borderBottomWidth: 5, borderEndWidth: 5, borderBottomEndRadius: 12 },
             ].map((s, i) => (
               <View pointerEvents="none" key={i} style={[{ position: 'absolute', zIndex: 2, width: 34, height: 34, borderColor: theme.brandGradientTo }, s]} />
             ))}
             <Animated.View pointerEvents="none" style={{
-              position: 'absolute', zIndex: 2, left: 16, right: 16, height: 3, borderRadius: 2,
+              position: 'absolute', zIndex: 2, start: 16, end: 16, height: 3, borderRadius: 2,
               backgroundColor: theme.teal,
               shadowColor: theme.teal, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
               top: laser.interpolate({ inputRange: [0, 1], outputRange: [16, frameSize - 20] }),

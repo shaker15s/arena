@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, I18nManager, Platform, Pressable, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -515,7 +516,16 @@ export function RootNavigator() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 1180, alignSelf: 'center' }}>
-        <NavigationContainer theme={navTheme} linking={linking}>
+        <NavigationContainer
+          theme={navTheme}
+          linking={linking}
+          // اسم الشاشة فقط (لا وسائط) — يعطي تقارير الأعطال مسار المستخدم
+          // دون تسريب أي معرّفات أو محتوى.
+          onStateChange={(state) => {
+            const route = state?.routes?.[state.index ?? 0];
+            if (route?.name) addBreadcrumb('nav', route.name);
+          }}
+        >
           {needsProfile ? (
             <CompleteProfileStack />
           ) : !user ? (

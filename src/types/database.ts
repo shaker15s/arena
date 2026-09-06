@@ -757,60 +757,140 @@ export interface Database {
       };
     };
     Functions: {
-      update_course_details: {
-        Args: {
-          p_course_id: string;
-          p_title: string;
-          p_field: string;
-          p_description: string;
-          p_topics: string[];
-          p_sessions_count: number;
-        };
-        Returns: { ok: boolean };
-      };
-      update_my_profile: {
-        Args: { p_full_name: string; p_phone: string; p_avatar_url?: string | null };
-        Returns: { ok: boolean };
-      };
-      complete_my_profile: {
-        Args: {
-          p_full_name: string;
-          p_phone: string;
-          p_avatar_url?: string | null;
-          p_branch_id?: string | null;
-          p_gender?: string | null;
-        };
-        Returns: { ok: boolean; profile_id: string };
-      };
-      check_in_with_token: {
-        Args: { p_payload: string; p_lat?: number | null; p_lng?: number | null };
-        Returns: {
-          kind: string;
-          status?: 'present' | 'late';
-          points?: number;
-          session_id?: string;
-        };
-      };
-      save_private_note: {
-        Args: { p_user_id: string; p_note: string };
-        Returns: { ok: boolean };
-      };
-      revoke_certificate: {
-        Args: { p_certificate_id: string; p_reason: string };
-        Returns: { ok: boolean; status: string };
-      };
-      reissue_certificate: {
-        Args: { p_certificate_id: string };
-        Returns: { ok: boolean; status: string; serial: string };
-      };
-      register_push_token: {
-        Args: { p_token: string; p_platform?: string };
-        Returns: { ok: boolean };
-      };
-      unregister_push_token: {
-        Args: { p_token: string };
-        Returns: { ok: boolean };
-      };
+  // ─── BEGIN GENERATED RPC ARGS (scripts/gen-rpc-types.js) ───
+  // مولَّد آليًا من supabase/migrations — لا تحرّره يدويًا.
+  // أعِد التوليد: node scripts/gen-rpc-types.js --write
+  /** 0023_course_lifecycle_truthfulness.sql */
+  admin_update_user_access: { Args: { p_profile_id: string; p_role: string; p_status: string; p_branch_id?: string | null; p_clear_branch?: boolean | null }; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  archive_batch: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0024_course_operating_system.sql */
+  assign_course_role: { Args: { p_course_id: string; p_user_id: string; p_role: string }; Returns: Json };
+  /** 0025_rpc_rate_limits.sql */
+  award_kudos: { Args: { p_student_id: string; p_batch_id: string; p_points: number; p_reason: string; p_idempotency_key: string }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  bootstrap_organization: { Args: { p_payload: Json }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  broadcast_notifications: { Args: { p_scope: string; p_scope_id: string; p_title: string; p_body: string }; Returns: Json };
+  /** 0024_course_operating_system.sql */
+  cancel_batch: { Args: { p_batch_id: string; p_reason?: string | null }; Returns: Json };
+  /** 0024_course_operating_system.sql */
+  cancel_training_session: { Args: { p_session_id: string; p_reason?: string | null }; Returns: Json };
+  /** 0021_geofence_optional.sql */
+  check_in_with_token: { Args: { p_payload: string; p_lat?: number | null; p_lng?: number | null }; Returns: Json };
+  /** 0017_completion_rule_fix.sql */
+  close_training_session: { Args: { p_session_id: string; p_report?: Json | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  complete_my_profile: { Args: { p_full_name: string; p_phone: string; p_avatar_url?: string | null; p_branch_id?: string | null; p_gender?: string | null }; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  create_batch_with_sessions: { Args: { p_course_id: string; p_branch_id: string; p_instructor_id: string; p_code: string; p_capacity: number; p_room: string; p_schedule: Json; p_first_session_at: string; p_custom_sessions_count?: number | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  create_branch: { Args: { p_name: string; p_governorate: string; p_address?: string | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  create_committee: { Args: { p_branch_id: string; p_name: string }; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  create_course: { Args: { p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
+  /** 0008_account_deletion.sql */
+  delete_my_account: { Args: { p_confirm: string }; Returns: Json };
+  /** 0013_offline_command_queue.sql */
+  enqueue_command: { Args: { p_command_id: string; p_command: string; p_payload?: Json | null; p_device_created_at?: string | null }; Returns: Json };
+  /** 0013_offline_command_queue.sql */
+  finish_command: { Args: { p_command_id: string; p_status?: string | null }; Returns: Json };
+  /** 0011_analytics_views.sql */
+  get_analytics: { Args: { p_scope: string; p_scope_id?: string | null }; Returns: Json };
+  /** 0012_domain_query_layer.sql */
+  get_batch_roster: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0012_domain_query_layer.sql */
+  get_batch_sessions: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  get_batch_stats: { Args: { p_offset?: number | null; p_limit?: number | null }; Returns: Json };
+  /** 0013_offline_command_queue.sql */
+  get_command: { Args: { p_command_id: string }; Returns: Json };
+  /** 0012_domain_query_layer.sql */
+  get_course_overview: { Args: { p_course_id: string }; Returns: Json };
+  /** 0024_course_operating_system.sql */
+  get_detailed_course_analytics: { Args: { p_course_id: string }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  get_session_qr_payload: { Args: { p_session_id: string }; Returns: Json };
+  /** 0010_session_report.sql */
+  get_session_report: { Args: { p_session_id: string }; Returns: Json };
+  /** 0012_domain_query_layer.sql */
+  get_session_roster: { Args: { p_session_id: string }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  is_admin: { Args: Record<string, never>; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  is_staff: { Args: Record<string, never>; Returns: Json };
+  /** 0017_completion_rule_fix.sql */
+  issue_batch_certificates: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  join_batch: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0025_rpc_rate_limits.sql */
+  join_batch_by_code: { Args: { p_join_code: string }; Returns: Json };
+  /** 0009_waitlist_promotion.sql */
+  leave_batch: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  list_visible_profiles: { Args: { p_offset?: number | null; p_limit?: number | null }; Returns: Json };
+  /** 0027_client_error_log.sql */
+  log_client_error: { Args: { p_message: string; p_stack?: string | null; p_component_stack?: string | null; p_fatal?: boolean | null; p_platform?: string | null; p_app_version?: string | null; p_breadcrumbs?: Json | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  manual_mark_attendance: { Args: { p_session_id: string; p_user_id: string; p_status: string; p_reason: string }; Returns: Json };
+  /** 0014_critical_fixes.sql */
+  mark_notifications_read: { Args: Record<string, never>; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  notify_session_absentees: { Args: { p_session_id: string }; Returns: Json };
+  /** 0009_waitlist_promotion.sql */
+  promote_batch_waitlist: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0009_waitlist_promotion.sql */
+  promote_waitlists: { Args: Record<string, never>; Returns: Json };
+  /** 0025_rpc_rate_limits.sql */
+  register_push_token: { Args: { p_token: string; p_platform?: string | null }; Returns: Json };
+  /** 0020_certificate_revocation.sql */
+  reissue_certificate: { Args: { p_certificate_id: string }; Returns: Json };
+  /** 0009_waitlist_promotion.sql */
+  remove_from_batch: { Args: { p_batch_id: string; p_user_id: string }; Returns: Json };
+  /** 0024_course_operating_system.sql */
+  reschedule_training_session: { Args: { p_session_id: string; p_starts_at: string; p_reason?: string | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  review_excuse: { Args: { p_excuse_id: string; p_decision: string; p_note?: string | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  review_support_request: { Args: { p_request_id: string; p_status: string; p_response: string }; Returns: Json };
+  /** 0020_certificate_revocation.sql */
+  revoke_certificate: { Args: { p_certificate_id: string; p_reason: string }; Returns: Json };
+  /** 0024_course_operating_system.sql */
+  revoke_course_role: { Args: { p_course_id: string; p_user_id: string; p_role: string }; Returns: Json };
+  /** 0002_gamification_rpcs.sql */
+  rule_num: { Args: { p_key: string }; Returns: Json };
+  /** 0015_command_executor.sql */
+  run_command: { Args: { p_command_id: string; p_command: string; p_payload?: Json | null; p_device_created_at?: string | null }; Returns: Json };
+  /** 0019_save_private_note.sql */
+  save_private_note: { Args: { p_user_id: string; p_note: string }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  set_badge_active: { Args: { p_code: string; p_active: boolean }; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  set_course_status: { Args: { p_course_id: string; p_status: string }; Returns: Json };
+  /** 0026_push_delivery_outbox.sql */
+  set_push_preferences: { Args: { p_prefs: Json }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  start_training_session: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0017_completion_rule_fix.sql */
+  submit_course_rating: { Args: { p_course_id: string; p_stars: number; p_comment?: string | null }; Returns: Json };
+  /** 0025_rpc_rate_limits.sql */
+  submit_excuse: { Args: { p_session_id: string; p_reason: string; p_attachment_url?: string | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  submit_support_request: { Args: { p_kind: string; p_subject: string; p_body: string; p_recipient_id?: string | null }; Returns: Json };
+  /** 0022_push_tokens.sql */
+  unregister_push_token: { Args: { p_token: string }; Returns: Json };
+  /** 0023_course_lifecycle_truthfulness.sql */
+  update_course_details: { Args: { p_course_id: string; p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  update_gamification_rule: { Args: { p_key: string; p_value: number }; Returns: Json };
+  /** 0005_production_hardening.sql */
+  update_my_profile: { Args: { p_full_name: string; p_phone: string; p_avatar_url?: string | null }; Returns: Json };
+  /** 0001_schema.sql */
+  update_updated_at_column: { Args: Record<string, never>; Returns: Json };
+  /** 0020_certificate_revocation.sql */
+  verify_certificate: { Args: { p_serial: string }; Returns: Json };
+  // ─── END GENERATED RPC ARGS ───
     };
   };
 }

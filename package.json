@@ -16,7 +16,9 @@
     "parity": "node scripts/check-i18n-parity.js",
     "test:engine": "tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js",
     "test:rls": "tsc -p tsconfig.test.json && node .test-build/scripts/rls.test.js",
-    "test:all": "npm run typecheck && npm run parity && npm run test:engine && npm run test:rls"
+    "test:all": "npm run typecheck && npm run parity && npm run rpc:check && npm run rpc:types && npm run test:engine && npm run test:rls",
+    "rpc:check": "node scripts/check-rpc-contract.js",
+    "rpc:types": "node scripts/gen-rpc-types.js"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
