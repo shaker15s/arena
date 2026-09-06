@@ -74,7 +74,7 @@ async function ensureAndroidChannel(Notifications: any): Promise<void> {
   if (Platform.OS !== 'android') return;
   try {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'تنبيهات مسار',
+      name: 'Masar',
       importance: Notifications.AndroidImportance?.DEFAULT ?? 3,
       vibrationPattern: [0, 180, 120, 180],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1,

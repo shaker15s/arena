@@ -193,7 +193,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     try {
       await issueBatchCertificates(batch.id);
       await refresh();
-      toast('تم إصدار شهادتك الرسمية بنجاح! مبروك 🎓', 'success');
+      toast(t('journey.certIssuedOk'), 'success');
     } catch (e) {
       toast((e as Error).message, 'error');
     } finally {
@@ -213,7 +213,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         right={
           <Row center gap={6}>
             <Btn
-              title="⭐ تقييم"
+              title={t('journey.rateShort')}
               size="sm"
               variant="ghost"
               icon="star"
@@ -250,7 +250,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 <Txt variant="micro" color={theme.textMuted}>
                   {batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {batch.schedule.time}
                 </Txt>
-                <Tag label={`الحد الأدنى ${minCertPct}%`} color={theme.certGold} bg={theme.warnSoft} />
+                <Tag label={t('journey.minPct', { x: minCertPct })} color={theme.certGold} bg={theme.warnSoft} />
               </Row>
             </Card>
           </FadeIn>
@@ -321,7 +321,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                         {isLiveNow ? (
                           <View style={{ marginTop: 8 }}>
                             <Btn
-                              title="📷 مسح رمز الـ QR لتسجيل الحضور الآن"
+                              title={t('journey.scanNow')}
                               size="sm"
                               variant="gold"
                               icon="qr-code"
@@ -391,14 +391,14 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 <Txt variant="h2" color={theme.certGold}>{t('map.certNode')}</Txt>
                 {myCert ? (
                   <>
-                    <Txt variant="bodyMed" color={theme.success} align="center">تم إصدار وتوثيق شهادتك الرسمية بنجاح 🎓</Txt>
-                    <Tag label={`رقم الشهادة: ${myCert.serial}`} color={theme.brand} bg="#fff" icon="ribbon" />
+                    <Txt variant="bodyMed" color={theme.success} align="center">{t('journey.certIssued')}</Txt>
+                    <Tag label={t('journey.certSerial', { x: myCert.serial })} color={theme.brand} bg="#fff" icon="ribbon" />
                   </>
                 ) : (
                   <Txt variant="caption" color={theme.textSecondary} align="center">
                     {isEligibleForCert
-                      ? 'تهانينا! حققت نسبة الحضور المطلوبة ويمكنك إصدار شهادتك الآن'
-                      : `${t('history.commitment')}: ${attendanceRate}% (المطلوب ≥${minCertPct}% للحصول على الشهادة)`}
+                      ? t('journey.certEligible')
+                      : t('journey.certNeed', { rate: attendanceRate, min: minCertPct })}
                   </Txt>
                 )}
               </View>
@@ -406,14 +406,14 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
               <Row gap={10} style={{ width: '100%', justifyContent: 'center' }} wrap>
                 {myCert ? (
                   <Btn
-                    title="🎓 عرض وتحميل الشهادة الرسمية"
+                    title={t('journey.viewCert')}
                     variant="gold"
                     icon="ribbon"
                     onPress={() => navigation.navigate('CertificateViewer', { certId: myCert.id })}
                   />
                 ) : isEligibleForCert ? (
                   <Btn
-                    title="🎓 إصدار الشهادة الرسمية الآن"
+                    title={t('journey.issueCert')}
                     variant="gold"
                     icon="ribbon"
                     loading={issuingCert}
@@ -440,32 +440,32 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
       </ScrollView>
 
       {/* S26 — تقييم الكورس متعدد المحاور */}
-      <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title="⭐ تقييم التجربة التدريبية">
+      <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title={t('journey.rateTitle')}>
         <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
           <Card glass style={{ gap: 6, alignItems: 'center' }}>
-            <Txt variant="caption" color={theme.textSecondary}>⭐ التقييم العام للدورة التدريبية</Txt>
+            <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateOverall')}</Txt>
             <Stars value={stars} size={32} onRate={setStars} />
           </Card>
 
           <Card glass style={{ gap: 6, alignItems: 'center' }}>
-            <Txt variant="caption" color={theme.textSecondary}>👨‍🏫 تقييم أداء المدرب وجودة الشرح</Txt>
+            <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateInstructor')}</Txt>
             <Stars value={instructorStars} size={28} onRate={setInstructorStars} />
           </Card>
 
           <Card glass style={{ gap: 6, alignItems: 'center' }}>
-            <Txt variant="caption" color={theme.textSecondary}>🏢 تقييم المكان والقاعة والتنظيم</Txt>
+            <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateVenue')}</Txt>
             <Stars value={venueStars} size={28} onRate={setVenueStars} />
           </Card>
 
           <Input
-            label="رأيك وملاحظاتك بالتفصيل (اختياري)"
+            label={t('journey.rateComment')}
             value={comment}
             onChange={setComment}
-            placeholder="اكتب انطباعك، ما أعجبك وما يمكن تحسينه..."
+            placeholder={t('journey.ratePlaceholder')}
             multiline
           />
 
-          <Btn title="إرسال التقييم المعتمد" full size="lg" loading={sending} onPress={submitRating} icon="checkmark-circle" />
+          <Btn title={t('journey.rateSubmit')} full size="lg" loading={sending} onPress={submitRating} icon="checkmark-circle" />
         </ScrollView>
       </Sheet>
     </View>

@@ -219,7 +219,7 @@ export function LeagueScreen({ navigation }: any) {
           options={[
             { value: 'league', label: t(`tier.${league.tier}` as any), icon: 'shield' },
             { value: 'rising', label: t('league.rising'), icon: 'rocket' },
-            { value: 'alltime', label: 'لوحة الصدارة العامة', icon: 'trophy' },
+            { value: 'alltime', label: t('league.alltime'), icon: 'trophy' },
           ]}
         />
 
@@ -244,12 +244,12 @@ export function LeagueScreen({ navigation }: any) {
                       <Row center gap={8} style={{ marginTop: 2 }}>
                         <Row center gap={3}>
                           <Flame size={13} urgent={r.streak >= 4} />
-                          <Txt variant="micro" color={theme.textMuted}>{r.streak} أسبوع</Txt>
+                          <Txt variant="micro" color={theme.textMuted}>{t('league.weekCount', { x: r.streak })}</Txt>
                         </Row>
                         <Txt variant="micro" color={theme.textMuted}>·</Txt>
                         <Row center gap={3}>
                           <Ionicons name="ribbon" size={13} color={theme.brand} />
-                          <Txt variant="micro" color={theme.textMuted}>{r.badgesCount} شارة</Txt>
+                          <Txt variant="micro" color={theme.textMuted}>{t('league.badgeCount', { x: r.badgesCount })}</Txt>
                         </Row>
                       </Row>
                     </View>

@@ -328,7 +328,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
                       <Ionicons name="book" size={24} color={course ? course.color : theme.brand} />
                     </View>
                     <View style={{ flex: 1, gap: 3 }}>
-                      <Txt variant="h3">{course?.title ?? 'كورس تدريبي'}</Txt>
+                      <Txt variant="h3">{course?.title ?? t('batches.courseFallback')}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>
                         {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time} · {b.room}
                       </Txt>
