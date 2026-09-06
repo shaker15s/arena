@@ -24,6 +24,7 @@ export const sizes = {
   avatarLarge: 72,
   qrCode: 200,
   touchTarget: 44, // الحد الأدنى الموصى به من Apple لإمكانية الوصول
+  ctaButton: 52, // معيار Apple HIG للأزرار التفاعلية الأساسية
 } as const;
 
 /** إعدادات الـ Springs المعتمدة من Apple Fluid Interfaces (WWDC) */
@@ -42,6 +43,12 @@ export interface ThemeColors {
   brandGradientFrom: string;
   brandGradientTo: string;
   brandGradientMid: string;
+  /** لون التمايز الثانوي (Amber/مسار) — D2 */
+  accent: string;
+  accentDark: string;
+  accentSoft: string;
+  accentGradientFrom: string;
+  accentGradientTo: string;
   onBrand: string;
   onSuccess: string;
   onDark: string;
@@ -100,6 +107,11 @@ export const lightTheme: ThemeColors = {
   brandGradientFrom: '#007AFF',
   brandGradientTo: '#5856D6',
   brandGradientMid: '#5E5CE6',
+  accent: '#F59E0B',
+  accentDark: '#D97706',
+  accentSoft: '#FEF3C7',
+  accentGradientFrom: '#F59E0B',
+  accentGradientTo: '#EA580C',
   onBrand: '#FFFFFF',
   onSuccess: '#FFFFFF',
   onDark: '#FFFFFF',
@@ -153,6 +165,11 @@ export const darkTheme: ThemeColors = {
   brandGradientFrom: '#0A84FF',
   brandGradientTo: '#5E5CE6',
   brandGradientMid: '#5E5CE6',
+  accent: '#FBBF24',
+  accentDark: '#F59E0B',
+  accentSoft: '#451A03',
+  accentGradientFrom: '#FBBF24',
+  accentGradientTo: '#F59E0B',
   teal: '#30D158',
   bg: '#000000',
   certSoft: 'rgba(255, 215, 0, 0.12)',

@@ -13,120 +13,419 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { GlassCard } from '../../design/glass';
-import { sizes, spacing } from '../../design/tokens';
+import { radii, sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { markOnboardingSeen } from '../../shared/onboarding';
 
-// ───────────────────────────── Onboarding (عناوين فقط) ─────────────────────────────
+import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
+import {
+  OnboardingSlide1Illustration,
+  OnboardingSlide2Illustration,
+  OnboardingSlide3Illustration,
+} from '../../design/illustrations';
 
-const SLIDES: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string; from: string; to: string }> = [
-  { icon: 'calendar', title: 'onboarding.o1Title', body: 'onboarding.o1Body', from: '#007AFF', to: '#5856D6' },
-  { icon: 'qr-code', title: 'onboarding.o2Title', body: 'onboarding.o2Body', from: '#30D158', to: '#34C759' },
-  { icon: 'trophy', title: 'onboarding.o3Title', body: 'onboarding.o3Body', from: '#FF9F0A', to: '#FF3B30' },
+// ───────────────────────────── Onboarding (تفاعلي حديث 2026) ─────────────────────────────
+
+interface OnboardingSlide {
+  key: string;
+  title: string;
+  body: string;
+  from: string;
+  to: string;
+  Illustration: React.ComponentType<{ size?: number }>;
+}
+
+const SLIDES: OnboardingSlide[] = [
+  {
+    key: 'slide1',
+    title: 'onboarding.o1Title',
+    body: 'onboarding.o1Body',
+    from: '#007AFF',
+    to: '#5856D6',
+    Illustration: OnboardingSlide1Illustration,
+  },
+  {
+    key: 'slide2',
+    title: 'onboarding.o2Title',
+    body: 'onboarding.o2Body',
+    from: '#10B981',
+    to: '#007AFF',
+    Illustration: OnboardingSlide2Illustration,
+  },
+  {
+    key: 'slide3',
+    title: 'onboarding.o3Title',
+    body: 'onboarding.o3Body',
+    from: '#F59E0B',
+    to: '#EA580C',
+    Illustration: OnboardingSlide3Illustration,
+  },
 ];
 
 export function OnboardingScreen({ navigation }: any) {
   const [index, setIndex] = useState(0);
   const { t } = useI18n();
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, preference, setTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const slideAnim = useRef(new Animated.Value(1)).current;
-  const iconScale = useRef(new Animated.Value(0.8)).current;
-  const iconOpacity = useRef(new Animated.Value(0)).current;
 
-  const go = (i: number) => {
+  // مصفوفة الحركات
+  const slideAnim = useRef(new Animated.Value(1)).current;
+  const illScale = useRef(new Animated.Value(0.92)).current;
+  const illOpacity = useRef(new Animated.Value(0)).current;
+  const ctaScale = useRef(new Animated.Value(1)).current;
+  const orbDrift = useRef(new Animated.Value(0)).current;
+  const orbParallax = useRef(new Animated.Value(0)).current;
+
+  // دوران خفيف للكرات في الخلفية (D4)
+  useEffect(() => {
+    if (isReducedMotion()) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orbDrift, { toValue: 1, duration: 7500, useNativeDriver: true }),
+        Animated.timing(orbDrift, { toValue: 0, duration: 7500, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [orbDrift]);
+
+  const go = (targetIndex: number) => {
+    if (!isReducedMotion()) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: isReducedMotion() ? 100 : 160, useNativeDriver: true }),
-      Animated.timing(iconOpacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: isReducedMotion() ? 80 : 150, useNativeDriver: true }),
+      Animated.timing(illOpacity, { toValue: 0, duration: 100, useNativeDriver: true }),
     ]).start(() => {
-      setIndex(i);
-      iconScale.setValue(0.6);
+      setIndex(targetIndex);
+      illScale.setValue(0.88);
       Animated.parallel([
-        Animated.timing(slideAnim, { toValue: 1, duration: isReducedMotion() ? 100 : 300, useNativeDriver: true }),
-        Animated.spring(iconScale, { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true }),
-        Animated.timing(iconOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 1, duration: isReducedMotion() ? 80 : 260, useNativeDriver: true }),
+        Animated.spring(illScale, { toValue: 1, damping: 18, stiffness: 140, useNativeDriver: true }),
+        Animated.timing(illOpacity, { toValue: 1, duration: 240, useNativeDriver: true }),
+        Animated.spring(orbParallax, { toValue: targetIndex, damping: 20, stiffness: 120, useNativeDriver: true }),
       ]).start();
     });
   };
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(iconScale, { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true }),
-      Animated.timing(iconOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(illScale, { toValue: 1, damping: 18, stiffness: 140, useNativeDriver: true }),
+      Animated.timing(illOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [illOpacity, illScale]);
 
   const slide = SLIDES[index];
   const isLast = index === SLIDES.length - 1;
+  const illSize = Math.min(264, width * 0.68);
+
+  const CurrentIllustration = slide.Illustration;
+
+  const pressCtaIn = () => {
+    if (isReducedMotion()) return;
+    Animated.spring(ctaScale, { toValue: 0.98, damping: 26, stiffness: 320, useNativeDriver: true }).start();
+  };
+
+  const pressCtaOut = () => {
+    if (isReducedMotion()) return;
+    Animated.spring(ctaScale, { toValue: 1, damping: 22, stiffness: 260, useNativeDriver: true }).start();
+  };
+
+  const selectTheme = (pref: 'light' | 'dark' | 'system') => {
+    if (!isReducedMotion()) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    setTheme(pref);
+  };
 
   return (
-    <View style={{ flex: 1, width: '100%', maxWidth: 820, alignSelf: 'center', backgroundColor: theme.bg, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 24, paddingHorizontal: spacing.s6 }}>
-      <View style={{
-        position: 'absolute', top: -100, left: -80,
-        width: 350, height: 350, borderRadius: 175,
-        backgroundColor: isDark ? `${slide.from}12` : `${slide.from}0A`,
-      }} />
+    <View
+      style={{
+        flex: 1,
+        width: '100%',
+        maxWidth: 820,
+        alignSelf: 'center',
+        backgroundColor: theme.bg,
+        paddingTop: insets.top + 10,
+        paddingBottom: insets.bottom + 20,
+        paddingHorizontal: spacing.s6,
+        overflow: 'hidden',
+      }}
+    >
+      {/* كرات الخلفية المحيطية مع بارالاكس وحركة هادئة (D4 & D6) */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -90,
+          right: -70,
+          width: 320,
+          height: 320,
+          borderRadius: 160,
+          backgroundColor: slide.from,
+          opacity: isDark ? 0.09 : 0.075,
+          transform: [
+            {
+              translateY: orbDrift.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 18],
+              }),
+            },
+            {
+              translateX: orbParallax.interpolate({
+                inputRange: [0, 2],
+                outputRange: [0, -35],
+              }),
+            },
+          ],
+        }}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          bottom: 120,
+          left: -80,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: slide.to,
+          opacity: isDark ? 0.08 : 0.065,
+          transform: [
+            {
+              translateY: orbDrift.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -18],
+              }),
+            },
+            {
+              translateX: orbParallax.interpolate({
+                inputRange: [0, 2],
+                outputRange: [0, 30],
+              }),
+            },
+          ],
+        }}
+      />
 
+      {/* الشريط العلوي: الشعار وزر التخطي */}
       <Row between center>
-        <Row center gap={8}>
+        <Row center gap={10}>
           <LinearGradient
             colors={[theme.brandGradientFrom, theme.brandGradientTo]}
-            style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Image source={require('../../../assets/adaptive-icon.png')} style={{ width: 25, height: 25 }} resizeMode="contain" />
+            <Image source={require('../../../assets/adaptive-icon.png')} style={{ width: 26, height: 26 }} resizeMode="contain" />
           </LinearGradient>
           <Txt variant="h3">{t('common.appName')}</Txt>
         </Row>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('common.skip')} hitSlop={8} onPress={() => { void markOnboardingSeen(); navigation.replace('SignIn'); }} style={{ padding: 10, minHeight: sizes.touchTarget, justifyContent: 'center' }}>
-          <Txt variant="caption" color={theme.textMuted}>{t('common.skip')}</Txt>
-        </Pressable>
-      </Row>
-
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Animated.View style={{ opacity: slideAnim, transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) }], alignItems: 'center', gap: 28 }}>
-          <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
-            <LinearGradient
-              colors={[slide.from + '20', slide.to + '15']}
-              style={{
-                width: Math.min(196, width * 0.46),
-                height: Math.min(196, width * 0.46),
-                borderRadius: 54,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: slide.from + '30',
-              }}
-            >
-              <Ionicons name={slide.icon} size={82} color={slide.from} />
-            </LinearGradient>
-          </Animated.View>
-          <View style={{ alignItems: 'center', gap: 10, maxWidth: 520 }}>
-            <Txt variant="h1" align="center">{t(slide.title as any)}</Txt>
-            <Txt variant="body" color={theme.textSecondary} align="center">{t(slide.body as any)}</Txt>
-          </View>
-        </Animated.View>
-      </View>
-
-      <View style={{ gap: 24 }}>
-        <Row center gap={8} style={{ justifyContent: 'center' }}>
-          {SLIDES.map((_, i) => (
-            <View key={i} style={{
-              height: 8, width: i === index ? 28 : 8, borderRadius: 4,
-              backgroundColor: i === index ? theme.brand : theme.fillStrong,
-            }} />
-          ))}
-        </Row>
-        <Btn
-          title={isLast ? t('onboarding.startNow') : t('common.next')}
-          size="lg"
-          full
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('onboarding.skipSetup')}
+          hitSlop={12}
           onPress={() => {
-            if (!isLast) { go(index + 1); return; }
             void markOnboardingSeen();
             navigation.replace('SignIn');
           }}
-        />
+          style={{ paddingVertical: 8, paddingHorizontal: 12, minHeight: sizes.touchTarget, justifyContent: 'center' }}
+        >
+          <Txt variant="caption" color={theme.textMuted} bold>
+            {t('common.skip')}
+          </Txt>
+        </Pressable>
+      </Row>
+
+      {/* المحتوى الرئيسي: الرسم التوضيحي والنصوص المنمقة */}
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 }}>
+        <Animated.View
+          style={{
+            opacity: slideAnim,
+            transform: [
+              {
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [24, 0],
+                }),
+              },
+            ],
+            alignItems: 'center',
+            gap: 24,
+            width: '100%',
+          }}
+        >
+          {/* حاوية الرسم التوضيحي الزجاجية مع عمق ناعم (D1 & D6) */}
+          <Animated.View
+            style={{
+              opacity: illOpacity,
+              transform: [{ scale: illScale }],
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CurrentIllustration size={illSize} />
+          </Animated.View>
+
+          {/* النصوص التعبيرية المحدثة (D8) */}
+          <View style={{ alignItems: 'center', gap: 10, maxWidth: 520, paddingHorizontal: 8 }}>
+            <Txt variant="h1" align="center">
+              {t(slide.title as any)}
+            </Txt>
+            <Txt variant="body" color={theme.textSecondary} align="center" style={{ lineHeight: 24 }}>
+              {t(slide.body as any)}
+            </Txt>
+          </View>
+
+          {/* شريحة معاينة المظهر المفضّل في الشريحة الأخيرة (D5) */}
+          {isLast ? (
+            <View
+              style={{
+                alignItems: 'center',
+                gap: 10,
+                marginTop: 4,
+                width: '100%',
+                maxWidth: 360,
+              }}
+            >
+              <Txt variant="caption" color={theme.textMuted} bold>
+                {t('onboarding.themePreview')}
+              </Txt>
+              <Row
+                center
+                gap={8}
+                style={{
+                  backgroundColor: theme.fill,
+                  borderRadius: radii.pill,
+                  padding: 4,
+                  borderWidth: 1,
+                  borderColor: theme.fillBorder,
+                }}
+              >
+                {(
+                  [
+                    { id: 'light', label: 'onboarding.themeLight', icon: 'sunny-outline' },
+                    { id: 'dark', label: 'onboarding.themeDark', icon: 'moon-outline' },
+                    { id: 'system', label: 'onboarding.themeAuto', icon: 'phone-portrait-outline' },
+                  ] as const
+                ).map((opt) => {
+                  const isSelected = preference === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      accessibilityRole="radio"
+                      accessibilityLabel={t(opt.label)}
+                      accessibilityState={{ selected: isSelected }}
+                      hitSlop={6}
+                      onPress={() => selectTheme(opt.id)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingVertical: 6,
+                        paddingHorizontal: 14,
+                        borderRadius: radii.pill,
+                        backgroundColor: isSelected ? (isDark ? theme.brandSoft : theme.card) : 'transparent',
+                        shadowColor: isSelected ? '#000' : 'transparent',
+                        shadowOpacity: isSelected ? 0.08 : 0,
+                        shadowRadius: 4,
+                        elevation: isSelected ? 2 : 0,
+                      }}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={15}
+                        color={isSelected ? theme.accent : theme.textMuted}
+                      />
+                      <Txt
+                        variant="caption"
+                        bold={isSelected}
+                        color={isSelected ? theme.text : theme.textMuted}
+                      >
+                        {t(opt.label)}
+                      </Txt>
+                    </Pressable>
+                  );
+                })}
+              </Row>
+            </View>
+          ) : null}
+        </Animated.View>
+      </View>
+
+      {/* الشريط السفلي: شريط التقدم وزر الـ CTA بمقاس 52pt المعتمد (D2 & D3 & D4) */}
+      <View style={{ gap: 20 }}>
+        {/* شريط التقدم المرن والنابض مع لون الـ Accent (Amber) */}
+        <Row center gap={8} style={{ justifyContent: 'center' }}>
+          {SLIDES.map((_, i) => {
+            const isActive = i === index;
+            return (
+              <View
+                key={i}
+                style={{
+                  height: 6,
+                  width: isActive ? 28 : 8,
+                  borderRadius: 3,
+                  backgroundColor: isActive ? theme.accent : theme.fillStrong,
+                }}
+              />
+            );
+          })}
+        </Row>
+
+        {/* زر الـ CTA المتفاعل (52pt) */}
+        <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isLast ? t('onboarding.startNow') : t('common.next')}
+            hitSlop={6}
+            onPressIn={pressCtaIn}
+            onPressOut={pressCtaOut}
+            onPress={() => {
+              if (!isLast) {
+                go(index + 1);
+                return;
+              }
+              if (!isReducedMotion()) {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              }
+              void markOnboardingSeen();
+              navigation.replace('SignIn');
+            }}
+            style={{
+              backgroundColor: theme.brand,
+              borderRadius: radii.button,
+              minHeight: sizes.ctaButton, // 52pt standard (D3)
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: theme.brand,
+              shadowOpacity: 0.24,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 4,
+            }}
+          >
+            <Txt variant="h3" color={theme.onBrand}>
+              {isLast ? t('onboarding.startNow') : t('common.next')}
+            </Txt>
+          </Pressable>
+        </Animated.View>
+
+        {/* الرابط الثانوي المباشر لتسجيل الدخول */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('onboarding.haveAccount')}
+          hitSlop={10}
+          onPress={() => {
+            void markOnboardingSeen();
+            navigation.replace('SignIn');
+          }}
+          style={{ alignSelf: 'center', paddingVertical: 4, minHeight: sizes.touchTarget, justifyContent: 'center' }}
+        >
+          <Txt variant="caption" color={theme.textMuted} bold>
+            {t('onboarding.haveAccount')}
+          </Txt>
+        </Pressable>
       </View>
     </View>
   );

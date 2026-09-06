@@ -12,5 +12,18 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["src/data/**/*.ts", "src/shared/**/*.ts", "scripts/engine.test.ts", "scripts/rls.test.ts", "scripts/search.test.ts", "scripts/fixtures/**/*.ts"]
+  "include": [
+    "src/data/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/i18n/**/*.ts",
+    "src/design/tokens.ts",
+    "scripts/engine.test.ts",
+    "scripts/rls.test.ts",
+    "scripts/search.test.ts",
+    "scripts/perf-benchmark.ts",
+    "scripts/security-pentest.ts",
+    "scripts/load-test.ts",
+    "scripts/fixtures/**/*.ts",
+    "e2e/**/*.ts"
+  ]
 }

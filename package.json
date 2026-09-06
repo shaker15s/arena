@@ -17,7 +17,11 @@
     "test:engine": "tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js",
     "test:rls": "tsc -p tsconfig.test.json && node .test-build/scripts/rls.test.js",
     "test:search": "tsc -p tsconfig.test.json && node .test-build/scripts/search.test.js",
-    "test:all": "npm run typecheck && npm run parity && npm run rpc:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search",
+    "test:perf": "tsc -p tsconfig.test.json && node .test-build/scripts/perf-benchmark.js",
+    "test:pentest": "tsc -p tsconfig.test.json && node .test-build/scripts/security-pentest.js",
+    "test:load": "tsc -p tsconfig.test.json && node .test-build/scripts/load-test.js",
+    "test:e2e": "tsc -p tsconfig.test.json && node .test-build/e2e/runner.js",
+    "test:all": "npm run typecheck && npm run parity && npm run rpc:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search && npm run test:perf && npm run test:pentest && npm run test:load && npm run test:e2e",
     "rpc:check": "node scripts/check-rpc-contract.js",
     "rpc:types": "node scripts/gen-rpc-types.js"
   },

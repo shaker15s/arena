@@ -19,6 +19,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
+import { MasarMascot } from '../../design/mascot';
 import { spacing, radii } from '../../design/tokens';
 import { easing, isReducedMotion } from '../../design/motion';
 
@@ -209,6 +210,8 @@ export function ScannerScreen({ navigation }: any) {
           ) : (
             <Txt variant="micro" color="#F59E0B">{t('scanner.noSession')}</Txt>
           )}
+          <Spacer size={10} />
+          <MasarMascot size={72} mode="scanner" interactive />
         </View>
 
         {!permission?.granted ? (

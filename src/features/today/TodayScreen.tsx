@@ -20,6 +20,8 @@ import {
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
+import { MasarMascot } from '../../design/mascot';
+import { ShimmerProgressBar } from '../../design/animations';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, sameDay } from '../../shared/format';
 import { useNow } from '../../shared/hooks';
@@ -174,6 +176,43 @@ export function TodayScreen() {
         </FadeIn>
 
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
+          {/* ── تميمة مسار التفاعلية (Duolingo Style Companion) ── */}
+          <FadeIn index={1}>
+            <Card
+              style={{
+                padding: spacing.s4,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.72)' : 'rgba(255, 255, 255, 0.92)',
+                borderWidth: 1,
+                borderColor: theme.glassBorder,
+              }}
+            >
+              <MasarMascot
+                size={74}
+                mode={streakUrgent ? 'streak_fire' : liveSess ? 'greeting' : 'greeting'}
+                interactive
+              />
+              <View style={{ flex: 1, gap: 4 }}>
+                <Txt variant="bodyMed" color={theme.text}>
+                  {streakUrgent
+                    ? 'المحاضرة بدأت الآن! 🔥'
+                    : liveSess
+                    ? 'لديك جلسة تدريبية نشطة! 🚀'
+                    : `مرحباً ${firstName}! جاهز لليوم؟`}
+                </Txt>
+                <Txt variant="caption" color={theme.textSecondary}>
+                  {streakUrgent
+                    ? 'سجّل حضورك سريعاً لتحافظ على الستريك وتكسب النقاط!'
+                    : liveSess
+                    ? 'امسح رمز الحضور وابدأ رحلة التميز.'
+                    : 'المس الصقر فطن لرسالة تحفيزية، وتابع جدولك.'}
+                </Txt>
+              </View>
+            </Card>
+          </FadeIn>
+
           {/* Task-first: live check-in before KPIs (spec §06 / §44) */}
           {liveSess && !alreadyChecked ? (
             <FadeIn index={1}>
@@ -337,7 +376,7 @@ export function TodayScreen() {
                       <Txt variant="caption" color={theme.brand}>{Math.round(near.progress * 100)}%</Txt>
                     </Row>
                     <Txt variant="bodyMed">{lang === 'ar' ? near.badge.nameAr : near.badge.nameEn}</Txt>
-                    <ProgressBar progress={near.progress} />
+                    <ShimmerProgressBar progress={near.progress} />
                   </View>
                 </Row>
               </Card>
@@ -348,13 +387,7 @@ export function TodayScreen() {
           {myEnrollmentCount === 0 ? (
             <FadeIn index={2}>
               <Card style={{ alignItems: 'center', paddingVertical: spacing.s8, gap: 12 }}>
-                <View style={{
-                  width: 100, height: 100, borderRadius: 50,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Ionicons name="rocket" size={48} color={theme.brand} />
-                </View>
+                <MasarMascot size={110} mode="encouraging" interactive />
                 <Txt variant="h2" align="center">{t('today.emptyTitle')}</Txt>
                 <Spacer size={8} />
                 <Btn title={t('today.exploreCta')} icon="compass" onPress={() => tabs.setTab('explore')} />

@@ -26,6 +26,7 @@ import { Batch, type Db, type Role } from '../../data/types';
 import {
   createBatchWithSessions, createBranch, createCommittee, createCourse, updateUserAccess,
 } from '../../data/actions';
+import { toCsv, saveCsv } from '../../shared/export';
 
 // ───────────────────────────── S40 لوحة التحكم ─────────────────────────────
 
@@ -34,11 +35,68 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, unreadCount, refresh, syncing, lastSyncAt } = useApp();
+  const { db, user, unreadCount, refresh, syncing, lastSyncAt, toast } = useApp();
   const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [exporting, setExporting] = useState(false);
   if (!user) return null;
 
   const stats = dashboardStats(db, branchFilter === 'all' ? undefined : branchFilter);
+
+  const handleExportOrgCsv = async () => {
+    try {
+      setExporting(true);
+      const rows: Array<Array<string | number>> = [
+        ['تقرير المنظمة الشامل — مسار', new Date().toLocaleDateString('ar-EG')],
+        [],
+        ['إحصائيات المنظمة الحالية'],
+        ['الفروع الكلية', stats.branchesCount],
+        ['المجموعات النشطة', stats.activeBatches],
+        ['إجمالي الطلاب النشطين', stats.students],
+        ['متوسط الحضور العام (%)', `${stats.avgAttendance}%`],
+        ['شهادات هذا الشهر', stats.certsMonth],
+        [],
+        ['ملخص الكورسات'],
+        ['اسم الكورس', 'المجال', 'المجموعات الكلية', 'المجموعات النشطة', 'إجمالي المسجلين'],
+        ...db.courses.map((c) => {
+          const cBatches = db.batches.filter((b) => b.courseId === c.id);
+          const active = cBatches.filter((b) => b.status === 'active').length;
+          const totalStudents = cBatches.reduce((acc, b) => acc + seatCounts(db, b.id).taken, 0);
+          return [c.title, c.field ?? '', cBatches.length, active, totalStudents];
+        }),
+        [],
+        ['تفاصيل المجموعات'],
+        ['رمز المجموعة', 'القاعة', 'الكورس', 'الفرع', 'المدرب', 'الحالة', 'المقاعد المشغولة', 'السعة'],
+        ...db.batches.map((b) => {
+          const c = courseOf(db, b.courseId);
+          const br = db.branches.find((item) => item.id === b.branchId);
+          const instructor = profileOf(db, b.instructorId);
+          const sc = seatCounts(db, b.id);
+          return [
+            b.joinCode,
+            b.room,
+            c?.title ?? '',
+            br?.name ?? '',
+            instructor?.fullName ?? '',
+            b.status,
+            sc.taken,
+            b.capacity,
+          ];
+        }),
+      ];
+      const csvContent = toCsv(rows);
+      const dateStr = new Date().toISOString().split('T')[0];
+      const ok = await saveCsv(`masar-org-report-${dateStr}.csv`, csvContent);
+      if (ok) {
+        toast(t('admin.exportSuccess'));
+      } else {
+        toast(t('admin.exportFailed'));
+      }
+    } catch {
+      toast(t('admin.exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -114,6 +172,15 @@ export function DashboardScreen({ navigation: propNav }: any) {
           <KpiCard icon="pulse" color={theme.teal} value={stats.avgAttendance} suffix="%" label={t('dash.avgAttendance')} index={3} />
           <KpiCard icon="ribbon" color={theme.certGold} value={stats.certsMonth} label={t('dash.certsMonth')} index={4} />
         </View>
+
+        {/* تصدير تقارير المنظمة (CSV) - F9 */}
+        <Btn
+          variant="secondary"
+          icon="download-outline"
+          title={t('admin.exportCsv')}
+          loading={exporting}
+          onPress={handleExportOrgCsv}
+        />
 
         {/* اتجاه الحضور */}
         <FadeIn index={5}>

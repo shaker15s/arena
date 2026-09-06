@@ -4,15 +4,19 @@
  * تصميم Apple Liquid Glass.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Text, View } from 'react-native';
+import { Animated, Modal, Platform, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Sharing from 'expo-sharing';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from './theme';
 import { Btn, Txt } from './components';
 import { duration, isReducedMotion } from './motion';
 import { radii, spacing } from './tokens';
 import { useI18n } from '../i18n';
+import { MasarMascot } from './mascot';
+import { ConfettiExplosion } from './animations';
 
 // ── جسيمات الكونفيتي ──
 const CONFETTI_COLORS = ['#007AFF', '#5856D6', '#30D158', '#FF9F0A', '#FF3B30', '#FFB800', '#34C759'];
@@ -124,6 +128,7 @@ export function CelebrationModal({
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.s5 }}>
         <ConfettiBurst count={30} />
+        <ConfettiExplosion count={32} />
         <Animated.View
           accessibilityRole="alert"
           accessibilityLabel={`${title}. ${subtitle ?? ''}`}
@@ -140,10 +145,10 @@ export function CelebrationModal({
             shadowOpacity: 0.15,
             shadowRadius: 30,
             shadowOffset: { width: 0, height: 12 },
-            gap: 14,
+            gap: 12,
           }}
         >
-          <DrawnCheck color={theme.success} />
+          <MasarMascot size={110} mode={streakSafe ? 'streak_fire' : 'celebrating'} interactive />
           <Txt variant="h2" align="center">{title}</Txt>
           {subtitle ? <Txt variant="body" color={theme.textSecondary} align="center">{subtitle}</Txt> : null}
           {points != null && fly ? (
@@ -163,7 +168,31 @@ export function CelebrationModal({
               <Text style={{ fontSize: 24 }}>{emoji}</Text>
             </View>
           ) : null}
-          <View style={{ alignSelf: 'stretch', marginTop: 10 }}>
+          <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 10 }}>
+            <Btn
+              variant="secondary"
+              icon="share-social-outline"
+              title={t('common.share')}
+              onPress={async () => {
+                if (!isReducedMotion()) {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                }
+                const shareText = `🎓 ${title}\n${subtitle ? subtitle + '\n' : ''}${points != null ? `+${points} نقطة في مسار!\n` : ''}https://arena-rho-seven.vercel.app`;
+                if (Platform.OS === 'web') {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    await navigator.share({ title, text: shareText, url: 'https://arena-rho-seven.vercel.app' }).catch(() => {});
+                  } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    await navigator.clipboard.writeText(shareText);
+                  }
+                } else {
+                  if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync('https://arena-rho-seven.vercel.app', { dialogTitle: title });
+                  }
+                }
+              }}
+              size="lg"
+              full
+            />
             <Btn title={t('common.continue')} onPress={onClose} size="lg" full />
           </View>
         </Animated.View>
