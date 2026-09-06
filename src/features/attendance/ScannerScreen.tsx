@@ -13,7 +13,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useApp } from '../../data/store';
 import { liveSessionForStudent } from '../../data/engine';
 import { checkInWithToken, type CheckInResponse } from '../../data/actions';
-import { getDevicePosition } from '../../shared/location';
+import { clearPositionCache, getDevicePosition, getLocationPermissionState } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
@@ -118,8 +118,20 @@ export function ScannerScreen({ navigation }: any) {
     setLoading(true);
     setError(null);
     try {
+      // الموقع اختياري تمامًا: الخادم وحده يقرّر لزومه (geofence للمجموعة فقط).
       const pos = await getDevicePosition();
       const result = await checkInWithToken(payload.trim(), pos?.lat, pos?.lng);
+      if (result.kind === 'location_required' || result.kind === 'offsite') {
+        // قراءة جديدة في المحاولة التالية بدل قراءة مخزّنة قديمة.
+        clearPositionCache();
+        const perm = await getLocationPermissionState();
+        if (result.kind === 'location_required' && (perm === 'denied' || perm === 'unavailable')) {
+          haptic('error');
+          setError({ msg: t('scanner.locationDenied'), icon: 'location' });
+          setTimeout(() => setScanned(false), 1200);
+          return;
+        }
+      }
       interpret(result);
       if (result.kind === 'ok' || result.kind === 'already') await refresh();
       else setTimeout(() => setScanned(false), 1200);

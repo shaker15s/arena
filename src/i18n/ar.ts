@@ -461,6 +461,7 @@ export const ar = {
   'scanner.rateLimited': 'محاولات كثيرة خاطئة — انتظر 10 دقائق ثم جرّب الكود مرة أخرى',
   'scanner.locationRequired': 'الحضور يتطلب أن تكون على مقربة من القاعة — فعّل الموقع وأعد المحاولة',
   'scanner.offsite': 'أنت خارج نطاق القاعة المسموح — اقترب من الموقع المحدد',
+  'scanner.locationDenied': 'إذن الموقع مرفوض — فعّله من إعدادات الجهاز ثم أعد المحاولة، أو اطلب من المدرب تسجيلك يدويًا',
   'excuses.alreadyExcused': 'لديك عذر على هذه الجلسة بالفعل',
   'excuses.onlyAbsent': 'يمكن تقديم عذر فقط للمحاضرات الفائتة',
 
@@ -479,6 +480,16 @@ export const ar = {
   'notif.title': 'الإشعارات',
   'notif.empty': 'لا إشعارات بعد',
   'notif.earlier': 'سابق',
+  'notif.markAllRead': 'تحديد الكل كمقروء',
+  'notif.prefsTitle': 'تفضيلات الإشعارات',
+  'notif.prefsHint': 'اختر أنواع الإشعارات التي تصلك على جهازك. الإشعارات داخل التطبيق تبقى كما هي.',
+  'notif.prefSession': 'تذكير مواعيد الجلسات',
+  'notif.prefExcuse': 'تحديثات الأعذار',
+  'notif.prefCert': 'إصدار الشهادات',
+  'notif.prefProgress': 'الشارات والدوري والستريك',
+  'notif.prefSystem': 'إعلانات المنظمة والتقدير',
+  'notif.prefsError': 'تعذّر حفظ التفضيلات — تحقق من الاتصال وحاول مرة أخرى',
+  'notif.prefsWebNote': 'الإشعارات على الجهاز تعمل من تطبيق الموبايل — هنا تحفظ التفضيل فقط.',
 
   // ── الملف الشخصي ──
   'profile.title': 'حسابي',
@@ -720,6 +731,9 @@ export const ar = {
 
   // ── الدعم والمحتوى الإرشادي ──
   'profile.logoutConfirm': 'تسجيل الخروج؟',
+  'profile.logout': 'تسجيل الخروج',
+  'profile.changeAvatar': 'تغيير صورة الحساب',
+  'journey.openMapHint': 'يفتح خريطة رحلتك في هذه الدورة',
   'profile.logoutBody': 'ستحتاج إلى تسجيل الدخول بحساب Google مرة أخرى للعودة إلى حسابك.',
   'profile.deleteAccount': 'حذف الحساب',
   'profile.deleteAccountSub': 'حذف بياناتك نهائيًا من الخادم',

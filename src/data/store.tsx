@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
 import { completeMyProfile, deleteMyAccount, registerPushToken, updateMyProfile } from './actions';
-import { getDevicePushToken } from '../shared/push';
+import { getDevicePushToken, subscribeToPush } from '../shared/push';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   consumeWebAuthCallback,
@@ -343,7 +343,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [profileId, refresh, flushOfflineQueue]);
 
-  // ── تسجيل توكن الجهاز (Push) بعد الدخول — محايد على الويب (لا-أوب) ──
+  // ── تسجيل توكن الجهاز (Push) + استقبال الإشعارات بعد الدخول ──
+  // محايد تمامًا على الويب/المحاكي: getDevicePushToken يعيد null فلا يحدث تسجيل.
   useEffect(() => {
     if (!profileId || !SUPABASE_ENABLED) return;
     let cancelled = false;
@@ -356,8 +357,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // غير حرج — نستمر بدون إشعارات.
       }
     })();
-    return () => { cancelled = true; };
-  }, [profileId]);
+    // إشعار وارد أو نقر عليه ⇒ نحدّث البيانات كي تعكس الواجهة الحدث فورًا.
+    const unsubscribe = subscribeToPush({
+      onReceived: () => { void refresh(); },
+      onOpened: () => { void refresh(); },
+    });
+    return () => { cancelled = true; unsubscribe(); };
+  }, [profileId, refresh]);
 
   // ── مراقبة الاتصال على الويب ──
   useEffect(() => {

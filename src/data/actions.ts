@@ -79,6 +79,41 @@ export async function unregisterPushToken(token: string): Promise<void> {
   await rpc('unregister_push_token', { p_token: token });
 }
 
+/** تفضيلات الإشعارات لكل نوع — الغياب يعني «مفعّل» (الافتراضي الآمن). */
+export interface PushPreferences {
+  session: boolean;
+  excuse: boolean;
+  cert: boolean;
+  progress: boolean;
+  system: boolean;
+}
+
+export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
+  session: true, excuse: true, cert: true, progress: true, system: true,
+};
+
+/** حفظ تفضيلات الإشعارات — الخادم هو الفارض عند توزيع الدفع (trigger fan-out). */
+export async function setPushPreferences(prefs: PushPreferences): Promise<void> {
+  await rpc('set_push_preferences', { p_prefs: prefs });
+}
+
+/** قراءة تفضيلات الإشعارات للمستخدم الحالي (RLS: صفّه فقط). الغياب = الافتراضي. */
+export async function getPushPreferences(): Promise<PushPreferences> {
+  const { data, error } = await getSupabase()
+    .from('push_preferences')
+    .select('session, excuse, cert, progress, system')
+    .maybeSingle();
+  if (error || !data) return { ...DEFAULT_PUSH_PREFERENCES };
+  const row = data as Partial<PushPreferences>;
+  return {
+    session: row.session ?? true,
+    excuse: row.excuse ?? true,
+    cert: row.cert ?? true,
+    progress: row.progress ?? true,
+    system: row.system ?? true,
+  };
+}
+
 export async function updateUserAccess(
   profileId: string,
   patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null },

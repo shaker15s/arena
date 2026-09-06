@@ -311,7 +311,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('profile.edit')}>
       <View style={{ gap: 14 }}>
-        <Pressable onPress={pick} style={{ alignSelf: 'center' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('profile.changeAvatar')} onPress={pick} style={{ alignSelf: 'center' }}>
           <View style={{
             width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
             alignItems: 'center', justifyContent: 'center',

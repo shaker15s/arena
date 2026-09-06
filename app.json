@@ -25,13 +25,29 @@
         {
           "cameraPermission": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "يستخدم مسار موقعك لحظة تسجيل الحضور فقط، للتأكد أنك داخل نطاق القاعة.",
+          "locationWhenInUsePermission": "يستخدم مسار موقعك لحظة تسجيل الحضور فقط، للتأكد أنك داخل نطاق القاعة.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#007AFF"
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.masaregypt.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط."
+        "NSCameraUsageDescription": "يستخدم مسار الكاميرا لمسح رمز حضور الجلسة فقط.",
+        "NSLocationWhenInUseUsageDescription": "يستخدم مسار موقعك لحظة تسجيل الحضور فقط، للتأكد أنك داخل نطاق القاعة."
       }
     },
     "android": {
@@ -40,7 +56,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A84FF"
       },
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "web": {
       "bundler": "metro",

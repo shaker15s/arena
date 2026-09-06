@@ -57,6 +57,8 @@ export function DashboardScreen({ navigation: propNav }: any) {
           subtitle={`${t('dash.hello')} ${user.fullName} 👋`}
           right={
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('notif.title')}
               onPress={() => navigation.navigate('Notifications')}
               style={({ pressed }) => ({
                 width: 44, height: 44, borderRadius: 22,

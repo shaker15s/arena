@@ -13,7 +13,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, FadeIn, Input, Row, Spacer, Txt } from '../../design/components';
 import { GlassCard } from '../../design/glass';
-import { spacing } from '../../design/tokens';
+import { sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { markOnboardingSeen } from '../../shared/onboarding';
 
@@ -78,7 +78,7 @@ export function OnboardingScreen({ navigation }: any) {
           </LinearGradient>
           <Txt variant="h3">{t('common.appName')}</Txt>
         </Row>
-        <Pressable onPress={() => { void markOnboardingSeen(); navigation.replace('SignIn'); }} style={{ padding: 10 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('common.skip')} hitSlop={8} onPress={() => { void markOnboardingSeen(); navigation.replace('SignIn'); }} style={{ padding: 10, minHeight: sizes.touchTarget, justifyContent: 'center' }}>
           <Txt variant="caption" color={theme.textMuted}>{t('common.skip')}</Txt>
         </Pressable>
       </Row>
@@ -256,7 +256,7 @@ export function SignInScreen({ navigation }: any) {
 
         <Spacer size={18} />
         <FadeIn index={4}>
-          <Pressable onPress={() => navigation.navigate('Verify')} style={{ alignSelf: 'center', padding: 8 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('auth.verifyCertCta')} hitSlop={8} onPress={() => navigation.navigate('Verify')} style={{ alignSelf: 'center', padding: 8, minHeight: sizes.touchTarget, justifyContent: 'center' }}>
             <Row center gap={6}>
               <Ionicons name="ribbon-outline" size={16} color={theme.certGold} />
               <Txt variant="caption" color={theme.textSecondary}>{t('auth.verifyCertCta')}</Txt>
@@ -325,7 +325,7 @@ export function CompleteProfileScreen() {
     >
       <Row between center>
         <Txt variant="display">{t('complete.title')}</Txt>
-        <Pressable onPress={() => void logout()} style={{ padding: 8 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('profile.logout')} hitSlop={10} onPress={() => void logout()} style={{ padding: 8, minWidth: sizes.touchTarget, minHeight: sizes.touchTarget, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="log-out-outline" size={22} color={theme.textMuted} />
         </Pressable>
       </Row>
@@ -333,7 +333,7 @@ export function CompleteProfileScreen() {
 
       {/* الصورة */}
       <View style={{ alignSelf: 'center', marginBottom: 22 }}>
-        <Pressable onPress={pickAvatar}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('profile.changeAvatar')} onPress={pickAvatar}>
           <View style={{
             width: 104, height: 104, borderRadius: 52, overflow: 'hidden',
             backgroundColor: theme.fill,
@@ -390,7 +390,7 @@ export function CompleteProfileScreen() {
         {(['m', 'f'] as const).map((g) => {
           const active = gender === g;
           return (
-            <Pressable key={g} onPress={() => setGender(g)} style={{ flex: 1 }}>
+            <Pressable key={g} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={t(g === 'm' ? 'common.male' : 'common.female')} onPress={() => setGender(g)} style={{ flex: 1 }}>
               <GlassCard style={{ backgroundColor: active ? theme.brandSoft : undefined, borderColor: active ? theme.brand : undefined }}>
                 <Row center gap={8} style={{ justifyContent: 'center' }}>
                   <Ionicons name={g === 'm' ? 'male' : 'female'} size={18} color={active ? theme.brand : theme.textMuted} />
@@ -408,7 +408,7 @@ export function CompleteProfileScreen() {
         {db.branches.map((b) => {
           const active = branchId === b.id;
           return (
-            <Pressable key={b.id} onPress={() => setBranchId(b.id)}>
+            <Pressable key={b.id} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={b.name} onPress={() => setBranchId(b.id)}>
               <GlassCard style={{
                 backgroundColor: active ? theme.brandSoft : undefined,
                 borderColor: active ? theme.brand : undefined,
