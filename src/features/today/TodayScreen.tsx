@@ -2,7 +2,7 @@
  * features/today — S10 «اليوم»: مركز القيادة.
  * تصميم Apple Liquid Glass — Bento Grid + الستريك والنقاط والدوري.
  */
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +23,7 @@ import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, sameDay } from '../../shared/format';
 import { useNow } from '../../shared/hooks';
+import { getMyCourses, getToday } from '../../data/actions';
 
 export function TodayScreen() {
   const { t, lang } = useI18n();
@@ -47,6 +48,10 @@ export function TodayScreen() {
   const nextSess = useMemo(() => (user ? nextSessionForUser(db, user.id) : undefined), [db, user]);
   const near = useMemo(() => (user ? nearestBadge(db, user.id) : null), [db, user]);
   const myEnrollmentCount = db.enrollments.filter((e) => e.userId === user?.id && e.status === 'active').length;
+
+  useEffect(() => {
+    void Promise.all([getToday().catch(() => null), getMyCourses().catch(() => null)]);
+  }, []);
 
   if (!user) return null;
   const hour = new Date(now).getHours();

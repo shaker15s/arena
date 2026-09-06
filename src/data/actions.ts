@@ -590,6 +590,22 @@ export async function getSessionRoster(sessionId: string): Promise<SessionRoster
   return rpc('get_session_roster', { p_session_id: sessionId });
 }
 
+export interface TodayBundle {
+  live: { id: string; batch_id: string; title: string; starts_at: string; status: string; course_title: string } | null;
+  next: { id: string; batch_id: string; title: string; starts_at: string; status: string; course_title: string; room?: string } | null;
+  pending_excuses: number;
+}
+
+export async function getToday(): Promise<TodayBundle> {
+  return rpc('get_today');
+}
+
+export async function getMyCourses(): Promise<Array<{
+  course_id: string; title: string; color: string | null; batch_id: string; status: string; room: string | null;
+}>> {
+  return rpc('get_my_courses');
+}
+
 // ───────────── Offline write queue (P0 #3, 0013) — idempotent command log ─────────────
 
 export interface CommandStatus {

@@ -110,6 +110,17 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         />
 
         {/* بطاقة محاضرة اليوم/الجارية */}
+        {pendingExcuses > 0 ? (
+          <FadeIn index={0}>
+            <Card onPress={() => tabs.setTab('inbox')}>
+              <Row center gap={10}>
+                <Ionicons name="shield" size={22} color={theme.warn} />
+                <Txt variant="bodyMed" style={{ flex: 1 }}>{t('dash.pendingExcuses', { x: pendingExcuses })}</Txt>
+              </Row>
+            </Card>
+          </FadeIn>
+        ) : null}
+
         {liveSession ? (
           <FadeIn index={0}>
             <Card color={theme.brand} style={{ borderColor: 'transparent' }}>

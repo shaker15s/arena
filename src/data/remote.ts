@@ -57,11 +57,28 @@ async function selectAll<T>(table: string, columns = '*', orderColumn = 'id'): P
   throw new Error(`${table}: safety limit of ${MAX_READ_ROWS} rows exceeded; use a server-side paginated view`);
 }
 
-async function selectRecent<T>(table: string, columns = '*', limit = 500): Promise<T[]> {
+async function selectRecent<T>(table: string, columns = '*', limit = 500, orderColumn = 'created_at'): Promise<T[]> {
   const { data, error } = await getSupabase().from(table).select(columns)
-    .order('created_at', { ascending: false }).limit(limit);
+    .order(orderColumn, { ascending: false }).limit(limit);
   if (error) throw new Error(`${table}: ${error.message}`);
   return (data ?? []) as T[];
+}
+
+/** جلسات نافذة زمنية + أي جلسة حية (بدل تاريخ الجلسات بالكامل). */
+async function selectSessionWindow(): Promise<any[]> {
+  const sb = getSupabase();
+  const cols = 'id,batch_id,seq,title,starts_at,duration_min,status,started_at,closed_at,report,created_at';
+  const from = new Date(Date.now() - 21 * 86_400_000).toISOString();
+  const to = new Date(Date.now() + 120 * 86_400_000).toISOString();
+  const [{ data: windowed, error: e1 }, { data: live, error: e2 }] = await Promise.all([
+    sb.from('sessions').select(cols).gte('starts_at', from).lte('starts_at', to).order('starts_at', { ascending: true }).limit(4_000),
+    sb.from('sessions').select(cols).eq('status', 'live').limit(200),
+  ]);
+  if (e1) throw new Error(`sessions: ${e1.message}`);
+  if (e2) throw new Error(`sessions: ${e2.message}`);
+  const map = new Map<string, any>();
+  for (const row of [...(windowed ?? []), ...(live ?? [])]) map.set(row.id, row);
+  return [...map.values()];
 }
 
 async function callRows<T>(fn: string): Promise<T[]> {

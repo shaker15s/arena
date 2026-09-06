@@ -83,7 +83,15 @@ export function NotificationsScreen({ navigation }: any) {
           const meta = TYPE_META[n.type];
           return (
             <FadeIn key={n.id} index={Math.min(i, 6)}>
-              <Card style={{ opacity: n.read ? 0.85 : 1, borderColor: n.read ? theme.line : theme.brand + '55' }}>
+              <Card
+                onPress={() => {
+                  if (n.type === 'session') navigation.navigate('Scanner');
+                  else if (n.type === 'excuse') navigation.navigate('Excuses');
+                  else if (n.type === 'cert') navigation.navigate('Certificates');
+                  else if (n.type === 'badge' || n.type === 'league' || n.type === 'streak') navigation.navigate('Achievements');
+                }}
+                style={{ opacity: n.read ? 0.85 : 1, borderColor: n.read ? theme.line : theme.brand + '55' }}
+              >
                 <Row center gap={12}>
                   <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons name={meta.icon} size={19} color={meta.color} />
