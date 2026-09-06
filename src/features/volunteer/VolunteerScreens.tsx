@@ -19,7 +19,7 @@ import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, ProgressBar,
+  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, NotificationBell, ProgressBar,
   Row, Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
@@ -76,37 +76,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
           subtitle={`${t('dash.hello')} ${user.fullName.split(' ')[0]} 👋`}
           onSubtitlePress={() => tabs.setTab('profile')}
           right={
-            <Pressable
-              onPress={() => navigation.navigate('Notifications')}
-              style={({ pressed }) => ({
-                width: 44, height: 44, borderRadius: 22,
-                backgroundColor: theme.line + '55',
-                alignItems: 'center', justifyContent: 'center',
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Ionicons name="notifications-outline" size={21} color={theme.text} />
-              {unreadCount > 0 ? (
-                <View style={{
-                  position: 'absolute',
-                  top: 2,
-                  end: 2,
-                  minWidth: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  backgroundColor: theme.danger,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingHorizontal: 4,
-                  borderWidth: 2,
-                  borderColor: theme.bg,
-                }}>
-                  <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 9, lineHeight: 11, fontWeight: '700' }}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Txt>
-                </View>
-              ) : null}
-            </Pressable>
+            <NotificationBell count={unreadCount} onPress={() => navigation.navigate('Notifications')} />
           }
         />
 

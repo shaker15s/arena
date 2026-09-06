@@ -11,7 +11,7 @@ import { balanceOf, levelOf, gamifGet } from '../../data/engine';
 import { ThemePref, useTheme } from '../../design/theme';
 import { Lang, useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
+  Avatar, BackIcon, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
   Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
@@ -21,7 +21,7 @@ export function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
   const { theme, preference, setTheme, isDark } = useTheme();
   const navigation = useNavigation<any>();
-  const { db, user, logout, deleteMyAccount, online, syncing, lastSyncAt, refresh, toast } = useApp();
+  const { db, user, logout, deleteMyAccount, online, syncing, lastSyncAt, refresh, toast, unreadCount } = useApp();
   const [langSheet, setLangSheet] = useState(false);
   const [themeSheet, setThemeSheet] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -114,7 +114,33 @@ export function ProfileScreen() {
           />
         </FadeIn>
         <FadeIn index={5}>
-          <ListRow icon="notifications" title={t('profile.notifications')} onPress={() => navigation.navigate('Notifications')} />
+          <ListRow
+            icon="notifications"
+            title={t('profile.notifications')}
+            right={
+              unreadCount > 0 ? (
+                <Row center gap={6}>
+                  <View
+                    style={{
+                      minWidth: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: theme.danger,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 6,
+                    }}
+                  >
+                    <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 11, fontWeight: '700', lineHeight: 14 }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Txt>
+                  </View>
+                  <BackIcon color={theme.textMuted} />
+                </Row>
+              ) : undefined
+            }
+            onPress={() => navigation.navigate('Notifications')}
+          />
         </FadeIn>
         <FadeIn index={7}>
           <ListRow icon="game-controller" title={t('profile.rules')} subtitle={t('rules.title')} onPress={() => navigation.navigate('RulesGuide')} />

@@ -16,7 +16,7 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
+  Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
@@ -24,7 +24,7 @@ import { MasarMascot } from '../../design/mascot';
 import { ShimmerProgressBar } from '../../design/animations';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, sameDay } from '../../shared/format';
-import { useNow } from '../../shared/hooks';
+import { useNow, useHaptics } from '../../shared/hooks';
 import { getMyCourses, getToday } from '../../data/actions';
 
 export function TodayScreen() {
@@ -34,6 +34,7 @@ export function TodayScreen() {
   const { db, user, unreadCount, online, refresh, syncing } = useApp();
   const navigation = useNavigation<any>();
   const tabs = useTabs();
+  const { impactLight } = useHaptics();
 
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const [activeMascotQuote, setActiveMascotQuote] = useState<string | null>(null);
@@ -154,94 +155,170 @@ export function TodayScreen() {
                 </Row>
               </View>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('notif.title')}
-              accessibilityHint={unreadCount > 0 ? `${unreadCount}` : undefined}
-              onPress={() => navigation.navigate('Notifications')}
-              style={({ pressed }) => ({
-                width: 44, height: 44, borderRadius: 22,
-                backgroundColor: theme.fill,
-                alignItems: 'center', justifyContent: 'center',
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Ionicons name="notifications-outline" size={21} color={theme.text} />
-              {unreadCount > 0 ? (
-                <View style={{
-                  position: 'absolute',
-                  top: 2,
-                  end: 2,
-                  minWidth: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  backgroundColor: theme.danger,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingHorizontal: 4,
-                  borderWidth: 2,
-                  borderColor: theme.bg,
-                }}>
-                  <Txt variant="micro" color="#FFFFFF" style={{ fontSize: 10, lineHeight: 13, fontWeight: '700' }}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Txt>
-                </View>
-              ) : null}
-            </Pressable>
+            <NotificationBell count={unreadCount} onPress={() => navigation.navigate('Notifications')} />
           </Row>
         </FadeIn>
 
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
-          {/* ── تميمة مسار التفاعلية (Duolingo Style Companion) ── */}
+          {/* ── تميمة مسار التفاعلية («فطن») بلون مميز وتصميم ممتع بصرياً ── */}
           <FadeIn index={1}>
-            <LiquidGlassCard
+            <View
               style={{
-                padding: spacing.s4,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 14,
+                borderRadius: radii.xl,
+                overflow: 'hidden',
+                borderWidth: 1.5,
+                borderColor: isDark ? 'rgba(245, 158, 11, 0.42)' : 'rgba(217, 119, 6, 0.35)',
+                backgroundColor: isDark ? 'rgba(32, 23, 50, 0.92)' : '#FFFBF0',
+                shadowColor: isDark ? '#F59E0B' : '#D97706',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: isDark ? 0.35 : 0.12,
+                shadowRadius: 20,
+                elevation: 6,
               }}
             >
-              <MasarMascot
-                size={78}
-                mode={streakUrgent ? 'streak_fire' : liveSess ? 'greeting' : 'greeting'}
-                interactive
-                hideFloatingBubble
-                onQuoteChange={(q) => setActiveMascotQuote(q)}
+              {/* تدرج بصري دافئ ومميز (Sunrise Amber / Twilight Aurora) */}
+              <LinearGradient
+                colors={
+                  isDark
+                    ? ['rgba(245, 158, 11, 0.18)', 'rgba(124, 58, 237, 0.16)', 'rgba(30, 27, 75, 0.7)']
+                    : ['rgba(254, 243, 199, 0.85)', 'rgba(255, 237, 213, 0.6)', 'rgba(243, 232, 255, 0.45)']
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ position: 'absolute', inset: 0 as any }}
+                pointerEvents="none"
               />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Txt variant="bodyMed" bold color={theme.text}>
-                  {activeMascotQuote
-                    ? 'صقر مسار («فطن») يقول لك: 🦅'
-                    : streakUrgent
-                    ? 'المحاضرة بدأت الآن! 🔥'
-                    : liveSess
-                    ? 'لديك جلسة تدريبية نشطة! 🚀'
-                    : `مرحباً ${firstName}! جاهز لليوم؟`}
-                </Txt>
+
+              {/* الحافة العاكسة العلوية للزجاج بلون ذهبي دافئ */}
+              <LinearGradient
+                colors={['rgba(251, 191, 36, 0.65)', 'rgba(245, 158, 11, 0.2)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2 }}
+                pointerEvents="none"
+              />
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="التفاعل مع صقر مسار فطن"
+                onPress={() => {
+                  impactLight();
+                  setActiveMascotQuote((prev) => (prev ? null : 'التعلّم المستمر يصنع المستحيل! كن فخوراً بمسارك اليوم 🦅'));
+                }}
+                style={{
+                  padding: spacing.s4,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 14,
+                }}
+              >
+                {/* منصة الصقر المضيئة */}
                 <View
                   style={{
-                    backgroundColor: activeMascotQuote
-                      ? (isDark ? 'rgba(0, 122, 255, 0.14)' : 'rgba(0, 122, 255, 0.07)')
-                      : 'transparent',
-                    padding: activeMascotQuote ? 8 : 0,
-                    borderRadius: radii.sm,
-                    borderWidth: activeMascotQuote ? 1 : 0,
-                    borderColor: 'rgba(0, 122, 255, 0.25)',
+                    borderRadius: 44,
+                    padding: 4,
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.14)' : 'rgba(245, 158, 11, 0.18)',
+                    borderWidth: 1.5,
+                    borderColor: isDark ? 'rgba(245, 158, 11, 0.38)' : 'rgba(245, 158, 11, 0.45)',
+                    shadowColor: '#F59E0B',
+                    shadowOpacity: 0.25,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
                   }}
                 >
-                  <Txt variant="caption" color={activeMascotQuote ? theme.brand : theme.textSecondary}>
-                    {activeMascotQuote
-                      ? activeMascotQuote
-                      : streakUrgent
-                      ? 'سجّل حضورك سريعاً لتحافظ على الستريك وتكسب النقاط!'
-                      : liveSess
-                      ? 'امسح رمز الحضور وابدأ رحلة التميز.'
-                      : 'المس الصقر فطن لرسالة تحفيزية، وتابع جدولك.'}
-                  </Txt>
+                  <MasarMascot
+                    size={78}
+                    mode={streakUrgent ? 'streak_fire' : liveSess ? 'greeting' : 'greeting'}
+                    interactive
+                    hideFloatingBubble
+                    onQuoteChange={(q) => {
+                      impactLight();
+                      setActiveMascotQuote(q);
+                    }}
+                  />
                 </View>
-              </View>
-            </LiquidGlassCard>
+
+                {/* المحتوى النصي وفقاعة الحوار */}
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Row center gap={6}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        backgroundColor: isDark ? 'rgba(245, 158, 11, 0.22)' : 'rgba(245, 158, 11, 0.25)',
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: radii.full,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.35)',
+                      }}
+                    >
+                      <Ionicons name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
+                      <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'} style={{ fontSize: 10.5 }}>
+                        {activeMascotQuote ? 'نصيحة فطن 💬' : 'رفيقك فطن 🦅'}
+                      </Txt>
+                    </View>
+                  </Row>
+
+                  <Txt variant="bodyMed" bold color={isDark ? '#FFFFFF' : '#1F2937'}>
+                    {activeMascotQuote
+                      ? 'صقر مسار («فطن») يقول لك:'
+                      : streakUrgent
+                      ? 'المحاضرة بدأت الآن! 🔥'
+                      : liveSess
+                      ? 'لديك جلسة تدريبية نشطة! 🚀'
+                      : `مرحباً ${firstName}! جاهز لليوم؟`}
+                  </Txt>
+
+                  {/* فقاعة الحديث الكاريكاتورية الأنيقة */}
+                  <View
+                    style={{
+                      backgroundColor: isDark ? 'rgba(20, 16, 36, 0.88)' : 'rgba(255, 255, 255, 0.95)',
+                      padding: 10,
+                      borderRadius: radii.md,
+                      borderWidth: 1,
+                      borderColor: activeMascotQuote
+                        ? isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.4)'
+                        : isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+                      shadowColor: '#000',
+                      shadowOpacity: isDark ? 0.25 : 0.06,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 3 },
+                    }}
+                  >
+                    <Txt
+                      variant="caption"
+                      color={
+                        activeMascotQuote
+                          ? isDark ? '#FDE68A' : '#92400E'
+                          : isDark ? '#E2E8F0' : '#4B5563'
+                      }
+                      style={{
+                        lineHeight: 20,
+                        fontWeight: activeMascotQuote ? '600' : '400',
+                      }}
+                    >
+                      {activeMascotQuote
+                        ? `« ${activeMascotQuote} »`
+                        : streakUrgent
+                        ? 'سجّل حضورك سريعاً لتحافظ على الستريك وتكسب النقاط!'
+                        : liveSess
+                        ? 'امسح رمز الحضور وابدأ رحلة التميز.'
+                        : 'المس الصقر فطن لرسالة تحفيزية، وتابع جدولك اليومي.'}
+                    </Txt>
+                    {!activeMascotQuote ? (
+                      <Row center gap={4} style={{ marginTop: 4 }}>
+                        <Ionicons name="hand-right-outline" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
+                        <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 9.5 }}>
+                          اضغط على فطن للتفاعل
+                        </Txt>
+                      </Row>
+                    ) : null}
+                  </View>
+                </View>
+              </Pressable>
+            </View>
           </FadeIn>
 
           {/* Task-first: live check-in before KPIs (spec §06 / §44) */}

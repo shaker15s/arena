@@ -276,6 +276,7 @@ export const ar = {
   'explore.onWaitlist': 'في قائمة الانتظار ⏳',
   'explore.noResults': 'لا نتائج مطابقة',
   'explore.noResultsBody': 'جرّب كلمة أخرى أو امسح الفلتر — البحث يتجاهل الهمزات والتشكيل.',
+  'explore.clearFilters': 'مسح عوامل التصفية',
   'users.resultCount': '{x} مستخدم',
   'common.lastSync': 'آخر تحديث منذ قليل',
   'explore.rating': 'التقييم',

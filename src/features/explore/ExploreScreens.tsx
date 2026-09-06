@@ -5,6 +5,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
@@ -13,6 +14,7 @@ import {
 import { joinBatch as joinBatchOnServer, leaveBatch, startTrainingSession } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
+import { useHaptics } from '../../shared/hooks';
 import {
   Avatar, BackIcon, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, Tag, Txt, useDebounce,
@@ -107,7 +109,17 @@ export function ExploreScreen({ navigation: propNav }: any) {
           </FadeIn>
 
           {filtered.length === 0 ? (
-            <Empty emoji="🧭" title={t('explore.noResults')} body={t('explore.noResultsBody')} />
+            <Empty
+              emoji="🧭"
+              title={t('explore.noResults')}
+              body={t('explore.noResultsBody')}
+              cta={t('explore.clearFilters')}
+              onCta={() => {
+                setQuery('');
+                setField('all');
+                setBranchId('all');
+              }}
+            />
           ) : (
             filtered.map((course, i) => (
               <CourseCard key={course.id} course={course} index={i} onPress={() => navigation.navigate('CourseDetails', { courseId: course.id })} />
@@ -120,9 +132,10 @@ export function ExploreScreen({ navigation: propNav }: any) {
 }
 
 function CourseCard({ course, index, onPress }: { course: Course; index: number; onPress: () => void }) {
-  const { t } = useI18n();
-  const { theme } = useTheme();
+  const { t, lang } = useI18n();
+  const { theme, isDark } = useTheme();
   const { db, user } = useApp();
+  const { impactLight } = useHaptics();
   const batches = db.batches.filter((b) => b.courseId === course.id && (b.status === 'active' || b.status === 'scheduled'));
   const stats = courseRatingStats(db, course.id);
   const openBatch = batches.find(b => b.capacity - seatCounts(db, b.id).taken > 0) || batches[0];
@@ -134,36 +147,152 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
 
   return (
     <FadeIn index={index + 2}>
-      <Card onPress={onPress} noPad style={{ overflow: 'hidden' }}>
-        {/* الغلاف المتدرج */}
-        <View style={{ height: 96, backgroundColor: course.color, justifyContent: 'flex-end', padding: 14, opacity: 0.95 }}>
+      <Card
+        onPress={() => {
+          impactLight();
+          onPress();
+        }}
+        noPad
+        style={{
+          overflow: 'hidden',
+          borderRadius: radii.xl,
+          borderWidth: 1,
+          borderColor: theme.glassBorder,
+          backgroundColor: isDark ? 'rgba(24, 24, 32, 0.85)' : 'rgba(255, 255, 255, 0.92)',
+          shadowColor: course.color,
+          shadowOpacity: isDark ? 0.25 : 0.08,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 4,
+        }}
+      >
+        {/* الغلاف الانسيابي الأنيق */}
+        <LinearGradient
+          colors={[course.color, course.color + 'D9']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            height: 76,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            justifyContent: 'space-between',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* أيقونة موضوعية في الخلفية كلمسة جمالية */}
+          <Ionicons
+            name="school"
+            size={68}
+            color="#FFFFFF"
+            style={{
+              position: 'absolute',
+              end: -10,
+              bottom: -16,
+              opacity: 0.15,
+            }}
+          />
+
+          {/* الحافة العاكسة العلوية للزجاج */}
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 1.5,
+              backgroundColor: 'rgba(255, 255, 255, 0.4)',
+            }}
+          />
+
           <Row center between>
-            <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                backgroundColor: 'rgba(0, 0, 0, 0.24)',
+                paddingHorizontal: 9,
+                paddingVertical: 4,
+                borderRadius: radii.full,
+              }}
+            >
+              <Ionicons name="bookmark" size={11} color="#FFFFFF" />
+              <Txt variant="micro" bold color="#FFFFFF">
+                {course.field}
+              </Txt>
+            </View>
+
             {organizer ? (
-              <Tag
-                label={isMyCourse ? t('explore.youOrganize') : t('explore.organizerName', { name: organizer.fullName })}
-                color="#fff"
-                bg="rgba(0,0,0,0.35)"
-                icon={isMyCourse ? 'shield-checkmark' : 'person'}
-              />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3.5,
+                  borderRadius: radii.full,
+                  maxWidth: 160,
+                }}
+              >
+                <Avatar name={organizer.fullName} color={organizer.avatarColor} size={18} />
+                <Txt variant="micro" color="#FFFFFF" numberOfLines={1}>
+                  {isMyCourse ? t('explore.youOrganize') : organizer.fullName.split(' ')[0]}
+                </Txt>
+              </View>
             ) : (
-              <Tag label={t('explore.availableToOrganize')} color="#fff" bg="rgba(20,184,166,0.55)" icon="sparkles" />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  backgroundColor: 'rgba(20, 184, 166, 0.75)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3.5,
+                  borderRadius: radii.full,
+                }}
+              >
+                <Ionicons name="sparkles" size={11} color="#FFFFFF" />
+                <Txt variant="micro" bold color="#FFFFFF">
+                  {t('explore.availableToOrganize')}
+                </Txt>
+              </View>
             )}
           </Row>
-        </View>
-        <View style={{ padding: 14, gap: 8 }}>
-          <Txt variant="h3">{course.title}</Txt>
+        </LinearGradient>
+
+        {/* محتوى البطاقة المبسط والمنظم */}
+        <View style={{ padding: 14, gap: 10 }}>
+          <Row center between>
+            <Txt variant="h3" numberOfLines={2} style={{ flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' }}>
+              {course.title}
+            </Txt>
+            <Ionicons
+              name={lang === 'ar' ? 'chevron-back' : 'chevron-forward'}
+              size={16}
+              color={theme.textMuted}
+              style={{ opacity: 0.6, marginStart: 8 }}
+            />
+          </Row>
+
           <Row center gap={10} wrap>
             <Row center gap={4}>
               <Ionicons name="calendar-outline" size={13} color={theme.textMuted} />
-              <Txt variant="micro" color={theme.textMuted}>{t('explore.sessionsCount', { x: course.sessionsCount })}</Txt>
+              <Txt variant="caption" color={theme.textSecondary}>
+                {t('explore.sessionsCount', { x: course.sessionsCount })}
+              </Txt>
             </Row>
+
             {stats.count > 0 ? (
               <Row center gap={4}>
                 <Ionicons name="star" size={13} color={theme.certGold} />
-                <Txt variant="micro" color={theme.textMuted}>{stats.avg} ({stats.count})</Txt>
+                <Txt variant="caption" bold color={theme.text}>
+                  {stats.avg} <Txt variant="micro" color={theme.textMuted}>({stats.count})</Txt>
+                </Txt>
               </Row>
             ) : null}
+
             {joined ? (
               <Tag label={t('explore.joined')} color={theme.success} bg={theme.successSoft} icon="checkmark" />
             ) : seatsLeft > 0 && seatsLeft <= 6 ? (
@@ -174,13 +303,18 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
               <Tag label={t('explore.awaitingBatch')} color={theme.teal} bg={theme.teal + '18'} icon="time-outline" />
             ) : null}
           </Row>
-          {openBatch ? (
-            <View style={{ gap: 5 }}>
-              <Row between>
-                <Txt variant="micro" color={theme.textMuted}>{batchOf(db, openBatch.id) ? t('common.seats') : ''}</Txt>
+
+          {openBatch && !joined && seatsLeft > 0 && (seats?.taken ?? 0) > 0 ? (
+            <View style={{ gap: 4, marginTop: 2 }}>
+              <Row between center>
+                <Txt variant="micro" color={theme.textMuted}>{t('common.seats')}</Txt>
                 <Txt variant="micro" color={theme.textMuted}>{seats?.taken ?? 0}/{openBatch.capacity}</Txt>
               </Row>
-              <ProgressBar progress={(seats?.taken ?? 0) / openBatch.capacity} color={seatsLeft === 0 ? theme.danger : seatsLeft <= 6 ? theme.warn : theme.teal} height={6} />
+              <ProgressBar
+                progress={(seats?.taken ?? 0) / openBatch.capacity}
+                color={seatsLeft <= 6 ? theme.warn : theme.brand}
+                height={5}
+              />
             </View>
           ) : null}
         </View>

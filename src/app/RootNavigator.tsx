@@ -290,11 +290,10 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
 // ─── تبويبات الطالب ───
 function StudentTabs({ navigation, route }: any) {
   const { t } = useI18n();
-  const { unreadCount } = useApp();
   return (
     <TabsScaffold
       initial="today"
-      requestedTab={route.params?.tab}
+      requestedTab={route?.params?.tab}
       maxWidth={780}
       tabs={[
         { key: 'today', label: t('tabs.today'), icon: 'home-outline', iconActive: 'home' },
@@ -303,7 +302,6 @@ function StudentTabs({ navigation, route }: any) {
         { key: 'profile', label: t('tabs.profile'), icon: 'person-outline', iconActive: 'person' },
       ]}
       fab={{ icon: 'qr-code', label: t('tabs.scan'), onPress: () => navigation.navigate('Scanner') }}
-      badges={{ profile: Math.min(unreadCount, 99) }}
       renders={{
         today: () => <TodayScreen />,
         explore: () => <ExploreScreen />,
@@ -317,7 +315,7 @@ function StudentTabs({ navigation, route }: any) {
 // ─── تبويبات المتطوع/المدرب ───
 function VolunteerTabs({ route }: any) {
   const { t } = useI18n();
-  const { db, user, unreadCount } = useApp();
+  const { db, user } = useApp();
   const pendingExcuses = user
     ? db.excuses.filter((e) => e.status === 'pending').length
     : 0;
@@ -333,7 +331,7 @@ function VolunteerTabs({ route }: any) {
         { key: 'inbox', label: t('tabs.inbox'), icon: 'file-tray-outline', iconActive: 'file-tray' },
         { key: 'profile', label: t('tabs.profile'), icon: 'person-outline', iconActive: 'person' },
       ]}
-      badges={{ inbox: pendingExcuses, profile: Math.min(unreadCount, 99) }}
+      badges={{ inbox: pendingExcuses }}
       renders={{
         today: () => <VolunteerTodayScreen />,
         batches: () => <MyBatchesScreen />,
@@ -348,7 +346,6 @@ function VolunteerTabs({ route }: any) {
 // ─── تبويبات المشرف/الأدمن ───
 function AdminTabs({ route }: any) {
   const { t } = useI18n();
-  const { unreadCount } = useApp();
   return (
     <TabsScaffold
       initial="dash"
@@ -361,7 +358,6 @@ function AdminTabs({ route }: any) {
         { key: 'hub', label: t('tabs.hub'), icon: 'options-outline', iconActive: 'options' },
         { key: 'profile', label: t('tabs.profile'), icon: 'person-outline', iconActive: 'person' },
       ]}
-      badges={{ profile: Math.min(unreadCount, 99) }}
       renders={{
         dash: () => <DashboardScreen />,
         org: () => <OrgManagerScreen />,

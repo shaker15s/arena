@@ -269,6 +269,7 @@ export const en: Record<DictKey, string> = {
   'explore.onWaitlist': 'On the waitlist ⏳',
   'explore.noResults': 'No matching results',
   'explore.noResultsBody': 'Try another word or clear filters — search ignores hamza and diacritics.',
+  'explore.clearFilters': 'Clear filters',
   'users.resultCount': '{x} users',
   'common.lastSync': 'Updated just now',
   'explore.rating': 'Rating',

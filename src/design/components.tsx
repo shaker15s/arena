@@ -486,6 +486,20 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
             ...(Platform.OS === 'web' ? { outlineStyle: 'none', border: 'none', background: 'transparent' } as object : {}),
           }}
         />
+        {value.length > 0 && !multiline ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="مسح النص"
+            hitSlop={8}
+            onPress={() => onChange('')}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.7 : 0.45,
+              cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
+            })}
+          >
+            <Ionicons name="close-circle" size={18} color={theme.textMuted} />
+          </Pressable>
+        ) : null}
         {Platform.OS === 'web' && icon === 'calendar' && (
           <input
             ref={dateInputRef as any}
@@ -1052,3 +1066,4 @@ export { GlassBtn, IconGlassButton } from './components/GlassBtn';
 export { XPBar } from './components/XPBar';
 export { BentoGrid, BentoItem } from './components/BentoGrid';
 export { StreakCalendarGrid } from './components/StreakCalendarGrid';
+export { NotificationBell } from './components/NotificationBell';
