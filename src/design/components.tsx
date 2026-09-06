@@ -145,6 +145,25 @@ export function Card({ children, style, glass, color, noPad, onPress, solid, hea
           pointerEvents="none"
         />
       ) : null}
+      {useGlass ? (
+        <LinearGradient
+          colors={[
+            isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.65)',
+            isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.12)',
+            'transparent',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 1.5,
+          }}
+          pointerEvents="none"
+        />
+      ) : null}
       {children}
     </Animated.View>
   );
@@ -755,8 +774,9 @@ export { useDebounce, useHaptics } from '../shared/hooks';
 
 // ───────────────────────────── Header / Screen ─────────────────────────────
 
-export function Header({ title, subtitle, back, right }: {
+export function Header({ title, subtitle, back, right, onSubtitlePress, onTitlePress }: {
   title: string; subtitle?: string; back?: () => void; right?: React.ReactNode;
+  onSubtitlePress?: () => void; onTitlePress?: () => void;
 }) {
   const { theme } = useTheme();
   const { t } = useI18n();
@@ -781,8 +801,33 @@ export function Header({ title, subtitle, back, right }: {
             </Pressable>
           ) : null}
           <View style={{ flex: 1 }}>
-            <Txt variant="h1" numberOfLines={1}>{title}</Txt>
-            {subtitle ? <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt> : null}
+            {onTitlePress ? (
+              <Pressable onPress={onTitlePress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>
+                <Txt variant="h1" numberOfLines={1}>{title}</Txt>
+              </Pressable>
+            ) : (
+              <Txt variant="h1" numberOfLines={1}>{title}</Txt>
+            )}
+            {subtitle ? (
+              onSubtitlePress ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onSubtitlePress}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    opacity: pressed ? 0.75 : 1,
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                  })}
+                >
+                  <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
+                  <Ionicons name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7 }} />
+                </Pressable>
+              ) : (
+                <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
+              )
+            ) : null}
           </View>
         </Row>
         {right}

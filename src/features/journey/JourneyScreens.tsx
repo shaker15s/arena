@@ -15,8 +15,9 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
-  Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt,
+  Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
 } from '../../design/components';
+import { DayStatus } from '../../design/components/StreakCalendarGrid';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
 import { Batch, TrainingSession, AttendanceStatus } from '../../data/types';
@@ -508,7 +509,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
       <Header title={t('history.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}>
         <FadeIn index={0}>
-          <Card>
+          <Card style={{ gap: 14 }}>
             <Row between center>
               <View>
                 <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
@@ -523,8 +524,30 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
                 ))}
               </Row>
             </Row>
-            <Spacer size={10} />
+
             <ProgressBar progress={pct / 100} color={theme.success} />
+
+            {/* شبكة كثافة الالتزام والحضور بنمط Duolingo / GitHub Heatmap */}
+            {rows.length > 0 ? (
+              <View style={{ paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.line }}>
+                <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>
+                  سجل كثافة الحضور والستريك
+                </Txt>
+                <StreakCalendarGrid
+                  days={rows.slice(0, 14).reverse().map((r, idx) => {
+                    const status: DayStatus =
+                      r.att.status === 'present' ? 'attended'
+                      : r.att.status === 'late' ? 'bonus'
+                      : r.att.status === 'excused' ? 'excused'
+                      : 'absent';
+                    return {
+                      dateKey: String(idx),
+                      status,
+                    };
+                  })}
+                />
+              </View>
+            ) : null}
           </Card>
         </FadeIn>
 

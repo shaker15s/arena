@@ -15,7 +15,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, CountUp, Empty, FadeIn, Flame, Header, ProgressBar,
-  Row, Segmented, Spacer, Tag, Txt,
+  Row, Segmented, Spacer, Tag, Txt, XPBar,
 } from '../../design/components';
 import { spacing, radii, leagueTierColors, levels } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
@@ -73,16 +73,21 @@ export function WalletScreen({ navigation }: any) {
           </LinearGradient>
         </FadeIn>
 
-        {/* تقدم المستوى */}
+        {/* تقدم المستوى بنظام XPBar المتدرج */}
         <FadeIn index={1}>
-          <Card>
-            <Row between center style={{ marginBottom: 8 }}>
-              <Txt variant="bodyMed">{t(`level.${level}` as any)}</Txt>
-              <Txt variant="caption" color={theme.brand}>
-                {nextAt != null ? t('wallet.toNext', { x: nextAt - balance, name: t(`level.${level + 1}` as any) }) : t('wallet.maxLevel')}
+          <Card style={{ paddingVertical: 18 }}>
+            <XPBar
+              currentXP={into}
+              maxXP={levelSpan ?? into}
+              level={level}
+              levelTitle={t(`level.${level}` as any)}
+              height={12}
+            />
+            {nextAt != null ? (
+              <Txt variant="micro" color={theme.textMuted} align="center" style={{ marginTop: 10 }}>
+                {t('wallet.toNext', { x: nextAt - balance, name: t(`level.${level + 1}` as any) })}
               </Txt>
-            </Row>
-            <ProgressBar progress={levelProgress} color={levelMeta.color} />
+            ) : null}
           </Card>
         </FadeIn>
 
@@ -127,7 +132,7 @@ export function WalletScreen({ navigation }: any) {
 export function LeagueScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user } = useApp();
+  const { db, user, toast } = useApp();
   const [board, setBoard] = useState<'league' | 'rising' | 'alltime'>('league');
   if (!user) return null;
 
@@ -195,10 +200,37 @@ export function LeagueScreen({ navigation }: any) {
     <View style={{ flex: 1 }}>
       <Header title={t('league.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}>
-        {/* درع الفئة */}
+        {/* درع الفئة الزجاجي مع تفاعل Easter Egg */}
         <FadeIn index={0}>
-          <Card style={{ alignItems: 'center', paddingVertical: 20, gap: 6 }}>
-            <Ionicons name="shield" size={58} color={tierColor} />
+          <Card
+            onPress={() => {
+              toast(`درع ${t(`tier.${league.tier}` as any)} — استمر في التقدم للصعود! 🏆`, 'info');
+            }}
+            style={{
+              alignItems: 'center',
+              paddingVertical: 22,
+              gap: 8,
+              borderWidth: 1.5,
+              borderColor: tierColor + '44',
+            }}
+          >
+            <View
+              style={{
+                width: 84,
+                height: 84,
+                borderRadius: 42,
+                backgroundColor: tierColor + '18',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: tierColor,
+                shadowOpacity: 0.35,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 4 },
+                marginBottom: 2,
+              }}
+            >
+              <Ionicons name="shield" size={54} color={tierColor} />
+            </View>
             <Txt variant="h2" color={tierColor}>{t(`tier.${league.tier}` as any)}</Txt>
             <Row center gap={6}>
               <Ionicons name="hourglass" size={13} color={theme.textMuted} />
@@ -317,26 +349,32 @@ export function AchievementsScreen({ navigation }: any) {
           ))}
         </Row>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
           {badges.map((badge, i) => {
             const earned = db.userBadges.find((u) => u.userId === user.id && u.badgeCode === badge.code);
             const progress = badgeProgress(db, user.id, badge.code);
             const color = rarityColor(badge.rarity);
+            const badgeTitle = lang === 'ar' ? badge.nameAr : badge.nameEn;
             return (
-              <FadeIn key={badge.code} index={Math.min(i, 8)} style={{ width: '47%' }}>
-                <Card style={{ alignItems: 'center', gap: 8, opacity: earned ? 1 : 0.82 }}>
+              <FadeIn key={badge.code} index={Math.min(i, 8)} style={{ flexBasis: '48%', flexGrow: 1, minWidth: 150 }}>
+                <Card
+                  onPress={() => {
+                    toast(`${badgeTitle} (${rarityLabel(badge.rarity)}): ${lang === 'ar' ? badge.descAr : badge.descEn}`, earned ? 'success' : 'info');
+                  }}
+                  style={{ alignItems: 'center', gap: 8, opacity: earned ? 1 : 0.84, paddingVertical: 18 }}
+                >
                   <View style={{
-                    width: 66, height: 66, borderRadius: 33,
+                    width: 68, height: 68, borderRadius: 34,
                     backgroundColor: earned ? color + '22' : theme.bg,
                     borderWidth: 2.5, borderColor: earned ? color : theme.line,
                     alignItems: 'center', justifyContent: 'center',
                     shadowColor: earned ? color : 'transparent', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 0 },
                   }}>
-                    <Ionicons name={badge.icon as any} size={30} color={earned ? color : theme.textMuted} />
+                    <Ionicons name={badge.icon as any} size={32} color={earned ? color : theme.textMuted} />
                     {!earned ? <Ionicons name="lock-closed" size={14} color={theme.textMuted} style={{ position: 'absolute', bottom: -2, end: -2, backgroundColor: theme.card, borderRadius: 8, padding: 1 }} /> : null}
                   </View>
                   <Txt variant="micro" color={color}>{rarityLabel(badge.rarity)}</Txt>
-                  <Txt variant="caption" align="center" bold>{lang === 'ar' ? badge.nameAr : badge.nameEn}</Txt>
+                  <Txt variant="caption" align="center" bold>{badgeTitle}</Txt>
                   <Txt variant="micro" color={theme.textMuted} align="center" numberOfLines={2}>
                     {t('achievements.howTo')}: {lang === 'ar' ? badge.descAr : badge.descEn}
                   </Txt>
@@ -354,8 +392,7 @@ export function AchievementsScreen({ navigation }: any) {
                         variant="ghost"
                         icon="share-social"
                         onPress={async () => {
-                          const name = lang === 'ar' ? badge.nameAr : badge.nameEn;
-                          const text = `${t('achievements.shareTitle')}\n🏅 ${name}\n${lang === 'ar' ? badge.descAr : badge.descEn}`;
+                          const text = `${t('achievements.shareTitle')}\n🏅 ${badgeTitle}\n${lang === 'ar' ? badge.descAr : badge.descEn}`;
                           try {
                             if (Platform.OS === 'web') {
                               if (navigator.share) await navigator.share({ text, title: t('achievements.shareTitle') });

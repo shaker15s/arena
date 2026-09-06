@@ -74,6 +74,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         <Header
           title={t('vtoday.title')}
           subtitle={`${t('dash.hello')} ${user.fullName.split(' ')[0]} 👋`}
+          onSubtitlePress={() => tabs.setTab('profile')}
           right={
             <Pressable
               onPress={() => navigation.navigate('Notifications')}

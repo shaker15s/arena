@@ -132,13 +132,28 @@ export function TodayScreen() {
         {/* ── الهيدر ── */}
         <FadeIn index={0}>
           <Row between center style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4 }}>
-            <Row center gap={12}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('tabs.profile')}
+              accessibilityHint={t('profile.edit')}
+              onPress={() => tabs.setTab('profile')}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                opacity: pressed ? 0.78 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              })}
+            >
               <Avatar name={user.fullName} color={user.avatarColor} size={50} ring={theme.brand} />
               <View>
                 <Txt variant="caption" color={theme.textMuted}>{greeting} 👋</Txt>
-                <Txt variant="h3">{firstName}</Txt>
+                <Row center gap={4}>
+                  <Txt variant="h3">{firstName}</Txt>
+                  <Ionicons name="chevron-forward" size={14} color={theme.textMuted} style={{ opacity: 0.6 }} />
+                </Row>
               </View>
-            </Row>
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('notif.title')}

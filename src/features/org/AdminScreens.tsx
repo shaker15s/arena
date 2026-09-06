@@ -36,6 +36,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, unreadCount, refresh, syncing, lastSyncAt, toast } = useApp();
+  const tabs = useTabs();
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [exporting, setExporting] = useState(false);
   if (!user) return null;
@@ -114,6 +115,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         <Header
           title={t('dash.title')}
           subtitle={`${t('dash.hello')} ${user.fullName} 👋`}
+          onSubtitlePress={() => tabs.setTab('profile')}
           right={
             <Pressable
               accessibilityRole="button"
