@@ -141,13 +141,13 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
             <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
             {organizer ? (
               <Tag
-                label={isMyCourse ? 'أنت المنظم 👑' : `منظم: ${organizer.fullName}`}
+                label={isMyCourse ? t('explore.youOrganize') : t('explore.organizerName', { name: organizer.fullName })}
                 color="#fff"
                 bg="rgba(0,0,0,0.35)"
                 icon={isMyCourse ? 'shield-checkmark' : 'person'}
               />
             ) : (
-              <Tag label="✨ متاح للتنظيم" color="#fff" bg="rgba(20,184,166,0.55)" icon="sparkles" />
+              <Tag label={t('explore.availableToOrganize')} color="#fff" bg="rgba(20,184,166,0.55)" icon="sparkles" />
             )}
           </Row>
         </View>
@@ -165,13 +165,13 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
               </Row>
             ) : null}
             {joined ? (
-              <Tag label="منضم ✓" color={theme.success} bg={theme.successSoft} icon="checkmark" />
+              <Tag label={t('explore.joined')} color={theme.success} bg={theme.successSoft} icon="checkmark" />
             ) : seatsLeft > 0 && seatsLeft <= 6 ? (
               <Tag label={t('explore.seatsLeft', { x: seatsLeft })} color={theme.warn} bg={theme.warnSoft} icon="flash" />
             ) : seatsLeft === 0 && openBatch ? (
               <Tag label={t('common.full')} color={theme.danger} bg={theme.dangerSoft} icon="close" />
             ) : !openBatch ? (
-              <Tag label="بانتظار تنظيم دفعة" color={theme.teal} bg={theme.teal + '18'} icon="time-outline" />
+              <Tag label={t('explore.awaitingBatch')} color={theme.teal} bg={theme.teal + '18'} icon="time-outline" />
             ) : null}
           </Row>
           {openBatch ? (
@@ -238,7 +238,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
       return;
     }
     if (user.role !== 'student') {
-      toast(user.role === 'volunteer' ? 'حسابك مسجل كمدرب — الانضمام متاح لحسابات الطلاب' : 'الانضمام متاح للطلاب فقط', 'warn');
+      toast(user.role === 'volunteer' ? t('explore.volunteersCannotJoin') : t('explore.studentsOnly'), 'warn');
       return;
     }
     setJoinBatch(b);
@@ -308,9 +308,9 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   <Row center gap={10}>
                     <Ionicons name="lock-closed" size={24} color={theme.warn} />
                     <View style={{ flex: 1 }}>
-                      <Txt variant="bodyMed" color={theme.warn}>كورس منظم حالياً 🔒</Txt>
+                      <Txt variant="bodyMed" color={theme.warn}>{t('explore.organizedNow')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
-                        المنظم المسؤول: {currentOrganizer?.fullName ?? 'منظم معتمد'} (لا يمكن لمنظم آخر تنظيمه في نفس الوقت)
+                        {t('explore.currentOrganizer', { name: currentOrganizer?.fullName ?? t('management.delegated') })}
                       </Txt>
                     </View>
                   </Row>
@@ -320,9 +320,9 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   <Row center gap={10}>
                     <Ionicons name="shield-checkmark" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
-                      <Txt variant="bodyMed" color={theme.brand}>أنت المنظم المسؤول عن هذا الكورس 👑</Txt>
+                      <Txt variant="bodyMed" color={theme.brand}>{t('explore.youAreOrganizer')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
-                        يمكنك إدارة المحاضرات والطلاب، وتعديل التفاصيل، وبدء جلسة الحضور والـ QR الآن
+                        {t('explore.youAreOrganizerBody')}
                       </Txt>
                     </View>
                   </Row>
@@ -330,7 +330,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   <Row gap={8}>
                     <View style={{ flex: 1 }}>
                       <Btn
-                        title="⚙️ لوحة إدارة الكورس"
+                        title={t('explore.manageCourse')}
                         variant="primary"
                         icon="settings"
                         onPress={() => navigation.navigate('CourseManagement', { courseId: course.id })}
@@ -340,14 +340,14 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                     {activeBatch && (
                       <View style={{ flex: 1 }}>
                         <Btn
-                          title="🚀 بدء محاضرة وQR"
+                          title={t('explore.startQr')}
                           variant="gold"
                           icon="play"
                           onPress={async () => {
                             try {
                               await startTrainingSession(activeBatch.id);
                               await refresh();
-                              toast('تم بدء المحاضرة بنجاح!', 'success');
+                              toast(t('explore.startLiveOk'), 'success');
                               navigation.navigate('Tabs', { tab: 'live' });
                             } catch (e) {
                               toast((e as Error).message, 'error');
@@ -360,7 +360,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   </Row>
                   <Spacer size={8} />
                   <Btn
-                    title="➕ إنشاء دفعة ومجموعة جديدة"
+                    title={t('explore.newBatch')}
                     variant="ghost"
                     size="sm"
                     icon="add"
@@ -373,15 +373,15 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   <Row center gap={10}>
                     <Ionicons name="sparkles" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
-                      <Txt variant="bodyMed" color={theme.brand}>الكورس متاح للتنظيم والبدء ✨</Txt>
+                      <Txt variant="bodyMed" color={theme.brand}>{t('explore.availableToOrganize')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
-                        يمكنك كمتطوع تنظيم هذا الكورس وجدولة دفعة جديدة وتوليد المحاضرات فوراً
+                        {t('explore.availableBody')}
                       </Txt>
                     </View>
                   </Row>
                   <Spacer size={10} />
                   <Btn
-                    title="➕ تنظيم هذا الكورس وإنشاء أول دفعة"
+                    title={t('explore.organizeCta')}
                     variant="primary"
                     icon="add-circle"
                     full
@@ -627,20 +627,20 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
       </Sheet>
 
       {/* نافذة تأكيد التسجيل التفاعلية والانتقال المباشر */}
-      <Sheet visible={joinedBatchData != null} onClose={() => setJoinedBatchData(null)} title={joinedBatchData?.waitlist ? '⏳ تم الانضمام لقائمة الانتظار' : '🎉 تم تأكيد التسجيل بنجاح!'}>
+      <Sheet visible={joinedBatchData != null} onClose={() => setJoinedBatchData(null)} title={joinedBatchData?.waitlist ? t('explore.joinedWaitlist') : t('explore.joinConfirmed')}>
         {joinedBatchData ? (
           <View style={{ gap: 14, paddingBottom: 20 }}>
             <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', padding: 14 }}>
               <Txt variant="h2" color={theme.brand}>{course.title}</Txt>
               <Spacer size={4} />
               <Txt variant="caption" color={theme.textSecondary}>
-                المدرب: {profileOf(db, joinedBatchData.batch.instructorId)?.fullName ?? 'معتمد'} · {joinedBatchData.batch.room}
+                {t('explore.trainer', { name: profileOf(db, joinedBatchData.batch.instructorId)?.fullName ?? '' })} · {joinedBatchData.batch.room}
               </Txt>
               <Spacer size={6} />
               <Row center gap={6}>
                 <Ionicons name="time" size={15} color={theme.brand} />
                 <Txt variant="caption" color={theme.textSecondary}>
-                  المواعيد: {joinedBatchData.batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} الساعة {joinedBatchData.batch.schedule.time}
+                  {t('explore.schedule', { days: joinedBatchData.batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + '), time: joinedBatchData.batch.schedule.time })}
                 </Txt>
               </Row>
               <Spacer size={4} />
@@ -649,7 +649,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 <Txt variant="bodyMed" color={theme.success}>
                   أول محاضرة: {(() => {
                     const next = sessionsOfBatch(db, joinedBatchData.batch.id).find((s) => s.status === 'scheduled');
-                    return next ? `${formatDate(next.startsAt, lang)} · ${formatTime(next.startsAt, lang)}` : 'تبدأ قريباً';
+                    return next ? `${formatDate(next.startsAt, lang)} · ${formatTime(next.startsAt, lang)}` : t('explore.startsSoon');
                   })()}
                 </Txt>
               </Row>
@@ -657,7 +657,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
             <View style={{ gap: 8 }}>
               <Btn
-                title="🗺️ الانتقال لخريطة مسار الكورس والمحاضرات"
+                title={t('explore.goJourney')}
                 variant="primary"
                 size="lg"
                 icon="map"
@@ -669,7 +669,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 }}
               />
               <Btn
-                title="📷 جاهز للحضور؟ امسح رمز الـ QR"
+                title={t('explore.scanQr')}
                 variant="gold"
                 size="md"
                 icon="qr-code"
@@ -680,7 +680,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 }}
               />
               <Btn
-                title="متابعة استكشاف باقي الكورسات"
+                title={t('explore.keepExploring')}
                 variant="ghost"
                 size="md"
                 full

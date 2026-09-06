@@ -379,14 +379,14 @@ export function CoursesScreen({ navigation }: any) {
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!title.trim() || title.trim().length < 3) {
-      errs.title = 'عنوان الكورس مطلوب ويجب ألا يقل عن 3 أحرف';
+      errs.title = t('management.titleMin');
     }
     if (!field.trim() || field.trim().length < 2) {
-      errs.field = 'المجال / التخصص مطلوب ولا يقل عن حرفين';
+      errs.field = t('management.fieldMin');
     }
     const count = parseInt(sessionsCount, 10);
     if (!count || count < 1 || count > 100) {
-      errs.sessionsCount = 'عدد المحاضرات يجب أن يكون بين 1 و 100';
+      errs.sessionsCount = t('management.sessionsRange');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -626,7 +626,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
   const effectiveStartDate = startDate.trim() || new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
   const effectiveCapacity = parseInt(capacity, 10) || 25;
   const effectiveSessionsCount = Math.min(100, Math.max(1, parseInt(customSessionsCount, 10) || course?.sessionsCount || 8));
-  const effectiveRoom = room.trim() || 'قاعة التدريب الرئيسية';
+  const effectiveRoom = room.trim() || t('batchAdm.defaultRoom');
 
   // معاينة مولّدة تلقائيًا + تحذير تعارض
   const draftBatch: Batch | null = course && branchId && instructorId && days.length > 0 ? {
@@ -641,14 +641,14 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!branchId) errs.branchId = 'يرجى اختيار الفرع';
-    if (!courseId) errs.courseId = 'يرجى اختيار الكورس';
-    if (!instructorId) errs.instructorId = 'يرجى اختيار المدرب/المنظم';
-    if (days.length === 0) errs.days = 'يرجى تحديد يوم واحد على الأقل للمحاضرات';
+    if (!branchId) errs.branchId = t('batchAdm.needBranch');
+    if (!courseId) errs.courseId = t('batchAdm.needCourse');
+    if (!instructorId) errs.instructorId = t('batchAdm.needInstructor');
+    if (days.length === 0) errs.days = t('batchAdm.needDays');
     const cap = parseInt(capacity, 10);
-    if (!cap || cap < 5 || cap > 200) errs.capacity = 'سعة المقاعد يجب أن تكون بين 5 و 200';
+    if (!cap || cap < 5 || cap > 200) errs.capacity = t('batchAdm.capacityRange');
     if (startDate.trim() && isNaN(new Date(startDate.trim()).getTime())) {
-      errs.startDate = 'صيغة التاريخ غير صحيحة، يرجى كتابتها YYYY-MM-DD';
+      errs.startDate = t('batchAdm.badDate');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -847,7 +847,7 @@ export function UsersScreen() {
     try {
       await updateUserAccess(profileId, patch);
       await refresh();
-      toast(patch.role ? t('users.roleChanged') : patch.branchId !== undefined ? 'تم تحديث الفرع للمستخدم' : t('users.statusChanged'), 'success');
+      toast(patch.role ? t('users.roleChanged') : patch.branchId !== undefined ? t('users.branchUpdated') : t('users.statusChanged'), 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
     }
@@ -867,7 +867,7 @@ export function UsersScreen() {
         }
       >
         <Header title={t('users.title')} />
-        <Input value={query} onChange={setQuery} placeholder="بحث بالاسم أو رقم الهاتف أو البريد الإلكتروني..." icon="search" />
+        <Input value={query} onChange={setQuery} placeholder={t('users.searchHint')} icon="search" />
         <Row gap={6} wrap>
           {roles.map((r) => (
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
@@ -887,7 +887,7 @@ export function UsersScreen() {
                 <Avatar name={p.fullName} color={p.avatarColor} size={40} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyMed" numberOfLines={2}>{p.fullName}</Txt>
-                  <Txt variant="micro" color={theme.textMuted}>{p.phone || 'بدون هاتف'} · {p.email || 'بدون بريد'}</Txt>
+                  <Txt variant="micro" color={theme.textMuted}>{p.phone || t('common.noPhone')} · {p.email || t('common.noEmail')}</Txt>
                 </View>
                 <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
               </Row>
@@ -910,7 +910,7 @@ export function UsersScreen() {
                     <Txt variant="caption" color={theme.brand} style={{ marginTop: 2 }}>✉️ {selUser.email}</Txt>
                   ) : null}
                   <Txt variant="micro" color={theme.textMuted} style={{ marginTop: 2 }}>
-                    📍 {db.branches.find((b) => b.id === selUser.branchId)?.name ?? 'غير محدد بفرع'}
+                    📍 {db.branches.find((b) => b.id === selUser.branchId)?.name ?? t('users.noBranch')}
                   </Txt>
                 </View>
               </Row>
@@ -934,7 +934,7 @@ export function UsersScreen() {
                   <Txt variant="caption" color={theme.textSecondary}>🏢 تعيين / تغيير الفرع (إدارة الفرع):</Txt>
                   <Row gap={6} wrap>
                     <Chip
-                      label="بدون فرع (عام)"
+                      label={t('users.unassignedBranch')}
                       active={!selUser.branchId}
                       onPress={() => { void changeAccess(selUser.id, { branchId: null }); }}
                     />
