@@ -235,6 +235,39 @@ export const typography = {
   numberHero: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
 } as const;
 
+/**
+ * مقياس واجهة حسب عرض الشاشة — علاج «الأبعاد كبيرة على بعض المقاسات».
+ * القاعدة عرض 390pt (iPhone 14/15). نقلّص على الشاشات الضيقة جدًا (SE/Android 360pt)
+ * ونكبّر قليلًا جدًا على التابلت، مع حدود ضيقة حتى لا ينكسر التخطيط.
+ * ملاحظة عربية: النتائج تُقرَّب لأعداد صحيحة — القيم الكسرية تجعل رسم الحروف
+ * العربية يهتز ويقصّ الامتدادات على أندرويد.
+ */
+export const BASE_WIDTH = 390;
+
+export function uiScale(width: number): number {
+  if (!Number.isFinite(width) || width <= 0) return 1;
+  const raw = width / BASE_WIDTH;
+  return Math.min(1.08, Math.max(0.92, raw));
+}
+
+/** يقيس حجم/ارتفاع سطر النص مع تقريب صحيح وحد أدنى مقروء (11px). */
+export function scaleType(
+  base: { fontSize: number; lineHeight: number },
+  width: number,
+): { fontSize: number; lineHeight: number } {
+  const k = uiScale(width);
+  if (k === 1) return { fontSize: base.fontSize, lineHeight: base.lineHeight };
+  const fontSize = Math.max(11, Math.round(base.fontSize * k));
+  // نحافظ على نسبة السطر الأصلية (مهمة للعربية) بدل تقليصها بشكل مستقل.
+  const ratio = base.lineHeight / base.fontSize;
+  return { fontSize, lineHeight: Math.round(fontSize * ratio) };
+}
+
+/** يقيس مسافة/حشوة بنفس المعامل — للحفاظ على الإيقاع البصري. */
+export function scaleSpace(value: number, width: number): number {
+  return Math.round(value * uiScale(width));
+}
+
 // مستويات مسار (وثيقة 04 §2.3)
 export const levels = [
   { level: 1, threshold: 0, color: '#8E8E93' },

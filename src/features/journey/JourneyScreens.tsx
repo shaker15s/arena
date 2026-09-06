@@ -60,7 +60,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
               return (
                 <FadeIn key={batch.id} index={i}>
                   <Card>
-                    <Pressable onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id })}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={course.title} accessibilityHint={t('journey.openMapHint')} onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id })}>
                       <Row center gap={14}>
                         <StatRing size={74} stroke={7} progress={pct / 100} color={pct >= certPct ? theme.success : course.color}>
                           <Txt variant="h3">{pct}%</Txt>
@@ -275,7 +275,9 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                       style={{
                         position: 'absolute',
                         top: 56,
-                        right: 28,
+                        // العقدة (48px) أول عنصر في الصف، فمركزها 28 من البداية
+                        // المنطقية — `start` ينعكس صحيحًا في RTL وLTR معًا.
+                        start: 28,
                         bottom: -24,
                         width: 3,
                         backgroundColor: isPassed ? theme.success : theme.line,

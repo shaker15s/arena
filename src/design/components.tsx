@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pressable,
-  StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
+  StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
-import { radii, spacing, typography } from './tokens';
+import { radii, scaleType, spacing, typography } from './tokens';
 import { easing, isReducedMotion, scalePress, staggerDelay } from './motion';
 import { useI18n } from '../i18n';
 import { useHaptics } from '../shared/hooks';
@@ -23,7 +23,7 @@ import { useHaptics } from '../shared/hooks';
 type TxtVariant = keyof typeof typography;
 
 export function Txt({
-  children, variant = 'body', color, align, style, numberOfLines, bold,
+  children, variant = 'body', color, align, style, numberOfLines, bold, shrink,
 }: {
   children: React.ReactNode;
   variant?: TxtVariant;
@@ -32,12 +32,19 @@ export function Txt({
   style?: TextStyle | TextStyle[];
   numberOfLines?: number;
   bold?: boolean;
+  /** يسمح بتصغير النص ليطابق سطرًا واحدًا بدل قصّه (نص عربي طويل). */
+  shrink?: boolean;
 }) {
   const { theme } = useTheme();
-  const base = typography[variant];
+  const { width } = useWindowDimensions();
+  // سلم نصوص متجاوب: يمنع «الأبعاد الكبيرة» على الشاشات الضيقة بلا كسر التخطيط.
+  const base = scaleType(typography[variant], width);
   return (
     <Text
       numberOfLines={numberOfLines}
+      // قصّ سطر واحد على العربية بلا تصغير = حروف مبتورة؛ نفعّل التصغير التلقائي.
+      adjustsFontSizeToFit={shrink ?? (numberOfLines === 1 ? true : undefined)}
+      minimumFontScale={numberOfLines === 1 || shrink ? 0.85 : undefined}
       allowFontScaling
       maxFontSizeMultiplier={1.4}
       style={[

@@ -16,7 +16,9 @@
     "parity": "node scripts/check-i18n-parity.js",
     "test:engine": "tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js",
     "test:rls": "tsc -p tsconfig.test.json && node .test-build/scripts/rls.test.js",
-    "test:all": "npm run typecheck && npm run parity && npm run test:engine && npm run test:rls"
+    "test:all": "npm run typecheck && npm run parity && npm run rpc:check && npm run rpc:types && npm run test:engine && npm run test:rls",
+    "rpc:check": "node scripts/check-rpc-contract.js",
+    "rpc:types": "node scripts/gen-rpc-types.js"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
@@ -31,6 +33,7 @@
     "expo-camera": "~57.0.4",
     "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.13",
+    "expo-device": "^57.0.1",
     "expo-file-system": "~57.0.5",
     "expo-font": "~57.0.1",
     "expo-haptics": "~57.0.1",
@@ -38,6 +41,8 @@
     "expo-keep-awake": "~15.0.2",
     "expo-linear-gradient": "^57.0.1",
     "expo-linking": "~57.0.7",
+    "expo-location": "^57.0.16",
+    "expo-notifications": "^57.0.17",
     "expo-print": "~57.0.1",
     "expo-secure-store": "~15.0.7",
     "expo-sharing": "~57.0.1",

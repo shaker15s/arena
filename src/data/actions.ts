@@ -79,6 +79,69 @@ export async function unregisterPushToken(token: string): Promise<void> {
   await rpc('unregister_push_token', { p_token: token });
 }
 
+/** تفضيلات الإشعارات لكل نوع — الغياب يعني «مفعّل» (الافتراضي الآمن). */
+export interface PushPreferences {
+  session: boolean;
+  excuse: boolean;
+  cert: boolean;
+  progress: boolean;
+  system: boolean;
+}
+
+export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
+  session: true, excuse: true, cert: true, progress: true, system: true,
+};
+
+/** حفظ تفضيلات الإشعارات — الخادم هو الفارض عند توزيع الدفع (trigger fan-out). */
+export async function setPushPreferences(prefs: PushPreferences): Promise<void> {
+  await rpc('set_push_preferences', { p_prefs: prefs });
+}
+
+/**
+ * إرسال عطل عميل إلى سجل الأعطال الخادمي (OPS-01).
+ * صامت تمامًا: أي فشل يُبتلع — الرصد لا يجب أن يُسقط التطبيق أو يزعج المستخدم.
+ */
+export async function logClientError(input: {
+  message: string;
+  stack?: string;
+  componentStack?: string;
+  fatal: boolean;
+  platform: string;
+  appVersion: string;
+  breadcrumbs: unknown[];
+}): Promise<void> {
+  try {
+    await rpc('log_client_error', {
+      p_message: input.message,
+      p_stack: input.stack ?? null,
+      p_component_stack: input.componentStack ?? null,
+      p_fatal: input.fatal,
+      p_platform: input.platform,
+      p_app_version: input.appVersion,
+      p_breadcrumbs: input.breadcrumbs,
+    });
+  } catch {
+    /* الرصد لا يُسقط التطبيق */
+  }
+}
+
+/** قراءة تفضيلات الإشعارات للمستخدم الحالي (RLS: صفّه فقط). الغياب = الافتراضي. */
+export async function getPushPreferences(): Promise<PushPreferences> {
+  const { data, error } = await getSupabase()
+    .from('push_preferences')
+    .select('session, excuse, cert, progress, system')
+    .maybeSingle();
+  if (error || !data) return { ...DEFAULT_PUSH_PREFERENCES };
+  const row = data as Partial<PushPreferences>;
+  return {
+    session: row.session ?? true,
+    excuse: row.excuse ?? true,
+    cert: row.cert ?? true,
+    progress: row.progress ?? true,
+    system: row.system ?? true,
+  };
+}
+
 export async function updateUserAccess(
   profileId: string,
   patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null },

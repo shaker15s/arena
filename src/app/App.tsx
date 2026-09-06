@@ -16,6 +16,8 @@ import { ThemeProvider, useTheme } from '../design/theme';
 import { I18nProvider } from '../i18n';
 import { AppProvider, useApp } from '../data/store';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
+import { installGlobalHandlers, setTelemetrySink } from '../shared/telemetry';
+import { logClientError } from '../data/actions';
 import { RootNavigator } from './RootNavigator';
 import { Txt } from '../design/components';
 import { AppBackground, GlassSurface } from '../design/glass';
@@ -304,7 +306,27 @@ function Shell() {
   );
 }
 
+/**
+ * يوصّل الرصد بالخادم مرة واحدة قبل تركيب الشجرة (OPS-01).
+ * خارج المكوّن عمدًا: يجب أن يلتقط حتى الأعطال أثناء أول رندر.
+ */
+setTelemetrySink((event) => {
+  if (!SUPABASE_ENABLED) return;
+  void logClientError({
+    message: event.message,
+    stack: event.stack,
+    componentStack: event.componentStack,
+    fatal: event.fatal,
+    platform: event.platform,
+    appVersion: event.appVersion,
+    breadcrumbs: event.breadcrumbs,
+  });
+});
+
 export default function App() {
+  // مستمعو الأخطاء غير الملتقطة (rejection/ErrorUtils) — يُزالون عند التفكيك.
+  useEffect(() => installGlobalHandlers(), []);
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>

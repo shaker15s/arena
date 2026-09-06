@@ -11,7 +11,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Db, Profile } from './types';
 import { completeMyProfile, deleteMyAccount, registerPushToken, updateMyProfile } from './actions';
-import { getDevicePushToken } from '../shared/push';
+import { getDevicePushToken, subscribeToPush } from '../shared/push';
+import { addBreadcrumb } from '../shared/telemetry';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   consumeWebAuthCallback,
@@ -155,6 +156,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSyncError(null);
         setOnline(true);
       } catch (error) {
+        // فتات سياق: أغلب أعطال الواجهة تسبقها مزامنة فاشلة — نريدها في التقرير.
+        addBreadcrumb('net', `refresh failed: ${(error as Error).message}`);
         setSyncError((error as Error).message);
         setOnline(false);
       } finally {
@@ -201,6 +204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           // خطأ شبكة/جلسة: يبقى pending ويُعاد في الدورة القادمة (حتى MAX_ATTEMPTS).
+          addBreadcrumb('net', `offline command failed: ${c.command}`);
           await markFailed(c.id, (error as Error).message);
         }
       }
@@ -343,7 +347,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [profileId, refresh, flushOfflineQueue]);
 
-  // ── تسجيل توكن الجهاز (Push) بعد الدخول — محايد على الويب (لا-أوب) ──
+  // ── تسجيل توكن الجهاز (Push) + استقبال الإشعارات بعد الدخول ──
+  // محايد تمامًا على الويب/المحاكي: getDevicePushToken يعيد null فلا يحدث تسجيل.
   useEffect(() => {
     if (!profileId || !SUPABASE_ENABLED) return;
     let cancelled = false;
@@ -356,8 +361,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // غير حرج — نستمر بدون إشعارات.
       }
     })();
-    return () => { cancelled = true; };
-  }, [profileId]);
+    // إشعار وارد أو نقر عليه ⇒ نحدّث البيانات كي تعكس الواجهة الحدث فورًا.
+    const unsubscribe = subscribeToPush({
+      onReceived: () => { void refresh(); },
+      onOpened: () => { void refresh(); },
+    });
+    return () => { cancelled = true; unsubscribe(); };
+  }, [profileId, refresh]);
 
   // ── مراقبة الاتصال على الويب ──
   useEffect(() => {

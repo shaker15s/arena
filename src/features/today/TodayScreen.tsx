@@ -63,21 +63,34 @@ export function TodayScreen() {
   const nextBatch = nextSess ? batchOf(db, nextSess.batchId) : undefined;
   const nextCourse = nextBatch ? courseOf(db, nextBatch.courseId) : undefined;
 
-  const myBatches = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
-  const activeBatches = myBatches.map(e => batchOf(db, e.batchId)).filter(Boolean);
-  const certRule = db.rules.find((r) => r.key === 'certificate.min_attendance_pct');
-  const certPct = typeof certRule?.value === 'number' ? certRule.value : 75;
+  // تجميع التقدّم يمسح جلسات كل مجموعة نشطة؛ بدون تذكير كان يعاد حسابه في كل
+  // رندر (وكل حدث realtime يسبب رندرًا). المفاتيح الدقيقة تُبقيه على تغيّر
+  // البيانات المعنية فقط بدل مرجع `db` بالكامل.
+  const { activeBatches, certPct, closedCount, totalCount, totalHonored, combinedPct } = useMemo(() => {
+    const myBatches = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
+    const batches = myBatches.map((e) => batchOf(db, e.batchId)).filter(Boolean);
+    const rule = db.rules.find((r) => r.key === 'certificate.min_attendance_pct');
+    const pct = typeof rule?.value === 'number' ? rule.value : 75;
 
-  let closedCount = 0;
-  let totalCount = 0;
-  let totalHonored = 0;
-  for (const b of activeBatches) {
-    if (!b) continue;
-    closedCount += sessionsOfBatch(db, b.id).filter(s => s.status === 'closed').length;
-    totalCount += sessionsOfBatch(db, b.id).length;
-    totalHonored += attendancePct(db, user.id, b.id).honored;
-  }
-  const combinedPct = closedCount > 0 ? Math.round((totalHonored / closedCount) * 100) : 100;
+    let closed = 0;
+    let total = 0;
+    let honored = 0;
+    for (const b of batches) {
+      if (!b) continue;
+      const sessions = sessionsOfBatch(db, b.id);
+      closed += sessions.filter((sn) => sn.status === 'closed').length;
+      total += sessions.length;
+      honored += attendancePct(db, user.id, b.id).honored;
+    }
+    return {
+      activeBatches: batches,
+      certPct: pct,
+      closedCount: closed,
+      totalCount: total,
+      totalHonored: honored,
+      combinedPct: closed > 0 ? Math.round((honored / closed) * 100) : 100,
+    };
+  }, [db.enrollments, db.batches, db.sessions, db.attendance, db.excuses, db.rules, db, user.id]);
   const needed = Math.max(0, Math.ceil(((certPct / 100) * Math.max(totalCount, closedCount)) - totalHonored));
   const hasBatches = activeBatches.length > 0;
 

@@ -41,7 +41,7 @@ npx expo start            # ثم امسح QR من تطبيق Expo Go
 
 ```bash
 npm run typecheck     # TypeScript strict — صفر أخطاء
-npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (630 مفتاحًا)
+npm run parity        # تطابق مفاتيح i18n عربي/إنجليزي (658 مفتاحًا)
 npm run test:engine   # اختبارات سلوكية لقلب اللعبة (حضور/Idempotency/ستريك/كوتا/شهادات/دوري)
 npm run test:rls      # اختبارات منع التحايل/السباق على مرآة المحرك (تجاوز السعة، توكن مزيّف، كوتا)
 npm run test:all      # كل ما سبق — وهو نفسه ما يشغّله CI على كل push/PR
@@ -63,7 +63,7 @@ src/
 │   └── types.ts     #   أنواع النطاق كاملة (User/Batch/Session/Attendance/Grid...)
 ├── design/          # DS: tokens، ثيم فاتح/داكن، مكوّنات (Card/Seg/Sheet/Chip/Metric)،
 │                    #   احتفالات (CelebrationModal/CertReveal)، حركات موحّدة
-├── i18n/            # قاموسا ar/en (630 مفتاحًا متطابقة) + useT مع اتجاه RTL/LTR تلقائي
+├── i18n/            # قاموسا ar/en (658 مفتاحًا متطابقة) + useT مع اتجاه RTL/LTR تلقائي
 ├── shared/          # format helpers (تواريخ عربية/هجرية by locale، أرقام...)
 └── features/        # الشاشات، مُنتظمة لكل دور:
     ├── auth/        #   دخول Google OAuth عبر Supabase + إنشاء بروفايل
