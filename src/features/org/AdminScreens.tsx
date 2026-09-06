@@ -3,7 +3,7 @@
  * S44 فورم المجموعات (أهم فورم: معاينة تلقائية + تحذير تعارض) + S47 المستخدمون.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -20,8 +20,9 @@ import {
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
+import { matchesAny } from '../../shared/search';
 import { easing, isReducedMotion } from '../../design/motion';
-import { Batch, type Role } from '../../data/types';
+import { Batch, type Db, type Role } from '../../data/types';
 import {
   createBatchWithSessions, createBranch, createCommittee, createCourse, updateUserAccess,
 } from '../../data/actions';
@@ -33,7 +34,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, unreadCount, refresh, syncing } = useApp();
+  const { db, user, unreadCount, refresh, syncing, lastSyncAt } = useApp();
   const [branchFilter, setBranchFilter] = useState<string>('all');
   if (!user) return null;
 
@@ -100,6 +101,11 @@ export function DashboardScreen({ navigation: propNav }: any) {
           ))}
         </Row>
 
+        {lastSyncAt ? (
+          <Txt variant="micro" color={theme.textMuted}>{t('common.lastSync')}</Txt>
+        ) : null}
+        <NeedsAttention db={db} t={t} navigation={navigation} />
+
         {/* KPI Bento */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <KpiCard icon="business" color={theme.brand} value={stats.branchesCount} label={t('dash.branches')} index={0} />
@@ -139,7 +145,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
           <ListRow
             icon="rocket"
             title={t('dash.openWizard')}
-            subtitle="تهيئة سريعة لفرع أو دورة تدريبية ومجموعات جديدة"
+            subtitle={t('dash.quickSetup')}
             onPress={() => navigation.navigate('Wizard')}
           />
           <Spacer size={8} />
@@ -148,7 +154,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
               <ListRow
                 icon="ribbon"
                 title={t('dash.issueCerts')}
-                subtitle="إصدار الشهادات للمؤهلين"
+                subtitle={t('dash.issueEligible')}
                 onPress={() => navigation.navigate('IssueCertificates')}
               />
             </View>
@@ -156,7 +162,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
               <ListRow
                 icon="albums"
                 title={t('courses.title')}
-                subtitle="كتالوج الكورسات وإدارتها"
+                subtitle={t('dash.catalogManage')}
                 onPress={() => navigation.navigate('Courses')}
               />
             </View>
@@ -171,6 +177,29 @@ export function DashboardScreen({ navigation: propNav }: any) {
         </FadeIn>
       </ScrollView>
     </View>
+  );
+}
+
+function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) => string; navigation: any }) {
+  const pendingExcuses = db.excuses.filter((e) => e.status === 'pending').length;
+  const liveSessions = db.sessions.filter((s) => s.status === 'live').length;
+  const completedWithoutCert = db.batches.filter((b) => b.status === 'completed' && !db.certificates.some((c) => c.batchId === b.id)).length;
+  if (pendingExcuses + liveSessions + completedWithoutCert === 0) return null;
+  return (
+    <FadeIn index={0}>
+      <Card>
+        <Txt variant="h3" style={{ marginBottom: 10 }}>{t('dash.needsAttention')}</Txt>
+        {pendingExcuses > 0 ? (
+          <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('Inbox')} />
+        ) : null}
+        {liveSessions > 0 ? (
+          <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} />
+        ) : null}
+        {completedWithoutCert > 0 ? (
+          <ListRow icon="ribbon" title={t('dash.readyCerts')} subtitle={String(completedWithoutCert)} onPress={() => navigation.navigate('IssueCertificates')} />
+        ) : null}
+      </Card>
+    </FadeIn>
   );
 }
 
@@ -350,14 +379,14 @@ export function CoursesScreen({ navigation }: any) {
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!title.trim() || title.trim().length < 3) {
-      errs.title = 'عنوان الكورس مطلوب ويجب ألا يقل عن 3 أحرف';
+      errs.title = t('management.titleMin');
     }
     if (!field.trim() || field.trim().length < 2) {
-      errs.field = 'المجال / التخصص مطلوب ولا يقل عن حرفين';
+      errs.field = t('management.fieldMin');
     }
     const count = parseInt(sessionsCount, 10);
     if (!count || count < 1 || count > 100) {
-      errs.sessionsCount = 'عدد المحاضرات يجب أن يكون بين 1 و 100';
+      errs.sessionsCount = t('management.sessionsRange');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -446,7 +475,7 @@ export function CoursesScreen({ navigation }: any) {
             label={t('courses.titleLabel')}
             value={title}
             onChange={(v) => { setTitle(v); setErrors((e) => ({ ...e, title: '' })); }}
-            placeholder="مثال: أساسيات الذكاء الاصطناعي"
+            placeholder={t('courses.titlePh')}
             icon="book"
             error={errors.title}
           />
@@ -454,7 +483,7 @@ export function CoursesScreen({ navigation }: any) {
             label={t('courses.fieldLabel')}
             value={field}
             onChange={(v) => { setField(v); setErrors((e) => ({ ...e, field: '' })); }}
-            placeholder="مثال: الذكاء الاصطناعي والتكنولوجيا"
+            placeholder={t('courses.fieldPh')}
             icon="bookmark"
             error={errors.field}
           />
@@ -462,7 +491,7 @@ export function CoursesScreen({ navigation }: any) {
             label={t('courses.descLabel')}
             value={desc}
             onChange={setDesc}
-            placeholder="نبذة مختصرة عن الكورس وأهدافه..."
+            placeholder={t('courses.descPh')}
             multiline
           />
           <Row gap={10}>
@@ -481,7 +510,7 @@ export function CoursesScreen({ navigation }: any) {
             label={t('courses.topicsLabel')}
             value={topics}
             onChange={setTopics}
-            placeholder="المحور الأول: مقدمة مفاهيمية&#10;المحور الثاني: التطبيقات العملية&#10;المحور الثالث: المشروع النهائي"
+            placeholder={t('courses.topicsPh')}
             multiline
           />
           <Btn title={t('courses.save')} full size="lg" loading={saving} onPress={save} icon="checkmark-circle" />
@@ -597,7 +626,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
   const effectiveStartDate = startDate.trim() || new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
   const effectiveCapacity = parseInt(capacity, 10) || 25;
   const effectiveSessionsCount = Math.min(100, Math.max(1, parseInt(customSessionsCount, 10) || course?.sessionsCount || 8));
-  const effectiveRoom = room.trim() || 'قاعة التدريب الرئيسية';
+  const effectiveRoom = room.trim() || t('batchAdm.defaultRoom');
 
   // معاينة مولّدة تلقائيًا + تحذير تعارض
   const draftBatch: Batch | null = course && branchId && instructorId && days.length > 0 ? {
@@ -612,14 +641,14 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!branchId) errs.branchId = 'يرجى اختيار الفرع';
-    if (!courseId) errs.courseId = 'يرجى اختيار الكورس';
-    if (!instructorId) errs.instructorId = 'يرجى اختيار المدرب/المنظم';
-    if (days.length === 0) errs.days = 'يرجى تحديد يوم واحد على الأقل للمحاضرات';
+    if (!branchId) errs.branchId = t('batchAdm.needBranch');
+    if (!courseId) errs.courseId = t('batchAdm.needCourse');
+    if (!instructorId) errs.instructorId = t('batchAdm.needInstructor');
+    if (days.length === 0) errs.days = t('batchAdm.needDays');
     const cap = parseInt(capacity, 10);
-    if (!cap || cap < 5 || cap > 200) errs.capacity = 'سعة المقاعد يجب أن تكون بين 5 و 200';
+    if (!cap || cap < 5 || cap > 200) errs.capacity = t('batchAdm.capacityRange');
     if (startDate.trim() && isNaN(new Date(startDate.trim()).getTime())) {
-      errs.startDate = 'صيغة التاريخ غير صحيحة، يرجى كتابتها YYYY-MM-DD';
+      errs.startDate = t('batchAdm.badDate');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -631,9 +660,9 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
     if (isConflictWithOtherOrganizer) {
       setErrors((prev) => ({
         ...prev,
-        courseId: `هذا الكورس منظم بالفعل بواسطة ${currentOrganizer?.fullName ?? 'منظم آخر'}.`,
+        courseId: t('batchAdm.alreadyOrganized', { name: currentOrganizer?.fullName ?? t('management.delegated') }),
       }));
-      toast(`هذا الكورس منظم بالفعل بواسطة ${currentOrganizer?.fullName ?? 'منظم آخر'}. لا يمكن لعدة منظمين إدارة نفس الكورس.`, 'warn');
+      toast(t('batchAdm.alreadyOrganized', { name: currentOrganizer?.fullName ?? t('management.delegated') }), 'warn');
       return;
     }
     setSaving(true);
@@ -699,7 +728,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
                 active={courseId === c.id}
                 onPress={() => {
                   if (takenByOther) {
-                    toast(`هذا الكورس منظم حالياً بواسطة ${org?.fullName ?? 'منظم آخر'}`, 'warn');
+                    toast(t('batchAdm.alreadyOrganized', { name: org?.fullName ?? t('management.delegated') }), 'warn');
                   }
                   setCourseId(c.id);
                   setErrors((e) => ({ ...e, courseId: '' }));
@@ -743,7 +772,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
         <Row gap={10}>
           <View style={{ flex: 1 }}>
-            <Input label="عدد المحاضرات" value={customSessionsCount} onChange={setCustomSessionsCount} placeholder="مثال: 25" keyboardType="numeric" icon="calendar" />
+            <Input label={t('batchAdm.sessionsCustom')} value={customSessionsCount} onChange={setCustomSessionsCount} placeholder={t('batchAdm.sessionsPh')} keyboardType="numeric" icon="calendar" />
           </View>
           <View style={{ flex: 1 }}>
             <Input label={t('batchAdm.capacity')} value={capacity} onChange={(v) => { setCapacity(v); setErrors((e) => ({ ...e, capacity: '' })); }} placeholder="25" keyboardType="numeric" icon="people" error={errors.capacity} />
@@ -757,7 +786,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
             <Input label={t('batchAdm.startDate')} value={startDate} onChange={(v) => { setStartDate(v); setErrors((e) => ({ ...e, startDate: '' })); }} placeholder="YYYY-MM-DD" icon="calendar" error={errors.startDate} />
           </View>
         </Row>
-        <Input label={t('batchAdm.room')} value={room} onChange={setRoom} placeholder="مثال: قاعة 3 - الدور الثاني" icon="location" />
+        <Input label={t('batchAdm.room')} value={room} onChange={setRoom} placeholder={t('batchAdm.roomPh')} icon="location" />
 
         {conflict ? (
           <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55' }}>
@@ -806,12 +835,7 @@ export function UsersScreen() {
     return db.profiles.filter((p) => {
       if (roleFilter !== 'all' && p.role !== roleFilter) return false;
       if (debouncedQuery.trim()) {
-        const q = debouncedQuery.trim().toLowerCase();
-        return (
-          p.fullName.toLowerCase().includes(q) ||
-          p.phone.includes(q) ||
-          (p.email && p.email.toLowerCase().includes(q))
-        );
+        return matchesAny([p.fullName, p.phone, p.email], debouncedQuery);
       }
       return true;
     });
@@ -823,7 +847,7 @@ export function UsersScreen() {
     try {
       await updateUserAccess(profileId, patch);
       await refresh();
-      toast(patch.role ? t('users.roleChanged') : patch.branchId !== undefined ? 'تم تحديث الفرع للمستخدم' : t('users.statusChanged'), 'success');
+      toast(patch.role ? t('users.roleChanged') : patch.branchId !== undefined ? t('users.branchUpdated') : t('users.statusChanged'), 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
     }
@@ -843,27 +867,33 @@ export function UsersScreen() {
         }
       >
         <Header title={t('users.title')} />
-        <Input value={query} onChange={setQuery} placeholder="بحث بالاسم أو رقم الهاتف أو البريد الإلكتروني..." icon="search" />
+        <Input value={query} onChange={setQuery} placeholder={t('users.searchHint')} icon="search" />
         <Row gap={6} wrap>
           {roles.map((r) => (
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
           ))}
         </Row>
-        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} /> : null}
-        {list.map((p, i) => (
-          <FadeIn key={p.id} index={Math.min(i, 8)}>
-            <Card onPress={() => setSelected(p.id)}>
+        <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
+        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} body={t('explore.noResultsBody')} /> : null}
+        <FlatList
+          data={list}
+          keyExtractor={(p) => p.id}
+          scrollEnabled={false}
+          initialNumToRender={20}
+          windowSize={8}
+          renderItem={({ item: p }) => (
+            <Card onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
               <Row center gap={10}>
                 <Avatar name={p.fullName} color={p.avatarColor} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="bodyMed">{p.fullName}</Txt>
-                  <Txt variant="micro" color={theme.textMuted}>{p.phone || 'بدون هاتف'} · {p.email || 'بدون بريد'}</Txt>
+                  <Txt variant="bodyMed" numberOfLines={2}>{p.fullName}</Txt>
+                  <Txt variant="micro" color={theme.textMuted}>{p.phone || t('common.noPhone')} · {p.email || t('common.noEmail')}</Txt>
                 </View>
                 <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
               </Row>
             </Card>
-          </FadeIn>
-        ))}
+          )}
+        />
       </ScrollView>
 
       {/* S48 تفاصيل المستخدم */}
@@ -880,7 +910,7 @@ export function UsersScreen() {
                     <Txt variant="caption" color={theme.brand} style={{ marginTop: 2 }}>✉️ {selUser.email}</Txt>
                   ) : null}
                   <Txt variant="micro" color={theme.textMuted} style={{ marginTop: 2 }}>
-                    📍 {db.branches.find((b) => b.id === selUser.branchId)?.name ?? 'غير محدد بفرع'}
+                    📍 {db.branches.find((b) => b.id === selUser.branchId)?.name ?? t('users.noBranch')}
                   </Txt>
                 </View>
               </Row>
@@ -904,7 +934,7 @@ export function UsersScreen() {
                   <Txt variant="caption" color={theme.textSecondary}>🏢 تعيين / تغيير الفرع (إدارة الفرع):</Txt>
                   <Row gap={6} wrap>
                     <Chip
-                      label="بدون فرع (عام)"
+                      label={t('users.unassignedBranch')}
                       active={!selUser.branchId}
                       onPress={() => { void changeAccess(selUser.id, { branchId: null }); }}
                     />

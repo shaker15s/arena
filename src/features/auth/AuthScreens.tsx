@@ -218,7 +218,7 @@ export function SignInScreen({ navigation }: any) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('auth.continueGoogle')}
-            accessibilityHint="تسجيل الدخول الآمن بحساب Google"
+            accessibilityHint={t('auth.googleHint')}
             onPress={submit}
             disabled={loading || !configured}
             style={({ pressed }) => ({

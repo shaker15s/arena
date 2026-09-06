@@ -2,7 +2,8 @@
  * features/gamification — S19 المحفظة + S20 الدوري + S21 الإنجازات + قواعد اللعبة الشفافة.
  */
 import React, { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, Share, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
@@ -218,7 +219,7 @@ export function LeagueScreen({ navigation }: any) {
           options={[
             { value: 'league', label: t(`tier.${league.tier}` as any), icon: 'shield' },
             { value: 'rising', label: t('league.rising'), icon: 'rocket' },
-            { value: 'alltime', label: 'لوحة الصدارة العامة', icon: 'trophy' },
+            { value: 'alltime', label: t('league.alltime'), icon: 'trophy' },
           ]}
         />
 
@@ -243,12 +244,12 @@ export function LeagueScreen({ navigation }: any) {
                       <Row center gap={8} style={{ marginTop: 2 }}>
                         <Row center gap={3}>
                           <Flame size={13} urgent={r.streak >= 4} />
-                          <Txt variant="micro" color={theme.textMuted}>{r.streak} أسبوع</Txt>
+                          <Txt variant="micro" color={theme.textMuted}>{t('league.weekCount', { x: r.streak })}</Txt>
                         </Row>
                         <Txt variant="micro" color={theme.textMuted}>·</Txt>
                         <Row center gap={3}>
                           <Ionicons name="ribbon" size={13} color={theme.brand} />
-                          <Txt variant="micro" color={theme.textMuted}>{r.badgesCount} شارة</Txt>
+                          <Txt variant="micro" color={theme.textMuted}>{t('league.badgeCount', { x: r.badgesCount })}</Txt>
                         </Row>
                       </Row>
                     </View>
@@ -289,7 +290,7 @@ export function LeagueScreen({ navigation }: any) {
 export function AchievementsScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user } = useApp();
+  const { db, user, toast } = useApp();
   const [rarityFilter, setRarityFilter] = useState<'all' | BadgeRarity>('all');
   if (!user) return null;
 
@@ -345,7 +346,31 @@ export function AchievementsScreen({ navigation }: any) {
                       <Txt variant="micro" color={theme.textMuted} align="center">{Math.round(progress * 100)}%</Txt>
                     </View>
                   ) : earned ? (
-                    <Tag label={t('achievements.earned')} color={theme.success} bg={theme.successSoft} icon="checkmark" />
+                    <>
+                      <Tag label={t('achievements.earned')} color={theme.success} bg={theme.successSoft} icon="checkmark" />
+                      <Btn
+                        title={t('achievements.share')}
+                        size="sm"
+                        variant="ghost"
+                        icon="share-social"
+                        onPress={async () => {
+                          const name = lang === 'ar' ? badge.nameAr : badge.nameEn;
+                          const text = `${t('achievements.shareTitle')}\n🏅 ${name}\n${lang === 'ar' ? badge.descAr : badge.descEn}`;
+                          try {
+                            if (Platform.OS === 'web') {
+                              if (navigator.share) await navigator.share({ text, title: t('achievements.shareTitle') });
+                              else if (navigator.clipboard) await navigator.clipboard.writeText(text);
+                              else await Clipboard.setStringAsync(text);
+                            } else {
+                              await Share.share({ message: text, title: t('achievements.shareTitle') });
+                            }
+                            toast(t('achievements.shareHint'), 'success');
+                          } catch {
+                            /* المستخدم ألغى المشاركة */
+                          }
+                        }}
+                      />
+                    </>
                   ) : (
                     <Tag label={t('achievements.locked')} color={theme.textMuted} bg={theme.bg} icon="lock-closed" />
                   )}

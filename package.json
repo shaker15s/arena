@@ -16,7 +16,8 @@
     "parity": "node scripts/check-i18n-parity.js",
     "test:engine": "tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js",
     "test:rls": "tsc -p tsconfig.test.json && node .test-build/scripts/rls.test.js",
-    "test:all": "npm run typecheck && npm run parity && npm run rpc:check && npm run rpc:types && npm run test:engine && npm run test:rls",
+    "test:search": "tsc -p tsconfig.test.json && node .test-build/scripts/search.test.js",
+    "test:all": "npm run typecheck && npm run parity && npm run rpc:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search",
     "rpc:check": "node scripts/check-rpc-contract.js",
     "rpc:types": "node scripts/gen-rpc-types.js"
   },

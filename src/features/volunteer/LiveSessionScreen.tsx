@@ -170,7 +170,7 @@ export function LiveSessionScreen() {
               {closedSessionReport ? (
                 <View style={{ marginTop: 12 }}>
                   <Btn
-                    title="📊 عرض تقرير المحاضرة المفصل وكشف الحاضرين"
+                    title={t('live.viewReport')}
                     variant="primary"
                     icon="document-text"
                     full
@@ -182,7 +182,7 @@ export function LiveSessionScreen() {
           ) : null}
           {batchesWithScheduled.length > 0 ? (
             <View style={{ alignSelf: 'stretch', gap: 12 }}>
-              <Txt variant="h3">المجموعات الجاهزة لبدء الحضور:</Txt>
+              <Txt variant="h3">{t('live.readyBatches')}</Txt>
               {batchesWithScheduled.map((b) => {
                 const course = courseOf(db, b.courseId);
                 const nextSess = sessionsOfBatch(db, b.id).find((s) => s.status === 'scheduled');
@@ -202,7 +202,7 @@ export function LiveSessionScreen() {
                     </Row>
                     <Spacer size={12} />
                     <Btn
-                      title={`بدء الجلسة #${nextSess.seq} وتوليد الـ QR`}
+                      title={t('live.startSessionN', { x: nextSess.seq })}
                       size="md"
                       full
                       loading={starting}
@@ -412,21 +412,21 @@ export function DetailedSessionReportSheet({
     : data.session.durationMin;
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={`📋 تقرير المحاضرة — ${data.session.title}`}>
+    <Sheet visible={visible} onClose={onClose} title={t('live.reportTitle', { title: data.session.title })}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }} showsVerticalScrollIndicator={false}>
         {/* معلومات المحاضرة */}
         <Card glass>
-          <Txt variant="h2">{course?.title ?? 'الكورس'}</Txt>
+          <Txt variant="h2">{course?.title ?? t('batches.courseFallback')}</Txt>
           <Txt variant="caption" color={theme.textSecondary}>
-            المحاضرة #{data.session.seq} · {batch?.room ?? 'القاعة'} · استغرقت {durationMin} دقيقة
+            {t('live.sessionMeta', { seq: data.session.seq, room: batch?.room ?? t('common.room'), min: durationMin })}
           </Txt>
           <Spacer size={8} />
           <Row center gap={12}>
             <Txt variant="micro" color={theme.textMuted}>
-              بدأت: {data.session.startedAt ? formatTime(data.session.startedAt, lang) : '—'}
+              {t('live.startedAt', { time: data.session.startedAt ? formatTime(data.session.startedAt, lang) : '—' })}
             </Txt>
             <Txt variant="micro" color={theme.textMuted}>
-              أُغلقت: {formatTime(data.closedAt, lang)}
+              {t('live.closedAt', { time: formatTime(data.closedAt, lang) })}
             </Txt>
           </Row>
         </Card>
@@ -450,7 +450,7 @@ export function DetailedSessionReportSheet({
         {/* التقرير التدريبي الثلاثي */}
         {(data.report.done || data.report.planned || data.report.challenges) ? (
           <Card style={{ gap: 8 }}>
-            <Txt variant="h3">📝 تقرير المدرب المعتمد</Txt>
+            <Txt variant="h3">{t('live.trainerReport')}</Txt>
             {data.report.done ? (
               <View>
                 <Txt variant="micro" color={theme.textMuted}>✍️ {t('report.done')}</Txt>
@@ -475,28 +475,28 @@ export function DetailedSessionReportSheet({
         {/* كشف الحاضرين الفعلي */}
         <Card noPad>
           <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: theme.line }}>
-            <Txt variant="h3">👥 سجل الحضور المسجل ({attRows.length})</Txt>
+            <Txt variant="h3">{t('live.rosterCount', { x: attRows.length })}</Txt>
           </View>
           {attRows.length === 0 ? (
             <View style={{ padding: 16 }}>
-              <Txt variant="caption" color={theme.textMuted} align="center">لا توجد تسجيلات</Txt>
+              <Txt variant="caption" color={theme.textMuted} align="center">{t('live.noRecords')}</Txt>
             </View>
           ) : (
             attRows.map((att, i) => {
               const st = profileOf(db, att.userId);
               return (
                 <Row key={att.userId} center gap={10} style={{ padding: 12, borderBottomWidth: i < attRows.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
-                  <Avatar name={st?.fullName ?? 'طالب'} color={st?.avatarColor ?? theme.brand} size={36} />
+                  <Avatar name={st?.fullName ?? t('management.studentFallback')} color={st?.avatarColor ?? theme.brand} size={36} />
                   <View style={{ flex: 1 }}>
-                    <Txt variant="bodyMed">{st?.fullName ?? 'طالب مسجل'}</Txt>
+                    <Txt variant="bodyMed">{st?.fullName ?? t('management.studentFallback')}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>
                       {st?.phone ? `${st.phone} · ` : ''}
-                      {att.method === 'manual' ? 'تحضير يدوي' : att.method === 'code' ? 'كود الطوارئ' : 'مسح الـ QR'}
+                      {att.method === 'manual' ? t('live.methodManual') : att.method === 'code' ? t('live.methodCode') : t('live.methodQr')}
                       {att.checkedInAt ? ` · ${formatTime(att.checkedInAt, lang)}` : ''}
                     </Txt>
                   </View>
                   <Tag
-                    label={att.status === 'late' ? 'متأخر' : att.status === 'excused' ? 'معذور' : 'حاضر'}
+                    label={att.status === 'late' ? t('history.late') : att.status === 'excused' ? t('history.excused') : t('history.present')}
                     color={att.status === 'late' ? theme.warn : att.status === 'excused' ? theme.info : theme.success}
                     bg={att.status === 'late' ? theme.warnSoft : att.status === 'excused' ? theme.brandSoft : theme.successSoft}
                   />
@@ -508,7 +508,7 @@ export function DetailedSessionReportSheet({
 
         {data.summary.absent > 0 ? (
           <Btn
-            title={`🔔 إرسال إشعار للطلاب الغائبين (${data.summary.absent})`}
+            title={t('sess.notifyAbsentees', { x: data.summary.absent })}
             variant="secondary"
             icon="notifications"
             loading={notifying}
@@ -528,7 +528,7 @@ export function DetailedSessionReportSheet({
           />
         ) : null}
 
-        <Btn title="إغلاق التقرير" size="lg" full variant="ghost" onPress={onClose} />
+        <Btn title={t('live.closeReport')} size="lg" full variant="ghost" onPress={onClose} />
       </ScrollView>
     </Sheet>
   );
@@ -585,7 +585,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
           if (active && res.students) {
             setRosterStudents(res.students.map((s) => ({
               id: s.id,
-              fullName: s.full_name || 'طالب مسجل',
+              fullName: s.full_name || t('management.studentFallback'),
               avatarColor: s.avatar_color || theme.brand,
               phone: s.phone || '',
               email: s.email || '',
@@ -640,7 +640,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
   return (
     <Sheet visible={visible} onClose={onClose} title={t('manual.title')}>
       <View style={{ gap: 12 }}>
-        <Input value={query} onChange={setQuery} placeholder="بحث بالاسم أو رقم الهاتف..." icon="search" />
+        <Input value={query} onChange={setQuery} placeholder={t('users.searchPlaceholder')} icon="search" />
         <View style={{ maxHeight: 240 }}>
           {loadingRoster && sourceStudents.length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center' }}>
@@ -652,7 +652,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
                 {students.length === 0 ? (
                   <View style={{ padding: 20, alignItems: 'center' }}>
                     <Txt color={theme.textMuted}>
-                      {sourceStudents.length === 0 ? 'لا يوجد طلاب مسجلين في هذه المجموعة' : 'تم رصد جميع الطلاب المسجلين بالكامل! ✨'}
+                      {sourceStudents.length === 0 ? t('live.noBatchStudents') : t('live.allMarked')}
                     </Txt>
                   </View>
                 ) : (

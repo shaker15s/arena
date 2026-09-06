@@ -213,6 +213,12 @@ const MIN = 60_000;
   const st1 = rpcStartSession(db, IDS.g1, IDS.sara);
   ok('session' in st1 && st1.session.id !== live0.id, 'الجلسة القادمة تُفتح بعد الإقفال', 'session' in st1 ? st1.session.id : st1.error);
 
+  console.log('\n═ 11) المسار الذهبي ═');
+  ok(p1.kind === 'ok', 'ذهبي: الطالب يسجّل حضورًا');
+  ok(live0.status === 'closed', 'ذهبي: المدرب يقفل الجلسة');
+  ok(i1.issued.length > 0, 'ذهبي: إصدار شهادة للمستحق');
+  ok(!!lookupCertificate(db, reis.serial!), 'ذهبي: التحقق العام من الشهادة');
+
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);
 })();

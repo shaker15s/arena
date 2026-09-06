@@ -17,6 +17,7 @@ import { isReducedMotion } from '../design/motion';
 import { radii, spacing } from '../design/tokens';
 import { useHaptics } from '../shared/hooks';
 import { PUBLIC_APP_URL } from '../shared/links';
+import { navigationRef } from './navRef';
 import { hasSeenOnboarding } from '../shared/onboarding';
 
 import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
@@ -517,6 +518,7 @@ export function RootNavigator() {
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 1180, alignSelf: 'center' }}>
         <NavigationContainer
+          ref={navigationRef}
           theme={navTheme}
           linking={linking}
           // اسم الشاشة فقط (لا وسائط) — يعطي تقارير الأعطال مسار المستخدم

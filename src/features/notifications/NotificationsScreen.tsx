@@ -15,6 +15,7 @@ import { SUPABASE_ENABLED } from '../../data/supabase';
 import { spacing } from '../../design/tokens';
 import { sameDay, timePast } from '../../shared/format';
 import { AppNotification } from '../../data/types';
+import { screenForNotification } from '../../shared/notifyRoute';
 
 const TYPE_META: Record<AppNotification['type'], { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   session: { icon: 'calendar', color: '#4F46E5' },
@@ -83,7 +84,13 @@ export function NotificationsScreen({ navigation }: any) {
           const meta = TYPE_META[n.type];
           return (
             <FadeIn key={n.id} index={Math.min(i, 6)}>
-              <Card style={{ opacity: n.read ? 0.85 : 1, borderColor: n.read ? theme.line : theme.brand + '55' }}>
+              <Card
+                onPress={() => {
+                  const dest = screenForNotification(n.type, user?.role);
+                  if (dest) navigation.navigate(dest.name, dest.params);
+                }}
+                style={{ opacity: n.read ? 0.85 : 1, borderColor: n.read ? theme.line : theme.brand + '55' }}
+              >
                 <Row center gap={12}>
                   <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons name={meta.icon} size={19} color={meta.color} />

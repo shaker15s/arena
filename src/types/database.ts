@@ -810,12 +810,16 @@ export interface Database {
   get_course_overview: { Args: { p_course_id: string }; Returns: Json };
   /** 0024_course_operating_system.sql */
   get_detailed_course_analytics: { Args: { p_course_id: string }; Returns: Json };
+  /** 0028_get_today.sql */
+  get_my_courses: { Args: Record<string, never>; Returns: Json };
   /** 0005_production_hardening.sql */
   get_session_qr_payload: { Args: { p_session_id: string }; Returns: Json };
   /** 0010_session_report.sql */
   get_session_report: { Args: { p_session_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_session_roster: { Args: { p_session_id: string }; Returns: Json };
+  /** 0028_get_today.sql */
+  get_today: { Args: Record<string, never>; Returns: Json };
   /** 0005_production_hardening.sql */
   is_admin: { Args: Record<string, never>; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */

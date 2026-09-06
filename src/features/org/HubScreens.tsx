@@ -25,6 +25,7 @@ import {
   getAnalytics, issueBatchCertificates, sendBroadcast, setBadgeActive, updateGamificationRule,
   type AnalyticsScope, type AnalyticsResult,
 } from '../../data/actions';
+import { saveCsv, toCsv } from '../../shared/export';
 
 // ───────────────────────────── Hub (مقسّم) ─────────────────────────────
 
@@ -71,7 +72,7 @@ export function HubScreen() {
 function AnalyticsPanel() {
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { db, user, syncing, refresh } = useApp();
+  const { db, user, syncing, refresh, toast } = useApp();
   const [scope, setScope] = useState<AnalyticsScope>('branch');
   const [scopeId, setScopeId] = useState<string | null>(null);
   const [data, setData] = useState<AnalyticsResult | null>(null);
@@ -148,7 +149,32 @@ function AnalyticsPanel() {
               <Txt variant="h2" color={data.attendanceRatio >= 75 ? theme.success : theme.warn}>{data.attendanceRatio}%</Txt>
             </Row>
           </Card>
-          <Btn title={t('common.refresh')} variant="ghost" icon="refresh" onPress={() => { void refresh(); void load(); }} loading={syncing} />
+          <Row gap={8}>
+            <View style={{ flex: 1 }}>
+              <Btn title={t('common.refresh')} variant="ghost" icon="refresh" onPress={() => { void refresh(); void load(); }} loading={syncing} full />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Btn
+                title={t('analytics.export')}
+                variant="secondary"
+                icon="download"
+                full
+                onPress={() => {
+                  const scopeKey = (`analytics.scope.${data.scope}`) as 'analytics.scope.branch';
+                  const csv = toCsv([
+                    [t(scopeKey), data.scope_id ?? t('common.all')],
+                    [t('analytics.sessions'), data.sessions],
+                    [t('analytics.enrollments'), data.enrollments],
+                    [t('analytics.attendance'), data.attendance],
+                    [t('analytics.attendanceRatio'), `${data.attendanceRatio}%`],
+                  ]);
+                  void saveCsv(`masar-analytics-${data.scope}.csv`, csv).then((ok) => {
+                    if (ok) toast(t('analytics.exported'), 'success');
+                  });
+                }}
+              />
+            </View>
+          </Row>
         </>
       ) : null}
     </View>
