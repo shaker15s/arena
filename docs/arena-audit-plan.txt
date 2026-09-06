@@ -1,0 +1,5692 @@
+# MASÄR — MASTER REBUILD & PRODUCT EXCELLENCE SPECIFICATION
+
+## الوثيقة التنفيذية الرئيسية لإعادة بناء المنتج
+
+### إلى فريق Product / UX / UI / Mobile / Backend / QA / DevOps / Security
+
+أريد التعامل مع مشروع **Masär — مسار** باعتباره **Product Rebuild / Product Excellence Project** وليس مجرد UI Redesign أو polishing للكود الحالي.
+
+الهدف ليس أن يصبح التطبيق "شكله أحسن".
+
+الهدف هو أن يصبح:
+
+> **منتجًا حقيقيًا، بسيطًا، سريعًا، مفهومًا، موثوقًا، عربيًا من الدرجة الأولى، Accessible، Responsive، ممتعًا، وقابلًا للتوسع، بحيث يشعر المستخدم أن Masär هو أفضل طريقة لإدارة تجربته التدريبية، وليس مجرد نظام إداري آخر.**
+
+---
+
+# 01 — أهم قاعدة في المشروع
+
+## DO NOT TREAT THE CURRENT UI AS THE PRODUCT SPECIFICATION
+
+الـrepository الحالي هو:
+
+* Implementation Baseline
+* Source of truth for what currently exists technically
+* مادة للتحليل
+* مصدر لاكتشاف الـexisting functionality
+* مصدر لاكتشاف الـtechnical debt
+
+لكنه **ليس UX specification**.
+
+لا تفترضوا أن:
+
+* الشاشة الحالية صحيحة لأنها موجودة.
+* الـnavigation الحالي هو أفضل navigation.
+* الـcards الموجودة يجب أن تظل.
+* الـfeatures الحالية يجب أن تظهر كلها للمستخدم.
+* الـarchitecture الحالية هي أفضل architecture.
+* الـdocumentation الحالية تمثل الحقيقة النهائية.
+* أي animation موجودة معناها أن motion system جيد.
+* أي accessibility props موجودة معناها أن التطبيق Accessible.
+* وجود backend يعني أن الـflow production-ready.
+
+كل claim يجب التحقق منه.
+
+---
+
+# 02 — الهدف الحقيقي
+
+أريد من الفريق أن يبني Masär حول سؤال واحد:
+
+> **"ما الذي يحاول هذا المستخدم إنجازه الآن؟ وكيف نجعله ينجزه بأقل عدد ممكن من الخطوات، بأقل حمل ذهني، وبأعلى درجة من الوضوح والثقة؟"**
+
+وليس:
+
+> "ما الذي نستطيع وضعه داخل الشاشة؟"
+
+الفرق بين الاثنين هو الفرق بين:
+
+**Software**
+
+و
+
+**Product.**
+
+---
+
+# 03 — رؤية Masär
+
+Masär ليس:
+
+* Attendance app فقط.
+* Course catalog فقط.
+* LMS تقليدي.
+* CRM للتدريب.
+* Gamification app فقط.
+* ERP مصغر.
+
+Masär يجب أن يكون:
+
+> **Operating system لتجربة التدريب.**
+
+بحيث يجمع:
+
+### للطالب
+
+* التدريب
+* الحضور
+* الجلسات
+* المسار
+* التقدم
+* الإنجازات
+* النقاط
+* الـstreak
+* الـcertificates
+* التواصل
+* الإشعارات
+* discoverability
+* motivation
+
+### للمدرب / المتطوع
+
+* الجلسات
+* الحضور
+* المتدربين
+* الملاحظات
+* التقييم
+* التشغيل اليومي
+
+### للإدارة
+
+* الطلاب
+* الدورات
+* الدفعات
+* الجلسات
+* المدربين
+* الحضور
+* الشهادات
+* التقارير
+* التشغيل
+* البيانات
+* الصلاحيات
+
+لكن:
+
+> **هذه الوظائف لا يجب أن تظهر جميعًا لجميع المستخدمين.**
+
+---
+
+# 04 — أهم مبدأ UX في Masär
+
+## One product, multiple mental models
+
+لا تصمموا التطبيق وكأن:
+
+> Admin + Student + Volunteer
+
+كلهم نفس الشخص.
+
+كل role لديه:
+
+* أهداف مختلفة
+* ضغط زمني مختلف
+* frequency مختلف
+* cognitive load مختلف
+* vocabulary مختلف
+* actions مختلفة
+
+لذلك يجب تصميم:
+
+## Student Experience
+
+حول:
+
+> "ماذا يحدث لي الآن؟"
+
+## Instructor Experience
+
+حول:
+
+> "ما الذي يجب أن أفعله في هذه الجلسة؟"
+
+## Admin Experience
+
+حول:
+
+> "كيف أدير النظام وأعرف ما يحتاج تدخلًا؟"
+
+---
+
+# 05 — الـGolden Rule
+
+كل شاشة يجب أن تجيب في أول ثانيتين عن:
+
+1. أنا فين؟
+2. أنا شايف إيه؟
+3. إيه أهم حاجة هنا؟
+4. أعمل إيه بعد كده؟
+
+لو المستخدم احتاج يقرأ الشاشة بالكامل عشان يفهمها:
+
+**فالشاشة فاشلة.**
+
+---
+
+# 06 — لا تبنوا Dashboard من أجل الـDashboard
+
+أحد أكبر الـanti-patterns هو:
+
+Title
+
+ثم
+
+10 Cards
+
+ثم
+
+5 KPI
+
+ثم
+
+Chart
+
+ثم
+
+List
+
+ثم
+
+Quick Actions
+
+ثم
+
+Empty space
+
+هذا يجعل الواجهة تبدو enterprise لكنها ليست necessarily useful.
+
+بدل ذلك:
+
+## Task-first UX
+
+مثلًا الطالب يدخل:
+
+### Today
+
+> صباح الخير يا أحمد 👋
+
+> عندك جلسة Python النهارده الساعة 6:00
+
+[الذهاب للجلسة]
+
+---
+
+### Progress
+
+Python Fundamentals
+
+████████░░ 82%
+
+> باقي لك جلستان على إكمال المستوى
+
+---
+
+### Streak
+
+🔥 8 أيام
+
+> لا تكسر السلسلة النهارده.
+
+---
+
+### Next
+
+الأربعاء — 6:00 PM
+
+Advanced Functions
+
+---
+
+هذا أكثر فائدة من 12 card منفصلة.
+
+---
+
+# 07 — Benchmark Philosophy
+
+نريد أن نتعلم من أفضل patterns وليس أن نقلد design حرفيًا.
+
+## Canvas
+
+نتعلم منه:
+
+* clear information hierarchy
+* course-centric navigation
+* calendar
+* tasks
+* notifications
+* predictable navigation
+* separation of content areas
+
+## Moodle
+
+نتعلم منه:
+
+* progress
+* course structure
+* offline-oriented content thinking
+* learning workflows
+
+## ClassDojo
+
+نتعلم منه:
+
+* instant feedback
+* points
+* communication
+* positive reinforcement
+* simplicity
+* teacher/student/community loops
+
+ClassDojo بالذات مهم لأن فلسفة الـPoints عنده مبنية على feedback سريع جدًا، وليس على dashboard معقد.
+
+## Duolingo
+
+نتعلم منه:
+
+* streak psychology
+* XP
+* progression
+* leagues
+* achievements
+* reward loops
+* visual feedback
+
+Duolingo نفسه يربط XP والـleaderboards والـstreak بالعودة المستمرة للتجربة.
+
+لكن:
+
+> **Masär يجب أن يكون Masär.**
+
+لا أريد Clone من أي product.
+
+---
+
+# 08 — Product Architecture
+
+أعيدوا التفكير في التطبيق من منظور:
+
+## Domain boundaries
+
+بدل:
+
+"كل شيء في التطبيق"
+
+يجب أن تكون domains واضحة:
+
+### Identity
+
+* Authentication
+* Profile
+* Roles
+* Permissions
+
+### Organization
+
+* Organization
+* Branch
+* Committee
+* Teams
+
+### Learning
+
+* Courses
+* Curriculum
+* Batches
+* Enrollment
+* Sessions
+
+### Attendance
+
+* Session
+* QR
+* Manual attendance
+* Excuses
+* Attendance history
+
+### Progress
+
+* Progress
+* Completion
+* Streak
+* XP
+* Levels
+
+### Recognition
+
+* Badges
+* Achievements
+* Leaderboards
+* Kudos
+
+### Certification
+
+* Eligibility
+* Issuance
+* Verification
+* Public certificate validation
+
+### Communication
+
+* Notifications
+* Announcements
+* Messages / support
+
+### Analytics
+
+* Attendance analytics
+* Enrollment analytics
+* Course performance
+* Instructor performance
+* Completion
+
+---
+
+# 09 — Read Architecture
+
+من أكبر المشاكل التي يجب إعادة تقييمها:
+
+الـclient لا يجب أن يعتمد على فكرة:
+
+> "هات كل الـdatabase ثم خليني أفلتر محليًا."
+
+في الحالة الحالية يوجد read model مركزي كبير يجمع عددًا كبيرًا من الجداول في fetch واحد، والـRealtime يمكن أن يؤدي إلى إعادة تحميل هذا الـmodel بالكامل. هذه architecture يمكن أن تعمل في حجم صغير، لكنها ليست الطريقة المناسبة للنمو غير المحدود.
+
+يجب الانتقال تدريجيًا إلى:
+
+## Domain-oriented queries
+
+مثل:
+
+* getToday()
+* getMyCourses()
+* getCourseOverview(courseId)
+* getBatchOverview(batchId)
+* getBatchRoster(batchId)
+* getSession(sessionId)
+* getAttendanceForSession(sessionId)
+* getMyCertificates()
+* getLeaderboard(week)
+
+بدل تحميل كل شيء.
+
+---
+
+# 10 — Realtime Architecture
+
+Realtime ليس معناه:
+
+> "أي تغيير = fetch everything."
+
+بل:
+
+> **Event → update affected domain state only.**
+
+مثال:
+
+Attendance updated
+
+لا يعني:
+
+reload
+
+* courses
+* batches
+* profiles
+* certificates
+* badges
+* notifications
+* everything
+
+بل:
+
+update attendance/session state.
+
+---
+
+# 11 — Caching Strategy
+
+يجب تعريف:
+
+### Server state
+
+ما يأتي من backend.
+
+### Client state
+
+ما يحتاج التطبيق مؤقتًا.
+
+### UI state
+
+مثل:
+
+* modal open
+* selected tab
+* filter
+* animation state
+
+### Derived state
+
+مثل:
+
+* attendance percentage
+* progress percentage
+* current streak
+
+لا تخزنوا الـderived state بلا داعٍ.
+
+---
+
+# 12 — Offline
+
+لا نريد claim مثل:
+
+> "Masär supports offline"
+
+لمجرد أن هناك cached data.
+
+Offline الحقيقي يحتاج:
+
+## Read cache
+
+*
+
+## Write queue
+
+*
+
+## retry
+
+*
+
+## idempotency
+
+*
+
+## conflict handling
+
+*
+
+## sync status
+
+مثال:
+
+المدرب يحاول تسجيل الحضور بدون إنترنت.
+
+يجب أن يعرف:
+
+> "تم حفظ التعديل على الجهاز وسيتم مزامنته عند عودة الاتصال."
+
+ثم:
+
+Pending
+
+↓
+
+Syncing
+
+↓
+
+Synced
+
+أو:
+
+Conflict
+
+↓
+
+Needs review
+
+وليس:
+
+Button لا يعمل لأن:
+
+> Network unavailable.
+
+---
+
+# 13 — Idempotency
+
+أي command يمكن أن يعاد تنفيذه دون إنشاء duplication.
+
+مثال:
+
+check-in
+
+يجب ألا يؤدي إلى:
+
+* duplicate attendance
+* duplicate point event
+* duplicate streak update
+
+لو أُرسل الطلب مرتين.
+
+استخدموا:
+
+* idempotency keys
+* unique constraints
+* server authority
+
+---
+
+# 14 — Transaction Boundaries
+
+أي action business-critical يجب أن يكون transactionally safe.
+
+أمثلة:
+
+### Enrollment
+
+لا يمكن أن يدخل شخصان آخر مقعد بطريقة race condition.
+
+### Certificates
+
+لا يمكن إصدار شهادة لشخص غير مؤهل.
+
+### Attendance
+
+لا يمكن تكرار check-in بطريقة تؤثر على الإحصاءات.
+
+### Kudos
+
+لا يمكن تجاوز quota.
+
+### Batch scheduling
+
+لا يجب أن يحدث:
+
+* instructor conflict
+* room conflict
+* session overlap
+
+كل هذا يجب أن يكون server-side.
+
+---
+
+# 15 — Current known architecture concerns يجب إعادة التحقق منها
+
+لا تفترضوا صحة أو خطأ أي نقطة بدون verification.
+
+لكن يجب specifically audit:
+
+### A
+
+Global read model / large fetch.
+
+### B
+
+Realtime-triggered full refresh.
+
+### C
+
+Offline writes.
+
+### D
+
+Room scheduling collisions.
+
+### E
+
+Certificate on-screen QR correctness.
+
+### F
+
+Roster/report PDF behavior.
+
+### G
+
+E2E authentication.
+
+### H
+
+Race-condition testing.
+
+### I
+
+Device-specific behavior.
+
+### J
+
+Documentation drift.
+
+الـforensic audit الحالي نفسه أشار إلى هذه المناطق تحديدًا، ومنها أن certificate QR المعروض على الشاشة historically كان يشفّر token ليس URL بينما نسخة PDF تستخدم URL صحيح، وأن roster export المسمى PDF كان CSV. يجب على الفريق إعادة اختبار ذلك على آخر code state قبل اعتبار أي finding نهائيًا.
+
+---
+
+# 16 — Security
+
+لا تعتمدوا على UI permissions.
+
+الـclient يمكن التلاعب به.
+
+كل security-sensitive operation يجب أن تكون محفوظة server-side.
+
+قاعدة:
+
+> UI hides things.
+
+لكن:
+
+> Backend enforces authorization.
+
+يجب اختبار:
+
+* privilege escalation
+* unauthorized record access
+* unauthorized mutations
+* role changes
+* branch isolation
+* organization isolation
+* IDOR
+* leaked sensitive fields
+* stale sessions
+* token abuse
+* replay attacks
+* QR replay
+* QR forgery
+* certificate forgery
+* invitation abuse
+* join-code abuse
+
+---
+
+# 17 — QR Attendance
+
+الـQR ليس مجرد UI.
+
+يجب تصميمه كـsecurity-sensitive protocol.
+
+يجب تعريف:
+
+* token format
+* expiry
+* session binding
+* user binding
+* signature
+* replay prevention
+* duplicate prevention
+
+سيناريو:
+
+طالب يأخذ screenshot للـQR.
+
+السؤال:
+
+هل يستطيع استخدامه بعد انتهاء الجلسة؟
+
+إذا نعم، هناك problem.
+
+السؤال:
+
+هل يستطيع طالب تسجيل حضور طالب آخر؟
+
+إذا نعم، هناك severe problem.
+
+---
+
+# 18 — Accessibility
+
+أريد:
+
+> Accessibility by architecture.
+
+وليس accessibility patch في آخر sprint.
+
+WCAG 2.2 يضع متطلبات واضحة مثل:
+
+* contrast
+* text resize
+* reflow
+* focus
+* target size
+* animation
+* semantics
+* status messages.
+
+---
+
+# 19 — Touch targets
+
+لا تعتمدوا على visual size فقط.
+
+مثلاً icon صغير 20x20 ممكن يكون مقبول بصريًا، لكن الـinteractive target يجب أن يكون كبيرًا بما يكفي.
+
+WCAG 2.2 Target Size Minimum يضع 24×24 CSS px كحد أدنى في حالات pointer input مع استثناءات محددة.
+
+وبالنسبة لتصميم mobile-native:
+
+استهدفوا controls أكبر، مع spacing واضح.
+
+Apple نفسها توصي بحجم default 44×44 points على iOS، وتؤكد أن spacing بين العناصر مهم كذلك.
+
+---
+
+# 20 — Typography
+
+Arabic typography ليست ترجمة English typography.
+
+يجب تصميم:
+
+### Arabic-first typography system
+
+مع:
+
+* Arabic font chosen intentionally
+* proper line-height
+* Arabic numerals policy
+* Latin mixing
+* English terms
+* long names
+* diacritics
+* punctuation
+* RTL ordering
+
+اختبروا:
+
+> محمد عبد الرحمن أحمد عطالله
+
+*
+
+> Python & Artificial Intelligence
+
+*
+
+> 15/09/2026
+
+*
+
+> 98.7%
+
+في نفس الواجهة.
+
+---
+
+# 21 — Arabic/RTL
+
+لا تعتبروا:
+
+`I18nManager.isRTL`
+
+حلًا كافيًا.
+
+RTL يعني:
+
+* semantic direction
+* icon direction
+* spacing
+* alignment
+* animation direction
+* navigation direction
+* charts
+* dates
+* numbers
+* mixed content
+* truncation
+* accessibility reading order
+
+---
+
+# 22 — Icons in RTL
+
+ليس كل icon يجب قلبه.
+
+مثال:
+
+### Arrow forward
+
+يجب احترام semantic direction.
+
+لكن:
+
+### Camera
+
+لا ينقلب.
+
+### Check
+
+لا ينقلب.
+
+### Refresh
+
+ليس بالضرورة ينقلب.
+
+هذه decisions يجب تكون ضمن Iconography rules.
+
+---
+
+# 23 — Text Layout
+
+ممنوع:
+
+* clipping
+* truncation بدون سبب
+* overlapping
+* fixed-height text containers
+* text disappearing بسبب width
+* Arabic glyph corruption
+
+أي text critical يجب أن يسمح بالنمو.
+
+---
+
+# 24 — Dynamic Type / Font Scaling
+
+اختبروا:
+
+100%
+
+125%
+
+150%
+
+175%
+
+200%
+
+بدون:
+
+* clipped text
+* overlapping buttons
+* inaccessible actions
+* broken cards
+
+على الويب، WCAG 2.2 يطلب دعم تكبير النص إلى 200% بدون فقدان المحتوى أو الوظيفة.
+
+وفي React Native يجب الاستفادة من font scaling بدل بناء UI يعتمد على أحجام نصوص ثابتة لا تتحمل التوسع.
+
+---
+
+# 25 — Reflow
+
+اختبروا الـresponsive system على الأقل عند:
+
+* 320 px
+* 360 px
+* 375 px
+* 390 px
+* 412 px
+* 768 px
+* 1024 px
+* large desktop
+
+WCAG 2.2 يعرّف reflow عند عرض مكافئ لـ320 CSS px لمعظم المحتوى بدون فقدان الوظيفة أو الحاجة إلى scrolling في اتجاهين، مع استثناءات محددة للمحتوى ثنائي الأبعاد مثل بعض الجداول والخرائط.
+
+---
+
+# 26 — Mobile first
+
+لا تبنوا:
+
+Desktop UI
+
+ثم:
+
+"نصغره للموبايل."
+
+هذا غالبًا ينتج:
+
+* tiny buttons
+* compressed cards
+* overflow
+* nested scroll
+* desktop mental model على الهاتف.
+
+ابنوا mobile experience أولًا.
+
+ثم expand إلى:
+
+Tablet
+
+ثم Desktop.
+
+---
+
+# 27 — Responsive transformation
+
+لا يكفي:
+
+`flexWrap`
+
+responsive الحقيقي يعني:
+
+### Mobile
+
+single-column task flow
+
+### Tablet
+
+two-column where useful
+
+### Desktop
+
+multi-column workspace
+
+لكن:
+
+> لا تغيروا information hierarchy لمجرد وجود مساحة.
+
+---
+
+# 28 — Navigation
+
+الـbottom tab bar يجب أن يحتوي على top-level destinations فقط.
+
+Apple توضح أن tab bars مخصصة للتنقل بين مناطق أساسية مستقلة، وتوصي بعدم تجاوز عدد كبير من tabs؛ وأكثر من ستة يصير overwhelming.
+
+لذلك:
+
+## Student
+
+اقتراح:
+
+* Today
+* Explore
+* Journey
+* Profile
+
+-
+
+Central high-value action:
+
+Scan
+
+لكن لا تجعلوا الـFAB مجرد decoration.
+
+---
+
+# 29 — Navigation principle
+
+كل level يجب أن يكون منطقيًا.
+
+مثال:
+
+Today
+
+↓
+
+Session
+
+↓
+
+Attendance
+
+↓
+
+Success
+
+وليس:
+
+Today
+
+↓
+
+random modal
+
+↓
+
+nested modal
+
+↓
+
+another screen
+
+↓
+
+back
+
+↓
+
+another state
+
+---
+
+# 30 — Do not overuse modals
+
+Modal should be used عندما:
+
+* يحتاج decision
+* يحتاج short task
+* يحافظ على context
+
+لكن workflows الكبيرة:
+
+* create course
+* create batch
+* edit profile
+* schedule sessions
+
+يجب ألا تتحول إلى:
+
+modal داخل modal داخل modal.
+
+---
+
+# 31 — Forms
+
+Form design يجب أن يكون:
+
+* grouped
+* progressive
+* validated
+* recoverable
+* accessible
+* forgiving
+
+لا تعرضوا 20 field مرة واحدة إلا إذا هناك سبب قوي.
+
+---
+
+# 32 — Validation
+
+لا تجعل المستخدم يضغط Submit ليعرف كل شيء.
+
+استخدموا:
+
+* inline validation
+* clear error messages
+* valid/invalid states
+* focus management
+
+Bad:
+
+> Invalid input.
+
+Good:
+
+> رقم الهاتف يجب أن يبدأ بـ01 ويتكوّن من 11 رقمًا.
+
+---
+
+# 33 — Empty states
+
+Empty state ليست:
+
+> لا يوجد بيانات.
+
+يجب أن تكون:
+
+### Explanation
+
+ما الذي يحدث؟
+
+### Reason
+
+ليه؟
+
+### Next step
+
+أعمل إيه؟
+
+مثال:
+
+> لسه ما انضمتش لأي دورة.
+
+> استكشف الدورات المتاحة في فرعك.
+
+[استكشف الدورات]
+
+---
+
+# 34 — Loading States
+
+لا تستخدموا spinner لكل شيء.
+
+استخدموا:
+
+### skeleton
+
+للـstructural loading
+
+### optimistic update
+
+للعمليات الآمنة
+
+### progress
+
+للعمليات الطويلة
+
+### immediate feedback
+
+للعمليات السريعة
+
+---
+
+# 35 — Error States
+
+يجب أن يكون لكل error:
+
+* واضح
+* actionable
+* recoverable
+
+مثال:
+
+Bad:
+
+> Something went wrong.
+
+Good:
+
+> مش قادرين نحمل بيانات الجلسة حاليًا.
+
+[حاول مرة أخرى]
+
+ولو السبب معروف:
+
+> الإنترنت غير متاح. آخر نسخة محفوظة موجودة على جهازك.
+
+---
+
+# 36 — Motion Philosophy
+
+Motion ليس decoration.
+
+Motion يجب أن:
+
+* explain
+* orient
+* confirm
+* reward
+* connect
+
+Apple توصي بأن تكون motion purposeful، brief، precise، وألا تعوق المستخدم، مع توفير بدائل مثل haptics/audio حيث المناسب.
+
+---
+
+# 37 — Motion hierarchy
+
+اعتمدوا نظامًا واضحًا:
+
+### Micro
+
+80–160ms
+
+* press
+* icon state
+* tiny feedback
+
+### Fast
+
+160–220ms
+
+* selection
+* small transitions
+
+### Standard
+
+220–300ms
+
+* screen transitions
+* card expansion
+
+### Emphasis
+
+300–500ms
+
+* success
+* important feedback
+
+### Celebration
+
+500–900ms
+
+* streak
+* badge
+* level-up
+
+لا تجعلوا كل شيء يتحرك.
+
+---
+
+# 38 — Motion should communicate hierarchy
+
+مثال:
+
+User taps Check-in
+
+↓
+
+button feedback
+
+↓
+
+processing
+
+↓
+
+success
+
+↓
+
+XP appears
+
+↓
+
+streak updates
+
+الanimation هنا لها narrative.
+
+---
+
+# 39 — Motion Anti-patterns
+
+ممنوع:
+
+* random floating objects
+* infinite decorative animations
+* excessive bounce
+* parallax بلا معنى
+* unnecessary blur animation
+* screen transition طويلة
+* motion في كل card
+* animation قبل كل navigation
+* decorative particles في كل مكان
+
+---
+
+# 40 — Reduced Motion
+
+يجب احترام:
+
+`prefers-reduced-motion`
+
+والـplatform reduced-motion settings.
+
+عند التفعيل:
+
+* reduce translation
+* remove unnecessary scale
+* remove repeated loops
+* remove celebration explosions
+* replace spatial transitions with fade
+
+Apple توصي صراحة بتقليل zoom/scaling/peripheral motion عند Reduce Motion، وتفضيل fades على الحركة المحورية.
+
+WCAG 2.2 يتناول كذلك animation from interactions وإمكانية تعطيل motion غير الضرورية.
+
+---
+
+# 41 — Gamification
+
+Gamification ليست:
+
+* fire emoji
+* colorful badge
+* progress bar
+
+Gamification هي behavioral system.
+
+يجب أن توجد:
+
+### Goal
+
+شيء واضح أحاول الوصول له.
+
+### Progress
+
+أين أنا؟
+
+### Feedback
+
+ماذا حصل عندما فعلت ذلك؟
+
+### Reward
+
+ما الذي حصلت عليه؟
+
+### Identity
+
+ما الذي أصبحت عليه؟
+
+### Social layer
+
+أين أقف بالنسبة لغيري، إذا كان ذلك مناسبًا؟
+
+---
+
+# 42 — Masär Gamification Loop
+
+مثال:
+
+Attend session
+
+↓
+
++XP
+
+↓
+
+progress increases
+
+↓
+
+streak maintained
+
+↓
+
+badge unlocked
+
+↓
+
+journey progresses
+
+↓
+
+next target appears
+
+هذه loop متكاملة.
+
+---
+
+# 43 — Do not over-gamify
+
+ليس كل شيء يجب أن يكون:
+
+🔥 🏆 🎉
+
+المستخدم الإداري يريد السرعة.
+
+المدرب يريد الوضوح.
+
+الطالب يمكن أن يستمتع بالmotivation.
+
+إذن gamification يجب أن تتكيف حسب role.
+
+---
+
+# 44 — Student Home
+
+أريد من الفريق إعادة التفكير في Today من الصفر.
+
+اقتراح structure:
+
+## Header
+
+Greeting
+
+Profile
+
+Notifications
+
+---
+
+## Main priority
+
+### Next session
+
+Course
+
+Time
+
+Location
+
+Instructor
+
+Status
+
+Primary CTA
+
+---
+
+## Progress
+
+Current course / journey
+
+---
+
+## Streak
+
+---
+
+## Recent achievements
+
+---
+
+## Upcoming
+
+لكن الترتيب يجب أن يتغير حسب urgency.
+
+مثال:
+
+لو عنده session بعد 20 دقيقة:
+
+الجلسة تصبح أعلى priority.
+
+---
+
+# 45 — Attendance Golden Path
+
+أريد هذا الـflow شبه مثالي:
+
+Today
+
+↓
+
+Upcoming Session
+
+↓
+
+Session Details
+
+↓
+
+Check in
+
+↓
+
+QR Scanner
+
+↓
+
+processing
+
+↓
+
+success
+
+↓
+
+"تم تسجيل حضورك"
+
+↓
+
++XP
+
+↓
+
+streak update
+
+↓
+
+next action
+
+هذا يجب أن يكون من أسرع وأوضح flows في المنتج.
+
+---
+
+# 46 — Attendance UX
+
+في نجاح check-in:
+
+لا تعرضوا فقط:
+
+> Success.
+
+اعرضوا:
+
+> تم تسجيل حضورك ✅
+
+> Python Fundamentals
+
+> Session 04
+
+> +20 XP
+
+> 🔥 Streak: 8 أيام
+
+[عرض مساري]
+
+لكن لا تجعلوا الـcelebration تمنع التفاعل.
+
+---
+
+# 47 — Scan UX
+
+Scanner يجب أن يوضح:
+
+* ما الذي أفعله؟
+* أين أوجّه الكاميرا؟
+* هل الكاميرا تعمل؟
+* هل الـQR صالح؟
+* ماذا حدث؟
+
+Error:
+
+> الكود غير صالح
+
+ليس كافيًا.
+
+أوضح:
+
+> الكود ده خاص بجلسة انتهت.
+
+[حاول بكود آخر]
+
+---
+
+# 48 — Course Experience
+
+Course page يجب أن تجيب:
+
+* ما هي الدورة؟
+* لماذا أهتم بها؟
+* تقدمي كام؟
+* الجلسة القادمة إمتى؟
+* حضرت كام؟
+* ماذا بقي؟
+* من المدرب؟
+* ما الذي سأحصل عليه؟
+
+---
+
+# 49 — Course information hierarchy
+
+لا تعرضوا:
+
+Title
+
+Description
+
+Topics
+
+Instructor
+
+Color
+
+Sessions count
+
+Status
+
+…
+
+بنفس الوزن.
+
+يجب أن يوجد:
+
+### Primary
+
+Course title
+
+Progress
+
+Next session
+
+### Secondary
+
+Instructor
+
+Schedule
+
+Location
+
+### Tertiary
+
+Metadata
+
+description
+
+technical information
+
+---
+
+# 50 — Admin UX
+
+الإدارة تحتاج information density أعلى.
+
+لكن:
+
+> density ≠ clutter.
+
+استخدموا:
+
+* tables
+* filters
+* search
+* command actions
+* bulk actions
+* contextual actions
+
+---
+
+# 51 — Admin Dashboard
+
+لا تجعلوا أول شيء:
+
+Total students: 4,231
+
+Total courses: 28
+
+Total batches: 97
+
+إلا إذا كانت useful.
+
+الأفضل:
+
+### Needs attention
+
+* 7 sessions بدون instructor
+* 3 batches بها scheduling conflicts
+* 12 pending excuses
+* 4 certificates ready
+* 2 low attendance groups
+
+هذه معلومات actionable.
+
+---
+
+# 52 — Tables
+
+على desktop:
+
+real tables.
+
+لكن mobile:
+
+لا تضغط table إلى حجم غير مقروء.
+
+يمكن transformation إلى:
+
+* stacked rows
+* cards
+* horizontally scrollable data table where necessary
+
+مع الحفاظ على semantics والوضوح.
+
+---
+
+# 53 — Bulk actions
+
+Admin workflows غالبًا repetitive.
+
+يجب دعم:
+
+* multi-select
+* bulk attendance review
+* bulk enrollment
+* bulk notifications
+* bulk certificate issuance
+
+ولكن مع safeguards للـdestructive actions.
+
+---
+
+# 54 — Destructive operations
+
+مثل:
+
+Delete batch
+
+يجب أن يكون:
+
+* explicit
+* clearly labeled
+* recoverable where possible
+* confirmation when destructive
+
+لا تستخدم:
+
+> "Are you sure?"
+
+فقط.
+
+بل:
+
+> حذف دفعة Python — Batch 04
+
+> سيؤدي ذلك إلى حذف/تعطيل X جلسة وY طالب.
+
+[إلغاء]
+
+[حذف الدفعة]
+
+---
+
+# 55 — Permissions UX
+
+Role-based UI يجب أن يكون:
+
+* understandable
+* predictable
+* consistent
+
+لا تجعلوا المستخدم يرى button ثم يحصل على:
+
+> Unauthorized.
+
+الأفضل ألا يظهر action أصلًا عندما لا يملك permission.
+
+لكن security يجب أن تظل enforced server-side.
+
+---
+
+# 56 — Design System
+
+أريد Design System حقيقي وليس مجموعة components فقط.
+
+يجب أن يحتوي على:
+
+## Foundations
+
+* color
+* spacing
+* typography
+* radius
+* elevation
+* shadows
+* motion
+* icons
+* grid
+
+## Components
+
+* Button
+* IconButton
+* Input
+* Select
+* Search
+* Tabs
+* Segmented Control
+* Card
+* List
+* Sheet
+* Dialog
+* Toast
+* Banner
+* Badge
+* Chip
+* Avatar
+* Skeleton
+* Progress
+* Table
+* Empty State
+* Error State
+* Status
+
+---
+
+# 57 — Tokens
+
+لا تكتبوا:
+
+color="#4F46E5"
+
+في كل مكان.
+
+استخدموا semantic tokens:
+
+`color.text.primary`
+
+`color.text.secondary`
+
+`color.surface.primary`
+
+`color.surface.elevated`
+
+`color.action.primary`
+
+`color.status.success`
+
+وهكذا.
+
+---
+
+# 58 — Colors
+
+اللون يجب أن يكون functional.
+
+لا تستخدموا color فقط لتمييز:
+
+success/error/warning/status.
+
+لأن color-only communication غير accessible.
+
+استخدموا:
+
+* icon
+* label
+* shape
+* text
+* contrast
+
+بالإضافة للون.
+
+---
+
+# 59 — Glassmorphism
+
+Glass يجب استخدامه بحذر.
+
+لا تجعلوا:
+
+كل card
+
+كل surface
+
+كل section
+
+Glass.
+
+استخدموا glass فقط حيث يخدم:
+
+* floating layers
+* navigation
+* overlays
+* contextual surfaces
+
+لكن المحتوى الأساسي يجب أن يبقى عالي readability.
+
+---
+
+# 60 — Contrast
+
+الـtext الأساسي يجب أن يحقق accessibility requirements.
+
+WCAG 2.2 يطلب 4.5:1 للنصوص العادية و3:1 للنصوص الكبيرة ضمن SC 1.4.3.
+
+اختبروا contrast آليًا وميدانيًا.
+
+---
+
+# 61 — Visual hierarchy
+
+كل شاشة يجب أن تحتوي على:
+
+### Level 1
+
+Primary task / title
+
+### Level 2
+
+Supporting information
+
+### Level 3
+
+Metadata
+
+### Level 4
+
+Optional actions
+
+لو كل شيء bold:
+
+فلا شيء مهم.
+
+---
+
+# 62 — Spacing
+
+Spacing system يجب أن يكون consistent.
+
+4pt grid أو tokenized scale مقبول.
+
+لكن:
+
+لا تجعلوا الـgrid dogma.
+
+الهدف:
+
+* rhythm
+* grouping
+* readability
+
+---
+
+# 63 — Cards
+
+Card proliferation من أكبر مشاكل enterprise UI.
+
+لا تستخدموا card لأن:
+
+> "المعلومة داخل مربع."
+
+استخدم card فقط عندما هناك:
+
+* grouping
+* hierarchy
+* interaction
+* separation
+
+قائمة بسيطة أفضل من 7 cards أحيانًا.
+
+---
+
+# 64 — Accessibility Semantics
+
+في React Native، يجب استخدام:
+
+* `accessibilityRole`
+* `accessibilityLabel`
+* `accessibilityState`
+* proper grouping
+* proper hints where needed
+
+React Native يوضح أن `accessibilityRole` يحدد purpose للـassistive technology.
+
+لا تستخدموا:
+
+`<View onPress={...}>`
+
+وتعتبرونه button.
+
+---
+
+# 65 — Screen reader
+
+اختبروا:
+
+### iOS
+
+VoiceOver
+
+### Android
+
+TalkBack
+
+يجب أن يستطيع المستخدم:
+
+* login
+* navigate
+* inspect course
+* join batch
+* scan / perform alternative attendance
+* inspect notification
+* inspect progress
+* use profile
+
+بدون الاعتماد على vision.
+
+---
+
+# 66 — Focus management
+
+بعد action مهم:
+
+* move focus logically
+* announce status
+
+مثال:
+
+بعد نجاح check-in:
+
+Screen reader يجب أن يعرف:
+
+> تم تسجيل حضورك بنجاح.
+
+وليس فقط animation بصري.
+
+---
+
+# 67 — Keyboard accessibility
+
+لو web version أو desktop/web support:
+
+اختبروا keyboard:
+
+* Tab
+* Shift+Tab
+* Enter
+* Space
+* Escape
+* arrows حيث مناسب
+
+ولا يوجد:
+
+keyboard trap.
+
+WCAG 2.2 يغطي keyboard access وfocus order وfocus visibility وغيرها.
+
+---
+
+# 68 — Performance
+
+الأداء ليس:
+
+> app opens eventually.
+
+نريد:
+
+### Fast initial experience
+
+### Fast navigation
+
+### Predictable network behavior
+
+### No unnecessary full refresh
+
+### No unnecessary re-render
+
+### No giant payloads
+
+### No UI freeze
+
+---
+
+# 69 — Performance budget
+
+ضعوا targets واضحة، ثم قيسوا فعليًا.
+
+أريد target تقريبي للـuser experience:
+
+* launch perceived fast
+* navigation near-instant
+* common interactions <300ms perceived response
+* no obvious frame drops
+* large lists virtualized
+* no unnecessary all-database fetching
+
+الأرقام يجب أن تكون قابلة للقياس وليست marketing.
+
+---
+
+# 70 — Lists
+
+لا renderوا 1,000 item مرة واحدة.
+
+استخدموا:
+
+* virtualization
+* pagination
+* server filtering
+* incremental loading
+
+خصوصًا:
+
+* students
+* attendance
+* notifications
+* certificates
+* sessions
+
+---
+
+# 71 — Search
+
+Search يجب أن يكون:
+
+* debounced
+* server-aware عند البيانات الكبيرة
+* typo-tolerant حيث مناسب
+* Arabic-aware
+
+اختبروا:
+
+> محمد
+
+> محم
+
+> Mohammad
+
+> MOHAMED
+
+> أحمد محمد
+
+---
+
+# 72 — Arabic Search
+
+خذوا في الاعتبار Arabic normalization عند الحاجة:
+
+* أ
+* إ
+* آ
+
+والـspacing والـdiacritics.
+
+لكن لا تغيروا البيانات الأصلية.
+
+استخدموا normalized search layer.
+
+---
+
+# 73 — Data integrity
+
+يجب أن يكون لكل domain invariants.
+
+مثال:
+
+### Enrollment
+
+active_count <= capacity
+
+### Attendance
+
+one attendance / student / session
+
+### Certificate
+
+eligible == true
+
+### Session
+
+starts_at < ends_at
+
+### Batch
+
+course.sessions_count == generated sessions count
+
+---
+
+# 74 — Scheduling
+
+Scheduling ليس فقط datetime fields.
+
+يجب audit:
+
+* instructor collision
+* room collision
+* same batch overlapping sessions
+* branch constraints
+* unavailable slots
+* timezone
+* daylight-saving assumptions where relevant
+* past-date creation rules
+
+أي schedule conflict يجب أن يكون واضحًا للuser قبل commit إن أمكن، وserver-validated دائمًا.
+
+---
+
+# 75 — Date/time
+
+لا تستخدموا device locale بشكل عشوائي.
+
+حددوا:
+
+* timezone source
+* storage format
+* display format
+* locale behavior
+
+واختبروا:
+
+* midnight
+* same-day
+* cross-day
+* month boundaries
+* timezone changes
+
+---
+
+# 76 — Certificates
+
+Certificate system يجب أن يكون:
+
+### Beautiful
+
+*
+
+### Verifiable
+
+*
+
+### Secure
+
+---
+
+# 77 — Certificate verification
+
+QR على certificate يجب أن يؤدي إلى verification flow حقيقي.
+
+ليس token غامضًا بدون meaningful route.
+
+Verification page يجب أن تعرض:
+
+* certificate status
+* recipient
+* course
+* organization
+* issue date
+* serial
+* integrity signal
+
+ولا تعرض sensitive information أكثر من اللازم.
+
+---
+
+# 78 — Public verification
+
+يجب أن يستطيع الشخص الخارجي:
+
+Scan
+
+↓
+
+Open URL
+
+↓
+
+Verify
+
+بدون login.
+
+لكن:
+
+لا يستطيع تعديل أي شيء.
+
+---
+
+# 79 — Notifications
+
+Notifications لا يجب أن تكون dumping ground.
+
+قسموها إلى:
+
+* important
+* action required
+* informational
+* social/reward
+
+واجعلوا:
+
+Unread
+
+مع meaningful grouping.
+
+---
+
+# 80 — Notification priority
+
+لا notify المستخدم لكل شيء.
+
+اسألوا:
+
+> هل يحتاج أن يعرف هذا الآن؟
+
+> هل يحتاج أن يفعل شيئًا؟
+
+> هل يمكن تأجيله؟
+
+---
+
+# 81 — Copywriting
+
+اللغة يجب أن تكون:
+
+Arabic-first
+
+Clear
+
+Human
+
+Short
+
+Confident
+
+بدون:
+
+* robotic translations
+* corporate jargon
+* English leakage
+* generic error messages
+
+---
+
+# 82 — Egyptian Arabic vs Modern Arabic
+
+حددوا voice.
+
+المنتج يمكن أن يستخدم:
+
+### UI core
+
+عربية مفهومة وحديثة.
+
+### Microcopy
+
+ودودة وقريبة.
+
+مثل:
+
+> جاهز للجلسة؟
+
+أفضل من:
+
+> الرجاء التوجه إلى الجلسة الخاصة بك.
+
+لكن:
+
+الأجزاء الرسمية:
+
+* certificate
+* admin/legal messages
+
+يمكن أن تكون أكثر formal.
+
+يجب توحيد voice & tone guide.
+
+---
+
+# 83 — Microcopy Examples
+
+Bad:
+
+> Submit
+
+Better:
+
+> تأكيد
+
+Bad:
+
+> Error
+
+Better:
+
+> حصلت مشكلة
+
+Bad:
+
+> No data
+
+Better:
+
+> مفيش بيانات لسه
+
+حسب السياق.
+
+---
+
+# 84 — Onboarding
+
+Onboarding يجب ألا يكون marketing tour.
+
+هدفه:
+
+* clarify value
+* collect minimum necessary information
+* get user to first success
+
+أريد:
+
+### First session
+
+User understands:
+
+> ما Masär؟
+
+ثم:
+
+> ماذا أفعل الآن؟
+
+ثم:
+
+> success سريع.
+
+---
+
+# 85 — Time to First Value
+
+قياس مهم:
+
+> كم ثانية يحتاج المستخدم حتى يصل لأول قيمة حقيقية؟
+
+للـstudent:
+
+First useful action.
+
+للـadmin:
+
+First meaningful management task.
+
+قللوا هذا الرقم.
+
+---
+
+# 86 — First-use state machine
+
+يجب تعريف:
+
+New user
+
+↓
+
+Authenticated
+
+↓
+
+Profile incomplete
+
+↓
+
+Profile complete
+
+↓
+
+No enrollment
+
+↓
+
+Enrolled
+
+↓
+
+Has upcoming session
+
+↓
+
+Active user
+
+كل state يجب أن يكون لها UI واضحة.
+
+لا تجعلوا state الجديدة تؤدي إلى صفحة فارغة.
+
+---
+
+# 87 — State Design
+
+لكل feature:
+
+### Loading
+
+### Loaded
+
+### Empty
+
+### Error
+
+### Offline
+
+### Permission denied
+
+### Partial
+
+### Updating
+
+### Success
+
+### Conflict
+
+هذه ليست edge cases.
+
+هذه هي المنتج.
+
+---
+
+# 88 — Product states matrix
+
+مثلًا Course:
+
+| State             | UI                   |
+| ----------------- | -------------------- |
+| loading           | skeleton             |
+| empty             | explanation          |
+| active            | full course          |
+| archived          | archived state       |
+| unavailable       | explanation          |
+| network error     | retry/cache          |
+| permission denied | no access            |
+| partial data      | non-blocking warning |
+
+---
+
+# 89 — QA Philosophy
+
+لا أريد:
+
+> "الـapp اشتغل عندنا."
+
+أريد:
+
+> **Evidence-based release.**
+
+---
+
+# 90 — Definition of Done
+
+Feature لا تعتبر Done إلا عندما:
+
+1. functionality works
+2. backend validated
+3. loading works
+4. empty works
+5. error works
+6. offline behavior defined
+7. accessibility tested
+8. RTL tested
+9. dynamic font tested
+10. small screen tested
+11. tablet tested
+12. performance checked
+13. analytics/events checked where required
+14. security checked
+15. automated test exists where appropriate
+
+---
+
+# 91 — Device Matrix
+
+اختبروا على الأقل:
+
+## iPhone
+
+* small
+* standard
+* Pro Max
+
+## Android
+
+* 360×800
+* 390×844
+* 412×915
+
+## Tablet
+
+* portrait
+* landscape
+
+## Web if supported
+
+* 1024
+* 1280
+* 1440
+* 1920
+
+---
+
+# 92 — Accessibility QA Matrix
+
+اختبروا:
+
+### Vision
+
+* large text
+* contrast
+* color blindness considerations
+* screen reader
+
+### Motor
+
+* large targets
+* spacing
+* switch/accessibility controls
+
+### Motion
+
+* reduced motion
+
+### Cognitive
+
+* simple labels
+* predictable navigation
+* no time-critical hidden UI
+
+---
+
+# 93 — WCAG target
+
+استهدفوا:
+
+> **WCAG 2.2 AA**
+
+وليس فقط:
+
+"no obvious accessibility issue."
+
+التعامل مع contrast/reflow/target size/focus/motion يجب أن يكون جزءًا من acceptance criteria.
+
+---
+
+# 94 — Visual QA
+
+كل screen يجب screenshot test لها عند:
+
+* small mobile
+* standard mobile
+* large mobile
+* tablet
+* desktop
+
+واستخدموا visual regression testing حيث مناسب.
+
+---
+
+# 95 — Interaction QA
+
+اختبروا:
+
+* tap
+* swipe
+* back
+* modal
+* keyboard
+* orientation
+* deep link
+* notification open
+* app killed/reopened
+* background/foreground
+
+---
+
+# 96 — Network QA
+
+اختبروا:
+
+### Fast
+
+### Slow
+
+### Intermittent
+
+### Offline
+
+### Reconnect
+
+### Server timeout
+
+### Server error
+
+### Auth expiration
+
+---
+
+# 97 — Data volume QA
+
+اختبروا:
+
+0
+
+1
+
+10
+
+30
+
+100
+
+500
+
+1,000
+
+5,000+
+
+items
+
+خصوصًا:
+
+* students
+* courses
+* notifications
+* attendance
+* certificates
+
+---
+
+# 98 — Security QA
+
+استخدموا threat-modeling قبل release.
+
+اختبروا:
+
+* broken access control
+* IDOR
+* role escalation
+* organization isolation
+* branch isolation
+* token replay
+* QR replay
+* mass assignment
+* direct DB access attempts
+* RPC abuse
+* input validation
+* rate limiting
+
+---
+
+# 99 — API / RPC design
+
+كل mutation business-critical يجب أن تكون:
+
+* explicit
+* typed
+* validated
+* authorized
+* observable
+* idempotent where required
+
+لا تستخدموا generic CRUD APIs لكل شيء لو business rule يحتاج transaction.
+
+---
+
+# 100 — Observability
+
+نحتاج:
+
+* error tracking
+* performance monitoring
+* network failure tracking
+* crash reporting
+* important business event logging
+
+لكن:
+
+لا تسجلوا sensitive data بلا داعٍ.
+
+---
+
+# 101 — Analytics
+
+Analytics لا يعني tracking كل click.
+
+track:
+
+### User value
+
+* completed onboarding
+* joined course
+* attended session
+* completed course
+* earned certificate
+
+### Product health
+
+* session failure rate
+* check-in failure rate
+* sync failure
+* API latency
+* crash rate
+
+---
+
+# 102 — Product metrics
+
+راقبوا:
+
+### Activation
+
+هل المستخدم وصل لأول قيمة؟
+
+### Engagement
+
+كم مرة يعود؟
+
+### Attendance
+
+هل الحضور يتحسن؟
+
+### Completion
+
+هل يكملون البرامج؟
+
+### Retention
+
+هل يرجعون؟
+
+### Operational efficiency
+
+هل الإدارة أنجزت العمل أسرع؟
+
+---
+
+# 103 — Performance metrics
+
+راقبوا:
+
+* cold start
+* warm start
+* route transition
+* API latency
+* payload size
+* render time
+* JS thread stalls
+* dropped frames
+* memory
+
+---
+
+# 104 — Architecture code quality
+
+أريد:
+
+* small modules
+* clear responsibility
+* no giant god components
+* no business logic hidden in UI
+* no duplicated domain logic
+* no random constants
+* no magic strings
+* no circular dependencies
+
+---
+
+# 105 — Component architecture
+
+مثال:
+
+Bad:
+
+`TodayScreen.tsx`
+
+2000 lines
+
+contains:
+
+* UI
+* fetching
+* formatting
+* attendance
+* gamification
+* notifications
+* navigation
+
+Better:
+
+`TodayScreen`
+
+↓
+
+`TodayViewModel`
+
+↓
+
+domains/services
+
+↓
+
+components
+
+---
+
+# 106 — State architecture
+
+افصلوا:
+
+### Server state
+
+from
+
+### Client UI state
+
+from
+
+### domain derived state.
+
+لا تجعلوا كل application state داخل global store لمجرد أنه سهل.
+
+---
+
+# 107 — Testing pyramid
+
+نحتاج:
+
+### Unit tests
+
+business logic
+
+### Integration tests
+
+services / API / RPC contracts
+
+### E2E
+
+critical user flows
+
+### Visual regression
+
+screens
+
+### Accessibility tests
+
+critical flows
+
+---
+
+# 108 — Critical E2E flows
+
+يجب أن تكون لدينا automated tests على الأقل لـ:
+
+### Auth
+
+login/logout/session restore
+
+### Student
+
+onboarding
+
+profile completion
+
+course discovery
+
+join batch
+
+view session
+
+attendance
+
+progress
+
+certificate
+
+verification
+
+### Instructor
+
+view batch
+
+start session
+
+QR
+
+manual attendance
+
+close session
+
+### Admin
+
+create course
+
+create batch
+
+schedule sessions
+
+manage enrollment
+
+issue certificates
+
+---
+
+# 109 — Golden Path
+
+الـGolden Path الأول الذي يجب أن يصل إلى exceptional quality:
+
+> New student → onboarding → discover course → join batch → see upcoming session → check in → receive feedback → see progress.
+
+لا تنتقلوا إلى عشرات التفاصيل قبل إتقان هذا.
+
+---
+
+# 110 — Admin Golden Path
+
+الثاني:
+
+> Admin → create course → create batch → schedule sessions → assign instructor → publish → students join → instructor runs session → attendance recorded.
+
+هذا هو operational backbone.
+
+---
+
+# 111 — Certificate Golden Path
+
+الثالث:
+
+> Course completed → eligibility calculated → certificate issued → certificate viewed → QR scanned → public verification.
+
+كل link في هذا chain يجب أن يكون حقيقيًا.
+
+---
+
+# 112 — Error-driven design
+
+صمموا workflows failure-first.
+
+مثال attendance:
+
+### Scenario
+
+network dies.
+
+### Scenario
+
+QR expired.
+
+### Scenario
+
+student already checked in.
+
+### Scenario
+
+student not enrolled.
+
+### Scenario
+
+session closed.
+
+### Scenario
+
+permission changed.
+
+كل scenario يجب أن يكون مفهومًا للمستخدم.
+
+---
+
+# 113 — Do not hide complexity behind animation
+
+Animation ليست fix للـUX.
+
+مثال:
+
+لو workflow معقد:
+
+لا تضيف:
+
+* transitions
+* bounce
+* glass
+* gradient
+
+بدل:
+
+بسّط workflow.
+
+---
+
+# 114 — Do not confuse aesthetic quality with product quality
+
+A beautiful app can still:
+
+* be slow
+* be confusing
+* lose data
+* fail on small screens
+* be inaccessible
+* have bad information architecture
+
+لذلك:
+
+> Functional excellence first.
+
+ثم:
+
+> visual excellence.
+
+ثم:
+
+> delight.
+
+---
+
+# 115 — Delight Layer
+
+بعد أن تعمل الـcore UX perfectly:
+
+أضيفوا:
+
+* subtle haptics
+* satisfying check-in
+* progress transitions
+* meaningful celebratory moments
+* polished micro-interactions
+
+لكن:
+
+كل delight يجب أن يكون optional / non-blocking.
+
+---
+
+# 116 — Haptics
+
+استخدموا haptics لـ:
+
+* successful check-in
+* important confirmation
+* error where useful
+* reward
+
+لكن لا تستخدموا haptic لكل tap.
+
+---
+
+# 117 — Audio
+
+لا تجعلوا sound ضروريًا.
+
+لكن يمكن استخدامه كـsecondary feedback في حالات:
+
+* success
+* scan
+* achievement
+
+ويجب احترام system/user preferences.
+
+---
+
+# 118 — Design consistency
+
+كل component يجب أن:
+
+* يظهر بنفس الطريقة
+* يتفاعل بنفس الطريقة
+* يستخدم نفس spacing
+* يستخدم نفس typography
+* يحترم RTL
+* يحترم reduced motion
+* يحترم accessibility
+
+---
+
+# 119 — No one-off UI hacks
+
+ممنوع:
+
+"بس الشاشة دي مختلفة."
+
+إلا لو هناك reason موثق.
+
+أي divergence يجب أن يكون deliberate.
+
+---
+
+# 120 — Source of Truth
+
+يجب إنشاء:
+
+`docs/product/`
+
+وتكون هي canonical.
+
+مثلاً:
+
+```text
+docs/product/
+  vision.md
+  personas.md
+  information-architecture.md
+  navigation.md
+  design-system.md
+  accessibility.md
+  motion.md
+  localization.md
+  architecture.md
+  security.md
+  testing.md
+  metrics.md
+  roadmap.md
+```
+
+الـREADME وغيره يجب أن يشير إليها.
+
+---
+
+# 121 — Documentation drift
+
+لا نريد:
+
+README يقول شيئًا
+
+والكود يقول شيئًا
+
+والـaudit يقول شيئًا
+
+والـroadmap يقول شيئًا رابعًا.
+
+كل release يجب أن يحدث documentation.
+
+---
+
+# 122 — Existing audits
+
+استخدموا:
+
+* FORENSIC_AUDIT
+* COMPREHENSIVE AUDIT
+* DESIGN AUDIT
+* REBUILD docs
+* production audits
+
+كمصادر للتحقيق.
+
+لكن لا تتعاملوا معها كحقيقة نهائية.
+
+كل finding يجب تصنيفه:
+
+### Confirmed
+
+verified in current code
+
+### Historical
+
+وجدناه في older revision
+
+### Claimed
+
+documentation only
+
+### Needs verification
+
+requires runtime/device/backend test
+
+---
+
+# 123 — No false confidence
+
+إذا لم نستطع تشغيل شيء:
+
+لا نكتب:
+
+> PASS.
+
+نكتب:
+
+> NOT VERIFIED.
+
+إذا لم نختبر real device:
+
+> NOT VERIFIED ON REAL DEVICE.
+
+إذا لم نختبر concurrent users:
+
+> UNVERIFIED UNDER CONCURRENCY.
+
+هذا مهم جدًا.
+
+---
+
+# 124 — Product rebuild workflow
+
+لا تبدأوا coding فورًا.
+
+اعملوا:
+
+## Phase 0 — Discovery
+
+* repository audit
+* live app audit
+* database audit
+* role analysis
+* current user flows
+* bug inventory
+
+---
+
+## Phase 1 — Product architecture
+
+تعريف:
+
+* roles
+* domains
+* IA
+* navigation
+* states
+* flows
+
+---
+
+## Phase 2 — UX architecture
+
+Wireframes.
+
+No colors.
+
+No gradients.
+
+No fancy animation.
+
+فقط:
+
+* content
+* hierarchy
+* navigation
+* actions
+
+---
+
+## Phase 3 — Visual design
+
+بعد اعتماد UX:
+
+* typography
+* colors
+* cards
+* surfaces
+* iconography
+* motion
+
+---
+
+## Phase 4 — Design system
+
+Build primitives.
+
+---
+
+## Phase 5 — Golden paths
+
+Implement highest-value flows first.
+
+---
+
+## Phase 6 — Hardening
+
+* accessibility
+* performance
+* security
+* offline
+* errors
+* QA
+
+---
+
+## Phase 7 — polish
+
+* haptics
+* motion
+* delight
+* visual refinement
+
+---
+
+# 125 — Sprint structure
+
+كل sprint يجب أن يكون:
+
+### Goal
+
+what changes for user?
+
+### Scope
+
+what is included?
+
+### Non-goals
+
+what is NOT included?
+
+### Acceptance criteria
+
+how do we know it's done?
+
+### QA
+
+how will it be tested?
+
+---
+
+# 126 — Code review checklist
+
+Review:
+
+### Correctness
+
+### Security
+
+### Accessibility
+
+### RTL
+
+### Performance
+
+### Error states
+
+### Maintainability
+
+### Testing
+
+### UX consistency
+
+ليس فقط:
+
+> "الكود clean."
+
+---
+
+# 127 — PR checklist
+
+كل PR يجب أن يجيب:
+
+* What user problem does this solve?
+* Which flow changed?
+* What states were implemented?
+* How was RTL tested?
+* How was accessibility tested?
+* How was mobile tested?
+* How was error handling tested?
+* What automated tests were added?
+* Any performance impact?
+* Any security impact?
+
+---
+
+# 128 — Design review
+
+قبل implementation:
+
+### UX review
+
+هل flow بسيط؟
+
+### UI review
+
+هل hierarchy واضحة؟
+
+### Accessibility review
+
+هل يمكن استخدامه للجميع؟
+
+### Product review
+
+هل functionality فعلاً useful؟
+
+### Engineering review
+
+هل architecture scalable؟
+
+---
+
+# 129 — "Looks impressive" test
+
+لا تسألوا:
+
+> Does this look cool?
+
+اسألوا:
+
+> Does this make the next action obvious?
+
+---
+
+# 130 — "Would I use it?" test
+
+أريد من team members أن يستخدموا:
+
+* بدون شرح
+* لأول مرة
+* على mobile صغير
+* بالعربية
+* مع network ضعيف
+
+ثم نقيس:
+
+### Can they complete the task?
+
+بدون intervention.
+
+---
+
+# 131 — First-click test
+
+لأي شاشة مهمة:
+
+اعرضها على شخص لم يرها.
+
+قل:
+
+> "اعمل X."
+
+وشاهد:
+
+هل يضغط المكان الصحيح؟
+
+لو لا:
+
+المشكلة غالبًا information hierarchy.
+
+---
+
+# 132 — 5-second test
+
+اعرض الشاشة 5 ثواني.
+
+اسأل:
+
+* أنت فين؟
+* ما الذي يمكنك فعله؟
+* ما أهم شيء؟
+
+لو الإجابة غير واضحة:
+
+redesign.
+
+---
+
+# 133 — Accessibility test
+
+لا نعتبر accessibility ناجحة بسبب checklist فقط.
+
+نحتاج real assistive tech testing.
+
+---
+
+# 134 — Mobile test
+
+التطبيق يجب أن يكون usable بيد واحدة عند workflows اليومية.
+
+الأزرار الأساسية:
+
+قريبة
+
+واضحة
+
+لا تحتاج precision عالية.
+
+---
+
+# 135 — Thumb ergonomics
+
+ضعوا primary actions في مناطق سهلة الوصول عند الإمكان.
+
+خصوصًا:
+
+* Scan
+* Check-in
+* Confirm
+* Back
+
+---
+
+# 136 — Information density
+
+Student:
+
+low-medium density.
+
+Instructor:
+
+medium-high density.
+
+Admin:
+
+high density.
+
+لكن readable.
+
+لا تجعلوا density واحدة لكل roles.
+
+---
+
+# 137 — Search-first admin
+
+عند التعامل مع مئات وآلاف الطلاب:
+
+Search + filters أهم من scroll.
+
+---
+
+# 138 — Filter design
+
+Filters يجب أن تكون:
+
+* understandable
+* persistent when useful
+* clearable
+* reflected in result count
+
+مثال:
+
+> 37 طالبًا
+
+[فرع: بنها]
+
+[الحالة: نشط]
+
+[الدورة: Python]
+
+---
+
+# 139 — Sorting
+
+أي table مهمة يجب أن تدعم sorting حيث appropriate.
+
+---
+
+# 140 — Pagination
+
+الـpagination يجب ألا تكون technical فقط.
+
+المستخدم يعرف:
+
+> 1–50 من 1,238
+
+---
+
+# 141 — Undo
+
+استخدموا undo عندما يكون أكثر usability من confirmation.
+
+مثال:
+
+> تم حذف العنصر.
+
+[تراجع]
+
+---
+
+# 142 — Optimistic UI
+
+استخدموه فقط عندما:
+
+* operation likely succeeds
+* rollback possible
+* consistency controlled
+
+لا تستخدموه للعمليات الحساسة بدون تصميم واضح.
+
+---
+
+# 143 — Security vs UX
+
+لا تجعلوا security سببًا لـUX سيء.
+
+مثل:
+
+OTP prompts المتكررة بلا داعٍ.
+
+لكن:
+
+لا sacrifice security من أجل simplicity.
+
+---
+
+# 144 — Privacy
+
+اجمعوا أقل قدر من البيانات الضرورية.
+
+لا تعرضوا بيانات شخصية بلا حاجة.
+
+Public certificate verification يجب أن تعرض minimum required information.
+
+---
+
+# 145 — Accessibility of color themes
+
+Light وDark ليسا:
+
+invert colors.
+
+يجب تصميم كل theme intentionally.
+
+اختبروا:
+
+* contrast
+* brand colors
+* disabled
+* focus
+* elevation
+* status colors
+
+---
+
+# 146 — Dark mode
+
+Dark mode يجب أن يقلل:
+
+* glare
+* excessive contrast
+* giant pure-white text
+
+لا تجعلوا كل شيء pure black / pure white.
+
+---
+
+# 147 — Responsive typography
+
+Typography scale يجب أن تتغير عند الحاجة.
+
+لكن لا تجعلوا desktop headlines absurd على mobile.
+
+---
+
+# 148 — Animations must be cancellable
+
+لا تجعلوا المستخدم ينتظر transition حتى يستطيع التفاعل.
+
+Apple توصي بأن تكون motion brief وأن يستطيع المستخدم، قدر الإمكان، متابعة التفاعل بدل أن ينتظر animation طويلة.
+
+---
+
+# 149 — App launch
+
+Splash:
+
+purposeful.
+
+Onboarding:
+
+purposeful.
+
+لا تجعلوا:
+
+logo animation
+
+تأخذ 3 ثواني بلا سبب.
+
+---
+
+# 150 — Skeleton
+
+Skeleton يجب أن يمثل الشكل الحقيقي تقريبًا.
+
+لا تستخدموا generic shimmer في كل مكان.
+
+---
+
+# 151 — Stagger
+
+Stagger animation يجب استخدامها في:
+
+* initial content reveal
+
+بشكل subtle.
+
+لا تجعل 20 cards تدخل واحدة واحدة ببطء.
+
+---
+
+# 152 — Progress animation
+
+مثال:
+
+Previous:
+
+72%
+
+New:
+
+78%
+
+يمكن أن يتحرك progress.
+
+لكن:
+
+لا تجعل المستخدم ينتظر 1.5 ثانية حتى يرى 78%.
+
+---
+
+# 153 — Gamification celebration
+
+Achievement:
+
+قد تستغرق 600–900ms.
+
+لكن navigation/action يجب ألا تتوقف.
+
+---
+
+# 154 — Accessibility + celebration
+
+بعد achievement:
+
+Screen reader يحصل على announcement.
+
+Reduced Motion:
+
+no explosion.
+
+لكن feedback remains.
+
+مثلاً:
+
+> مبروك! حصلت على Badge "ملتزم".
+
+---
+
+# 155 — Content hierarchy for Arabic
+
+العنوان:
+
+large
+
+body:
+
+comfortable
+
+metadata:
+
+smaller
+
+لكن لا تنزلوا metadata إلى 9px لمجرد أنها Arabic.
+
+---
+
+# 156 — Long Arabic names
+
+اختبروا:
+
+> عبد الرحمن محمد أحمد السيد مصطفى
+
+في:
+
+* cards
+* headers
+* avatars
+* navigation
+* certificate
+
+---
+
+# 157 — Mixed language strings
+
+اختبروا:
+
+> Python Fundamentals — المستوى الثاني
+
+مع:
+
+> AI / ML
+
+و:
+
+> React Native 2026
+
+لا يجب أن ينكسر bidi.
+
+---
+
+# 158 — Numbers
+
+حددوا policy:
+
+* Arabic-Indic digits؟
+* Western digits؟
+* حسب locale؟
+
+ويجب أن يكون consistent.
+
+---
+
+# 159 — Dates
+
+حددوا:
+
+* اليوم
+* التاريخ
+* الشهر
+* السنة
+
+والـrelative dates:
+
+> النهارده
+
+> بكرة
+
+> بعد ساعتين
+
+مع fallback exact date where useful.
+
+---
+
+# 160 — Notifications copy
+
+Bad:
+
+> Session updated.
+
+Better:
+
+> تم تغيير موعد جلسة Python.
+
+ثم:
+
+> الأربعاء 6:00 م بدلًا من 5:00 م.
+
+Action:
+
+[عرض الموعد]
+
+---
+
+# 161 — Product writing system
+
+أنشئوا:
+
+`voice-and-tone.md`
+
+وفيه:
+
+* terminology
+* punctuation
+* Arabic style
+* capitalization
+* product nouns
+* error language
+
+---
+
+# 162 — Terminology consistency
+
+قرروا:
+
+Course = دورة
+
+Batch = دفعة
+
+Session = جلسة
+
+Attendance = حضور
+
+Certificate = شهادة
+
+Enrollment = تسجيل/انضمام
+
+ولا نستخدم 3 كلمات لنفس الشيء.
+
+---
+
+# 163 — Admin terminology
+
+يمكن استخدام:
+
+* دفعة
+* جلسة
+* سجل الحضور
+* القائمة
+* الصلاحيات
+
+بحسب context.
+
+---
+
+# 164 — Error taxonomy
+
+الأخطاء يجب تصنف:
+
+### User error
+
+### Business rule
+
+### Permission
+
+### Network
+
+### Server
+
+### Unknown
+
+ثم تظهر message مناسبة.
+
+---
+
+# 165 — Retry policy
+
+لا تجعل:
+
+retry
+
+يعني:
+
+duplicate operation.
+
+خصوصًا:
+
+* join
+* check-in
+* issue certificate
+* award points
+
+---
+
+# 166 — Race testing
+
+اختبروا:
+
+2 users
+
+يعملون نفس action simultaneously.
+
+مثال:
+
+آخر seat.
+
+من يحصل عليه؟
+
+النظام يجب أن يعرف.
+
+---
+
+# 167 — Load testing
+
+جرّبوا:
+
+* 100 concurrent
+* 500
+* 1,000
+
+بحسب expected deployment.
+
+ركزوا على:
+
+* login
+* Today load
+* attendance
+* notifications
+* admin lists
+
+---
+
+# 168 — DB indexes
+
+كل query hot يجب أن يكون لها indexes مناسبة.
+
+Audit:
+
+* foreign keys
+* filtering fields
+* timestamps
+* organization/branch scopes
+* status
+
+---
+
+# 169 — Query boundaries
+
+لا تعتمدوا على:
+
+client-side filtering
+
+للبيانات الكبيرة أو الحساسة.
+
+---
+
+# 170 — Security boundaries
+
+لا ترسلوا بيانات لا تحتاجها الشاشة.
+
+"RLS سيمنع المستخدم" ليس سببًا لإرسال 100 field للclient.
+
+Principle:
+
+> minimum necessary data.
+
+---
+
+# 171 — API payload design
+
+Response يجب أن يكون:
+
+* task-oriented
+* minimum necessary
+* predictable
+* versionable
+
+---
+
+# 172 — Backward compatibility
+
+لو existing users أو production data:
+
+migration يجب أن تكون:
+
+* safe
+* reversible where possible
+* tested
+* documented
+
+---
+
+# 173 — Database migration discipline
+
+كل migration:
+
+* deterministic
+* reviewed
+* tested
+* rollback strategy defined
+* no accidental destructive data change
+
+---
+
+# 174 — Seed data
+
+استخدموا realistic seed data:
+
+* Arabic names
+* mixed names
+* long names
+* many courses
+* many batches
+* conflict schedules
+* missing images
+* zero-state
+
+---
+
+# 175 — Never test with perfect data
+
+Perfect data يخدعكم.
+
+استخدموا:
+
+### ugly data
+
+* empty
+* huge
+* long
+* duplicate-like
+* missing
+* malformed
+* multilingual
+
+---
+
+# 176 — User research
+
+حتى لو لم يوجد budget لـlarge research:
+
+اعملوا:
+
+5–10 users لكل role على الأقل في بداية major redesign.
+
+راقبوا:
+
+* confusion
+* hesitation
+* misclicks
+* terminology
+* missing information
+
+---
+
+# 177 — Usability test tasks
+
+### Student
+
+"احجز دورة Python وراجع موعد الجلسة القادمة."
+
+### Student
+
+"سجل حضورك."
+
+### Instructor
+
+"ابدأ جلسة وسجل حضور 20 طالب."
+
+### Admin
+
+"أنشئ دورة ودفعة وجدول الجلسات."
+
+لا تشرحوا UI قبل الاختبار.
+
+---
+
+# 178 — Success criteria for usability
+
+Example:
+
+> 90% من participants يكملون golden path without assistance.
+
+*
+
+> median task completion time improves.
+
+*
+
+> critical error rate declines.
+
+---
+
+# 179 — UX debt
+
+كل مرة team يقول:
+
+> "هنخليها كده مؤقتًا"
+
+سجلوا ذلك.
+
+لا تتركوا:
+
+temporary
+
+تصبح permanent.
+
+---
+
+# 180 — Backlog prioritization
+
+استخدموا:
+
+## P0
+
+data loss / security / broken critical flows
+
+## P1
+
+major usability / core workflow
+
+## P2
+
+quality improvements
+
+## P3
+
+polish
+
+لا تبدأوا P3 بينما P0/P1 مكسور.
+
+---
+
+# 181 — Current product diagnosis
+
+الـrepo الحالي لا يجب التخلص منه wholesale بدون تحليل.
+
+الموجود فيه:
+
+* functional breadth
+* real backend foundation
+* RPC/security boundaries
+* design system work
+* motion infrastructure
+* multiple user flows
+
+لكن المشكلة أن:
+
+> **breadth لا تعني excellence.**
+
+نحتاج إعادة تنظيم وترقية التجربة، لا مجرد إضافة features.
+
+---
+
+# 182 — Current navigation observation
+
+الـcurrent code يحتوي على bottom navigation وFAB مركزي وaccessibility semantics، وهذا جيد كاتجاه، لكن يجب اختبار ما إذا كان information architecture نفسه هو الأفضل، وليس الاكتفاء بأن implementation يبدو polished في الكود.
+
+---
+
+# 183 — Do not rewrite blindly
+
+قبل أي rewrite:
+
+اعملوا:
+
+### inventory
+
+ما الموجود؟
+
+### dependency map
+
+ما الذي يعتمد على ماذا؟
+
+### criticality
+
+ما الذي لا يمكن كسره؟
+
+### migration strategy
+
+ما الذي يُنقل؟
+
+### deletion strategy
+
+ما الذي يمكن التخلص منه؟
+
+---
+
+# 184 — Boy Scout rule
+
+أي code يتم لمسه:
+
+يجب أن يكون أوضح بعد التعديل.
+
+لكن لا تعملوا refactoring unrelated لمجرد الرغبة في "تنظيف كل شيء".
+
+---
+
+# 185 — Avoid architecture astronautics
+
+لا نريد:
+
+* unnecessary microservices
+* event bus لمجرد الموضة
+* abstraction فوق abstraction
+* 12 state libraries
+* over-engineered design system
+
+نريد:
+
+> simplest architecture that solves the actual scale.
+
+---
+
+# 186 — Business logic belongs where؟
+
+UI:
+
+presentation.
+
+Client services:
+
+orchestration where appropriate.
+
+Backend:
+
+authoritative business rules.
+
+Database:
+
+integrity + constraints.
+
+لا تجعلوا business rules الحساسة موزعة على ثلاثة screens.
+
+---
+
+# 187 — Single source of truth
+
+مثلاً eligibility certificate:
+
+لا تحسبوها:
+
+* مرة في client
+* مرة في PDF generator
+* مرة في SQL
+* مرة في admin screen
+
+Server-authoritative eligibility.
+
+UI يعرض النتيجة.
+
+---
+
+# 188 — Example
+
+Bad:
+
+```text
+if attendance >= 80%
+```
+
+في عدة أماكن.
+
+Better:
+
+```text
+certificate eligibility
+→ server authoritative function
+```
+
+---
+
+# 189 — Product state vs backend state
+
+يجب تعريف:
+
+* pending
+* active
+* completed
+* archived
+* cancelled
+* rejected
+
+بوضوح.
+
+لا تستخدموا boolean واحد لتمثيل 6 حالات.
+
+---
+
+# 190 — Feature flags
+
+Major redesigns يمكن إطلاقها تدريجيًا باستخدام feature flags.
+
+لكن:
+
+* documented
+* removable
+* not permanent spaghetti
+
+---
+
+# 191 — Releases
+
+استخدموا:
+
+### internal QA
+
+ثم:
+
+### beta
+
+ثم:
+
+### production
+
+لا تنتقلوا مباشرة.
+
+---
+
+# 192 — Release gate
+
+قبل release:
+
+### Product
+
+core flows work
+
+### Engineering
+
+tests pass
+
+### QA
+
+device matrix pass
+
+### Accessibility
+
+critical flows pass
+
+### Security
+
+high-risk findings closed
+
+### Performance
+
+budget acceptable
+
+---
+
+# 193 — Block release if
+
+* critical data loss
+* privilege escalation
+* attendance broken
+* certificate verification broken
+* major crash
+* unusable Arabic rendering
+* severe mobile overflow
+* broken authentication
+
+---
+
+# 194 — Definition of "beautiful"
+
+Beautiful means:
+
+* clear
+* balanced
+* intentional
+* calm
+* responsive
+* trustworthy
+* delightful when appropriate
+
+not:
+
+* gradients everywhere
+* shadows everywhere
+* glass everywhere
+* animations everywhere
+
+---
+
+# 195 — Visual direction
+
+أريد:
+
+### Arabic-first premium modern
+
+مع personality.
+
+ليس:
+
+generic SaaS.
+
+وليس:
+
+kids-only gamification.
+
+وليس:
+
+corporate ERP.
+
+Masär يجب أن يكون:
+
+> warm + modern + energetic + trustworthy.
+
+---
+
+# 196 — Brand personality
+
+Masär:
+
+* friendly
+* confident
+* motivating
+* modern
+* human
+* focused
+* not childish
+
+---
+
+# 197 — Visual hierarchy
+
+Primary CTA:
+
+strong.
+
+Secondary:
+
+visible but quieter.
+
+Tertiary:
+
+subtle.
+
+Destructive:
+
+clearly distinct.
+
+---
+
+# 198 — Motion personality
+
+Motion يجب أن يشعر:
+
+* responsive
+* tactile
+* energetic
+* controlled
+
+وليس:
+
+* cartoonish
+* slow
+* noisy
+
+---
+
+# 199 — Student experience personality
+
+يمكن أن يكون:
+
+أكثر expressive.
+
+---
+
+# 200 — Admin experience personality
+
+أكثر:
+
+calm
+
+dense
+
+efficient
+
+professional
+
+---
+
+# 201 — Instructor experience personality
+
+بين الاثنين:
+
+human + operational.
+
+---
+
+# 202 — The product should feel faster than it is
+
+عن طريق:
+
+* immediate visual response
+* optimistic updates where safe
+* skeleton
+* local state
+* prefetch
+* smart caching
+* transitions
+
+لكن:
+
+لا نخفي slow backend بمؤثرات.
+
+بل نصلح backend.
+
+---
+
+# 203 — Prefetch
+
+إذا user يفتح:
+
+Course
+
+وغالبًا سيدخل:
+
+Session
+
+prefetch ما هو منطقي.
+
+لكن لا preload كل الـdatabase.
+
+---
+
+# 204 — Deep linking
+
+كل meaningful resource يجب أن يكون deep-linkable حيث appropriate:
+
+* course
+* batch
+* session
+* certificate
+* verification
+
+---
+
+# 205 — Shareability
+
+Certificate:
+
+shareable.
+
+Course:
+
+shareable where useful.
+
+Join batch:
+
+shareable invite.
+
+لكن الروابط يجب أن تكون secure.
+
+---
+
+# 206 — Notifications as navigation
+
+ضغط notification يجب أن يأخذ المستخدم للمكان الصحيح.
+
+ليس:
+
+يفتح Home فقط.
+
+---
+
+# 207 — State restoration
+
+لو app killed:
+
+يرجع إلى state مناسب.
+
+لو user كان داخل session details:
+
+يمكن resume logically.
+
+لكن لا restore stale sensitive states blindly.
+
+---
+
+# 208 — Background behavior
+
+اختبروا:
+
+* app backgrounded أثناء scan
+* session timeout
+* notification received
+* network reconnect
+
+---
+
+# 209 — Permission interruptions
+
+Camera denied:
+
+يجب أن تكون هناك alternative:
+
+### manual code
+
+إن كانت business rules تسمح.
+
+ولا يعلق user.
+
+---
+
+# 210 — Accessibility of scanner
+
+Scanner يجب أن يكون له fallback واضح.
+
+لا تجعل camera فقط الطريقة الوحيدة في حالة user لا يستطيع استخدامها.
+
+---
+
+# 211 — Security of manual attendance
+
+أي manual check-in يجب أن يظل:
+
+* authorized
+* auditable
+* role-controlled
+* session-bound
+
+---
+
+# 212 — Audit logs
+
+الـaudit log يجب أن يعرف:
+
+* who
+* what
+* when
+* target
+* outcome
+
+لكن دون تسريب sensitive data.
+
+---
+
+# 213 — Admin trust
+
+Admin يحتاج:
+
+> "لماذا حدث هذا؟"
+
+لذلك actions مهمة يجب أن تكون auditable.
+
+---
+
+# 214 — Data export
+
+Export should be honest.
+
+إذا user اختار:
+
+PDF
+
+فهو PDF فعلي.
+
+CSV
+
+فهو CSV.
+
+لا تستخدموا UI naming غلط.
+
+---
+
+# 215 — Report design
+
+أي report يجب أن يكون:
+
+* accurate
+* timestamped
+* scoped
+* filtered
+* exportable
+* printable حيث relevant
+
+---
+
+# 216 — Accessibility of reports
+
+لا تعتمدوا على colors فقط في charts.
+
+استخدموا:
+
+* labels
+* patterns
+* text
+* accessible summaries
+
+---
+
+# 217 — Charts
+
+استخدم chart فقط عندما يجعل pattern أسهل من table.
+
+Admin:
+
+attendance trend
+
+course completion
+
+enrollment
+
+Student:
+
+progress
+
+---
+
+# 218 — Dashboard KPI principle
+
+كل KPI يجب أن يجيب:
+
+> So what?
+
+Example:
+
+Bad:
+
+> Attendance: 86%
+
+Good:
+
+> Attendance 86% ↓ 6% this month
+
+ثم:
+
+> أعلى غياب في Batch 03
+
+---
+
+# 219 — Responsible gamification
+
+لا تجعلوا leaderboard يحبط المستخدمين.
+
+يمكن توفير:
+
+* personal goals
+* percentile
+* friendly competition
+* opt-out
+
+Duolingo مثلًا يتيح opt-out من المنافسة في الـleaderboards، وهي فكرة مفيدة عندما نترجم mechanics بحذر إلى Masär.
+
+---
+
+# 220 — Gamification fairness
+
+لا تعطوا XP فقط لمن عنده:
+
+* أكثر وقت
+* أكثر جلسات
+* أكثر opportunities
+
+ضعوا mechanics عادلة قدر الإمكان.
+
+---
+
+# 221 — Notification fatigue
+
+قياس:
+
+notifications/user/day
+
+ثم:
+
+read rate
+
+action rate
+
+mute rate
+
+---
+
+# 222 — Feature discoverability
+
+لا تجعل feature مهمة مخفية في:
+
+three dots.
+
+يمكن استخدام:
+
+* contextual CTA
+* shortcuts
+* onboarding
+* empty states
+
+---
+
+# 223 — Search discoverability
+
+Search يظهر عندما تكون مفيدة.
+
+لا تضع magnifier في كل screen بلا سبب.
+
+---
+
+# 224 — Navigation consistency
+
+Back يعني back.
+
+Close يعني close.
+
+Cancel يعني cancel.
+
+لا تجعل:
+
+X
+
+مرة close
+
+ومرة navigate back.
+
+---
+
+# 225 — Interaction consistency
+
+Button press:
+
+same tactile language.
+
+Dialog:
+
+same layout.
+
+Toast:
+
+same behavior.
+
+---
+
+# 226 — Design tokens must have semantics
+
+لا:
+
+`blue500`
+
+فقط.
+
+بل:
+
+`actionPrimary`
+
+ويمكن أن تتغير قيمته حسب theme.
+
+---
+
+# 227 — Themes
+
+Light
+
+Dark
+
+Potential future themes
+
+يجب ألا تحتاج rewrite UI.
+
+---
+
+# 228 — Localization architecture
+
+أي user-facing string:
+
+translation key.
+
+لا hardcoded strings.
+
+لكن:
+
+developer logs
+
+يمكن أن تكون English.
+
+---
+
+# 229 — Translation QA
+
+يجب وجود automated parity check:
+
+Arabic keys == English keys.
+
+لكن parity لا تعني quality.
+
+نحتاج linguistic review.
+
+---
+
+# 230 — Arabic QA
+
+اختبار:
+
+* Arabic only
+* mixed
+* English only
+* long Arabic
+* numerals
+* dates
+* punctuation
+* pluralization
+* empty strings
+* errors
+
+---
+
+# 231 — Pluralization
+
+مثلاً:
+
+طالب واحد
+
+طالبان
+
+3 طلاب
+
+11 طالبًا
+
+لا تعمل string concatenation بدائية لكل اللغات.
+
+---
+
+# 232 — Accessibility labels should be localized
+
+VoiceOver/TalkBack content يجب أن يكون Arabic عندما locale Arabic.
+
+---
+
+# 233 — Analytics localization
+
+Analytics event names ثابتة داخليًا.
+
+User-facing labels localized.
+
+---
+
+# 234 — Privacy-safe analytics
+
+لا تسجل:
+
+* phone
+* full personal details
+* sensitive certificate data
+
+في analytics payload إذا لم تكن ضرورية.
+
+---
+
+# 235 — Testing with realistic users
+
+لا تجعل كل test user:
+
+Ahmed
+
+[user@email.com](mailto:user@email.com)
+
+Course A
+
+Branch A
+
+اعملوا realistic Arabic dataset.
+
+---
+
+# 236 — Current codebase audit deliverable
+
+قبل implementation:
+
+أريد table:
+
+| Area | Current | Problem | Severity | Proposed fix | Verification |
+| ---- | ------- | ------- | -------- | ------------ | ------------ |
+
+Areas:
+
+* Auth
+* Navigation
+* Today
+* Courses
+* Batches
+* Sessions
+* Attendance
+* Gamification
+* Certificates
+* Notifications
+* Profile
+* Admin
+* Offline
+* Realtime
+* Database
+* Security
+* Accessibility
+* Performance
+* Motion
+* RTL
+
+---
+
+# 237 — Risk register
+
+أنشئوا:
+
+| Risk | Impact | Probability | Detection | Mitigation |
+| ---- | ------ | ----------- | --------- | ---------- |
+
+مثال:
+
+Full DB refresh on realtime
+
+Impact: high
+
+Probability: high at scale
+
+Mitigation:
+
+domain-specific fetching and invalidation.
+
+---
+
+# 238 — Decision log
+
+أي architectural decision كبير:
+
+* decision
+* context
+* alternatives
+* why chosen
+* consequences
+
+لا نريد قرارات "لأننا متعودين".
+
+---
+
+# 239 — ADRs
+
+استخدموا Architecture Decision Records لـ:
+
+* state management
+* caching
+* offline
+* realtime
+* auth
+* navigation
+* design system
+* backend boundaries
+
+---
+
+# 240 — Performance profiling before optimizing
+
+لا تقولوا:
+
+> this feels slow
+
+قيسوا.
+
+استخدموا actual profiling.
+
+---
+
+# 241 — Accessibility profiling
+
+لا تقولوا:
+
+> buttons are big
+
+اختبروا.
+
+---
+
+# 242 — UX metrics
+
+Measure:
+
+* task completion
+* time-on-task
+* error rate
+* abandonment
+* misclicks
+* discoverability
+
+---
+
+# 243 — Product quality score
+
+أنشئوا internal score:
+
+### UX
+
+### UI
+
+### Accessibility
+
+### Performance
+
+### Functional reliability
+
+### Security
+
+### Maintainability
+
+والـrelease لا يعتمد على visual score فقط.
+
+---
+
+# 244 — "No fake completeness"
+
+لا تعتبر:
+
+screen موجودة
+
+= feature complete.
+
+Feature complete يعني:
+
+UI
+
+*
+
+logic
+
+*
+
+backend
+
+*
+
+errors
+
+*
+
+security
+
+*
+
+analytics where needed
+
+*
+
+accessibility
+
+*
+
+QA
+
+*
+
+performance.
+
+---
+
+# 245 — "No decorative functionality"
+
+لا تعرضوا:
+
+* progress bar لا يعكس actual state
+* fake achievement
+* decorative QR
+* fake loading
+* disabled button بلا explanation
+* statistics ليست derived من source of truth
+
+---
+
+# 246 — Source-of-truth rule
+
+كل number displayed يجب أن نعرف:
+
+> من أين جاء؟
+
+مثل:
+
+87%
+
+ما calculation؟
+
+ما source؟
+
+ما update frequency؟
+
+---
+
+# 247 — Data freshness
+
+UI يمكن أن تعرض:
+
+> آخر تحديث منذ دقيقة
+
+عندما relevant.
+
+---
+
+# 248 — Conflict handling
+
+لو data تغيرت على server أثناء editing:
+
+يجب أن يكون هناك strategy.
+
+لا overwrite silently.
+
+---
+
+# 249 — User trust
+
+أي action مالي/تشغيلي/شهادة/حضور يجب أن يشعر user أنه:
+
+* واضح
+* reliable
+* auditable
+
+---
+
+# 250 — FINAL PRODUCT TEST
+
+قبل اعتبار Masär جاهزًا:
+
+أريد أن نضع التطبيق أمام:
+
+### Student
+
+بدون شرح.
+
+### Instructor
+
+بدون شرح.
+
+### Admin
+
+بدون شرح.
+
+ثم نطلب منهم تنفيذ golden paths.
+
+إذا احتاجوا شرحًا:
+
+لا تلوموا المستخدم.
+
+راجعوا التصميم.
+
+---
+
+# 251 — What the final product should feel like
+
+عندما أفتح Masär كطالب:
+
+> "أنا فاهم أنا فين، وعارف عندي إيه النهاردة، والـnext action واضح."
+
+عندما أفتحه كمدرب:
+
+> "أنا أقدر أدير الجلسة بسرعة بدون ما أحارب النظام."
+
+عندما أفتحه كAdmin:
+
+> "أنا شايف ما يحتاج انتباهي وأقدر أتصرف فورًا."
+
+هذه هي الـNorth Star.
+
+---
+
+# 252 — What I do NOT want
+
+لا أريد:
+
+* UI redesign فقط.
+* Dribbble design.
+* excessive glassmorphism.
+* animations everywhere.
+* generic SaaS dashboard.
+* desktop squeezed into mobile.
+* Arabic translation فوق English architecture.
+* fake offline support.
+* fake analytics.
+* fake certificate verification.
+* generic error states.
+* huge global fetch forever.
+* business logic in multiple places.
+* undocumented architectural decisions.
+* "works on my machine."
+* accessibility checkbox theater.
+
+---
+
+# 253 — What I DO want
+
+أريد:
+
+> Product thinking + UX thinking + engineering discipline + accessibility + security + performance + polish.
+
+كلها معًا.
+
+---
+
+# 254 — Mandatory Deliverables
+
+قبل final release، أريد تسليم:
+
+### Product
+
+* Product specification
+* Personas
+* User journeys
+* Information architecture
+* Golden paths
+
+### UX
+
+* Wireframes
+* Interaction specs
+* State maps
+* Empty/error/loading states
+
+### UI
+
+* Design system
+* Token system
+* Components
+* Screen designs
+
+### Motion
+
+* Motion principles
+* Motion tokens
+* Interaction catalog
+* Reduced-motion behavior
+
+### Engineering
+
+* Architecture document
+* Domain boundaries
+* State architecture
+* API/RPC contract
+* caching strategy
+* offline strategy
+
+### Security
+
+* Threat model
+* Authorization matrix
+* Security test report
+
+### Accessibility
+
+* WCAG audit
+* VoiceOver
+* TalkBack
+* keyboard
+* dynamic type
+* reduced motion
+* contrast
+
+### QA
+
+* Test matrix
+* E2E suite
+* device matrix
+* visual regression
+* performance report
+
+### Operations
+
+* Monitoring
+* Error tracking
+* Analytics
+* Release checklist
+
+---
+
+# 255 — Required acceptance document
+
+أريد في النهاية ملف:
+
+`MASAR_RELEASE_CERTIFICATION.md`
+
+يحتوي:
+
+```text
+Area
+Status
+Evidence
+Known limitations
+Risk
+Owner
+```
+
+Status must be one of:
+
+PASS
+
+PASS WITH LIMITATIONS
+
+NOT VERIFIED
+
+FAIL
+
+---
+
+# 256 — Final quality bar
+
+لا أريد الوصول إلى:
+
+> "كل الشاشات اتعملت."
+
+أريد الوصول إلى:
+
+> "كل critical workflows تعمل، وكل حالة معروفة، وكل شاشة مصممة على أساس user intent، وكل role لديه تجربة مناسبة، وكل critical interaction مختبرة، والمنتج سريع، accessible، secure، responsive، وقابل للتوسع."
+
+---
+
+# 257 — Final implementation principle
+
+عند وجود تعارض بين:
+
+### Beautiful UI
+
+و
+
+### Simple UX
+
+اختروا:
+
+**Simple UX.**
+
+عند وجود تعارض بين:
+
+### Feature count
+
+و
+
+### Reliability
+
+اختروا:
+
+**Reliability.**
+
+عند وجود تعارض بين:
+
+### Clever architecture
+
+و
+
+### Understandable architecture
+
+اختروا:
+
+**Understandable architecture.**
+
+عند وجود تعارض بين:
+
+### Animation
+
+و
+
+### Accessibility
+
+اختروا:
+
+**Accessibility.**
+
+عند وجود تعارض بين:
+
+### Short-term hack
+
+و
+
+### Long-term maintainability
+
+اختاروا:
+
+**Maintainability** إلا إذا كان الـtrade-off مقصودًا وموثقًا.
+
+---
+
+# 258 — FINAL NORTH STAR
+
+Masär يجب ألا يكون التطبيق الذي يقول:
+
+> "بص على كل الحاجات اللي عندنا."
+
+بل:
+
+> **"أنا عارف أنت محتاج تعمل إيه — وهنخليك تعمله بسهولة."**
+
+هذا هو معيار كل قرار في المشروع.
+
+---
+
+# 259 — FINAL INSTRUCTION TO THE TEAM
+
+قبل أن تكتبوا أي implementation code جديد:
+
+1. اقرأوا الـrepository كاملًا.
+2. اقرأوا الـexisting audits.
+3. تحققوا من كل claim بدل افتراض صحته.
+4. اعملوا inventory للـfeatures.
+5. اعملوا user-flow map.
+6. اعملوا accessibility audit.
+7. اعملوا responsive audit.
+8. اعملوا architecture/data audit.
+9. حددوا P0/P1/P2.
+10. أعيدوا تصميم الـgolden paths.
+11. اعتمدوا Design System.
+12. ثم ابدأوا implementation.
+
+وأثناء التنفيذ:
+
+> لا تسألوا "كيف نحافظ على الشاشة الحالية؟"
+
+بل اسألوا:
+
+> **"ما أفضل طريقة تجعل هذا الـworkflow مفهومًا وسريعًا وآمنًا وقابلًا للاستخدام؟"**
+
+ولا تعتبروا أي decision صحيحًا لمجرد أنه موجود في الكود.
+
+الكود الحالي نقطة بداية.
+
+**المنتج النهائي هو الهدف.**
+
+---
+
+# 260 — FINAL SUCCESS DEFINITION
+
+Masär is successful when:
+
+### A student
+
+can open the app and immediately know what matters today.
+
+### An instructor
+
+can run a session without fighting the interface.
+
+### An admin
+
+can operate the organization without digging through unnecessary complexity.
+
+### A first-time user
+
+can understand the product without a tutorial.
+
+### An accessibility user
+
+can use the core workflows with assistive technologies.
+
+### A weak-network user
+
+does not feel abandoned.
+
+### A large organization
+
+does not make the architecture collapse.
+
+### A developer
+
+can understand where business logic belongs.
+
+### A QA engineer
+
+can reproduce and verify behavior.
+
+### A designer
+
+can evolve the system without breaking consistency.
+
+### And most importantly:
+
+> **the product feels simple even though the system behind it is sophisticated.**
+
+That is the standard.
+
+لا نريد أن نجعل Masär يبدو بسيطًا عن طريق إخفاء complexity.
+
+نريد أن:
+
+> **نضع الـcomplexity في المكان الصحيح — ونترك المستخدم يعيش التجربة البسيطة.**
+
+END OF MASTER SPECIFICATION.
