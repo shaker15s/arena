@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
     <!-- react-native-web style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
@@ -71,11 +71,33 @@
       (function () {
         var hide = function () {
           var el = document.getElementById('boot-splash');
-          if (el && !el._hidden) { el._hidden = true; el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(function () { el.remove(); }, 320); }
+          if (el && !el._hidden) {
+            el._hidden = true;
+            el.style.transition = 'opacity .3s';
+            el.style.opacity = '0';
+            setTimeout(function () {
+              if (el.parentNode) el.parentNode.removeChild(el);
+              else if (typeof el.remove === 'function') el.remove();
+            }, 320);
+          }
         };
-        var mo = new MutationObserver(function () { if (document.getElementById('root').childElementCount > 0) { hide(); mo.disconnect(); } });
-        mo.observe(document.getElementById('root'), { childList: true });
-        setTimeout(hide, 20000); // أمان: لو فشل التحميل لا نحبس المستخدم
+        var mo = new MutationObserver(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount > 0) {
+            hide();
+            mo.disconnect();
+          }
+        });
+        var rootEl = document.getElementById('root');
+        if (rootEl) mo.observe(rootEl, { childList: true });
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount === 0) {
+            var caption = document.querySelector('#boot-splash .caption');
+            if (caption) caption.textContent = 'استغرق التحميل وقتاً طويلاً. يرجى تحديث الصفحة أو التحقق من الاتصال.';
+          }
+          hide();
+        }, 20000); // أمان: لو فشل التحميل لا نحبس المستخدم
       })();
     </script>
   </body>

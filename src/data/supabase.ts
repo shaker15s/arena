@@ -57,9 +57,12 @@ function sanitizeKey(key: string): string {
 }
 
 // ═══════════════ الإعدادات ═══════════════
-// يتم الحصول على إعدادات Supabase حصريًا من متغيرات البيئة لمنع أي تسريب أو تجاوز غير مقصود.
-export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim();
-export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+// يتم الحصول على إعدادات Supabase من متغيرات البيئة مع تزويدها بالقيم الافتراضية للمشروع لضمان العمل دائماً.
+const DEFAULT_URL = 'https://udqgaudtclkbaygftndx.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkcWdhdWR0Y2xrYmF5Z2Z0bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NTYyNzUsImV4cCI6MjEwMzAzMjI3NX0.AHe8cNJ8-uGKYbUG2UPJ5w2p54uHtEhpoIYhFcYjco4';
+
+export const SUPABASE_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL || DEFAULT_URL).trim();
+export const SUPABASE_ANON_KEY = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_KEY).trim();
 
 /** هل الاتصال الحقيقي مُهيّأ؟ */
 export const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);

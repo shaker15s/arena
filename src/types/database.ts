@@ -760,7 +760,7 @@ export interface Database {
   // ─── BEGIN GENERATED RPC ARGS (scripts/gen-rpc-types.js) ───
   // مولَّد آليًا من supabase/migrations — لا تحرّره يدويًا.
   // أعِد التوليد: node scripts/gen-rpc-types.js --write
-  /** 0023_course_lifecycle_truthfulness.sql */
+  /** 0030_ocr_audit_remediation.sql */
   admin_update_user_access: { Args: { p_profile_id: string; p_role: string; p_status: string; p_branch_id?: string | null; p_clear_branch?: boolean | null }; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
   archive_batch: { Args: { p_batch_id: string }; Returns: Json };
@@ -798,7 +798,7 @@ export interface Database {
   finish_command: { Args: { p_command_id: string; p_status?: string | null }; Returns: Json };
   /** 0011_analytics_views.sql */
   get_analytics: { Args: { p_scope: string; p_scope_id?: string | null }; Returns: Json };
-  /** 0012_domain_query_layer.sql */
+  /** 0030_ocr_audit_remediation.sql */
   get_batch_roster: { Args: { p_batch_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_batch_sessions: { Args: { p_batch_id: string }; Returns: Json };
@@ -822,7 +822,7 @@ export interface Database {
   get_today: { Args: Record<string, never>; Returns: Json };
   /** 0005_production_hardening.sql */
   is_admin: { Args: Record<string, never>; Returns: Json };
-  /** 0023_course_lifecycle_truthfulness.sql */
+  /** 0030_ocr_audit_remediation.sql */
   is_staff: { Args: Record<string, never>; Returns: Json };
   /** 0017_completion_rule_fix.sql */
   issue_batch_certificates: { Args: { p_batch_id: string }; Returns: Json };

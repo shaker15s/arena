@@ -76,7 +76,7 @@ export function AmbientOrb({ size = 320, color, drift = 18, style }: {
     ]));
     loop.start();
     return () => loop.stop();
-  }, [progress]);
+  }, []);
 
   const animatedTransform = isReducedMotion()
     ? []

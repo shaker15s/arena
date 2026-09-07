@@ -2,7 +2,7 @@
  * features/verify — S05: التحقق العام من الشهادة (جهات التوظيف — بلا تسجيل دخول).
  * متاحة كـ deep link عام: مسار يعمل من أي متصفح غريب.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { verifyCertificate } from '../../data/actions';
@@ -20,6 +20,7 @@ export function VerifyScreen({ navigation, route }: any) {
   const [result, setResult] = useState<VerifiedCertificate | 'not-found' | 'error' | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const reqIdRef = useRef(0);
 
   const check = async () => {
     const trimmed = serial.trim();
@@ -30,13 +31,20 @@ export function VerifyScreen({ navigation, route }: any) {
     }
     setValidationError(null);
     setLoading(true);
+    const currentReqId = ++reqIdRef.current;
     try {
       const certificate = await verifyCertificate(trimmed);
-      setResult(certificate ?? 'not-found');
+      if (currentReqId === reqIdRef.current) {
+        setResult(certificate ?? 'not-found');
+      }
     } catch {
-      setResult('error');
+      if (currentReqId === reqIdRef.current) {
+        setResult('error');
+      }
     } finally {
-      setLoading(false);
+      if (currentReqId === reqIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -71,6 +79,7 @@ export function VerifyScreen({ navigation, route }: any) {
             value={serial}
             onChange={(value) => {
               setSerial(value);
+              reqIdRef.current++;
               if (validationError) setValidationError(null);
               if (result) setResult(null);
             }}

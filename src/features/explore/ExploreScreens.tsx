@@ -20,6 +20,7 @@ import {
   Segmented, Sheet, Spacer, Stars, Tag, Txt, useDebounce,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
+import { JellyButton, PillGradientSearchInput, SaveActionButton } from '../../design/interactive';
 import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
@@ -82,7 +83,12 @@ export function ExploreScreen({ navigation: propNav }: any) {
         <Header title={t('explore.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 12 }}>
           <FadeIn index={0}>
-            <Input value={query} onChange={setQuery} placeholder={t('explore.searchPlaceholder')} icon="search" />
+            <PillGradientSearchInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('explore.searchPlaceholder')}
+              onClear={() => setQuery('')}
+            />
           </FadeIn>
           <FadeIn index={1}>
             <ScrollView
@@ -402,19 +408,31 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
     }
   };
 
+  const [isSaved, setIsSaved] = useState(false);
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
         {/* غلاف Hero متدرج */}
         <View style={{ backgroundColor: course.color, paddingTop: insets.top + 10, paddingBottom: 26, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('common.back')}
-            onPress={() => navigation.goBack()}
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}
-          >
-            <BackIcon color="#fff" />
-          </Pressable>
+          <Row between center style={{ marginBottom: 18 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
+              onPress={() => navigation.goBack()}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <BackIcon color="#fff" />
+            </Pressable>
+            <SaveActionButton
+              saved={isSaved}
+              onToggle={(next) => {
+                setIsSaved(next);
+                toast(next ? 'تمت إضافة المسار للمفضلة ⭐' : 'تمت الإزالة من المفضلة', 'info');
+              }}
+              size={44}
+            />
+          </Row>
           <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
           <Spacer size={10} />
           <Txt variant="h1" color="#fff">{course.title}</Txt>
@@ -754,10 +772,12 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 </Txt>
               </Row>
             </Card>
-            <Btn
+            <JellyButton
               title={joinBatch.capacity - seatCounts(db, joinBatch.id).taken <= 0 ? t('join.waitlistConfirm') : t('join.confirm')}
-              size="lg" full loading={joining} icon="checkmark-circle"
+              loading={joining}
+              icon="checkmark-circle"
               onPress={confirmJoin}
+              variant="purple"
             />
           </View>
         ) : null}

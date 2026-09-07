@@ -153,7 +153,7 @@ export function LeagueScreen({ navigation }: any) {
 
   const league = getWeeklyLeague(db, user.id);
   const rising = risingStars(db, user.id);
-  const tierColor = leagueTierColors[league.tier];
+  const tierColor = leagueTierColors[league.tier] ?? theme.brand;
   const remaining = league.endsAt - Date.now();
   const daysLeft = Math.floor(remaining / 86_400_000);
   const hoursLeft = Math.floor((remaining % 86_400_000) / 3_600_000);
@@ -181,7 +181,7 @@ export function LeagueScreen({ navigation }: any) {
         };
       })
       .sort((a, b) => b.points - a.points || b.streak - a.streak);
-  }, [db.profiles, db.pointEvents, db.attendance, db.userBadges, db.gamification, user.id]);
+  }, [db.profiles, db.pointEvents, db.attendance, db.userBadges, db.gamification, db.enrollments, user.id]);
 
   const renderRow = (r: { user: any; xp: number; rank: number; zone: string; isYou: boolean }, i: number) => (
     <FadeIn key={r.user.id} index={Math.min(i, 8)}>

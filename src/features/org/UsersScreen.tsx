@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, Chip, Header, Input, Row, Sheet, Spacer, Tag, Txt, useDebounce,
 } from '../../design/components';
+import { PillGradientSearchInput } from '../../design/interactive';
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
 import { matchesAny } from '../../shared/search';
@@ -65,7 +66,12 @@ export function UsersScreen() {
         }
       >
         <Header title={t('users.title')} />
-        <Input value={query} onChange={setQuery} placeholder={t('users.searchHint')} icon="search" />
+        <PillGradientSearchInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('users.searchHint')}
+          onClear={() => setQuery('')}
+        />
         <Row gap={6} wrap>
           {roles.map((r) => (
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />

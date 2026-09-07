@@ -1,7 +1,7 @@
 /**
  * features/org — S41 معالج «ابدأ مركزك»: 6 خطوات حتى أول باتش على الهواء (F7).
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,7 @@ export function OrgWizardScreen({ navigation }: any) {
   const [step, setStep] = useState(1);
   const [doneOpen, setDoneOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [createdJoinCode, setCreatedJoinCode] = useState<string | null>(null);
 
   // الخطوة 1: الفرع
@@ -35,7 +36,7 @@ export function OrgWizardScreen({ navigation }: any) {
   const [branchGovernorate, setBranchGovernorate] = useState('');
   const [branchAddress, setBranchAddress] = useState('');
   // الخطوة 2: اللجان (محلية حتى الحفظ الذري في الخطوة الأخيرة)
-  const [committeeNames, setCommitteeNames] = useState<string[]>([]);
+  const [committeeNames, setCommitteeNames] = useState<string[]>(['التدريب التقني']);
   const [newCommittee, setNewCommittee] = useState('');
   // الخطوة 3: الكورس
   const [courseTitle, setCourseTitle] = useState('');
@@ -53,9 +54,12 @@ export function OrgWizardScreen({ navigation }: any) {
   const instructors = db.profiles.filter((p) => p.status === 'active' && ['volunteer', 'supervisor', 'admin'].includes(p.role));
   const previewCourse = { sessionsCount: Math.min(100, Math.max(1, parseInt(courseSessions, 10) || 8)) };
   const previewStarts = new Date(Date.now() + 7 * 86_400_000).getTime();
-  const previewBatch = instructorId && user ? {
+  const parsedCapacity = parseInt(capacity, 10);
+  const isCapacityValid = !isNaN(parsedCapacity) && parsedCapacity >= 5 && parsedCapacity <= 200;
+  const isTimeValid = /^([01]\d|2[0-3]):([0-5]\d)$/.test(time.trim());
+  const previewBatch = instructorId && user && isCapacityValid && isTimeValid ? {
     id: 'wizard-preview', courseId: 'wizard-course', branchId: user.branchId ?? user.id, instructorId,
-    capacity: parseInt(capacity, 10) || 25, schedule: { days, time, durationMin: 120 },
+    capacity: parsedCapacity, schedule: { days, time, durationMin: 120 },
     startDate: previewStarts, room, status: 'scheduled' as const, joinCode: '',
   } : null;
   const preview = previewBatch ? generateSessionsForBatch(previewBatch, previewCourse.sessionsCount) : [];
@@ -65,16 +69,17 @@ export function OrgWizardScreen({ navigation }: any) {
       case 1: return branchName.trim().length > 2 && branchGovernorate.trim().length > 2 && branchAddress.trim().length > 3;
       case 2: return committeeNames.length > 0;
       case 3: return courseTitle.trim().length >= 3 && courseField.trim().length >= 2 && previewCourse.sessionsCount <= 100;
-      case 4: return instructorId != null && room.trim().length > 0 && days.length > 0;
+      case 4: return instructorId != null && room.trim().length > 0 && days.length > 0 && isCapacityValid && isTimeValid;
       case 5: return true;
       default: return true;
     }
-  }, [step, branchName, branchGovernorate, branchAddress, committeeNames.length, courseTitle, courseField, previewCourse.sessionsCount, instructorId, room, days.length]);
+  }, [step, branchName, branchGovernorate, branchAddress, committeeNames.length, courseTitle, courseField, previewCourse.sessionsCount, instructorId, room, days.length, isCapacityValid, isTimeValid]);
 
   const next = async () => {
     if (createdJoinCode) { navigation.goBack(); return; }
     if (step < 6) { setStep(step + 1); return; }
-    if (!previewBatch || !instructorId) return;
+    if (!previewBatch || !instructorId || savingRef.current) return;
+    savingRef.current = true;
     const topics = courseTopics.split('\n').map((item) => item.trim()).filter(Boolean);
     setSaving(true);
     try {
@@ -107,6 +112,7 @@ export function OrgWizardScreen({ navigation }: any) {
     } catch (error) {
       toast((error as Error).message, 'error');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

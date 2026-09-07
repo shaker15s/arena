@@ -56,28 +56,31 @@ export function TodayScreen() {
 
   useEffect(() => {
     void Promise.all([getToday().catch(() => null), getMyCourses().catch(() => null)]);
+    return () => {
+      if (flameTimer.current) clearTimeout(flameTimer.current);
+    };
   }, []);
 
-  if (!user) return null;
   const hour = new Date(now).getHours();
   const greeting = hour < 12 ? t('today.morning') : t('today.evening');
-  const firstName = getFirstName(user.fullName);
+  const firstName = user ? getFirstName(user.fullName) : '';
 
   const liveBatch = liveSess ? batchOf(db, liveSess.batchId) : undefined;
   const liveCourse = liveBatch ? courseOf(db, liveBatch.courseId) : undefined;
-  const liveChecked = liveSess
+  const liveChecked = liveSess && user
     ? db.attendance.some((a) => a.sessionId === liveSess.id && a.userId === user.id && a.status !== 'absent')
     : false;
 
   // استمرار كارت توثيق الحضور طوال اليوم حتى بعد انتهاء الجلسة أو إغلاقها
   const todayCheckedSession = useMemo(() => {
+    if (!user) return undefined;
     if (liveSess && liveChecked) return liveSess;
     return db.sessions.find((s) => {
       const isToday = sameDay(s.startsAt, now) || (s.startedAt && sameDay(s.startedAt, now));
       if (!isToday) return false;
       return db.attendance.some((a) => a.sessionId === s.id && a.userId === user.id && a.status !== 'absent');
     });
-  }, [liveSess, liveChecked, db.sessions, db.attendance, user.id, now]);
+  }, [liveSess, liveChecked, db.sessions, db.attendance, user, now]);
 
   const checkedBatch = todayCheckedSession ? batchOf(db, todayCheckedSession.batchId) : undefined;
   const checkedCourse = checkedBatch ? courseOf(db, checkedBatch.courseId) : undefined;
@@ -92,6 +95,16 @@ export function TodayScreen() {
   // رندر (وكل حدث realtime يسبب رندرًا). المفاتيح الدقيقة تُبقيه على تغيّر
   // البيانات المعنية فقط بدل مرجع `db` بالكامل.
   const { activeBatches, certPct, closedCount, totalCount, totalHonored, combinedPct } = useMemo(() => {
+    if (!user) {
+      return {
+        activeBatches: [],
+        certPct: 75,
+        closedCount: 0,
+        totalCount: 0,
+        totalHonored: 0,
+        combinedPct: 100,
+      };
+    }
     const myBatches = db.enrollments.filter((e) => e.userId === user.id && e.status === 'active');
     const batches = myBatches.map((e) => batchOf(db, e.batchId)).filter(Boolean);
     const rule = db.rules.find((r) => r.key === 'certificate.min_attendance_pct');
@@ -115,9 +128,11 @@ export function TodayScreen() {
       totalHonored: honored,
       combinedPct: closed > 0 ? Math.round((honored / closed) * 100) : 100,
     };
-  }, [db.enrollments, db.batches, db.sessions, db.attendance, db.excuses, db.rules, user.id]);
+  }, [db.enrollments, db.batches, db.sessions, db.attendance, db.excuses, db.rules, user]);
   const needed = Math.max(0, Math.ceil(((certPct / 100) * Math.max(totalCount, closedCount)) - totalHonored));
   const hasBatches = activeBatches.length > 0;
+
+  if (!user) return null;
 
   const streakUrgent = gam != null && gam.weekStatus === 'tracking' && liveSess != null && !alreadyChecked;
   const isUpcomingToday = !liveSess && nextSess != null && sameDay(nextSess.startsAt, now);

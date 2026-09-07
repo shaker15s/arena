@@ -17,6 +17,7 @@ import {
   Tag, Txt,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
+import { JellyButton } from '../../design/interactive';
 import { spacing } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
 import { Excuse } from '../../data/types';
@@ -130,7 +131,13 @@ export function ExcusesScreen({ navigation }: any) {
               <Spacer size={8} />
               {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
               <Spacer size={10} />
-              <Btn title={t('excuses.submit')} full size="lg" loading={sending} onPress={submit} icon="send" />
+              <JellyButton
+                title={t('excuses.submit')}
+                loading={sending}
+                onPress={submit}
+                icon="send"
+                variant="brand"
+              />
             </FadeIn>
           )
         ) : mine.length === 0 ? (
@@ -193,6 +200,7 @@ export function ExcusesInboxScreen() {
   const { db, user, refresh, toast } = useApp();
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [tab, setTab] = useState<'excuses' | 'reports'>('excuses');
   const [selectedReportSession, setSelectedReportSession] = useState<TrainingSession | null>(null);
   if (!user) return null;
@@ -218,7 +226,9 @@ export function ExcusesInboxScreen() {
     .slice(0, 20);
 
   const review = async (id: string, decision: 'accepted' | 'rejected', note?: string) => {
+    if (reviewingId) return;
     if (decision === 'rejected' && !note?.trim()) return;
+    setReviewingId(id);
     try {
       await reviewExcuse({ excuseId: id, decision, note });
       await refresh();
@@ -227,6 +237,8 @@ export function ExcusesInboxScreen() {
       setRejectNote('');
     } catch (error) {
       toast((error as Error).message, 'error');
+    } finally {
+      setReviewingId(null);
     }
   };
 
@@ -282,14 +294,14 @@ export function ExcusesInboxScreen() {
                         <View style={{ gap: 8 }}>
                           <Input value={rejectNote} onChange={setRejectNote} placeholder={t('inbox.rejectNote')} multiline />
                           <Row gap={8}>
-                            <Btn title={t('inbox.reject')} variant="danger" onPress={() => review(e.id, 'rejected', rejectNote)} disabled={!rejectNote.trim()} />
-                            <Btn title={t('common.cancel')} variant="ghost" onPress={() => { setRejectId(null); setRejectNote(''); }} />
+                            <Btn title={t('inbox.reject')} variant="danger" onPress={() => review(e.id, 'rejected', rejectNote)} disabled={!rejectNote.trim() || reviewingId === e.id} loading={reviewingId === e.id} />
+                            <Btn title={t('common.cancel')} variant="ghost" onPress={() => { setRejectId(null); setRejectNote(''); }} disabled={reviewingId === e.id} />
                           </Row>
                         </View>
                       ) : (
                         <Row gap={8}>
-                          <Btn title={t('inbox.accept')} variant="success" icon="shield-checkmark" onPress={() => review(e.id, 'accepted')} />
-                          <Btn title={t('inbox.reject')} variant="ghost" icon="close" onPress={() => setRejectId(e.id)} />
+                          <Btn title={t('inbox.accept')} variant="success" icon="shield-checkmark" onPress={() => review(e.id, 'accepted')} disabled={Boolean(reviewingId)} loading={reviewingId === e.id} />
+                          <Btn title={t('inbox.reject')} variant="ghost" icon="close" onPress={() => setRejectId(e.id)} disabled={Boolean(reviewingId)} />
                         </Row>
                       )}
                     </Card>

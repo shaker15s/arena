@@ -6,7 +6,8 @@ import { joinBatchByCode } from '../../data/actions';
 import { courseOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, Header, Input, Row, Spacer, Tag, Txt } from '../../design/components';
+import { Btn, Card, Header, Row, Spacer, Txt } from '../../design/components';
+import { JellyButton, PillGradientSearchInput, SuccessWaveAlert } from '../../design/interactive';
 import { spacing } from '../../design/tokens';
 
 export function JoinBatchScreen({ route, navigation }: any) {
@@ -47,32 +48,52 @@ export function JoinBatchScreen({ route, navigation }: any) {
             <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('joinCode.body')}</Txt>
           </Row>
         </Card>
-        <Input label={t('joinCode.code')} value={code} onChange={(value) => { setCode(value); setJoined(null); }} icon="key" />
+
+        {/* حقل إدخال كود الانضمام بتصميم متدرج وأنيق */}
+        <View style={{ gap: 6 }}>
+          <Txt variant="caption" color={theme.textSecondary} style={{ marginHorizontal: 4 }}>
+            {t('joinCode.code')}
+          </Txt>
+          <PillGradientSearchInput
+            value={code}
+            onChangeText={(value) => { setCode(value); setJoined(null); }}
+            placeholder={t('joinCode.code')}
+            icon="key"
+          />
+        </View>
+
         {batch && course ? (
-          <Card>
+          <Card color={theme.card}>
             <Txt variant="h3">{course.title}</Txt>
             <Spacer size={6} />
             <Txt variant="caption" color={theme.textSecondary}>{batch.room} · {batch.schedule.time}</Txt>
           </Card>
         ) : null}
+
         {!user ? (
-          <Btn title={t('auth.continueGoogle')} full size="lg" icon="logo-google" onPress={() => navigation.navigate('SignIn')} />
+          <JellyButton
+            title={t('auth.continueGoogle')}
+            icon="logo-google"
+            onPress={() => navigation.navigate('SignIn')}
+          />
         ) : joined ? (
-          <Card color={joined === 'active' ? theme.successSoft : theme.warnSoft}>
-            <Tag
-              label={joined === 'active' ? t('joinCode.joined') : t('joinCode.waitlist')}
-              color={joined === 'active' ? theme.success : theme.warn}
-              bg={joined === 'active' ? theme.successSoft : theme.warnSoft}
-              icon={joined === 'active' ? 'checkmark-circle' : 'time'}
+          <View style={{ gap: 12 }}>
+            <SuccessWaveAlert
+              title={joined === 'active' ? t('joinCode.joined') : t('joinCode.waitlist')}
+              description={course ? `${course.title} · ${batch?.room ?? ''}` : t('joinCode.joined')}
+              actionText={t('common.done')}
+              onAction={() => navigation.navigate('Tabs')}
             />
-            <Spacer size={10} />
             <Btn title={t('common.done')} full onPress={() => navigation.navigate('Tabs')} />
-          </Card>
+          </View>
         ) : (
-          <Btn
-            title={t('joinCode.confirm')} full size="lg" icon="enter"
-            onPress={submit} loading={submitting}
+          <JellyButton
+            title={t('joinCode.confirm')}
+            icon="enter"
+            onPress={submit}
+            loading={submitting}
             disabled={user?.role !== 'student' || code.trim().length < 6}
+            variant="purple"
           />
         )}
       </ScrollView>

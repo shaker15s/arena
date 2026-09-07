@@ -1050,26 +1050,80 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
 
 export function CustomSwitch({ value, onChange, color }: { value: boolean; onChange: (v: boolean) => void; color?: string }) {
   const { theme } = useTheme();
-  const { impactLight } = useHaptics();
+  const { impactLight, impactMedium } = useHaptics();
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
+  const pressAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    Animated.spring(anim, { toValue: value ? 1 : 0, useNativeDriver: false, damping: 22, stiffness: 260 }).start();
+    Animated.spring(anim, {
+      toValue: value ? 1 : 0,
+      useNativeDriver: false,
+      damping: 20,
+      stiffness: 300,
+      mass: 0.8,
+    }).start();
   }, [value, anim]);
-  const bg = anim.interpolate({ inputRange: [0, 1], outputRange: [
-    theme.fillStrong,
-    color ?? theme.brand,
-  ]});
-  const translate = anim.interpolate({ inputRange: [0, 1], outputRange: [2, 22] });
+
+  const bg = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [theme.fillStrong, color ?? theme.brand],
+  });
+
+  // النقل من اليسار لليمين بسلاسة ناعمة
+  const translate = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2.5, 23],
+  });
+
+  // تمدد القرص عند اللمس والضغط (تأثير Apple & Uiverse الإنسيابي)
+  const thumbWidth = pressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [26, 31],
+  });
+
   return (
     <Pressable
       accessibilityRole="switch"
       accessibilityLabel={value ? 'مفعّل' : 'معطّل'}
       accessibilityState={{ checked: value }}
-      onPress={() => { impactLight(); onChange(!value); }}
-      hitSlop={8}
+      onPress={() => {
+        if (!value) impactMedium();
+        else impactLight();
+        onChange(!value);
+      }}
+      onPressIn={() => {
+        Animated.timing(pressAnim, { toValue: 1, duration: 120, useNativeDriver: false }).start();
+      }}
+      onPressOut={() => {
+        Animated.spring(pressAnim, { toValue: 0, damping: 15, stiffness: 250, useNativeDriver: false }).start();
+      }}
+      hitSlop={10}
     >
-      <Animated.View style={{ width: 51, height: 31, borderRadius: 16, backgroundColor: bg, justifyContent: 'center', direction: 'ltr' }}>
-        <Animated.View style={{ width: 27, height: 27, borderRadius: 14, backgroundColor: '#fff', transform: [{ translateX: translate }], shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3 }} />
+      <Animated.View
+        style={{
+          width: 52,
+          height: 31,
+          borderRadius: 16,
+          backgroundColor: bg,
+          justifyContent: 'center',
+          direction: 'ltr',
+          paddingHorizontal: 1,
+        }}
+      >
+        <Animated.View
+          style={{
+            width: thumbWidth,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: '#FFFFFF',
+            transform: [{ translateX: translate }],
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 5,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 4,
+          }}
+        />
       </Animated.View>
     </Pressable>
   );

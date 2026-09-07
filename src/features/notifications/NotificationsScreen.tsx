@@ -44,7 +44,7 @@ const NotificationCard = React.memo(function NotificationCard({
   pulseAnim,
   onPress,
 }: NotificationCardProps) {
-  const meta = TYPE_META[item.type] || TYPE_META.system;
+  const meta = TYPE_META[item.type] || TYPE_META.system || { icon: 'information-circle', color: theme?.brand ?? '#64748B' };
 
   return (
     <Card

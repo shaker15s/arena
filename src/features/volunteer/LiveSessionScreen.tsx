@@ -69,9 +69,8 @@ export function LiveSessionScreen() {
     return () => { void deactivateKeepAwake('masar-live-session').catch(() => {}); };
   }, [hasLive]);
 
-  if (!user) return null;
-  const isManager = user.role === 'admin' || user.role === 'supervisor';
-  const myBatches = instructorBatches(db, user.id);
+  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
+  const myBatches = user ? instructorBatches(db, user.id) : [];
   const effectiveBatches = isManager ? (myBatches.length > 0 ? myBatches : db.batches.filter((b) => b.status !== 'archived')) : myBatches;
   const myLive = db.sessions.find((s) => s.status === 'live' && effectiveBatches.some((b) => b.id === s.batchId)) ?? (isManager ? db.sessions.find((s) => s.status === 'live') : undefined);
   const batchesWithScheduled = effectiveBatches.filter((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
@@ -104,6 +103,8 @@ export function LiveSessionScreen() {
       if (timer) clearTimeout(timer);
     };
   }, [myLive?.id, toast]);
+
+  if (!user) return null;
 
   const startBatch = async (batchId: string) => {
     setStarting(true);
@@ -429,7 +430,7 @@ export function LiveSessionScreen() {
   function renderClosedModal() {
     return (
       <CelebrationModal
-        visible={closedSummary != null && !closedSessionReport}
+        visible={closedSummary != null && !reportStep}
         onClose={() => setClosedSummary(null)}
         title={t('live.closedSnack')}
         subtitle={closedSummary ? t('report.summary', { x: closedSummary.present, y: closedSummary.total }) : undefined}
@@ -626,12 +627,10 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
   const [rosterStudents, setRosterStudents] = useState<any[]>([]);
   const [loadingRoster, setLoadingRoster] = useState(false);
 
-  if (!user) return null;
-
-  const localStudents = batchStudents(db, session.batchId);
+  const localStudents = user ? batchStudents(db, session.batchId) : [];
 
   useEffect(() => {
-    if (visible) {
+    if (visible && user) {
       let active = true;
       const load = async () => {
         setLoadingRoster(true);
@@ -655,7 +654,9 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
       void load();
       return () => { active = false; };
     }
-  }, [visible, session.batchId, theme.brand]);
+  }, [visible, session.batchId, theme.brand, user]);
+
+  if (!user) return null;
 
   // دمج الطلاب من الكاش المحلي ومن الـ roster القادم من الخادم
   const allStudentsMap = new Map<string, { id: string; fullName: string; avatarColor: string; phone?: string; email?: string }>();

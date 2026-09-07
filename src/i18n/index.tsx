@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ar, DictKey } from './ar';
@@ -45,20 +45,27 @@ function saveLang(l: Lang) {
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('ar');
+  const userSwitchedRef = useRef(false);
 
   // استرجاع اللغة المحفوظة عند الإقلاع — كانت تُفقد مع كل تشغيل.
   useEffect(() => {
     let mounted = true;
+    applyWebDir('ar');
     void readSavedLang().then((saved) => {
-      if (mounted && saved && saved !== 'ar') {
-        setLangState(saved);
-        applyWebDir(saved);
+      if (mounted && !userSwitchedRef.current) {
+        if (saved) {
+          setLangState(saved);
+          applyWebDir(saved);
+        } else {
+          applyWebDir('ar');
+        }
       }
     });
     return () => { mounted = false; };
   }, []);
 
   const setLang = useCallback((l: Lang) => {
+    userSwitchedRef.current = true;
     setLangState(l);
     saveLang(l);
     applyWebDir(l);
