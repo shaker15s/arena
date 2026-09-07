@@ -149,6 +149,41 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error: string |
   return exchangeUrlForSession(result.url);
 }
 
+/**
+ * الدخول بحساب Apple.
+ * الويب: إعادة توجيه كاملة. الموبايل: متصفح آمن + التقاط التوكنات من الـ deep link.
+ */
+export async function signInWithApple(): Promise<{ ok: boolean; error: string | null }> {
+  if (!SUPABASE_ENABLED) return { ok: false, error: 'not-configured' };
+  const sb = getSupabase();
+  const redirectTo = authRedirectUrl();
+
+  if (Platform.OS === 'web') {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo,
+      },
+    });
+    return { ok: !error, error: error?.message ?? null };
+  }
+
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider: 'apple',
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+    },
+  });
+  if (error || !data?.url) return { ok: false, error: error?.message ?? 'oauth-url-missing' };
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, { showInRecents: true });
+  if (result.type !== 'success' || !result.url) {
+    return { ok: false, error: result.type === 'cancel' || result.type === 'dismiss' ? 'cancelled' : 'oauth-failed' };
+  }
+  return exchangeUrlForSession(result.url);
+}
+
 /** تحويل رابط الرجوع (code أو access_token) إلى جلسة فعلية */
 export async function exchangeUrlForSession(url: string): Promise<{ ok: boolean; error: string | null }> {
   const sb = getSupabase();

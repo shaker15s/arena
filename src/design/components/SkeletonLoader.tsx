@@ -119,6 +119,73 @@ export function TodayCardSkeleton() {
   );
 }
 
+/** قالب بطاقة الاستكشاف الهيكلي */
+export function ExploreCardSkeleton() {
+  return (
+    <View style={styles.cardSkeleton}>
+      <Skeleton width="100%" height={120} borderRadius={radii.lg} />
+      <View style={{ height: 12 }} />
+      <Skeleton width="70%" height={16} />
+      <View style={{ height: 6 }} />
+      <Skeleton width="45%" height={12} />
+      <View style={{ height: 10 }} />
+      <View style={styles.row}>
+        <Skeleton width={60} height={24} borderRadius={radii.pill} />
+        <Skeleton width={60} height={24} borderRadius={radii.pill} />
+      </View>
+    </View>
+  );
+}
+
+/** قالب الإشعار الهيكلي */
+export function NotificationSkeleton() {
+  return (
+    <View style={styles.cardSkeleton}>
+      <View style={styles.row}>
+        <Skeleton width={42} height={42} borderRadius={13} />
+        <View style={styles.col}>
+          <Skeleton width="75%" height={14} />
+          <View style={{ height: 4 }} />
+          <Skeleton width="90%" height={12} />
+          <View style={{ height: 4 }} />
+          <Skeleton width="30%" height={10} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** قالب بطاقة الرحلة الهيكلي */
+export function JourneyCardSkeleton() {
+  return (
+    <View style={styles.cardSkeleton}>
+      <View style={styles.row}>
+        <Skeleton circle height={74} />
+        <View style={styles.col}>
+          <Skeleton width="65%" height={16} />
+          <View style={{ height: 6 }} />
+          <Skeleton width="50%" height={12} />
+          <View style={{ height: 8 }} />
+          <Skeleton width="100%" height={8} borderRadius={radii.full} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** قالب مؤشر الأداء الهيكلي */
+export function KpiCardSkeleton() {
+  return (
+    <View style={[styles.cardSkeleton, { alignItems: 'center', paddingVertical: 20 }]}>
+      <Skeleton width={48} height={48} borderRadius={14} />
+      <View style={{ height: 10 }} />
+      <Skeleton width="40%" height={20} />
+      <View style={{ height: 6 }} />
+      <Skeleton width="60%" height={12} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   skeletonBase: {
     overflow: 'hidden',

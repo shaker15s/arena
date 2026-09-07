@@ -226,9 +226,9 @@ export function Btn({
     : variant === 'success' ? theme.success
     : variant === 'gold' ? '#3D2B00'
     : theme.textSecondary;
-  const padV = size === 'lg' ? 16 : size === 'md' ? 13 : 10;
-  const padH = size === 'lg' ? 24 : size === 'md' ? 18 : 14;
-  const minBtnHeight = size === 'lg' ? 64 : size === 'md' ? 56 : 48;
+  const padV = size === 'lg' ? 14 : size === 'md' ? 11 : 8;
+  const padH = size === 'lg' ? 22 : size === 'md' ? 16 : 11;
+  const minBtnHeight = size === 'lg' ? 52 : size === 'md' ? 44 : 38;
 
   const press = (v: number) =>
     Animated.spring(scale, { toValue: v, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
@@ -271,7 +271,10 @@ export function Btn({
             }}
           >
             {loading ? (
-              <Spinner color="#fff" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Spinner color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+              </View>
             ) : (
               <>
                 {icon ? <Ionicons name={icon} size={18} color="#fff" /> : null}
@@ -313,7 +316,10 @@ export function Btn({
         ]}
       >
         {loading ? (
-          <Spinner color={fg} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Spinner color={fg} />
+            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+          </View>
         ) : (
           <>
             {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
@@ -408,7 +414,23 @@ export function Segmented<T extends string>({ options, value, onChange }: {
 
 // ───────────────────────────── حقول إدخال ─────────────────────────────
 
-export function Input({ label, value, onChange, placeholder, keyboardType, multiline, icon, error, maxLength, secure, autoCapitalize, onIconPress }: {
+export function Input({
+  label,
+  value,
+  onChange,
+  placeholder,
+  keyboardType,
+  multiline,
+  icon,
+  error,
+  maxLength,
+  secure,
+  autoCapitalize,
+  onIconPress,
+  onSubmitEditing,
+  returnKeyType,
+  autoFocus,
+}: {
   label?: string;
   value: string;
   onChange: (v: string) => void;
@@ -421,6 +443,9 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
   secure?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   onIconPress?: () => void;
+  onSubmitEditing?: () => void;
+  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
+  autoFocus?: boolean;
 }) {
   const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -440,6 +465,8 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
     }
   };
 
+  const isInteractiveIcon = Boolean(onIconPress || (Platform.OS === 'web' && icon === 'calendar'));
+
   return (
     <View style={{ alignSelf: 'stretch' }}>
       {label ? <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 6 }}>{label}</Txt> : null}
@@ -457,19 +484,38 @@ export function Input({ label, value, onChange, placeholder, keyboardType, multi
         }}
       >
         {icon ? (
-          <Pressable
-            hitSlop={8}
-            onPress={handleIconClick}
-            style={[Platform.OS === 'web' && (icon === 'calendar' || onIconPress) ? { cursor: 'pointer' } as any : null, { marginTop: multiline ? 10 : 0 }]}
-          >
-            <Ionicons name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
-          </Pressable>
+          isInteractiveIcon ? (
+            <Pressable
+              hitSlop={8}
+              accessibilityRole="button"
+              onPress={handleIconClick}
+              style={[Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null, { marginTop: multiline ? 10 : 0 }]}
+            >
+              <Ionicons name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+            </Pressable>
+          ) : (
+            <View
+              accessible={false}
+              aria-hidden={true}
+              style={{ marginTop: multiline ? 10 : 0 }}
+            >
+              <Ionicons name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+            </View>
+          )
         ) : null}
         <TextInput
           value={value}
           onChangeText={onChange}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          onSubmitEditing={onSubmitEditing}
+          returnKeyType={returnKeyType}
+          autoFocus={autoFocus}
+          onKeyPress={(e: any) => {
+            if (!multiline && onSubmitEditing && (e.key === 'Enter' || e.nativeEvent?.key === 'Enter')) {
+              onSubmitEditing();
+            }
+          }}
           accessibilityLabel={label ?? placeholder}
           placeholder={placeholder}
           placeholderTextColor={theme.textMuted}
@@ -1067,3 +1113,6 @@ export { XPBar } from './components/XPBar';
 export { BentoGrid, BentoItem } from './components/BentoGrid';
 export { StreakCalendarGrid } from './components/StreakCalendarGrid';
 export { NotificationBell } from './components/NotificationBell';
+export { BorderBeam } from './components/BorderBeam';
+export { AnimatedShinyText } from './components/AnimatedShinyText';
+export { SpotlightCard } from './components/SpotlightCard';

@@ -2,7 +2,7 @@
  * features/profile — S27 حسابي + الإعدادات (لغة/ثيم/قواعد/دعم/خروج).
  */
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -16,6 +16,7 @@ import {
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
+import { MasarMascot } from '../../design/mascot';
 
 export function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
@@ -235,6 +236,9 @@ export function ProfileScreen() {
 
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title={t('profile.deleteAccount')}>
         <View style={{ gap: 14 }}>
+          <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <MasarMascot size={90} mode="encouraging" interactive={false} hideFloatingBubble />
+          </View>
           <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55' }}>
             <Row center gap={10}>
               <Ionicons name="warning" size={26} color={theme.danger} />
@@ -245,10 +249,10 @@ export function ProfileScreen() {
             label={t('profile.deleteTypeConfirm')}
             value={deleteConfirm}
             onChange={setDeleteConfirm}
-            placeholder="DELETE"
+            placeholder={t('profile.deleteConfirmPlaceholder')}
             autoCapitalize="characters"
           />
-          {deleteConfirm.toUpperCase() !== 'DELETE' ? (
+          {deleteConfirm.trim() !== 'حذف' && deleteConfirm.trim().toUpperCase() !== 'DELETE' ? (
             <Txt variant="micro" color={theme.textMuted}>{t('profile.deleteHint')}</Txt>
           ) : null}
           <Row gap={10}>
@@ -258,10 +262,10 @@ export function ProfileScreen() {
                 title={t('profile.deleteAccount')}
                 variant="danger" full icon="trash-outline"
                 loading={deleting}
-                disabled={deleteConfirm.toUpperCase() !== 'DELETE'}
+                disabled={deleteConfirm.trim() !== 'حذف' && deleteConfirm.trim().toUpperCase() !== 'DELETE'}
                 onPress={async () => {
                   setDeleting(true);
-                  const r = await deleteMyAccount(deleteConfirm.toUpperCase());
+                  const r = await deleteMyAccount('DELETE');
                   setDeleting(false);
                   if (!r.ok) { toast(r.error ?? t('common.errorTitle'), 'error'); return; }
                   setDeleteOpen(false);
@@ -325,9 +329,10 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
 
   const save = async () => {
     if (name.trim().split(/\s+/).length < 2) { setError(t('complete.nameError')); return; }
-    if (!/^01\d{9}$/.test(phone.trim())) { setError(t('complete.phoneError')); return; }
+    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, '');
+    if (!/^(\+?\d{8,15}|01\d{9}|05\d{8})$/.test(cleanPhone)) { setError(t('complete.phoneError')); return; }
     setSaving(true);
-    const r = await updateProfile({ fullName: name.trim(), phone: phone.trim(), avatarUrl: avatar });
+    const r = await updateProfile({ fullName: name.trim(), phone: cleanPhone, avatarUrl: avatar });
     setSaving(false);
     if (!r.ok) { setError(r.error ?? t('common.errorTitle')); return; }
     onClose();
@@ -336,7 +341,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('profile.edit')}>
-      <View style={{ gap: 14 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: 14 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('profile.changeAvatar')} onPress={pick} style={{ alignSelf: 'center' }}>
           <View style={{
             width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
@@ -355,7 +360,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
             <Ionicons name="mail" size={16} color={theme.brand} />
             <View style={{ flex: 1 }}>
               <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
-              <Txt variant="bodyMed">{user.email ?? '—'}</Txt>
+              <Txt variant="bodyMed" numberOfLines={1}>{user.email ?? '—'}</Txt>
             </View>
             <Ionicons name="lock-closed" size={14} color={theme.textMuted} />
           </Row>
@@ -365,14 +370,14 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
         <Input
           label={t('common.phone')}
           value={phone}
-          onChange={(v) => { setPhone(v.replace(/[^\d]/g, '')); setError(''); }}
+          onChange={(v) => { setPhone(v.replace(/[^\d+]/g, '')); setError(''); }}
           keyboardType="phone-pad"
           icon="call"
-          maxLength={11}
+          maxLength={16}
         />
         {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
         <Btn title={t('common.save')} full loading={saving} onPress={save} icon="checkmark" />
-      </View>
+      </KeyboardAvoidingView>
     </Sheet>
   );
 }

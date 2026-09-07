@@ -2,7 +2,7 @@
  * features/journey — S14 رحلتي + S15 خريطة الرحلة (التوقيع البصري) + S16 سجل الحضور + S26 تقييم الكورس.
  */
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -17,6 +17,7 @@ import {
   Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
 } from '../../design/components';
+import { CelebrationModal } from '../../design/celebrations';
 import { DayStatus } from '../../design/components/StreakCalendarGrid';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
@@ -30,7 +31,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { db, user } = useApp();
+  const { db, user, refresh, syncing } = useApp();
   const tabs = useTabs();
   if (!user) return null;
 
@@ -42,7 +43,17 @@ export function JourneyScreen({ navigation: propNav }: any) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {myEnrollments.length === 0 ? (
@@ -93,13 +104,21 @@ export function JourneyScreen({ navigation: propNav }: any) {
                       </Row>
                     </Pressable>
                     <Spacer size={10} />
-                    <Row gap={8}>
-                      <Btn title={t('journey.map')} size="sm" variant="secondary" icon="map" onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id })} />
-                      <Btn title={t('journey.history')} size="sm" variant="ghost" icon="list" onPress={() => navigation.navigate('AttendanceHistory', { batchId: batch.id })} />
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingVertical: 2,
+                      }}
+                    >
+                      <Btn title={t('journey.map')} size="sm" variant="secondary" icon="map" onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id })} style={{ flexGrow: 1, minWidth: 90 }} />
+                      <Btn title={t('journey.history')} size="sm" variant="ghost" icon="list" onPress={() => navigation.navigate('AttendanceHistory', { batchId: batch.id })} style={{ flexGrow: 1, minWidth: 90 }} />
                       {completed && !rated ? (
-                        <Btn title={t('journey.rateCourse')} size="sm" variant="gold" icon="star" onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id, rate: true })} />
+                        <Btn title={t('journey.rateCourse')} size="sm" variant="gold" icon="star" onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id, rate: true })} style={{ flexGrow: 1, minWidth: 90 }} />
                       ) : null}
-                    </Row>
+                    </View>
                   </Card>
                 </FadeIn>
               );
@@ -118,7 +137,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const navigation = propNav ?? hookNav;
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, refresh, toast } = useApp();
+  const { db, user, refresh, toast, syncing } = useApp();
   const batchId: string = route.params.batchId;
   const batch = batchOf(db, batchId);
   const course = batch ? courseOf(db, batch.courseId) : undefined;
@@ -127,6 +146,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [showCertCelebration, setShowCertCelebration] = useState(false);
 
   if (!batch || !course || !user) return null;
 
@@ -194,6 +214,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     try {
       await issueBatchCertificates(batch.id);
       await refresh();
+      setShowCertCelebration(true);
       toast(t('journey.certIssuedOk'), 'success');
     } catch (e) {
       toast((e as Error).message, 'error');
@@ -229,7 +250,17 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
           </Row>
         }
       />
-      <ScrollView contentContainerStyle={{ paddingBottom: 140, paddingTop: 12, paddingHorizontal: spacing.s5, alignItems: 'center' }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 140, paddingTop: 12, paddingHorizontal: spacing.s5, alignItems: 'center' }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         <View style={{ width: '100%', maxWidth: 660, gap: 14 }}>
           {/* Bento الملخص */}
           <FadeIn index={0}>
@@ -442,33 +473,44 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
 
       {/* S26 — تقييم الكورس متعدد المحاور */}
       <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title={t('journey.rateTitle')}>
-        <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-          <Card glass style={{ gap: 6, alignItems: 'center' }}>
-            <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateOverall')}</Txt>
-            <Stars value={stars} size={32} onRate={setStars} />
-          </Card>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+            <Card glass style={{ gap: 6, alignItems: 'center' }}>
+              <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateOverall')}</Txt>
+              <Stars value={stars} size={32} onRate={setStars} />
+            </Card>
 
-          <Card glass style={{ gap: 6, alignItems: 'center' }}>
-            <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateInstructor')}</Txt>
-            <Stars value={instructorStars} size={28} onRate={setInstructorStars} />
-          </Card>
+            <Card glass style={{ gap: 6, alignItems: 'center' }}>
+              <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateInstructor')}</Txt>
+              <Stars value={instructorStars} size={28} onRate={setInstructorStars} />
+            </Card>
 
-          <Card glass style={{ gap: 6, alignItems: 'center' }}>
-            <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateVenue')}</Txt>
-            <Stars value={venueStars} size={28} onRate={setVenueStars} />
-          </Card>
+            <Card glass style={{ gap: 6, alignItems: 'center' }}>
+              <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateVenue')}</Txt>
+              <Stars value={venueStars} size={28} onRate={setVenueStars} />
+            </Card>
 
-          <Input
-            label={t('journey.rateComment')}
-            value={comment}
-            onChange={setComment}
-            placeholder={t('journey.ratePlaceholder')}
-            multiline
-          />
+            <Input
+              label={t('journey.rateComment')}
+              value={comment}
+              onChange={setComment}
+              placeholder={t('journey.ratePlaceholder')}
+              multiline
+            />
 
-          <Btn title={t('journey.rateSubmit')} full size="lg" loading={sending} onPress={submitRating} icon="checkmark-circle" />
-        </ScrollView>
+            <Btn title={t('journey.rateSubmit')} full size="lg" loading={sending} onPress={submitRating} icon="checkmark-circle" />
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Sheet>
+
+      <CelebrationModal
+        visible={showCertCelebration}
+        onClose={() => setShowCertCelebration(false)}
+        title="مبارك التخرج والشهادة! 🎓"
+        subtitle={`تم إصدار شهادتك في ${course.title} بنجاح`}
+        emoji="🎓"
+        points={100}
+      />
     </View>
   );
 }
@@ -480,7 +522,7 @@ type Filter = 'all' | AttendanceStatus;
 export function AttendanceHistoryScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user } = useApp();
+  const { db, user, refresh, syncing } = useApp();
   const batchId: string | undefined = route.params?.batchId;
   const [filter, setFilter] = useState<Filter>('all');
   if (!user) return null;
@@ -507,7 +549,17 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('history.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         <FadeIn index={0}>
           <Card style={{ gap: 14 }}>
             <Row between center>

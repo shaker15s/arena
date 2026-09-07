@@ -22,7 +22,7 @@ import {
   Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, NotificationBell, ProgressBar,
   Row, Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
-import { spacing, radii } from '../../design/tokens';
+import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
 import { BatchFormSheet } from '../org/AdminScreens';
@@ -529,10 +529,10 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
         ) : report ? (
           <View style={{ gap: 10 }}>
             <Row gap={10}>
-              <ReportStat label={t('history.present')} value={report.present} color={theme.success} />
-              <ReportStat label={t('history.late')} value={report.late} color={theme.warn} />
-              <ReportStat label={t('history.excused')} value={report.excused} color={theme.info} />
-              <ReportStat label={t('history.absent')} value={report.absent} color={theme.danger} />
+              <ReportStat label={t('history.present')} value={report.present} color={attendanceColors.present} bg={attendanceColors.present + '1A'} />
+              <ReportStat label={t('history.late')} value={report.late} color={attendanceColors.late} bg={attendanceColors.late + '1A'} />
+              <ReportStat label={t('history.excused')} value={report.excused} color={attendanceColors.excused} bg={attendanceColors.excused + '1A'} />
+              <ReportStat label={t('history.absent')} value={report.absent} color={attendanceColors.absent} bg={attendanceColors.absent + '1A'} />
             </Row>
             <Card glass>
               <Row between center>
@@ -560,10 +560,10 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   );
 }
 
-function ReportStat({ label, value, color }: { label: string; value: number; color: string }) {
+function ReportStat({ label, value, color, bg }: { label: string; value: number; color: string; bg?: string }) {
   const { theme } = useTheme();
   return (
-    <Card style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 12 }}>
+    <Card style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 12, backgroundColor: bg }}>
       <Txt variant="h3" color={color}>{value}</Txt>
       <Txt variant="micro" color={theme.textMuted} align="center">{label}</Txt>
     </Card>
@@ -633,11 +633,11 @@ export function StudentRecordScreen({ route, navigation }: any) {
   };
 
   const attendanceMeta = (st?: string) =>
-    st === 'present' ? { icon: 'checkmark-circle', color: theme.success }
-    : st === 'late' ? { icon: 'time', color: theme.warn }
-    : st === 'excused' ? { icon: 'shield', color: theme.info }
-    : st === 'absent' ? { icon: 'close-circle', color: '#64748B' }
-    : { icon: 'ellipse-outline', color: theme.line };
+    st === 'present' ? { icon: 'checkmark-circle', color: attendanceColors.present, bg: attendanceColors.present + '1A' }
+    : st === 'late' ? { icon: 'time', color: attendanceColors.late, bg: attendanceColors.late + '1A' }
+    : st === 'excused' ? { icon: 'shield', color: attendanceColors.excused, bg: attendanceColors.excused + '1A' }
+    : st === 'absent' ? { icon: 'close-circle', color: attendanceColors.absent, bg: attendanceColors.absent + '1A' }
+    : { icon: 'ellipse-outline', color: theme.line, bg: theme.fill };
 
   return (
     <View style={{ flex: 1 }}>
@@ -673,12 +673,13 @@ export function StudentRecordScreen({ route, navigation }: any) {
               const att = db.attendance.find((a) => a.sessionId === s.id && a.userId === student.id);
               const meta = attendanceMeta(att?.status);
               return (
-                <Row key={s.id} center gap={10} style={{ padding: 12, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
+                <Row key={s.id} center gap={10} style={{ padding: 12, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.line, backgroundColor: meta.bg, borderRadius: radii.md }}>
                   <Ionicons name={meta.icon as any} size={20} color={meta.color} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="caption">{s.title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>{formatDate(s.startsAt, lang)}{att?.method === 'manual' ? ` · ${t('common.manual')}` : ''}{att?.note ? ` · ${att.note}` : ''}</Txt>
                   </View>
+                  <Tag label={t(`history.${att?.status ?? 'absent'}` as any)} color={meta.color} bg={meta.bg} />
                 </Row>
               );
             })}

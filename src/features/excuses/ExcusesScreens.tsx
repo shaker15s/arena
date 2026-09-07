@@ -19,6 +19,7 @@ import {
 import { spacing } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
 import { Excuse } from '../../data/types';
+import { MasarMascot } from '../../design/mascot';
 
 // ───────────────────────────── S24 أعذاري ─────────────────────────────
 
@@ -121,6 +122,9 @@ export function ExcusesScreen({ navigation }: any) {
               </View>
               <Spacer size={12} />
               <Input label={t('excuses.reasonLabel')} value={reason} onChange={setReason} placeholder={t('excuses.reasonPlaceholder')} multiline />
+              <Txt variant="micro" color={reason.trim().length < 5 ? theme.danger : theme.textMuted} style={{ textAlign: 'right', marginTop: 4 }}>
+                {reason.trim().length} / 200
+              </Txt>
               <Spacer size={8} />
               {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
               <Spacer size={10} />
@@ -157,12 +161,15 @@ export function ExcusesScreen({ navigation }: any) {
                   {e.status === 'rejected' && e.note ? (
                     <>
                       <Spacer size={8} />
-                      <Card color={theme.dangerSoft} noPad style={{ padding: 10 }}>
-                        <Row center gap={6}>
-                          <Ionicons name="chatbox" size={13} color={theme.danger} />
-                          <Txt variant="micro" color={theme.danger}>{t('excuses.instructorNote')}: {e.note}</Txt>
-                        </Row>
-                      </Card>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <MasarMascot size={48} mode="encouraging" interactive={false} hideFloatingBubble />
+                        <Card color={theme.dangerSoft} noPad style={{ padding: 10, flex: 1 }}>
+                          <Row center gap={6}>
+                            <Ionicons name="chatbox" size={13} color={theme.danger} />
+                            <Txt variant="micro" color={theme.danger}>{t('excuses.instructorNote')}: {e.note}</Txt>
+                          </Row>
+                        </Card>
+                      </View>
                     </>
                   ) : null}
                 </Card>

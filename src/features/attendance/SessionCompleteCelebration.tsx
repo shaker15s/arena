@@ -31,6 +31,7 @@ export interface SessionCompleteCelebrationProps {
   status: 'present' | 'late';
   streakWeeks?: number;
   sessionTitle?: string;
+  already?: boolean;
 }
 
 export function SessionCompleteCelebration({
@@ -40,6 +41,7 @@ export function SessionCompleteCelebration({
   status = 'present',
   streakWeeks = 4,
   sessionTitle,
+  already = false,
 }: SessionCompleteCelebrationProps) {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
@@ -122,20 +124,29 @@ export function SessionCompleteCelebration({
             },
           ]}
         >
-          {/* رأس الاحتفال وتميمة مسار */}
+          {/* رأس الاحتفال وتميمة مسار «فطن» */}
           <MasarMascot
             size={105}
-            mode={isLate ? 'encouraging' : 'celebrating'}
+            behavior={already ? 'success' : isLate ? 'recovery' : 'achievement'}
             interactive
           />
 
           <View style={styles.titleSection}>
             <Txt variant="h2" align="center" color={theme.text}>
-              {isLate ? 'تم تسجيل حضورك! 👍' : 'أحسنت! حضور في الموعد 🎯'}
+              {already
+                ? 'حضورك موثق مسبقاً ✓'
+                : isLate
+                ? 'تم تسجيل حضورك! 👍'
+                : 'أحسنت! حضور في الموعد 🎯'}
             </Txt>
             {sessionTitle ? (
               <Txt variant="caption" color={theme.textSecondary} align="center">
                 {sessionTitle}
+              </Txt>
+            ) : null}
+            {already ? (
+              <Txt variant="caption" color={theme.brand} align="center">
+                بياناتك ونقاطك وستريكك مسجلة ومحفوظة في هذه الجلسة 🦅
               </Txt>
             ) : null}
           </View>
@@ -157,14 +168,14 @@ export function SessionCompleteCelebration({
               </View>
               <View style={{ flex: 1 }}>
                 <Txt variant="micro" color={theme.textMuted}>
-                  النقاط المكتسبة
+                  {already ? 'النقاط الموثقة' : 'النقاط المكتسبة'}
                 </Txt>
                 <Row center gap={4}>
                   <Txt variant="h3" color={theme.brand} style={{ fontVariant: ['tabular-nums'] }}>
-                    +<CountUp value={points} duration={700} />
+                    {already ? '' : '+'}<CountUp value={points} duration={700} />
                   </Txt>
                   <Txt variant="caption" color={theme.brand}>
-                    نقطة
+                    {already ? 'نقطة (محفوظة)' : 'نقطة'}
                   </Txt>
                 </Row>
               </View>

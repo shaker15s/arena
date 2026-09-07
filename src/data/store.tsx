@@ -17,7 +17,7 @@ import { addBreadcrumb } from '../shared/telemetry';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   consumeWebAuthCallback,
-  signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
+  signInWithGoogle as sbSignInWithGoogle, signInWithApple as sbSignInWithApple, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
 import { applyRealtimePatch, emptyDb, fetchRemoteDb, subscribeRealtime } from './remote';
 import { runCommandOnServer } from './actions';
@@ -64,6 +64,7 @@ interface AppCtx {
   submitOrQueue: (command: string, payload: Record<string, unknown>) => Promise<{ status: 'applied' | 'queued'; error?: string }>;
   refresh: () => Promise<void>;
   signInWithGoogle: () => Promise<{ ok: boolean; error: string | null }>;
+  signInWithApple: () => Promise<{ ok: boolean; error: string | null }>;
   completeProfile: (draft: ProfileDraft) => Promise<{ ok: boolean; error?: string }>;
   updateProfile: (patch: Partial<ProfileDraft>) => Promise<{ ok: boolean; error?: string }>;
   uploadAvatar: (uri: string) => Promise<string | null>;
@@ -198,7 +199,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const result = await runCommandOnServer(c.id, c.command, c.payload, c.deviceCreatedAt);
           if (result.status === 'applied') {
             await markApplied(c.id);
-            appliedAny = true;
+            if (c.command !== 'mark_notifications_read') appliedAny = true;
           } else {
             // فشل عمل نهائي على الخادم (مثل انتهاء أهلية العذر) — لا إعادة عمياء.
             await markFailed(c.id, result.error ?? 'failed', true);
@@ -231,7 +232,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const result = await runCommandOnServer(cmd.id, cmd.command, cmd.payload, cmd.deviceCreatedAt);
       if (result.status === 'applied') {
         await markApplied(cmd.id);
-        void refresh();
+        if (cmd.command !== 'mark_notifications_read') {
+          void refresh();
+        }
         return { status: 'applied' };
       }
       await markFailed(cmd.id, result.error ?? 'failed', true);
@@ -400,6 +403,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return r;
   }, [applySession]);
 
+  // ── الدخول بآبل ──
+  const signInWithApple = useCallback(async () => {
+    setAuthError(null);
+    const r = await sbSignInWithApple();
+    if (r.ok && Platform.OS !== 'web') {
+      const sb = getSupabase();
+      const { data: { session } } = await sb.auth.getSession();
+      await applySession(session);
+    }
+    return r;
+  }, [applySession]);
+
   const uploadAvatar = useCallback(async (uri: string) => {
     if (!identity) return null;
     const { url, error } = await sbUploadAvatar(identity.authUserId, uri);
@@ -501,11 +516,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AppCtx>(() => ({
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, authError, loading, syncing,
     lastSyncAt, syncError, online, setOnline, toasts, toast, submitOrQueue, refresh,
-    signInWithGoogle, completeProfile, updateProfile, uploadAvatar, logout,
+    signInWithGoogle, signInWithApple, completeProfile, updateProfile, uploadAvatar, logout,
     deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, authError, loading, syncing, lastSyncAt, syncError, online,
-    toasts, toast, submitOrQueue, refresh, signInWithGoogle, completeProfile, updateProfile,
+    toasts, toast, submitOrQueue, refresh, signInWithGoogle, signInWithApple, completeProfile, updateProfile,
     uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 

@@ -34,7 +34,12 @@ export function SegmentedProgressBar({
   const inactiveBg = inactiveColor ?? theme.fillStrong;
 
   return (
-    <View style={[styles.container, { gap }, style]}>
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 1, max: totalSegments, now: currentSegment + 1 }}
+      accessibilityLabel={`الخطوة ${currentSegment + 1} من ${totalSegments}`}
+      style={[styles.container, { gap }, style]}
+    >
       {Array.from({ length: totalSegments }).map((_, index) => {
         const isCompleted = index < currentSegment;
         const isCurrent = index === currentSegment;
@@ -62,6 +67,7 @@ export function SegmentedProgressBar({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    direction: 'ltr',
     alignItems: 'center',
     width: '100%',
   },

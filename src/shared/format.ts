@@ -119,3 +119,13 @@ export function hashStr(input: string): string {
   const out = (h2 >>> 0).toString(36) + (h1 >>> 0).toString(36);
   return out;
 }
+
+/**
+ * استخراج الاسم الأول بذكاء مع تجاوز الألقاب الشائعة (دكتور، مهندس، أستاذ، شيخ، Dr.، Eng.، Mr.).
+ */
+export function getFirstName(fullName?: string | null): string {
+  if (!fullName) return '';
+  const cleaned = fullName.trim().replace(/^(د\.|م\.|أ\.|دكتور|دكتورة|مهندس|مهندسة|أستاذ|أستاذة|شيخ|dr\.|eng\.|mr\.|ms\.|mrs\.)\s+/i, '');
+  const parts = cleaned.split(/\s+/);
+  return parts[0] || fullName.split(/\s+/)[0] || '';
+}

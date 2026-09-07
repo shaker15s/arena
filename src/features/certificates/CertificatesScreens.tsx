@@ -19,6 +19,7 @@ import { spacing, radii, certPaper } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
 import { publicVerifyUrl } from '../../shared/links';
+import { CelebrationModal } from '../../design/celebrations';
 
 export function CertificatesScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -87,6 +88,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const [revoking, setRevoking] = useState(false);
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const stamp = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -140,6 +142,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
           toast(file.uri, 'success');
         }
       }
+      setShowCelebration(true);
     } catch (error) {
       toast((error as Error).message, 'error');
     } finally {
@@ -283,6 +286,15 @@ export function CertificateViewerScreen({ route, navigation }: any) {
           </FadeIn>
         ) : null}
       </ScrollView>
+
+      <CelebrationModal
+        visible={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        title="شهادتك جاهزة!"
+        subtitle="تم تصدير الشهادة بنجاح"
+        emoji="🎓"
+        fly={false}
+      />
     </View>
   );
 }

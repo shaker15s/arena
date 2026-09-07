@@ -1,18 +1,19 @@
 /**
  * features/notifications — S25 مركز الإشعارات (مجمعة باليوم).
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, ScrollView, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Platform, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, CustomSwitch, Empty, FadeIn, Header, Row, Sheet, Txt } from '../../design/components';
+import { Btn, Card, CustomSwitch, Empty, Header, Row, Sheet, Txt } from '../../design/components';
 import {
   DEFAULT_PUSH_PREFERENCES, getPushPreferences, setPushPreferences, type PushPreferences,
 } from '../../data/actions';
 import { SUPABASE_ENABLED } from '../../data/supabase';
 import { spacing } from '../../design/tokens';
+import { isReducedMotion } from '../../design/motion';
 import { sameDay, timePast } from '../../shared/format';
 import { AppNotification } from '../../data/types';
 import { screenForNotification } from '../../shared/notifyRoute';
@@ -28,16 +29,136 @@ const TYPE_META: Record<AppNotification['type'], { icon: keyof typeof Ionicons.g
   system: { icon: 'information-circle', color: '#64748B' },
 };
 
+interface NotificationCardProps {
+  item: AppNotification;
+  lang: 'ar' | 'en';
+  theme: any;
+  pulseAnim: Animated.Value;
+  onPress: () => void;
+}
+
+const NotificationCard = React.memo(function NotificationCard({
+  item,
+  lang,
+  theme,
+  pulseAnim,
+  onPress,
+}: NotificationCardProps) {
+  const meta = TYPE_META[item.type] || TYPE_META.system;
+
+  return (
+    <Card
+      onPress={onPress}
+      style={{
+        opacity: item.read ? 0.85 : 1,
+        borderColor: item.read ? theme.line : meta.color + '55',
+        borderStartWidth: item.read ? 0 : 3,
+        borderStartColor: meta.color,
+        marginBottom: 8,
+      }}
+    >
+      <Row center gap={12}>
+        <View
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 13,
+            backgroundColor: meta.color + '1F',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name={meta.icon} size={19} color={meta.color} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt variant="bodyMed">{item.title}</Txt>
+          <Txt variant="caption" color={theme.textSecondary}>
+            {item.body}
+          </Txt>
+          <Txt variant="micro" color={theme.textMuted}>
+            {timePast(item.createdAt, lang)}
+          </Txt>
+        </View>
+        {!item.read ? (
+          <Animated.View
+            style={{
+              width: 9,
+              height: 9,
+              borderRadius: 5,
+              backgroundColor: theme.brand,
+              transform: [{ scale: isReducedMotion() ? 1 : pulseAnim }],
+            }}
+          />
+        ) : null}
+      </Row>
+    </Card>
+  );
+});
+
+interface NotificationGroupProps {
+  label: string;
+  rows: AppNotification[];
+  lang: 'ar' | 'en';
+  theme: any;
+  pulseAnim: Animated.Value;
+  onItemPress: (item: AppNotification) => void;
+}
+
+const NotificationGroup = React.memo(function NotificationGroup({
+  label,
+  rows,
+  lang,
+  theme,
+  pulseAnim,
+  onItemPress,
+}: NotificationGroupProps) {
+  if (rows.length === 0) return null;
+
+  return (
+    <View style={{ marginTop: 6 }}>
+      <Txt variant="caption" color={theme.textMuted} style={{ marginBottom: 6 }}>
+        {label}
+      </Txt>
+      {rows.map((n) => (
+        <NotificationCard
+          key={n.id}
+          item={n}
+          lang={lang}
+          theme={theme}
+          pulseAnim={pulseAnim}
+          onPress={() => onItemPress(n)}
+        />
+      ))}
+    </View>
+  );
+});
+
 export function NotificationsScreen({ navigation }: any) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isReducedMotion()) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, markNotificationsRead } = useApp();
+  const { db, user, markNotificationsRead, refresh, syncing } = useApp();
 
-  const mine = db.notifications
-    .filter((n) => n.userId === user?.id)
-    .sort((a, b) => b.createdAt - a.createdAt);
+  const mine = useMemo(() => {
+    return (db.notifications || [])
+      .filter((n) => n.userId === user?.id)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }, [db.notifications, user?.id]);
 
-  const hasUnread = mine.some((n) => !n.read);
+  const hasUnread = useMemo(() => mine.some((n) => !n.read), [mine]);
 
   // ── تفضيلات الإشعارات (الخادم يفرضها عند توزيع الدفع) ──
   const [prefsOpen, setPrefsOpen] = useState(false);
@@ -47,8 +168,12 @@ export function NotificationsScreen({ navigation }: any) {
   useEffect(() => {
     if (!SUPABASE_ENABLED || !user) return;
     let cancelled = false;
-    void getPushPreferences().then((p) => { if (!cancelled) setPrefs(p); });
-    return () => { cancelled = true; };
+    void getPushPreferences().then((p) => {
+      if (!cancelled) setPrefs(p);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const togglePref = useCallback((key: keyof PushPreferences) => {
@@ -64,50 +189,28 @@ export function NotificationsScreen({ navigation }: any) {
     });
   }, [t]);
 
-  const PREF_ROWS: Array<{ key: keyof PushPreferences; icon: keyof typeof Ionicons.glyphMap; label: string }> = [
+  const PREF_ROWS: Array<{ key: keyof PushPreferences; icon: keyof typeof Ionicons.glyphMap; label: string }> = useMemo(() => [
     { key: 'session', icon: 'calendar', label: t('notif.prefSession') },
     { key: 'excuse', icon: 'shield', label: t('notif.prefExcuse') },
     { key: 'cert', icon: 'ribbon', label: t('notif.prefCert') },
     { key: 'progress', icon: 'medal', label: t('notif.prefProgress') },
     { key: 'system', icon: 'megaphone', label: t('notif.prefSystem') },
-  ];
+  ], [t]);
 
-  const todayRows = mine.filter((n) => sameDay(n.createdAt, Date.now()));
-  const yesterdayRows = mine.filter((n) => sameDay(n.createdAt, Date.now() - 86_400_000));
-  const olderRows = mine.filter((n) => !sameDay(n.createdAt, Date.now()) && !sameDay(n.createdAt, Date.now() - 86_400_000));
+  const { todayRows, yesterdayRows, olderRows } = useMemo(() => {
+    const now = Date.now();
+    const yesterday = now - 86_400_000;
+    return {
+      todayRows: mine.filter((n) => sameDay(n.createdAt, now)),
+      yesterdayRows: mine.filter((n) => sameDay(n.createdAt, yesterday)),
+      olderRows: mine.filter((n) => !sameDay(n.createdAt, now) && !sameDay(n.createdAt, yesterday)),
+    };
+  }, [mine]);
 
-  const Group = ({ label, rows }: { label: string; rows: AppNotification[] }) =>
-    rows.length === 0 ? null : (
-      <>
-        <Txt variant="caption" color={theme.textMuted} style={{ marginTop: 6 }}>{label}</Txt>
-        {rows.map((n, i) => {
-          const meta = TYPE_META[n.type];
-          return (
-            <FadeIn key={n.id} index={Math.min(i, 6)}>
-              <Card
-                onPress={() => {
-                  const dest = screenForNotification(n.type, user?.role);
-                  if (dest) navigation.navigate(dest.name, dest.params);
-                }}
-                style={{ opacity: n.read ? 0.85 : 1, borderColor: n.read ? theme.line : theme.brand + '55' }}
-              >
-                <Row center gap={12}>
-                  <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={meta.icon} size={19} color={meta.color} />
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Txt variant="bodyMed">{n.title}</Txt>
-                    <Txt variant="caption" color={theme.textSecondary}>{n.body}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>{timePast(n.createdAt, lang)}</Txt>
-                  </View>
-                  {!n.read ? <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: theme.brand }} /> : null}
-                </Row>
-              </Card>
-            </FadeIn>
-          );
-        })}
-      </>
-    );
+  const handleCardPress = useCallback((n: AppNotification) => {
+    const dest = screenForNotification(n.type, user?.role);
+    if (dest) navigation.navigate(dest.name, dest.params);
+  }, [navigation, user?.role]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -135,15 +238,46 @@ export function NotificationsScreen({ navigation }: any) {
           </Row>
         }
       />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 10, paddingBottom: 60 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.s5, gap: 10, paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         {mine.length === 0 ? (
           <Empty emoji="🔔" title={t('notif.empty')} />
         ) : (
-          <>
-            <Group label={t('common.today')} rows={todayRows} />
-            <Group label={t('common.yesterday')} rows={yesterdayRows} />
-            <Group label={t('notif.earlier')} rows={olderRows} />
-          </>
+          <View style={{ gap: 10 }}>
+            <NotificationGroup
+              label={t('common.today')}
+              rows={todayRows}
+              lang={lang}
+              theme={theme}
+              pulseAnim={pulseAnim}
+              onItemPress={handleCardPress}
+            />
+            <NotificationGroup
+              label={t('common.yesterday')}
+              rows={yesterdayRows}
+              lang={lang}
+              theme={theme}
+              pulseAnim={pulseAnim}
+              onItemPress={handleCardPress}
+            />
+            <NotificationGroup
+              label={t('notif.earlier')}
+              rows={olderRows}
+              lang={lang}
+              theme={theme}
+              pulseAnim={pulseAnim}
+              onItemPress={handleCardPress}
+            />
+          </View>
         )}
       </ScrollView>
 

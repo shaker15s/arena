@@ -2,7 +2,7 @@
  * features/gamification — S19 المحفظة + S20 الدوري + S21 الإنجازات + قواعد اللعبة الشفافة.
  */
 import React, { useMemo, useState } from 'react';
-import { Platform, ScrollView, Share, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, Share, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +17,11 @@ import {
   Avatar, Btn, Card, CountUp, Empty, FadeIn, Flame, Header, ProgressBar,
   Row, Segmented, Spacer, Tag, Txt, XPBar,
 } from '../../design/components';
+import { BadgeModal } from '../../design/celebrations';
 import { spacing, radii, leagueTierColors, levels } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
 import { PointReason, BadgeRarity } from '../../data/types';
+import { MasarMascot } from '../../design/mascot';
 
 // ───────────────────────────── S19 المحفظة ─────────────────────────────
 
@@ -36,7 +38,7 @@ const REASON_ICONS: Record<PointReason, { icon: keyof typeof Ionicons.glyphMap; 
 export function WalletScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user } = useApp();
+  const { db, user, refresh, syncing } = useApp();
   if (!user) return null;
   const balance = balanceOf(db, user.id);
   const { level, into, nextAt } = levelOf(db, user.id);
@@ -49,7 +51,17 @@ export function WalletScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('wallet.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         {/* البطاقة الكبرى — Gradient */}
         <FadeIn index={0}>
           <LinearGradient
@@ -115,7 +127,9 @@ export function WalletScreen({ navigation }: any) {
                         {grantedBy ? ` · ${t('wallet.manualGrant', { name: grantedBy.fullName })}` : ''}
                       </Txt>
                     </View>
-                    <Txt variant="h3" color={theme.success}>+{e.points}</Txt>
+                    <Txt variant="h3" color={e.points >= 0 ? theme.success : theme.danger}>
+                      {e.points >= 0 ? '+' : ''}{e.points}
+                    </Txt>
                   </Row>
                 </Card>
               </FadeIn>
@@ -132,7 +146,7 @@ export function WalletScreen({ navigation }: any) {
 export function LeagueScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, toast } = useApp();
+  const { db, user, toast, refresh, syncing } = useApp();
   const [board, setBoard] = useState<'league' | 'rising' | 'alltime'>('league');
   if (!user) return null;
 
@@ -173,8 +187,8 @@ export function LeagueScreen({ navigation }: any) {
       <Card
         color={r.isYou ? theme.brandSoft : undefined}
         style={{
-          borderColor: r.isYou ? theme.brand : theme.line,
-          borderWidth: r.isYou ? 2 : 1,
+          borderColor: r.zone === 'promotion' ? theme.success + '55' : r.zone === 'relegation' ? theme.danger + '44' : r.isYou ? theme.brand : theme.line,
+          borderWidth: (r.zone === 'promotion' || r.zone === 'relegation') ? 1.5 : r.isYou ? 2 : 1,
           backgroundColor:
             r.zone === 'promotion' ? theme.successSoft + 'AA'
             : r.zone === 'relegation' ? theme.line + '55'
@@ -199,7 +213,17 @@ export function LeagueScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('league.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         {/* درع الفئة الزجاجي مع تفاعل Easter Egg */}
         <FadeIn index={0}>
           <Card
@@ -299,7 +323,14 @@ export function LeagueScreen({ navigation }: any) {
             {rising.length === 0 ? <Empty emoji="🌱" title={t('league.firstWeek')} /> : rising.map(renderRow)}
           </>
         ) : league.rows.length === 0 ? (
-          <Empty emoji="🏁" title={t('league.firstWeek')} />
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <MasarMascot size={110} mode="greeting" interactive />
+            <View style={{ height: 16 }} />
+            <Txt variant="h3" align="center">{t('league.firstWeek')}</Txt>
+            <Txt variant="body" color={theme.textSecondary} align="center" style={{ marginTop: 8 }}>
+              الدوري بدأ قريبًا — ادعُ زملاءك!
+            </Txt>
+          </View>
         ) : (
           <>
             {/* مفتاح المناطق */}
@@ -322,8 +353,9 @@ export function LeagueScreen({ navigation }: any) {
 export function AchievementsScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
-  const { db, user, toast } = useApp();
+  const { db, user, toast, refresh, syncing } = useApp();
   const [rarityFilter, setRarityFilter] = useState<'all' | BadgeRarity>('all');
+  const [selectedBadge, setSelectedBadge] = useState<any | null>(null);
   if (!user) return null;
 
   const rarityColor = (r: BadgeRarity) =>
@@ -336,7 +368,17 @@ export function AchievementsScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('achievements.title')} subtitle={`${earnedCount}/${db.badges.length}`} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.s5, gap: 12 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+      >
         <Row gap={8} wrap>
           {(['all', 'common', 'rare', 'epic', 'legendary'] as const).map((r) => (
             <Btn
@@ -359,7 +401,7 @@ export function AchievementsScreen({ navigation }: any) {
               <FadeIn key={badge.code} index={Math.min(i, 8)} style={{ flexBasis: '48%', flexGrow: 1, minWidth: 150 }}>
                 <Card
                   onPress={() => {
-                    toast(`${badgeTitle} (${rarityLabel(badge.rarity)}): ${lang === 'ar' ? badge.descAr : badge.descEn}`, earned ? 'success' : 'info');
+                    setSelectedBadge(badge);
                   }}
                   style={{ alignItems: 'center', gap: 8, opacity: earned ? 1 : 0.84, paddingVertical: 18 }}
                 >
@@ -417,6 +459,18 @@ export function AchievementsScreen({ navigation }: any) {
           })}
         </View>
       </ScrollView>
+
+      {selectedBadge ? (
+        <BadgeModal
+          visible={selectedBadge != null}
+          onClose={() => setSelectedBadge(null)}
+          badgeName={lang === 'ar' ? selectedBadge.nameAr : selectedBadge.nameEn}
+          badgeDesc={lang === 'ar' ? selectedBadge.descAr : selectedBadge.descEn}
+          rarityLabel={rarityLabel(selectedBadge.rarity)}
+          rarityColor={rarityColor(selectedBadge.rarity)}
+          icon={selectedBadge.icon as any}
+        />
+      ) : null}
     </View>
   );
 }

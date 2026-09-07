@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, I18nManager, Platform, Pressable, View } from 'react-native';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, BackHandler, I18nManager, Platform, Pressable, ToastAndroid, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,7 +11,7 @@ import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Btn, Card, FadeIn, Txt } from '../design/components';
+import { Btn, Card, FadeIn, Spacer, Txt } from '../design/components';
 import { AppBackground, ContentFrame } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
 import { radii, spacing } from '../design/tokens';
@@ -19,6 +19,7 @@ import { useHaptics } from '../shared/hooks';
 import { PUBLIC_APP_URL } from '../shared/links';
 import { navigationRef } from './navRef';
 import { hasSeenOnboarding } from '../shared/onboarding';
+import { ErrorBoundary } from '../shared/ErrorBoundary';
 
 import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
 import { VerifyScreen } from '../features/verify/VerifyScreen';
@@ -57,7 +58,7 @@ const screenOpts = {
 };
 const linking = {
   prefixes: [Linking.createURL('/'), ...(PUBLIC_APP_URL ? [PUBLIC_APP_URL] : [])],
-  config: { screens: { Verify: 'verify', JoinBatch: 'join' } },
+  config: { screens: { Verify: 'verify', JoinBatch: 'join', NotFound: '*' } },
 };
 
 // ─── تعريف التبويب ───
@@ -227,7 +228,9 @@ function TabScene({ children }: { children: React.ReactNode }) {
       flex: 1, opacity: entrance,
       transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [7, 0] }) }],
     }}>
-      {children}
+      <ErrorBoundary>
+        {children}
+      </ErrorBoundary>
     </Animated.View>
   );
 }
@@ -245,6 +248,35 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   const insets = useSafeAreaInsets();
   const handledRequest = useRef<string | undefined>(undefined);
   const visitedTabs = useRef<Set<string>>(new Set([initial])).current;
+  const lastBackPress = useRef(0);
+  const { t } = useI18n();
+
+  // ─── double-back-to-exit: أول back يرجع للتاب الافتراضي، تاني back يخرج ───
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const handler = () => {
+      // لو مش في التاب الافتراضي — ارجع للتاب الافتراضي
+      if (tab !== initial) {
+        visitedTabs.add(initial);
+        setTab(initial);
+        return true; // handled — لا تخرج
+      }
+      // لو في التاب الافتراضي — تحقق من double-back
+      const now = Date.now();
+      if (now - lastBackPress.current < 2000) {
+        return false; // لا تتدخل — اسمح بالخروج الطبيعي
+      }
+      lastBackPress.current = now;
+      if (Platform.OS === 'android') {
+        try {
+          ToastAndroid.show(t('common.pressBackAgainToExit' as any) || 'اضغط مرة أخرى للخروج', ToastAndroid.SHORT);
+        } catch {}
+      }
+      return true; // handled — لا تخرج (أول ضغطة)
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => sub.remove();
+  }, [tab, initial, visitedTabs, t]);
 
   useEffect(() => {
     if (requestedTab && requestedTab !== handledRequest.current && renders[requestedTab]) {
@@ -373,7 +405,7 @@ function AdminTabs({ route }: any) {
 function StudentStack() {
   return (
     <Stack.Navigator screenOptions={screenOpts}>
-      <Stack.Screen name="Tabs" component={StudentTabs} />
+      <Stack.Screen name="Tabs" component={StudentTabs} options={{ gestureEnabled: false }} />
       <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
       <Stack.Screen name="JourneyMap" component={JourneyMapScreen} />
@@ -390,6 +422,7 @@ function StudentStack() {
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
+      <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
   );
 }
@@ -397,7 +430,7 @@ function StudentStack() {
 function VolunteerStack() {
   return (
     <Stack.Navigator screenOptions={screenOpts}>
-      <Stack.Screen name="Tabs" component={VolunteerTabs} />
+      <Stack.Screen name="Tabs" component={VolunteerTabs} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
       <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} />
@@ -410,6 +443,7 @@ function VolunteerStack() {
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
+      <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
   );
 }
@@ -417,7 +451,7 @@ function VolunteerStack() {
 function AdminStack() {
   return (
     <Stack.Navigator screenOptions={screenOpts}>
-      <Stack.Screen name="Tabs" component={AdminTabs} />
+      <Stack.Screen name="Tabs" component={AdminTabs} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Wizard" component={OrgWizardScreen} options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
@@ -430,6 +464,7 @@ function AdminStack() {
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
+      <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
   );
 }
@@ -457,7 +492,55 @@ function AuthStack() {
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
+      <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
+  );
+}
+
+function NotFoundScreen({ navigation }: any) {
+  const { user } = useApp();
+  const { theme } = useTheme();
+  const { t } = useI18n();
+  return (
+    <AppBackground>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <FadeIn style={{ width: '100%', maxWidth: 480 }}>
+          <Card solid style={{ alignItems: 'center', padding: 32, gap: 16 }}>
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 28,
+                backgroundColor: theme.brandSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="compass-outline" size={40} color={theme.brand} />
+            </View>
+            <Txt variant="h1" align="center">{t('common.notFoundTitle')}</Txt>
+            <Txt variant="body" color={theme.textSecondary} align="center" style={{ lineHeight: 22 }}>
+              {t('common.notFoundBody')}
+            </Txt>
+            <Spacer size={12} />
+            <Btn
+              title={t('common.backToHome')}
+              variant="primary"
+              full
+              size="lg"
+              icon="home"
+              onPress={() => {
+                if (navigation.canGoBack?.()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate?.(user ? 'Tabs' : 'SignIn');
+                }
+              }}
+            />
+          </Card>
+        </FadeIn>
+      </View>
+    </AppBackground>
   );
 }
 

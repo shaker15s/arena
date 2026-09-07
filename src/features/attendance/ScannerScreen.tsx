@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  AppState,
   Easing,
   KeyboardAvoidingView,
   Linking,
@@ -38,16 +39,14 @@ import { useI18n } from '../../i18n';
 import {
   Btn,
   FadeIn,
-  GlassBtn,
   IconGlassButton,
-  LiquidGlassCard,
   Row,
   Spacer,
   Toast,
   Txt,
 } from '../../design/components';
 import { SessionCompleteCelebration } from './SessionCompleteCelebration';
-import { CloudMascot } from '../../design/mascot';
+import { MasarMascot } from '../../design/mascot';
 import { spacing, radii, sizes } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 
@@ -97,8 +96,22 @@ export function ScannerScreen({ navigation }: any) {
   const countdownAnim = useRef(new Animated.Value(0)).current;
   // 4. اهتزاز الخطأ
   const shakeAnim = useRef(new Animated.Value(0)).current;
-  // 5. فلاش النجاح
+  // 5. اهتزاز مربعات OTP
+  const otpShakeAnim = useRef(new Animated.Value(0)).current;
+  // 6. فلاش النجاح
   const flashAnim = useRef(new Animated.Value(0)).current;
+  // مرجع حقل كود الطوارئ
+  const inputRef = useRef<TextInput>(null);
+
+  // إعادة فحص إذن الكاميرا تلقائياً عند العودة للتطبيق من الإعدادات
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void requestPermission();
+      }
+    });
+    return () => sub.remove();
+  }, [requestPermission]);
 
   // حلقة خط الليزر
   useEffect(() => {
@@ -139,9 +152,22 @@ export function ScannerScreen({ navigation }: any) {
     return () => loop.stop();
   }, [countdownAnim, reduced]);
 
+  const triggerOtpShake = () => {
+    if (reduced) return;
+    otpShakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(otpShakeAnim, { toValue: -12, duration: 60, useNativeDriver: true }),
+      Animated.timing(otpShakeAnim, { toValue: 12, duration: 60, useNativeDriver: true }),
+      Animated.timing(otpShakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(otpShakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(otpShakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  };
+
   const triggerErrorShake = (title: string, msg?: string) => {
     haptic('error');
     setToast({ visible: true, type: 'error', title, msg });
+    triggerOtpShake();
     Animated.sequence([
       Animated.timing(shakeAnim, { toValue: -12, duration: 60, useNativeDriver: true }),
       Animated.timing(shakeAnim, { toValue: 12, duration: 60, useNativeDriver: true }),
@@ -216,6 +242,28 @@ export function ScannerScreen({ navigation }: any) {
     outputRange: [0, ringCircumference],
   });
 
+  const toggleTorch = async () => {
+    const next = !torch;
+    setTorch(next);
+    if (Platform.OS === 'web') {
+      try {
+        const video = document.querySelector('video');
+        if (video && (video as any).srcObject) {
+          const stream = (video as any).srcObject as MediaStream;
+          const track = stream.getVideoTracks()[0];
+          if (track) {
+            const capabilities = (track.getCapabilities?.() as any) || {};
+            if (capabilities.torch) {
+              await (track.applyConstraints as any)({
+                advanced: [{ torch: next }],
+              });
+            }
+          }
+        }
+      } catch {}
+    }
+  };
+
   return (
     <View style={styles.rootContainer}>
       {/* 1. الكاميرا بكامل الشاشة (Full-bleed) */}
@@ -224,6 +272,7 @@ export function ScannerScreen({ navigation }: any) {
           style={StyleSheet.absoluteFill}
           facing="back"
           enableTorch={torch}
+          flash={torch ? 'on' : 'off'}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           onBarcodeScanned={scanned ? undefined : onBarcodeScanned}
         />
@@ -281,7 +330,7 @@ export function ScannerScreen({ navigation }: any) {
           {permission?.granted ? (
             <IconGlassButton
               icon={<Ionicons name={torch ? 'flashlight' : 'flashlight-outline'} size={20} color={torch ? '#F59E0B' : '#FFF'} />}
-              onPress={() => setTorch((v) => !v)}
+              onPress={() => void toggleTorch()}
               accessibilityLabel="إضاءة الفلاش"
             />
           ) : (
@@ -368,29 +417,27 @@ export function ScannerScreen({ navigation }: any) {
             </Txt>
           </View>
         ) : (
-          /* حالة رفض الكاميرا: تميمة مسار حزينة + زر إذن زجاجي بارز */
+          /* حالة طلب إذن الكاميرا: صقر مسار فطن في وضع التوجيه والإرشاد */
           <View style={styles.permissionDeniedCard}>
-            <CloudMascot
-              size={120}
-              mode="sad"
+            <MasarMascot
+              size={115}
+              behavior="recovery"
               interactive
               speechText="نحتاج إذن الكاميرا لمسح رمز الحضور الذكي 📷"
-              showSpeechBubble
             />
             <Spacer size={20} />
-            <Txt variant="h3" color="#FFF" align="center">
+            <Txt variant="h2" bold color="#FFFFFF" align="center">
               إذن الكاميرا مطلوب
             </Txt>
-            <Spacer size={6} />
-            <Txt variant="caption" color="#94A3B8" align="center">
-              لتسجيل حضورك الفوري، يحتاج التطبيق للوصول إلى الكاميرا لمسح الرمز.
+            <Spacer size={8} />
+            <Txt variant="bodyMed" color="#E2E8F0" align="center" style={{ lineHeight: 22 }}>
+              لتسجيل حضورك الفوري، يحتاج التطبيق للوصول إلى الكاميرا لمسح الرمز بدقة وأمان.
             </Txt>
             <Spacer size={24} />
-            <GlassBtn
-              label="منح إذن الكاميرا الآن"
+            <Btn
+              title="منح إذن الكاميرا الآن"
               size="lg"
-              variant="highlight"
-              icon={<Ionicons name="camera" size={20} color={theme.brand} />}
+              icon="camera"
               onPress={() => {
                 if (Platform.OS === 'web') {
                   void requestPermission();
@@ -400,54 +447,62 @@ export function ScannerScreen({ navigation }: any) {
                   });
                 }
               }}
-              style={{ width: '100%', maxWidth: 260 }}
+              style={{ width: '100%', maxWidth: 280 }}
             />
           </View>
         )}
 
-        {/* 5. إدخال الكود اليدوي الاحتياطي (6 أرقام OTP Boxes زجاجية) */}
-        <LiquidGlassCard style={styles.manualCodeContainer}>
-          <Txt variant="caption" color="#CBD5E1" align="center" style={{ marginBottom: 10 }}>
+        {/* 5. إدخال الكود اليدوي الاحتياطي (6 أرقام OTP Boxes) */}
+        <View style={styles.manualCodeContainer}>
+          <Txt variant="caption" bold color="#FFFFFF" align="center" style={{ marginBottom: 10, fontSize: 13 }}>
             تعذّرت الكاميرا؟ أدخل كود الطوارئ (6 أرقام):
           </Txt>
 
-          {/* مربعات OTP الزجاجية المنفصلة */}
-          <Pressable onPress={() => {}} style={styles.otpBoxesRow}>
-            {Array.from({ length: 6 }).map((_, idx) => {
-              const digit = code[idx] || '';
-              const isCurrent = code.length === idx;
-              return (
-                <View
-                  key={idx}
-                  style={[
-                    styles.otpBox,
-                    isCurrent && styles.otpBoxActive,
-                    digit !== '' && styles.otpBoxFilled,
-                  ]}
-                >
-                  <Txt variant="h3" bold color="#FFF" style={styles.otpDigit}>
-                    {digit}
-                  </Txt>
-                </View>
-              );
-            })}
-          </Pressable>
+          {/* مربعات OTP الزجاجية المنفصلة مع دعم النقر والاهتزاز عند الخطأ */}
+          <Animated.View style={{ transform: [{ translateX: otpShakeAnim }], position: 'relative', marginVertical: 4 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="إدخال كود الطوارئ 6 أرقام"
+              onPress={() => inputRef.current?.focus()}
+              style={styles.otpBoxesRow}
+            >
+              {Array.from({ length: 6 }).map((_, idx) => {
+                const digit = code[idx] || '';
+                const isCurrent = code.length === idx;
+                return (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.otpBox,
+                      isCurrent && styles.otpBoxActive,
+                      digit !== '' && styles.otpBoxFilled,
+                    ]}
+                  >
+                    <Txt variant="h3" bold color="#FFF" style={styles.otpDigit}>
+                      {digit}
+                    </Txt>
+                  </View>
+                );
+              })}
+            </Pressable>
 
-          {/* حقل إدخال مخفي يستقبل النقرات */}
-          <TextInput
-            value={code}
-            onChangeText={(v) => {
-              const cleaned = v.replace(/[^\d]/g, '').slice(0, 6);
-              setCode(cleaned);
-              if (cleaned.length === 6) {
-                void doCheck(cleaned);
-              }
-            }}
-            keyboardType="number-pad"
-            maxLength={6}
-            style={styles.hiddenInput}
-            autoFocus={false}
-          />
+            {/* حقل إدخال يغطي فقط منطقة مربعات الـ OTP لضمان استجابة اللمس والكيبورد */}
+            <TextInput
+              ref={inputRef}
+              value={code}
+              onChangeText={(v) => {
+                const cleaned = v.replace(/[^\d]/g, '').slice(0, 6);
+                setCode(cleaned);
+                if (cleaned.length === 6) {
+                  void doCheck(cleaned);
+                }
+              }}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={styles.hiddenInput}
+              autoFocus={false}
+            />
+          </Animated.View>
 
           <Spacer size={12} />
           <Row center gap={10}>
@@ -459,7 +514,7 @@ export function ScannerScreen({ navigation }: any) {
               style={{ flex: 1 }}
             />
           </Row>
-        </LiquidGlassCard>
+        </View>
       </View>
 
       {/* S18 — احتفالية إتمام المحاضرة بنمط دوولينجو */}
@@ -469,8 +524,10 @@ export function ScannerScreen({ navigation }: any) {
           setSuccess(null);
           navigation.goBack();
         }}
-        points={success && !success.already ? success.points : 0}
+        points={success?.points ?? 10}
         status={success?.status ?? 'present'}
+        streakWeeks={user ? db.gamification.find((g) => g.userId === user.id)?.currentStreakWeeks : 4}
+        already={success?.already ?? false}
         sessionTitle={liveSess?.title}
       />
     </View>
@@ -582,17 +639,30 @@ const styles = StyleSheet.create({
   },
   permissionDeniedCard: {
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: spacing.xl,
     marginHorizontal: spacing.md,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: '#0F172A',
     borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
   manualCodeContainer: {
     width: '100%',
     padding: spacing.md,
     borderRadius: radii.xl,
+    backgroundColor: '#0F172A',
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   otpBoxesRow: {
     flexDirection: 'row',
@@ -603,20 +673,25 @@ const styles = StyleSheet.create({
   },
   otpBox: {
     width: 44,
-    height: 50,
+    height: 52,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(148, 163, 184, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   otpBoxActive: {
-    borderColor: '#007AFF',
-    backgroundColor: 'rgba(0, 122, 255, 0.18)',
+    borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    shadowColor: '#38BDF8',
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
   },
   otpBoxFilled: {
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(30, 41, 59, 1)',
   },
   otpDigit: {
     fontVariant: ['tabular-nums'],

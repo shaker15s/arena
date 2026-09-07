@@ -3,7 +3,7 @@
  * S44 فورم المجموعات (أهم فورم: معاينة تلقائية + تحذير تعارض) + S47 المستخدمون.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -17,6 +17,7 @@ import {
   Avatar, Btn, Card, Chip, CountUp, Empty, FadeIn, Header, Input, ListRow,
   NotificationBell, ProgressBar, Row, Sheet, Spacer, Tag, Txt, useDebounce,
 } from '../../design/components';
+import { MasarMascot } from '../../design/mascot';
 import { useTabs } from '../../app/RootNavigator';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
@@ -218,6 +219,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
 }
 
 function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) => string; navigation: any }) {
+  const { theme } = useTheme();
   const pendingExcuses = db.excuses.filter((e) => e.status === 'pending').length;
   const liveSessions = db.sessions.filter((s) => s.status === 'live').length;
   const completedWithoutCert = db.batches.filter((b) => b.status === 'completed' && !db.certificates.some((c) => c.batchId === b.id)).length;
@@ -226,15 +228,23 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
     <FadeIn index={0}>
       <Card>
         <Txt variant="h3" style={{ marginBottom: 10 }}>{t('dash.needsAttention')}</Txt>
-        {pendingExcuses > 0 ? (
-          <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('Inbox')} />
-        ) : null}
-        {liveSessions > 0 ? (
-          <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} />
-        ) : null}
-        {completedWithoutCert > 0 ? (
-          <ListRow icon="ribbon" title={t('dash.readyCerts')} subtitle={String(completedWithoutCert)} onPress={() => navigation.navigate('IssueCertificates')} />
-        ) : null}
+        <View style={{ gap: 8 }}>
+          {pendingExcuses > 0 ? (
+            <Card style={{ backgroundColor: theme.dangerSoft, borderStartWidth: 3, borderStartColor: theme.danger, padding: 12 }}>
+              <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('Inbox')} />
+            </Card>
+          ) : null}
+          {liveSessions > 0 ? (
+            <Card style={{ backgroundColor: theme.warnSoft, borderStartWidth: 3, borderStartColor: theme.warn, padding: 12 }}>
+              <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} />
+            </Card>
+          ) : null}
+          {completedWithoutCert > 0 ? (
+            <Card style={{ backgroundColor: theme.infoSoft, borderStartWidth: 3, borderStartColor: theme.info, padding: 12 }}>
+              <ListRow icon="ribbon" title={t('dash.readyCerts')} subtitle={String(completedWithoutCert)} onPress={() => navigation.navigate('IssueCertificates')} />
+            </Card>
+          ) : null}
+        </View>
       </Card>
     </FadeIn>
   );
@@ -327,7 +337,15 @@ export function OrgManagerScreen() {
       <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
         {db.branches.length === 0 ? (
-          <Empty emoji="🏢" title={t('org.branches')} body={t('wizard.s1Body')} cta={t('org.newBranch')} onCta={() => setBranchSheet(true)} />
+          <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+            <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
+            <View style={{ height: 12 }} />
+            <Txt variant="body" color={theme.textSecondary} align="center">
+              {t('org.branches')}{'\n'}{t('wizard.s1Body')}
+            </Txt>
+            <Spacer size={16} />
+            <Btn title={t('org.newBranch')} onPress={() => setBranchSheet(true)} />
+          </View>
         ) : null}
         {db.branches.map((b, i) => {
           const committees = db.committees.filter((c) => c.branchId === b.id);
@@ -461,7 +479,15 @@ export function CoursesScreen({ navigation }: any) {
       <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
         {db.courses.length === 0 ? (
-          <Empty emoji="📚" title={t('courses.title')} cta={t('courses.new')} onCta={() => setCreating(true)} />
+          <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+            <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
+            <View style={{ height: 12 }} />
+            <Txt variant="body" color={theme.textSecondary} align="center">
+              {t('courses.title')}
+            </Txt>
+            <Spacer size={16} />
+            <Btn title={t('courses.new')} onPress={() => setCreating(true)} />
+          </View>
         ) : null}
         {db.courses.map((c, i) => {
           const batches = db.batches.filter((b) => b.courseId === c.id);
@@ -570,7 +596,15 @@ export function BatchesAdminScreen({ navigation }: any) {
       <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
         {db.batches.length === 0 ? (
-          <Empty emoji="🗓️" title={t('batchAdm.title')} cta={t('batchAdm.new')} onCta={() => setCreating(true)} />
+          <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+            <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
+            <View style={{ height: 12 }} />
+            <Txt variant="body" color={theme.textSecondary} align="center">
+              {t('batchAdm.title')}
+            </Txt>
+            <Spacer size={16} />
+            <Btn title={t('batchAdm.new')} onPress={() => setCreating(true)} />
+          </View>
         ) : null}
         {db.batches.map((b, i) => {
           const course = courseOf(db, b.courseId)!;
@@ -911,33 +945,33 @@ export function UsersScreen() {
           ))}
         </Row>
         <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
-        {list.length === 0 ? <Empty emoji="🔎" title={t('explore.noResults')} body={t('explore.noResultsBody')} /> : null}
-        <FlatList
-          data={list}
-          keyExtractor={(p) => p.id}
-          scrollEnabled={false}
-          initialNumToRender={20}
-          windowSize={8}
-          renderItem={({ item: p }) => (
-            <Card onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
-              <Row center gap={10}>
-                <Avatar name={p.fullName} color={p.avatarColor} size={40} />
-                <View style={{ flex: 1 }}>
-                  <Txt variant="bodyMed" numberOfLines={2}>{p.fullName}</Txt>
-                  <Txt variant="micro" color={theme.textMuted}>{p.phone || t('common.noPhone')} · {p.email || t('common.noEmail')}</Txt>
-                </View>
-                <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
-              </Row>
-            </Card>
-          )}
-        />
+        {list.length === 0 ? (
+          <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+            <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
+            <View style={{ height: 12 }} />
+            <Txt variant="body" color={theme.textSecondary} align="center">
+              {t('explore.noResults')}{'\n'}{t('explore.noResultsBody')}
+            </Txt>
+          </View>
+        ) : null}
+        {list.map((p) => (
+          <Card key={p.id} onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
+            <Row center gap={10}>
+              <Avatar name={p.fullName} color={p.avatarColor} size={40} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="bodyMed" numberOfLines={2}>{p.fullName}</Txt>
+                <Txt variant="micro" color={theme.textMuted}>{p.phone || t('common.noPhone')} · {p.email || t('common.noEmail')}</Txt>
+              </View>
+              <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
+            </Row>
+          </Card>
+        ))}
       </ScrollView>
 
       {/* S48 تفاصيل المستخدم */}
       <Sheet visible={selUser != null} onClose={() => setSelected(null)} title={selUser?.fullName ?? ''}>
         {selUser && user ? (
-          <ScrollView>
-            <View style={{ gap: 12 }}>
+          <View style={{ gap: 12 }}>
               <Row center gap={12}>
                 <Avatar name={selUser.fullName} color={selUser.avatarColor} size={56} />
                 <View style={{ flex: 1 }}>
@@ -1009,7 +1043,6 @@ export function UsersScreen() {
                 </Row>
               </Card>
             </View>
-          </ScrollView>
         ) : null}
       </Sheet>
     </View>

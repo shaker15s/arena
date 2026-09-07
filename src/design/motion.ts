@@ -31,10 +31,13 @@ export function staggerDelay(index: number, baseDelay = 45): number {
   return Math.min(Math.max(index, 0), 8) * baseDelay;
 }
 
+import { springs } from './tokens';
+export { springs };
+
 export const spring = {
-  gentle: { damping: 20, stiffness: 150, mass: 1, useNativeDriver: true },
-  snappy: { damping: 24, stiffness: 280, mass: 0.9, useNativeDriver: true },
-  playful: { damping: 12, stiffness: 180, mass: 0.9, useNativeDriver: true },
+  gentle: { ...springs.default, useNativeDriver: true },
+  snappy: { ...springs.snappy, useNativeDriver: true },
+  playful: { ...springs.bouncy, useNativeDriver: true },
 } as const;
 
 export const scalePress = 0.97;

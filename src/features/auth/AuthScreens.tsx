@@ -16,7 +16,7 @@ import { GlassCard } from '../../design/glass';
 import { radii, sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { markOnboardingSeen } from '../../shared/onboarding';
-import { CloudMascot } from '../../design/mascot';
+import { MasarMascot } from '../../design/mascot';
 
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
@@ -351,7 +351,7 @@ export function OnboardingScreen({ navigation }: any) {
       {/* الشريط السفلي: شريط التقدم وزر الـ CTA بمقاس 52pt المعتمد */}
       <View style={{ gap: 20 }}>
         {/* شريط التقدم المتفرق بنمط دوولينجو المعتمد بلون البراند الأزرق الموحد */}
-        <View style={{ width: '100%', maxWidth: 240, alignSelf: 'center' }}>
+        <View style={{ width: '100%', maxWidth: 240, alignSelf: 'center', gap: 6, alignItems: 'center' }}>
           <SegmentedProgressBar
             totalSegments={SLIDES.length}
             currentSegment={index}
@@ -359,6 +359,9 @@ export function OnboardingScreen({ navigation }: any) {
             segmentHeight={6}
             gap={8}
           />
+          <Txt variant="caption" color={theme.textMuted} style={{ fontSize: 12 }}>
+            {`${index + 1} / ${SLIDES.length}`}
+          </Txt>
         </View>
 
         {/* زر الـ CTA المتفاعل (52pt) */}
@@ -428,8 +431,9 @@ export function SignInScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { signInWithGoogle, configured, authError } = useApp();
+  const { signInWithGoogle, signInWithApple, configured, authError } = useApp();
   const [loading, setLoading] = useState(false);
+  const [loadingApple, setLoadingApple] = useState(false);
   const [error, setError] = useState('');
 
   // الوصول لشاشة الدخول يعني أن المستخدم تجاوز الترحيب — لا نعيده إليه لاحقًا.
@@ -447,6 +451,21 @@ export function SignInScreen({ navigation }: any) {
       setError(`${t('auth.googleFailed')}: ${(e as Error).message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const submitApple = async () => {
+    setError('');
+    setLoadingApple(true);
+    try {
+      const r = await signInWithApple();
+      if (!r.ok && r.error && r.error !== 'cancelled') {
+        setError(r.error === 'not-configured' ? t('auth.notConfigured') : `${t('auth.appleFailed')}: ${r.error}`);
+      }
+    } catch (e) {
+      setError(`${t('auth.appleFailed')}: ${(e as Error).message}`);
+    } finally {
+      setLoadingApple(false);
     }
   };
 
@@ -489,31 +508,66 @@ export function SignInScreen({ navigation }: any) {
         <Spacer size={20} />
         <FadeIn index={2}>
           <View style={{ alignItems: 'center', marginVertical: 8 }}>
-            <CloudMascot
+            <MasarMascot
               size={110}
-              mode="idle"
-              interactive
+              behavior="welcome"
+              interactive={false}
               speechText="أهلاً بك في مسار! سجّل دخولك بحساب Google للمتابعة ✨"
-              showSpeechBubble
             />
           </View>
         </FadeIn>
 
-        {/* مميزات الأمان الموثوقة */}
+        {/* مميزات الأمان والمنظومة الموثوقة */}
         <FadeIn index={2}>
-          <Row center gap={12} style={{ justifyContent: 'center', marginVertical: 12 }}>
-            <Row center gap={4}>
-              <Ionicons name="shield-checkmark" size={14} color={theme.success} />
-              <Txt variant="micro" color={theme.textMuted}>دخول آمن ومشفر</Txt>
-            </Row>
-            <Row center gap={4}>
-              <Ionicons name="flash" size={14} color={theme.accent} />
-              <Txt variant="micro" color={theme.textMuted}>حضور فوري</Txt>
-            </Row>
-            <Row center gap={4}>
-              <Ionicons name="ribbon" size={14} color={theme.certGold} />
-              <Txt variant="micro" color={theme.textMuted}>شهادات معتمدة</Txt>
-            </Row>
+          <Row center gap={8} style={{ justifyContent: 'center', marginVertical: 12, flexWrap: 'wrap' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: radii.pill,
+                backgroundColor: theme.fill,
+                borderWidth: 1,
+                borderColor: theme.fillBorder,
+              }}
+            >
+              <Ionicons name="shield-checkmark" size={15} color={theme.success} />
+              <Txt variant="caption" color={theme.textSecondary} bold>دخول آمن ومشفر</Txt>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: radii.pill,
+                backgroundColor: theme.fill,
+                borderWidth: 1,
+                borderColor: theme.fillBorder,
+              }}
+            >
+              <Ionicons name="flash" size={15} color={theme.accent} />
+              <Txt variant="caption" color={theme.textSecondary} bold>حضور فوري</Txt>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: radii.pill,
+                backgroundColor: theme.fill,
+                borderWidth: 1,
+                borderColor: theme.fillBorder,
+              }}
+            >
+              <Ionicons name="ribbon" size={15} color={theme.certGold} />
+              <Txt variant="caption" color={theme.textSecondary} bold>شهادات معتمدة</Txt>
+            </View>
           </Row>
         </FadeIn>
 
@@ -537,7 +591,7 @@ export function SignInScreen({ navigation }: any) {
             accessibilityLabel={t('auth.continueGoogle')}
             accessibilityHint={t('auth.googleHint')}
             onPress={submit}
-            disabled={loading || !configured}
+            disabled={loading || loadingApple || !configured}
             style={({ pressed }) => ({
               backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF',
               borderRadius: 16,
@@ -553,6 +607,30 @@ export function SignInScreen({ navigation }: any) {
           >
             {loading ? <ActivityIndicator color="#1C1C1E" /> : <GoogleMark size={22} />}
             <Txt variant="h3" color="#1C1C1E">{t('auth.continueGoogle')}</Txt>
+          </Pressable>
+
+          <Spacer size={12} />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('auth.continueApple')}
+            onPress={submitApple}
+            disabled={loading || loadingApple || !configured}
+            style={({ pressed }) => ({
+              backgroundColor: '#000000',
+              borderRadius: 16,
+              paddingVertical: 16,
+              minHeight: 56,
+              alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
+              borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+              opacity: !configured ? 0.5 : pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+              shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 18,
+              shadowOffset: { width: 0, height: 8 }, elevation: 6,
+            })}
+          >
+            {loadingApple ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="logo-apple" size={22} color="#FFFFFF" />}
+            <Txt variant="h3" color="#FFFFFF">{t('auth.continueApple')}</Txt>
           </Pressable>
         </FadeIn>
 
@@ -620,14 +698,15 @@ export function CompleteProfileScreen() {
 
   const submit = async () => {
     if (name.trim().split(/\s+/).length < 2) { setError(t('complete.nameError')); return; }
-    if (!/^01\d{9}$/.test(phone.trim())) { setError(t('complete.phoneError')); return; }
-    if (!branchId && user?.role !== 'admin') { setError(t('complete.chooseBranch')); return; }
+    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, '');
+    if (!/^(\+?\d{8,15}|01\d{9}|05\d{8})$/.test(cleanPhone)) { setError(t('complete.phoneError')); return; }
+    if (!branchId && user?.role !== 'admin' && db.branches.length > 0) { setError(t('complete.chooseBranch')); return; }
     setLoading(true);
     const r = await completeProfile({
       fullName: name.trim(),
-      phone: phone.trim(),
+      phone: cleanPhone,
       avatarUrl: avatar,
-      branchId,
+      branchId: branchId || null,
       gender,
     });
     setLoading(false);

@@ -17,13 +17,14 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
+  BorderBeam, AnimatedShinyText,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
-import { MasarMascot } from '../../design/mascot';
+import { MasarMascot, FatenBehaviorState, getRandomMascotQuote } from '../../design/mascot';
 import { ShimmerProgressBar } from '../../design/animations';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
-import { formatDuration, formatTime, formatDate, sameDay } from '../../shared/format';
+import { formatDuration, formatTime, formatDate, getFirstName, sameDay } from '../../shared/format';
 import { useNow, useHaptics } from '../../shared/hooks';
 import { getMyCourses, getToday } from '../../data/actions';
 
@@ -37,7 +38,7 @@ export function TodayScreen() {
   const { impactLight } = useHaptics();
 
   const [showEasterEgg, setShowEasterEgg] = useState(false);
-  const [activeMascotQuote, setActiveMascotQuote] = useState<string | null>(null);
+  const [activeMascotQuote, setActiveMascotQuote] = useState<string>(() => getRandomMascotQuote('welcome'));
   const flameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFlameTap = () => {
@@ -60,7 +61,7 @@ export function TodayScreen() {
   if (!user) return null;
   const hour = new Date(now).getHours();
   const greeting = hour < 12 ? t('today.morning') : t('today.evening');
-  const firstName = user.fullName.split(' ')[0];
+  const firstName = getFirstName(user.fullName);
 
   const liveBatch = liveSess ? batchOf(db, liveSess.batchId) : undefined;
   const liveCourse = liveBatch ? courseOf(db, liveBatch.courseId) : undefined;
@@ -99,11 +100,44 @@ export function TodayScreen() {
       totalHonored: honored,
       combinedPct: closed > 0 ? Math.round((honored / closed) * 100) : 100,
     };
-  }, [db.enrollments, db.batches, db.sessions, db.attendance, db.excuses, db.rules, db, user.id]);
+  }, [db.enrollments, db.batches, db.sessions, db.attendance, db.excuses, db.rules, user.id]);
   const needed = Math.max(0, Math.ceil(((certPct / 100) * Math.max(totalCount, closedCount)) - totalHonored));
   const hasBatches = activeBatches.length > 0;
 
   const streakUrgent = gam != null && gam.weekStatus === 'tracking' && liveSess != null && !alreadyChecked;
+  const isUpcomingToday = !liveSess && nextSess != null && sameDay(nextSess.startsAt, now);
+
+  const mascotBehavior: FatenBehaviorState = !online
+    ? 'offline'
+    : liveSess && !alreadyChecked
+    ? 'attention'
+    : liveSess && alreadyChecked
+    ? 'success'
+    : streakUrgent
+    ? 'streak_fire'
+    : isUpcomingToday
+    ? 'ready'
+    : needed === 0 && totalHonored > 0
+    ? 'achievement'
+    : 'welcome';
+
+  useEffect(() => {
+    setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
+  }, [mascotBehavior]);
+
+  const defaultMascotQuote = !online
+    ? 'أنت في وضع عدم الاتصال.. بياناتك وسجلاتك التدريبية محفوظة محلياً بأمان! 💾'
+    : liveSess && !alreadyChecked
+    ? `محاضرة ${liveCourse?.title ?? 'اليوم'} بدأت الآن! سجّل حضورك وثبّت نقاطك ⚡`
+    : liveSess && alreadyChecked
+    ? 'حضورك موثق اليوم بنجاح يا بطل! نقاطك واستمرارك محفوظين 🦅'
+    : streakUrgent
+    ? 'سلسلة التزامك في خطر! سجّل حضورك اليوم للحفاظ على الستريك 🔥'
+    : isUpcomingToday
+    ? `جلستك القادمة اليوم الساعة ${formatTime(nextSess.startsAt, lang)} في ${nextBatch?.room ?? 'القاعة'}.. جهّز نفسك! 🎯`
+    : needed > 0
+    ? `باقي لك ${needed} جلسات لتحقيق نسبة الـ 75% واستحقاق الشهادة 🎓`
+    : 'التعلّم المستمر يصنع المستحيل! كن فخوراً بمسارك اليوم 🦅';
 
   return (
     <View style={{ flex: 1 }}>
@@ -150,7 +184,7 @@ export function TodayScreen() {
               <View>
                 <Txt variant="caption" color={theme.textMuted}>{greeting} 👋</Txt>
                 <Row center gap={4}>
-                  <Txt variant="h3">{firstName}</Txt>
+                  <Txt variant="h3" numberOfLines={1} style={{ maxWidth: 180 }}>{firstName}</Txt>
                   <Ionicons name="chevron-forward" size={14} color={theme.textMuted} style={{ opacity: 0.6 }} />
                 </Row>
               </View>
@@ -198,12 +232,22 @@ export function TodayScreen() {
                 pointerEvents="none"
               />
 
+              {/* شعاع الحواف المشع المستوحى من Magic UI */}
+              <BorderBeam
+                size={140}
+                duration={5500}
+                borderWidth={2}
+                colorFrom="#F59E0B"
+                colorTo="#7C3AED"
+                borderRadius={radii.xl}
+              />
+
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="التفاعل مع صقر مسار فطن"
                 onPress={() => {
                   impactLight();
-                  setActiveMascotQuote((prev) => (prev ? null : 'التعلّم المستمر يصنع المستحيل! كن فخوراً بمسارك اليوم 🦅'));
+                  setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
                 }}
                 style={{
                   padding: spacing.s4,
@@ -228,13 +272,9 @@ export function TodayScreen() {
                 >
                   <MasarMascot
                     size={78}
-                    mode={streakUrgent ? 'streak_fire' : liveSess ? 'greeting' : 'greeting'}
-                    interactive
+                    behavior={mascotBehavior}
+                    interactive={false}
                     hideFloatingBubble
-                    onQuoteChange={(q) => {
-                      impactLight();
-                      setActiveMascotQuote(q);
-                    }}
                   />
                 </View>
 
@@ -256,19 +296,21 @@ export function TodayScreen() {
                     >
                       <Ionicons name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
                       <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'} style={{ fontSize: 10.5 }}>
-                        {activeMascotQuote ? 'نصيحة فطن 💬' : 'رفيقك فطن 🦅'}
+                        نصيحة فطن 💬
                       </Txt>
                     </View>
                   </Row>
 
                   <Txt variant="bodyMed" bold color={isDark ? '#FFFFFF' : '#1F2937'}>
-                    {activeMascotQuote
-                      ? 'صقر مسار («فطن») يقول لك:'
+                    {liveSess && !alreadyChecked
+                      ? 'المحاضرة بدأت الآن! ⚡'
+                      : liveSess && alreadyChecked
+                      ? 'حضورك موثق لليوم ✓'
                       : streakUrgent
-                      ? 'المحاضرة بدأت الآن! 🔥'
-                      : liveSess
-                      ? 'لديك جلسة تدريبية نشطة! 🚀'
-                      : `مرحباً ${firstName}! جاهز لليوم؟`}
+                      ? 'حافظ على الستريك اليوم! 🔥'
+                      : isUpcomingToday
+                      ? 'جلستك القادمة اليوم 🎯'
+                      : 'صقر مسار («فطن») يقول لك:'}
                   </Txt>
 
                   {/* فقاعة الحديث الكاريكاتورية الأنيقة */}
@@ -278,9 +320,7 @@ export function TodayScreen() {
                       padding: 10,
                       borderRadius: radii.md,
                       borderWidth: 1,
-                      borderColor: activeMascotQuote
-                        ? isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.4)'
-                        : isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+                      borderColor: isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.4)',
                       shadowColor: '#000',
                       shadowOpacity: isDark ? 0.25 : 0.06,
                       shadowRadius: 8,
@@ -289,32 +329,20 @@ export function TodayScreen() {
                   >
                     <Txt
                       variant="caption"
-                      color={
-                        activeMascotQuote
-                          ? isDark ? '#FDE68A' : '#92400E'
-                          : isDark ? '#E2E8F0' : '#4B5563'
-                      }
+                      color={isDark ? '#FDE68A' : '#92400E'}
                       style={{
                         lineHeight: 20,
-                        fontWeight: activeMascotQuote ? '600' : '400',
+                        fontWeight: '600',
                       }}
                     >
-                      {activeMascotQuote
-                        ? `« ${activeMascotQuote} »`
-                        : streakUrgent
-                        ? 'سجّل حضورك سريعاً لتحافظ على الستريك وتكسب النقاط!'
-                        : liveSess
-                        ? 'امسح رمز الحضور وابدأ رحلة التميز.'
-                        : 'المس الصقر فطن لرسالة تحفيزية، وتابع جدولك اليومي.'}
+                      {activeMascotQuote || defaultMascotQuote}
                     </Txt>
-                    {!activeMascotQuote ? (
-                      <Row center gap={4} style={{ marginTop: 4 }}>
-                        <Ionicons name="hand-right-outline" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
-                        <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 9.5 }}>
-                          اضغط على فطن للتفاعل
-                        </Txt>
-                      </Row>
-                    ) : null}
+                    <Row center gap={4} style={{ marginTop: 5 }}>
+                      <Ionicons name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
+                      <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 9.5 }}>
+                        اضغط على فطن لاقتباس جديد ✨
+                      </Txt>
+                    </Row>
                   </View>
                 </View>
               </Pressable>
@@ -338,11 +366,27 @@ export function TodayScreen() {
                     shadowRadius: 24,
                     shadowOffset: { width: 0, height: 12 },
                     elevation: 12,
+                    position: 'relative',
                   }}
                 >
+                  {/* شعاع الحواف المشع المستوحى من Magic UI */}
+                  <BorderBeam
+                    size={150}
+                    duration={5000}
+                    borderWidth={2.5}
+                    colorFrom="#FDE68A"
+                    colorTo="#38BDF8"
+                    borderRadius={radii.card}
+                  />
+
                   <Row center>
                     <View style={{ flex: 1, gap: 8, minWidth: 0 }}>
-                      <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
+                      <Row center gap={8}>
+                        <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
+                        <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: 11.5, fontWeight: '700' }}>
+                          ⚡ مباشر الآن
+                        </AnimatedShinyText>
+                      </Row>
                       <Txt variant="h2" color="#fff" numberOfLines={2}>{liveCourse?.title ?? ''}</Txt>
                       <Txt variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>{liveSess.title}</Txt>
                       <Txt variant="micro" color="rgba(255,255,255,0.65)">
@@ -364,6 +408,42 @@ export function TodayScreen() {
                   </Row>
                 </LinearGradient>
               </Pressable>
+            </FadeIn>
+          ) : null}
+
+          {/* Confirmed attendance state (Calm reinforcement) */}
+          {liveSess && alreadyChecked ? (
+            <FadeIn index={1}>
+              <Card style={{
+                borderColor: isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(16, 185, 129, 0.35)',
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.06)',
+                padding: spacing.s4,
+              }}>
+                <Row center between>
+                  <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
+                    <Row center gap={6}>
+                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: theme.success, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      </View>
+                      <Txt variant="caption" bold color={theme.success}>
+                        {t('today.attendanceConfirmed')}
+                      </Txt>
+                    </Row>
+                    <Txt variant="h3" color={theme.text} numberOfLines={1}>{liveCourse?.title ?? ''}</Txt>
+                    <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{liveSess.title}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>
+                      {t('today.attendanceConfirmedBody')}
+                    </Txt>
+                  </View>
+                  <View style={{
+                    width: 56, height: 56, borderRadius: 28,
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Ionicons name="shield-checkmark" size={30} color={theme.success} />
+                  </View>
+                </Row>
+              </Card>
             </FadeIn>
           ) : null}
         </View>
