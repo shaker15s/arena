@@ -23,8 +23,9 @@ import {
   Avatar, Btn, Card, CountUp, Empty, FadeIn, Header, Input, Row, Sheet,
   Spacer, Tag, Txt,
 } from '../../design/components';
+import { BorderBeam } from '../../design/components/BorderBeam';
 import { CelebrationModal } from '../../design/celebrations';
-import { spacing } from '../../design/tokens';
+import { radii, spacing } from '../../design/tokens';
 import { formatTime } from '../../shared/format';
 import { TrainingSession } from '../../data/types';
 
@@ -258,21 +259,75 @@ export function LiveSessionScreen() {
         </FadeIn>
 
         <Row gap={14} style={{ alignItems: 'stretch' }} wrap>
-          {/* QR العملاق */}
-          <FadeIn index={1} style={{ flexGrow: 1, minWidth: 280 }}>
-            <Card color="rgba(255,255,255,0.06)" style={{ borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', paddingVertical: 24, gap: 12 }}>
+          {/* QR العملاق بتصميم Liquid Glass وفخامة شاشات العرض */}
+          <FadeIn index={1} style={{ flexGrow: 1, minWidth: 290 }}>
+            <Card
+              color={isDark ? 'rgba(30, 41, 59, 0.75)' : 'rgba(255, 255, 255, 0.95)'}
+              style={{
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(56, 189, 248, 0.45)',
+                alignItems: 'center',
+                paddingVertical: 26,
+                gap: 16,
+                position: 'relative',
+                overflow: 'hidden',
+                shadowColor: '#38BDF8',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: isDark ? 0.25 : 0.12,
+                shadowRadius: 20,
+                elevation: 8,
+              }}
+            >
+              <BorderBeam
+                size={160}
+                duration={5000}
+                borderWidth={2.5}
+                colorFrom="#38BDF8"
+                colorTo="#818CF8"
+                borderRadius={radii.card}
+              />
+
               <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-                <RingCountdown progress={slotProgress} size={236} />
-                <View style={{ backgroundColor: '#fff', padding: 14, borderRadius: 20 }}>
+                <RingCountdown progress={slotProgress} size={238} />
+                <View style={{
+                  backgroundColor: '#ffffff',
+                  padding: 16,
+                  borderRadius: 22,
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.18,
+                  shadowRadius: 14,
+                  elevation: 6,
+                }}>
                   {token ? <QRCode value={token} size={176} /> : <Ionicons name="sync" size={64} color={theme.brand} />}
                 </View>
               </View>
-              <Row center gap={8}>
-                <Txt variant="micro" color="#5B6478">{t('live.codeLabel')}:</Txt>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4 }}>
-                  <Txt variant="h2" color="#F1F5F9" style={{ letterSpacing: 6 }}>{code}</Txt>
-                </View>
-              </Row>
+
+              {/* الرمز الاحتياطي المكون من 6 أرقام بخط عريض وواضح جداً */}
+              <View
+                style={{
+                  backgroundColor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(241, 245, 249, 0.95)',
+                  borderRadius: radii.md,
+                  borderWidth: 1.5,
+                  borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : 'rgba(203, 213, 225, 0.8)',
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  alignItems: 'center',
+                  gap: 4,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                }}
+              >
+                <Row center gap={6}>
+                  <Ionicons name="keypad" size={16} color={isDark ? '#38BDF8' : theme.brand} />
+                  <Txt variant="micro" color={isDark ? '#94A3B8' : theme.textSecondary} bold>
+                    {t('live.codeLabel')} (في حال تعذر مسح الكاميرا):
+                  </Txt>
+                </Row>
+                <Txt variant="display" color={isDark ? '#F8FAFC' : '#0F172A'} bold style={{ letterSpacing: 8, fontSize: 28 }}>
+                  {code}
+                </Txt>
+              </View>
             </Card>
           </FadeIn>
 

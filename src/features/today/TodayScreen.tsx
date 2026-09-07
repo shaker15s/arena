@@ -65,9 +65,24 @@ export function TodayScreen() {
 
   const liveBatch = liveSess ? batchOf(db, liveSess.batchId) : undefined;
   const liveCourse = liveBatch ? courseOf(db, liveBatch.courseId) : undefined;
-  const alreadyChecked = liveSess
+  const liveChecked = liveSess
     ? db.attendance.some((a) => a.sessionId === liveSess.id && a.userId === user.id && a.status !== 'absent')
     : false;
+
+  // استمرار كارت توثيق الحضور طوال اليوم حتى بعد انتهاء الجلسة أو إغلاقها
+  const todayCheckedSession = useMemo(() => {
+    if (liveSess && liveChecked) return liveSess;
+    return db.sessions.find((s) => {
+      const isToday = sameDay(s.startsAt, now) || (s.startedAt && sameDay(s.startedAt, now));
+      if (!isToday) return false;
+      return db.attendance.some((a) => a.sessionId === s.id && a.userId === user.id && a.status !== 'absent');
+    });
+  }, [liveSess, liveChecked, db.sessions, db.attendance, user.id, now]);
+
+  const checkedBatch = todayCheckedSession ? batchOf(db, todayCheckedSession.batchId) : undefined;
+  const checkedCourse = checkedBatch ? courseOf(db, checkedBatch.courseId) : undefined;
+  const alreadyChecked = Boolean(todayCheckedSession);
+
   const checkinEndsAt = liveSess ? (liveSess.startedAt ?? liveSess.startsAt) + 30 * 60_000 : 0;
 
   const nextBatch = nextSess ? batchOf(db, nextSess.batchId) : undefined;
@@ -411,39 +426,60 @@ export function TodayScreen() {
             </FadeIn>
           ) : null}
 
-          {/* Confirmed attendance state (Calm reinforcement) */}
-          {liveSess && alreadyChecked ? (
+          {/* Confirmed attendance state (Calm reinforcement with liquid glass styling) */}
+          {todayCheckedSession ? (
             <FadeIn index={1}>
-              <Card style={{
-                borderColor: isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(16, 185, 129, 0.35)',
-                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.06)',
-                padding: spacing.s4,
-              }}>
+              <View
+                style={{
+                  borderRadius: radii.xl,
+                  overflow: 'hidden',
+                  borderWidth: 1.5,
+                  borderColor: isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(16, 185, 129, 0.35)',
+                  backgroundColor: isDark ? 'rgba(6, 44, 31, 0.75)' : 'rgba(236, 253, 245, 0.95)',
+                  shadowColor: '#10B981',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: isDark ? 0.25 : 0.12,
+                  shadowRadius: 18,
+                  elevation: 6,
+                  position: 'relative',
+                  padding: spacing.s4,
+                }}
+              >
+                <BorderBeam
+                  size={140}
+                  duration={6000}
+                  borderWidth={2}
+                  colorFrom="#10B981"
+                  colorTo="#38BDF8"
+                  borderRadius={radii.xl}
+                />
                 <Row center between>
                   <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
                     <Row center gap={6}>
-                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: theme.success, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.success, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                       </View>
                       <Txt variant="caption" bold color={theme.success}>
                         {t('today.attendanceConfirmed')}
                       </Txt>
                     </Row>
-                    <Txt variant="h3" color={theme.text} numberOfLines={1}>{liveCourse?.title ?? ''}</Txt>
-                    <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{liveSess.title}</Txt>
+                    <Txt variant="h3" color={theme.text} numberOfLines={1}>{checkedCourse?.title ?? liveCourse?.title ?? ''}</Txt>
+                    <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{todayCheckedSession.title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>
                       {t('today.attendanceConfirmedBody')}
                     </Txt>
                   </View>
                   <View style={{
-                    width: 56, height: 56, borderRadius: 28,
-                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                    width: 58, height: 58, borderRadius: 29,
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.22)' : 'rgba(16, 185, 129, 0.15)',
+                    borderWidth: 1.5,
+                    borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.3)',
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Ionicons name="shield-checkmark" size={30} color={theme.success} />
+                    <Ionicons name="shield-checkmark" size={32} color={theme.success} />
                   </View>
                 </Row>
-              </Card>
+              </View>
             </FadeIn>
           ) : null}
         </View>

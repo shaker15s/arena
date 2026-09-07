@@ -431,9 +431,8 @@ export function SignInScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { signInWithGoogle, signInWithApple, configured, authError } = useApp();
+  const { signInWithGoogle, configured, authError } = useApp();
   const [loading, setLoading] = useState(false);
-  const [loadingApple, setLoadingApple] = useState(false);
   const [error, setError] = useState('');
 
   // الوصول لشاشة الدخول يعني أن المستخدم تجاوز الترحيب — لا نعيده إليه لاحقًا.
@@ -451,21 +450,6 @@ export function SignInScreen({ navigation }: any) {
       setError(`${t('auth.googleFailed')}: ${(e as Error).message}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const submitApple = async () => {
-    setError('');
-    setLoadingApple(true);
-    try {
-      const r = await signInWithApple();
-      if (!r.ok && r.error && r.error !== 'cancelled') {
-        setError(r.error === 'not-configured' ? t('auth.notConfigured') : `${t('auth.appleFailed')}: ${r.error}`);
-      }
-    } catch (e) {
-      setError(`${t('auth.appleFailed')}: ${(e as Error).message}`);
-    } finally {
-      setLoadingApple(false);
     }
   };
 
@@ -591,7 +575,7 @@ export function SignInScreen({ navigation }: any) {
             accessibilityLabel={t('auth.continueGoogle')}
             accessibilityHint={t('auth.googleHint')}
             onPress={submit}
-            disabled={loading || loadingApple || !configured}
+            disabled={loading || !configured}
             style={({ pressed }) => ({
               backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF',
               borderRadius: 16,
@@ -607,30 +591,6 @@ export function SignInScreen({ navigation }: any) {
           >
             {loading ? <ActivityIndicator color="#1C1C1E" /> : <GoogleMark size={22} />}
             <Txt variant="h3" color="#1C1C1E">{t('auth.continueGoogle')}</Txt>
-          </Pressable>
-
-          <Spacer size={12} />
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.continueApple')}
-            onPress={submitApple}
-            disabled={loading || loadingApple || !configured}
-            style={({ pressed }) => ({
-              backgroundColor: '#000000',
-              borderRadius: 16,
-              paddingVertical: 16,
-              minHeight: 56,
-              alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
-              opacity: !configured ? 0.5 : pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.985 : 1 }],
-              shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 18,
-              shadowOffset: { width: 0, height: 8 }, elevation: 6,
-            })}
-          >
-            {loadingApple ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="logo-apple" size={22} color="#FFFFFF" />}
-            <Txt variant="h3" color="#FFFFFF">{t('auth.continueApple')}</Txt>
           </Pressable>
         </FadeIn>
 

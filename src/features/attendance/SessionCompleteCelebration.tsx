@@ -18,6 +18,7 @@ import * as Sharing from 'expo-sharing';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, CountUp, FadeIn, Row, Spacer, Txt } from '../../design/components';
+import { BorderBeam } from '../../design/components/BorderBeam';
 import { DrawnCheck } from '../../design/celebrations';
 import { ConfettiExplosion, ShimmerProgressBar } from '../../design/animations';
 import { MasarMascot } from '../../design/mascot';
@@ -112,27 +113,52 @@ export function SessionCompleteCelebration({
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
-        <ConfettiExplosion count={38} />
+        <ConfettiExplosion count={50} />
 
         <Animated.View
           style={[
             styles.card,
             {
-              backgroundColor: theme.card,
-              borderColor: theme.glassBorder,
+              backgroundColor: isDark ? 'rgba(24, 20, 42, 0.95)' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(245, 158, 11, 0.45)',
               transform: [{ scale: cardScale }],
+              position: 'relative',
+              overflow: 'hidden',
             },
           ]}
         >
-          {/* رأس الاحتفال وتميمة مسار «فطن» */}
-          <MasarMascot
-            size={105}
-            behavior={already ? 'success' : isLate ? 'recovery' : 'achievement'}
-            interactive
+          <BorderBeam
+            size={180}
+            duration={4500}
+            borderWidth={2.5}
+            colorFrom="#F59E0B"
+            colorTo="#10B981"
+            borderRadius={radii.xl}
           />
 
+          {/* هالة فخمة مضيئة خلف فطن */}
+          <View
+            style={{
+              padding: 10,
+              borderRadius: 60,
+              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(254, 243, 199, 0.8)',
+              borderWidth: 1.5,
+              borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.4)',
+              shadowColor: '#F59E0B',
+              shadowOpacity: 0.3,
+              shadowRadius: 16,
+              shadowOffset: { width: 0, height: 4 },
+            }}
+          >
+            <MasarMascot
+              size={115}
+              behavior={already ? 'success' : isLate ? 'recovery' : 'achievement'}
+              interactive
+            />
+          </View>
+
           <View style={styles.titleSection}>
-            <Txt variant="h2" align="center" color={theme.text}>
+            <Txt variant="h1" align="center" color={theme.text} bold>
               {already
                 ? 'حضورك موثق مسبقاً ✓'
                 : isLate
