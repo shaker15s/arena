@@ -93,7 +93,7 @@ const screenOpts = {
   headerShown: false,
   animation: (I18nManager.isRTL ? 'slide_from_left' : 'slide_from_right') as any,
   animationDuration: isReducedMotion() ? 90 : 280,
-  presentation: 'transparentModal' as const,
+  presentation: 'card' as const,
   contentStyle: { backgroundColor: 'transparent' },
 };
 const linking = {
