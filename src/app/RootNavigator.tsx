@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, BackHandler, I18nManager, Platform, Pressable, ToastAndroid, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, I18nManager, Platform, Pressable, ToastAndroid, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -27,19 +27,56 @@ import { TodayScreen } from '../features/today/TodayScreen';
 import { ExploreScreen, CourseDetailsScreen } from '../features/explore/ExploreScreens';
 import { JourneyScreen, JourneyMapScreen, AttendanceHistoryScreen } from '../features/journey/JourneyScreens';
 import { ScannerScreen } from '../features/attendance/ScannerScreen';
-import { WalletScreen, LeagueScreen, AchievementsScreen, RulesGuideScreen } from '../features/gamification/GamificationScreens';
-import { CertificatesScreen, CertificateViewerScreen } from '../features/certificates/CertificatesScreens';
+import { WalletScreen } from '../features/gamification/GamificationScreens';
+import { CertificatesScreen } from '../features/certificates/CertificatesScreens';
 import { ExcusesScreen, ExcusesInboxScreen } from '../features/excuses/ExcusesScreens';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { RequestsScreen } from '../features/notifications/RequestsScreen';
-import { ProfileScreen, SupportScreen } from '../features/profile/ProfileScreens';
-import { VolunteerTodayScreen, MyBatchesScreen, StudentRecordScreen, SessionsHistoryScreen } from '../features/volunteer/VolunteerScreens';
+import { ProfileScreen } from '../features/profile/ProfileScreens';
+import { VolunteerTodayScreen, MyBatchesScreen } from '../features/volunteer/VolunteerScreens';
 import { LiveSessionScreen } from '../features/volunteer/LiveSessionScreen';
-import { DashboardScreen, OrgManagerScreen, CoursesScreen, BatchesAdminScreen, UsersScreen } from '../features/org/AdminScreens';
-import { OrgWizardScreen } from '../features/org/WizardScreen';
-import { HubScreen, IssueCertificatesScreen } from '../features/org/HubScreens';
-import { CourseManagementScreen } from '../features/courses/CourseManagementScreen';
 import { JoinBatchScreen } from '../features/courses/JoinBatchScreen';
+
+// ─── مغلّف التحميل الكسول (Code Splitting) ───
+function lazyScreen(importer: () => Promise<any>, name: string) {
+  const LazyComponent = React.lazy(async () => {
+    const mod = await importer();
+    return { default: mod[name] || mod.default };
+  });
+
+  return function LazyScreenWrapper(props: any) {
+    const { theme } = useTheme();
+    return (
+      <React.Suspense
+        fallback={
+          <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={theme.brand} />
+          </View>
+        }
+      >
+        <LazyComponent {...props} />
+      </React.Suspense>
+    );
+  };
+}
+
+// شاشات ثانوية وإدارية مُحمّلة كسولاً عند الطلب لتقليص حزمة الويب
+const CourseManagementScreen = lazyScreen(() => import('../features/courses/CourseManagementScreen'), 'CourseManagementScreen');
+const OrgWizardScreen = lazyScreen(() => import('../features/org/WizardScreen'), 'OrgWizardScreen');
+const DashboardScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'DashboardScreen');
+const OrgManagerScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'OrgManagerScreen');
+const CoursesScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'CoursesScreen');
+const BatchesAdminScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'BatchesAdminScreen');
+const UsersScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'UsersScreen');
+const HubScreen = lazyScreen(() => import('../features/org/HubScreens'), 'HubScreen');
+const IssueCertificatesScreen = lazyScreen(() => import('../features/org/HubScreens'), 'IssueCertificatesScreen');
+const LeagueScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'LeagueScreen');
+const AchievementsScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'AchievementsScreen');
+const RulesGuideScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'RulesGuideScreen');
+const CertificateViewerScreen = lazyScreen(() => import('../features/certificates/CertificatesScreens'), 'CertificateViewerScreen');
+const StudentRecordScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'StudentRecordScreen');
+const SessionsHistoryScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'SessionsHistoryScreen');
+const SupportScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'SupportScreen');
 
 // ─── سياق التبويبات الداخلية ───
 interface TabsCtx {
@@ -55,6 +92,9 @@ const Stack = createNativeStackNavigator<any>();
 const screenOpts = {
   headerShown: false,
   animation: (I18nManager.isRTL ? 'slide_from_left' : 'slide_from_right') as any,
+  animationDuration: isReducedMotion() ? 90 : 280,
+  presentation: 'transparentModal' as const,
+  contentStyle: { backgroundColor: 'transparent' },
 };
 const linking = {
   prefixes: [Linking.createURL('/'), ...(PUBLIC_APP_URL ? [PUBLIC_APP_URL] : [])],
@@ -341,7 +381,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
 
   return (
     <TabsContext.Provider value={ctx}>
-      <AppBackground>
+      <View style={{ flex: 1 }}>
         <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 104 + Math.max(insets.bottom, 8) }}>
           {tabs.map((t) => {
             const isSelected = t.key === tab;
@@ -360,7 +400,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
           })}
         </ContentFrame>
         <AppleTabBar tabs={tabs} active={tab} onSelect={handleSelectTab} fab={fab} badges={badges} />
-      </AppBackground>
+      </View>
     </TabsContext.Provider>
   );
 }
@@ -548,7 +588,7 @@ function NotFoundScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { t } = useI18n();
   return (
-    <AppBackground>
+    <View style={{ flex: 1 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <FadeIn style={{ width: '100%', maxWidth: 480 }}>
           <Card solid style={{ alignItems: 'center', padding: 32, gap: 16 }}>
@@ -586,7 +626,7 @@ function NotFoundScreen({ navigation }: any) {
           </Card>
         </FadeIn>
       </View>
-    </AppBackground>
+    </View>
   );
 }
 
@@ -595,7 +635,7 @@ function DisabledAccountScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   return (
-    <AppBackground>
+    <View style={{ flex: 1 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <FadeIn style={{ width: '100%', maxWidth: 520 }}>
           <Card solid style={{ alignItems: 'center', padding: 30, gap: 14 }}>
@@ -608,7 +648,7 @@ function DisabledAccountScreen() {
           </Card>
         </FadeIn>
       </View>
-    </AppBackground>
+    </View>
   );
 }
 
@@ -630,7 +670,7 @@ export function RootNavigator() {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {
       ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-      background: theme.bg,
+      background: 'transparent',
       card: theme.card,
       text: theme.text,
       border: theme.separator,
@@ -640,7 +680,7 @@ export function RootNavigator() {
   }), [isDark, theme]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <AppBackground>
       <View style={{ flex: 1, width: '100%', maxWidth: 1180, alignSelf: 'center' }}>
         <NavigationContainer
           ref={navigationRef}
@@ -668,6 +708,6 @@ export function RootNavigator() {
           )}
         </NavigationContainer>
       </View>
-    </View>
+    </AppBackground>
   );
 }

@@ -97,7 +97,7 @@ const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null
 
 // ───────────────────────────── بطاقات زجاجية ─────────────────────────────
 
-export function Card({ children, style, glass, color, noPad, onPress, solid, heavy }: {
+export function Card({ children, style, glass, color, noPad, onPress, solid, heavy, accessibilityLabel, accessibilityHint }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
   /** مُبقاة للتوافق — الزجاج صار الأساس */
@@ -109,6 +109,8 @@ export function Card({ children, style, glass, color, noPad, onPress, solid, hea
   solid?: boolean;
   /** ضبابية حقيقية للحالات الاستثنائية فقط (hero/عائم) — الافتراضي سطح زجاجي بلا blur للأداء */
   heavy?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const { theme, isDark } = useTheme();
   const { impactLight } = useHaptics();
@@ -171,6 +173,8 @@ export function Card({ children, style, glass, color, noPad, onPress, solid, hea
     return (
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         onPress={() => { impactLight(); onPress(); }}
         onPressIn={pressIn}
         onPressOut={pressOut}
@@ -488,6 +492,7 @@ export function Input({
             <Pressable
               hitSlop={8}
               accessibilityRole="button"
+              accessibilityLabel={label ? `${label} - إجراء` : 'زر الحقل'}
               onPress={handleIconClick}
               style={[Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null, { marginTop: multiline ? 10 : 0 }]}
             >
@@ -862,7 +867,12 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
           ) : null}
           <View style={{ flex: 1 }}>
             {onTitlePress ? (
-              <Pressable onPress={onTitlePress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={title}
+                onPress={onTitlePress}
+                style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+              >
                 <Txt variant="h1" numberOfLines={1}>{title}</Txt>
               </Pressable>
             ) : (
@@ -872,6 +882,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
               onSubtitlePress ? (
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel={subtitle}
                   onPress={onSubtitlePress}
                   style={({ pressed }) => ({
                     flexDirection: 'row',
@@ -1052,6 +1063,7 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
   return (
     <Pressable
       accessibilityRole="switch"
+      accessibilityLabel={value ? 'مفعّل' : 'معطّل'}
       accessibilityState={{ checked: value }}
       onPress={() => { impactLight(); onChange(!value); }}
       hitSlop={8}

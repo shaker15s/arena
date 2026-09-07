@@ -16,6 +16,7 @@ import {
   Avatar, Btn, Card, Empty, FadeIn, Header, Input, Row, Segmented, Spacer,
   Tag, Txt,
 } from '../../design/components';
+import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { spacing } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
 import { Excuse } from '../../data/types';
@@ -95,6 +96,7 @@ export function ExcusesScreen({ navigation }: any) {
           ]}
         />
 
+        <AnimatedTabContent tabKey={tab}>
         {tab === 'new' ? (
           eligible.length === 0 ? (
             <Empty emoji="✅" title={t('excuses.onlyAbsent')} />
@@ -177,6 +179,7 @@ export function ExcusesScreen({ navigation }: any) {
             );
           })
         )}
+        </AnimatedTabContent>
       </ScrollView>
     </View>
   );
@@ -240,6 +243,7 @@ export function ExcusesInboxScreen() {
           ]}
         />
 
+        <AnimatedTabContent tabKey={tab}>
         {tab === 'excuses' ? (
           <>
             {myPending.length === 0 ? (
@@ -356,6 +360,7 @@ export function ExcusesInboxScreen() {
             })
           )
         )}
+        </AnimatedTabContent>
       </ScrollView>
 
       {selectedReportSession ? (

@@ -17,6 +17,7 @@ import {
   Avatar, Btn, Card, CountUp, Empty, FadeIn, Flame, Header, ProgressBar,
   Row, Segmented, Spacer, Tag, Txt, XPBar,
 } from '../../design/components';
+import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { BadgeModal } from '../../design/celebrations';
 import { spacing, radii, leagueTierColors, levels } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
@@ -279,6 +280,7 @@ export function LeagueScreen({ navigation }: any) {
           ]}
         />
 
+        <AnimatedTabContent tabKey={board}>
         {board === 'alltime' ? (
           <>
             {allTimeRows.map((r, i) => (
@@ -342,6 +344,7 @@ export function LeagueScreen({ navigation }: any) {
             {league.rows.map(renderRow)}
           </>
         )}
+        </AnimatedTabContent>
 
       </ScrollView>
     </View>

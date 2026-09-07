@@ -11,6 +11,7 @@ import { useTheme } from '../../design/theme';
 import {
   Avatar, Btn, Card, Chip, Empty, Header, Input, Row, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
+import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { spacing } from '../../design/tokens';
 import { timePast } from '../../shared/format';
 import { useI18n } from '../../i18n';
@@ -119,6 +120,7 @@ export function RequestsScreen({ navigation }: any) {
           />
         ) : null}
 
+        <AnimatedTabContent tabKey={tab}>
         {tab === 'new' && isStudent ? (
           <View style={{ gap: 12 }}>
             <Card glass>
@@ -187,6 +189,7 @@ export function RequestsScreen({ navigation }: any) {
             );
           })
         )}
+        </AnimatedTabContent>
       </ScrollView>
 
       <Sheet visible={selected != null} onClose={() => setSelected(null)} title={selected?.subject ?? ''}>

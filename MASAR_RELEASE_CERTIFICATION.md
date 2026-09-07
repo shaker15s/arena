@@ -1,83 +1,50 @@
-# MASAR_RELEASE_CERTIFICATION — وثيقة اعتماد الجاهزية للإطلاق (مسار 3.2)
+﻿# تقرير التدقيق والاعتماد الهندسي الشامل — مسار 3.2 (Engineering State & Certification)
 
-> **تاريخ الاعتماد:** 2026-09-06  
-> **حالة الاعتماد النهائية:** ✅ **جاهز للإطلاق (PRODUCTION READY)**  
-> **معدل النجاح الإجمالي:** 100% (168 اختبارًا وفحص تكامل وحمل واختراق — 0 إخفاق)
-
----
-
-## جدول الاعتماد والجاهزية الشامل
-
-| المجال (Area) | الحالة (Status) | الأدلة والقياسات (Evidence & Metrics) | القيود والحلول (Limitations & Mitigation) | مستوى المخاطرة | المسؤول |
-| --- | --- | --- | --- | --- | --- |
-| **Auth (Google OAuth)** | ✅ PASS | `supabase.ts` + `AuthScreens.tsx` + `e2e/auth.spec.ts` | توجيه الـ OAuth مؤمن عبر رابط العودة المشفر وعزل الصلاحيات | منخفض | Security & Eng |
-| **Student Today** | ✅ PASS | `TodayScreen.tsx` + بنية بطاقات المهام الفورية | واجهة مبسطة مهيأة للأجهزة المختلفة وبطاقات تفاعلية | منخفض | Product |
-| **Attendance / QR** | ✅ PASS | `e2e/attendance.spec.ts` + QR دوّار 25 ثانية + كود احتياطي 6 أرقام | منع التكرار وتصوير الشاشة واختبار التوكنات القديمة `expired` | منخفض | Security |
-| **Certificates verify** | ✅ PASS | `e2e/certificates.spec.ts` + تحقق عام بالسيريال + إدارة الإلغاء وإعادة الإصدار | رابط عام مستقل لا يتطلب تسجيل دخول مع دعم case-insensitive | منخفض | Eng |
-| **Offline writes** | ✅ PASS | `offline.ts` + طابور الأوامر الذري المؤجل | تسجيل الحضور يتطلب اتصالًا لحماية التوقيت، والأعذار تدعم الطابور | منخفض | Eng |
-| **Accessibility (WCAG 2.2 AA)** | ✅ PASS | أهداف لمس ≥ 44pt + زر CTA بـ 52pt + تباين لوني AA + شاشات القراءة الصوتية | فحص المظهر والتباين واختبارات تقليل الحركة `isReducedMotion` | منخفض | Design & QA |
-| **Performance (5k rows)** | ✅ PASS | `scripts/perf-benchmark.ts` (fetchDb: 50ms < 3s, today: 0.14ms, search: 37ms) | استعلامات مفهرسة وتقسيم القراءة على نوافذ زمنية محددة | منخفض | Eng |
-| **E2E golden paths** | ✅ PASS | `e2e/runner.ts` (62 فحصًا بنجاح 100% عبر كافة المسارات الحرجة) | تغطية Onboarding, Auth, Attendance, Journey, Certs, Theme, RTL | منخفض | QA |
-| **Security pentest** | ✅ PASS | `scripts/security-pentest.ts` (فحص RLS + حظر القراءة المجهولة + Rate Limiting) | Zero-trust RLS policies + 4 RPCs rate-limited على الخادم | منخفض | Security |
-| **Load test (التحمل)** | ✅ PASS | `scripts/load-test.ts` (100 مستخدم متزامن، 5537 req/s، p95 = 0.33ms، خطأ 0.00%) | معالجة فورية بلا اختناق مع زمن استجابة متناهي الصغر | منخفض | Ops & Infra |
+> **تاريخ التقييم والمراجعة الفنية:** 2026-09-07  
+> **حالة الاعتماد الهندسية:** 🟡 **معتمد مع قيود موثقة (PASS WITH DOCUMENTED CONSTRAINTS)**  
+> **التقييم الفني الإجمالي:** **85 / 100** (نواة قاعدة بيانات متينة، أمان RLS محقق خادميًا، واجهات متجاوبة مع قيود معمارية مدروسة)
 
 ---
 
-## تفاصيل القياسات والفحوصات المنفذة
+## 1. جدول الشفافية والجاهزية الهندسية
 
-### 1. قياسات اختبار التحمل (Load Test at 100 Concurrent Users)
-- **إجمالي العمليات:** 1,000 عملية متزامنة عبر 100 مستخدم افتراضي
-- **معدل التدفق (Throughput):** 5,537 طلب/ثانية
-- **زمن الاستجابة p95:** 0.33 ms (أقل بكثير من السقف المحدد: 1,000 ms)
-- **نسبة الأخطاء (Error Rate):** 0.00% (أقل من الحد الأقصى المسموح: 1.0%)
-
-### 2. قياسات الأداء على 5,000 سجل (Performance Benchmarking)
-- **جلب بيانات المنظمة الكاملة (`fetchRemoteDb`):** 50.42 ms (الحد الأقصى المسموح: 3,000 ms)
-- **استخراج جدول اليوم (`get_today`):** 0.14 ms (الحد الأقصى المسموح: 200 ms)
-- **البحث العربي في الملفات (`list_visible_profiles`):** 37.19 ms (الحد الأقصى المسموح: 300 ms)
-
-### 3. اختبارات التكامل الشاملة (E2E Integration Suite)
-- **`onboarding.spec.ts`:** 4 فحوصات (الرسوم المتجهة المخصصة SVG، التنقل السلس، تخزين الحالة).
-- **`auth.spec.ts`:** فحصان (توليد الرابط المشفر وحماية دور الطالب الافتراضي).
-- **`attendance.spec.ts`:** 10 فحوصات (الـ QR الدوّار، التوكنات المنتهية، الحضور المتأخر، الكود الاحتياطي 6 أرقام، عدم التكرار).
-- **`journey.spec.ts`:** 8 فحوصات (دفتر النقاط، الكودوس، درع الستريك، الشارات، الدوري الأسبوعي).
-- **`certificates.spec.ts`:** 15 فحصًا (الاستحقاق ≥ 75%، السيريال الفريد، التحقق العام، الإلغاء بمبرر، إعادة الإصدار).
-- **`theme-toggle.spec.ts`:** 12 فحصًا (Light, Dark, OLED، لون Amber التمايزي D2، أبعاد اللمس 44pt/52pt).
-- **`rtl.spec.ts`:** 11 فحصًا (تطابق القواميس 861 مفتاحًا بنسبة 100%، الأرقام العربية، التواريخ والأوقات).
+| المجال (Area) | الحالة (Status) | نوع الفحص والتأكيد | الملاحظات والحدود الواقعية (Engineering Reality) |
+| --- | --- | --- | --- |
+| **Auth (Google OAuth)** | ✅ PASS | Live HTTP + Client PKCE | يعمل عبر Google OAuth مع عزل الصلاحيات ومنح دور `student` افتراضيًا. تم إزالة Apple Sign-In لعدم تهيئته على Supabase. |
+| **Attendance / QR Security** | ✅ PASS | Live Supabase + Column Privileges | مفتاح `qr_seed` محجوب تمامًا عن الاستعلام المباشر عبر PostgreSQL REVOKE (كود الخطأ 42501 مؤكد شبكيًا). الرمز الدوار 25 ثانية والكود الاحتياطي 6 أرقام. |
+| **Database RLS & Security** | ✅ PASS | Live PostgREST Pentest + 29 Migrations | 112 دالة `SECURITY DEFINER` مع `search_path = public, pg_temp`. حظر إدراج `audit_log` المجهول مؤكد بـ RLS 42501. |
+| **Rate Limiting (F5)** | ✅ PASS | Migration 0025 + In-Memory Simulation | نافذة انزلاقية خادمية (Sliding-window) في Postgres على دوال الانضمام والأعذار والإشعارات. |
+| **Concurrency & Overbooking** | ✅ PASS | Migration 0005 (`FOR UPDATE`) + Engine Test | حجز المقاعد مؤمن بقفل الصفوف `SELECT ... FOR UPDATE` لمنع التجاوز اللحظي. |
+| **Certificates Lifecycle** | ✅ PASS | Engine Tests + Verification Route | استحقاق الحضور ≥ 75%، توليد سيريال فريد، صفحة تحقق عامة مستقلة لا تتطلب تسجيل دخول، دعم الإلغاء بمبرر وإعادة الإصدار. |
+| **Offline Command Queue** | 🟡 PASS WITH CONSTRAINTS | Engine Simulation + AsyncStorage | حفظ العمليات غير الحساسة زمنيًا في `command_queue` وإعادة بثها عند عودة الاتصال. الحضور يتطلب اتصالًا لحماية التوقيت. |
+| **Performance & Benchmarks** | 🟡 PASS WITH CONSTRAINTS | Node.js Memory Benchmark + Live Queries | قياسات Node المحلية تعطي أزمنة ميكروية (0.3ms - 40ms). زمن الاستجابة الحقيقي عبر الإنترنت يرتبط بشبكة المستخدم وخادم Supabase (50ms - 250ms). |
+| **Accessibility (WCAG 2.2 AA)** | 🟡 IN PROGRESS (P1) | Static Audit + Component Inspection | جاري رفع تغطية `accessibilityLabel` و `accessibilityRole` على كافة الأزرار والأهداف التفاعلية لتحقيق الامتثال الكامل. |
+| **Design & Architecture** | 🟡 IN PROGRESS (P2) | Refactoring & Consolidation | جاري توحيد كتالوج المكونات وتفكيك الشاشات الأحادية الكبيرة (`CourseManagementScreen`, `AdminScreens`). |
 
 ---
 
-## التحسينات المضافة في هذا الإصدار (Release Highlights)
+## 2. تفصيل الفحوصات الفنية المنفذة
 
-1. **الهوية البصرية والرسوم التوضيحية الاحترافية (Ready-made Vector Illustrations):**
-   - اعتماد رسوم فكتور جاهزة عالية الدقة ومطابقة للألوان المعتمدة (unDraw / Storyset style) مدمجة عبر `react-native-svg` (`SvgXml`):
-     - `OnboardingSlide1Illustration`: تجربة تعلم رقمية مع أجهزة ذكية وكتب ورسوم مسار.
-     - `OnboardingSlide2Illustration`: مسح كود الاستجابة السريعة وتوثيق الحضور التلقائي.
-     - `OnboardingSlide3Illustration`: إتمام الدورات والاحتفال بالشهادات المعتمدة الموثقة.
-     - `EmptyStateIllustration`: رسم توضيحي للحالات الفارغة في الواجهات.
-   - إدخال لون التمايز الثانوي **Amber** (`#F59E0B`) في توكنات التصميم (`src/design/tokens.ts`).
-   - اعتماد زر الإجراء الرئيسي بقياس 52pt المتوافق مع Apple Human Interface Guidelines مع استجابة فيزيائية وحركية (Haptics & Spring).
-   - معاينة حية للمظهر (فاتح / داكن / تلقائي) ضمن الشريحة الثالثة من الترحيب.
+### أ) فحص الأمان واختبار الاختراق الحقيقي (`scripts/security-pentest.ts`)
+1. **فحص حظر قراءة الهواتف:** تم التحقق عبر استعلام REST مباشر بمفتاح `anon` — تعيد RLS مصفوفة فارغة وتمنع استخراج أرقام هواتف غير المالك.
+2. **فحص حماية الـ `qr_seed`:** تم التحقق عبر طلب REST مباشر على `sessions?select=qr_seed` بمفتاح `anon` — الخادم يرجع خطأ PostgreSQL `42501` (رفض الصلاحية على مستوى العمود).
+3. **فحص حظر حقن سجلات التدقيق:** تم إرسال طلب POST غير مصرح به على `audit_log` — الخادم يرجع خطأ RLS `42501`.
+4. **الفحص الهيكلي لترحيلات SQL:** التحقق من 29 ملف migration للتأكد من حماية دوال `SECURITY DEFINER` وسحب صلاحيات التعديل المباشر.
 
-2. **احتفالية إتمام المحاضرة بنمط دوولينجو (Duolingo-Style Completion Ceremony):**
-   - إضافة مكون `SessionCompleteCelebration`:
-     - عداد XP تصاعدي ديناميكي `CountUp` بنمط `tabular-nums` لمنع الاهتزاز البصري.
-     - توهج شعلة الستريك الأسبوعي مع تأثير نبض ديناميكي.
-     - مضاعف الإنجاز (Combo Multiplier) وموقع المتدرب في الدوري.
-     - زر مشاركة فوري لإنجاز اليوم عبر `expo-sharing` أو Web Share API.
-     - زر متابعة نابض يدعم معايير التوافق وتقليل الحركة (Reduced Motion).
+### ب) فحص الأداء والتحمل (`scripts/perf-benchmark.ts` & `scripts/load-test.ts`)
+- **تنبيه شفاف:** قياسات الـ load test والـ benchmark تعمل على الذاكرة المحلية (In-Memory Node Runtime) لمحاكاة سلوك المحرك الحسابي. وهي تثبت كفاءة خوارزميات التلعيب والفرز (O(N log N)) وخلوها من الانهيارات، وليست بديلاً عن اختبار إجهاد الشبكة (Network Stress Test) عبر k6 أو أداة مماثلة.
 
-3. **الميزات الجديدة للمنتج والحضور (F9 & F10 & Check-out):**
-   - **توثيق الانصراف الفعلي (`rpcCheckOut`):** إضافة حقل `checkedOutAt` وحساب مدة مكوث الطالب بالدقائق لسد ثغرة المغادرة بعد المسح فوراً.
-   - **تصدير تقرير المنظمة (CSV):** زر مخصص في لوحة تحكم المسؤول يتيح تنزيل ملف CSV بترميز UTF-8 BOM يحوي الفروع، الكورسات، والمجموعات والمقاعد.
-   - **مشاركة بطاقة الإنجاز:** زر مشاركة فوري داخل شاشة الاحتفال عبر `expo-sharing`.
+### ج) فحص التكامل والمسارات الذهبية (`e2e/runner.ts`)
+- تنفيذ 62 فحصًا تغطي مسارات الترحيب، الدخول، الحضور، محفظة النقاط، الشهادات، وتبديل المظهر.
 
-4. **حزمة الأمان والاختراق ومكافحة التحايل (Zero-Trust Security & Anti-Fraud):**
-   - **بصمة الجهاز الموثوقة (Device Fingerprint):** توليد وتخزين معرّف الجهاز عبر `expo-secure-store` / `localStorage` لمنع التحضير بالإنابة لأكثر من حساب من نفس الجهاز.
-   - **تطهير كود المصدر:** إزالة المفاتيح الافتراضية المضمنة في `supabase.ts` والاعتماد الحصري الصارم على متغيرات البيئة.
-   - **تدقيق سياسات RLS ومحددات التردد:** 0 ثغرات في استدعاءات الـ RPCs وفحص عزل الجداول.
+---
 
-5. **جودة الواجهة والخط العربي (Typography & Progressive Fallback):**
-   - اعتماد `fontVariant: ['tabular-nums']` في عدادات الأرقام لمنع الارتجاج.
-   - معايرة الارتفاع السطري للخطوط العربية `lineHeight = fontSize * 1.35` لمنع بتر التشكيل والزوائد العلوية والسفلية.
-   - دعم التدرج الناعم والظلال اللطيفة كبديل تدريجي لتأثير الزجاج (Glass Surface) على أجهزة أندرويد لضمان سلاسة 60fps.
+## 3. خارطة طريق التحسين المستمر
+
+1. **إتمام المرحلة الحالية (P1 & P2):**
+   - استكمال Code Splitting وحزم الويب لخفض الحجم دون 1 MB.
+   - إتمام وسوم قراءة الشاشة (Screen Reader VoiceOver / TalkBack).
+   - توحيد واجهات المكونات في `src/design/components/index.ts`.
+2. **المرحلة القادمة (P3):**
+   - إضافة طبقة التخزين المحلي المقسم (SQLite عبر `expo-sqlite`) لتعزيز الأداء مع آلاف السجلات دون تحميل الذاكرة.
+   - ربط نظام تتبع الأعطال المباشر (Sentry) للمراقبة في الوقت الفعلي.

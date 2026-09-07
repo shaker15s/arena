@@ -367,7 +367,11 @@ export function TodayScreen() {
           {/* Task-first: live check-in before KPIs (spec §06 / §44) */}
           {liveSess && !alreadyChecked ? (
             <FadeIn index={1}>
-              <Pressable onPress={() => navigation.navigate('Scanner')}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('scanner.submit')}: ${liveSess.title}`}
+                onPress={() => navigation.navigate('Scanner')}
+              >
                 <LinearGradient
                   colors={[theme.brandGradientFrom, theme.brandGradientTo]}
                   start={{ x: 0, y: 0 }}

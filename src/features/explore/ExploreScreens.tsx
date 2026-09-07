@@ -19,6 +19,7 @@ import {
   Avatar, BackIcon, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, Tag, Txt, useDebounce,
 } from '../../design/components';
+import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
@@ -536,6 +537,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             ]}
           />
 
+          <AnimatedTabContent tabKey={tab}>
           {tab === 'about' ? (
             <FadeIn>
               {myEnrollment ? (
@@ -720,6 +722,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               })
             )
           ) : null}
+          </AnimatedTabContent>
         </View>
       </ScrollView>
 

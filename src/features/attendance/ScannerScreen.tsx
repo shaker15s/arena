@@ -194,22 +194,22 @@ export function ScannerScreen({ navigation }: any) {
         setSuccess({ points: 0, status: 'present', already: true });
         break;
       case 'expired':
-        triggerErrorShake(t('scanner.expired'), 'انتهت صلاحية الرمز الدوّار، يرجى مسح الرمز المحدث.');
+        triggerErrorShake(t('scanner.expired'));
         break;
       case 'too_late':
-        triggerErrorShake(t('scanner.tooLate'), 'انقضت نافذة تسجيل الحضور لهذه الجلسة.');
+        triggerErrorShake(t('scanner.tooLate'));
         break;
       case 'no_session':
-        triggerErrorShake(t('scanner.noSession'), 'لا توجد جلسة نشطة لهذه المجموعة حالياً.');
+        triggerErrorShake(t('scanner.noSession'));
         break;
       case 'not_enrolled':
-        triggerErrorShake(t('scanner.notEnrolled'), 'أنت غير مسجل في هذه المجموعة التدريبية.');
+        triggerErrorShake(t('scanner.notEnrolled'));
         break;
       case 'rate_limited':
-        triggerErrorShake(t('scanner.rateLimited'), 'يرجى الانتظار قليلاً قبل المحاولة مجدداً.');
+        triggerErrorShake(t('scanner.rateLimited'));
         break;
       default:
-        triggerErrorShake(t('scanner.invalid'), 'تأكد من مسح رمز QR مسار الصحيح.');
+        triggerErrorShake(t('scanner.invalid'));
     }
   };
 

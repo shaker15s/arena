@@ -176,7 +176,11 @@ export function ProfileScreen() {
           <ListRow icon="trash-outline" title={t('profile.deleteAccount')} subtitle={t('profile.deleteAccountSub')} danger onPress={() => { setDeleteConfirm(''); setDeleteOpen(true); }} />
         </FadeIn>
 
-        <Pressable onPress={handleVersionTap}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t('profile.about')} v3.2.0`}
+          onPress={handleVersionTap}
+        >
           <Txt variant="micro" color={theme.textMuted} align="center">{t('profile.about')} · v3.2.0</Txt>
         </Pressable>
 
