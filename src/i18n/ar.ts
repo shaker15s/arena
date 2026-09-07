@@ -316,7 +316,8 @@ export const ar = {
   'journey.map': 'خريطة الرحلة',
   'journey.history': 'سجل الحضور',
   'journey.rateCourse': 'قيّم الكورس ★',
-  'journey.ratingThanks': 'شكرًا لتقييمك! +5 نقاط',
+  'journey.ratingThanks': 'شكرًا لتقييمك! كسبت +5 نقاط في محفظتك 🌟',
+  'journey.ratingUpdated': 'تم تحديث تقييمك للكورس بنجاح ✨ (النقاط احتسبت لتقييمك الأول)',
   'journey.emptyTitle': 'لا كورسات بعد',
   'journey.courseComplete': 'كورس مكتمل 🏆',
 

@@ -60,6 +60,7 @@ interface AppCtx {
   setOnline: (v: boolean) => void;
   toasts: Toast[];
   toast: (message: string, kind?: Toast['kind']) => void;
+  dismissToast: (id: number) => void;
   /** كتابة قابلة للتأجيل: فورية أونلاين، مؤجلة أوفلاين وتُعاد تلقائيًا */
   submitOrQueue: (command: string, payload: Record<string, unknown>) => Promise<{ status: 'applied' | 'queued'; error?: string }>;
   refresh: () => Promise<void>;
@@ -133,7 +134,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toastSeq.current += 1;
     const id = toastSeq.current;
     setToasts((current) => [...current.slice(-2), { id, message, kind }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3600);
+  }, []);
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
   /** يقرأ القاعدة من السيرفر ويحدّث الحالة والكاش */
@@ -515,12 +520,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppCtx>(() => ({
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, authError, loading, syncing,
-    lastSyncAt, syncError, online, setOnline, toasts, toast, submitOrQueue, refresh,
+    lastSyncAt, syncError, online, setOnline, toasts, toast, dismissToast, submitOrQueue, refresh,
     signInWithGoogle, signInWithApple, completeProfile, updateProfile, uploadAvatar, logout,
     deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, authError, loading, syncing, lastSyncAt, syncError, online,
-    toasts, toast, submitOrQueue, refresh, signInWithGoogle, signInWithApple, completeProfile, updateProfile,
+    toasts, toast, dismissToast, submitOrQueue, refresh, signInWithGoogle, signInWithApple, completeProfile, updateProfile,
     uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 

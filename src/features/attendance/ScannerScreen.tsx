@@ -247,20 +247,29 @@ export function ScannerScreen({ navigation }: any) {
     setTorch(next);
     if (Platform.OS === 'web') {
       try {
-        const video = document.querySelector('video');
-        if (video && (video as any).srcObject) {
-          const stream = (video as any).srcObject as MediaStream;
-          const track = stream.getVideoTracks()[0];
-          if (track) {
-            const capabilities = (track.getCapabilities?.() as any) || {};
-            if (capabilities.torch) {
-              await (track.applyConstraints as any)({
-                advanced: [{ torch: next }],
-              });
+        const videos = Array.from(document.querySelectorAll('video'));
+        let applied = false;
+        for (const video of videos) {
+          const stream = (video as any)?.srcObject as MediaStream | undefined;
+          if (stream) {
+            const tracks = stream.getVideoTracks();
+            for (const track of tracks) {
+              const capabilities = (track.getCapabilities?.() as any) || {};
+              if ('torch' in capabilities || capabilities.torch) {
+                await (track.applyConstraints as any)({
+                  advanced: [{ torch: next }],
+                });
+                applied = true;
+              }
             }
           }
         }
-      } catch {}
+        if (!applied && next) {
+          triggerErrorShake('الفلاش غير مدعوم في متصفح جهازك', 'يمكنك تشغيل إضاءة الشاشة أو استخدام كود الـ 6 أرقام الاحتياطي.');
+        }
+      } catch (err) {
+        console.warn('Torch toggle error:', err);
+      }
     }
   };
 

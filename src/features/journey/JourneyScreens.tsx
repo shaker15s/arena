@@ -1,7 +1,7 @@
 /**
  * features/journey — S14 رحلتي + S15 خريطة الرحلة (التوقيع البصري) + S16 سجل الحضور + S26 تقييم الكورس.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -142,11 +142,22 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const batch = batchOf(db, batchId);
   const course = batch ? courseOf(db, batch.courseId) : undefined;
   const sessions = batch ? sessionsOfBatch(db, batchId) : [];
+  const existingRating = useMemo(
+    () => (user && course ? db.ratings.find((r) => r.userId === user.id && r.courseId === course.id) : undefined),
+    [db.ratings, user, course]
+  );
   const [rateOpen, setRateOpen] = useState<boolean>(route.params?.rate === true);
-  const [stars, setStars] = useState(5);
-  const [comment, setComment] = useState('');
+  const [stars, setStars] = useState(existingRating?.stars ?? 5);
+  const [comment, setComment] = useState(existingRating?.comment ?? '');
   const [sending, setSending] = useState(false);
   const [showCertCelebration, setShowCertCelebration] = useState(false);
+
+  useEffect(() => {
+    if (existingRating) {
+      setStars(existingRating.stars);
+      setComment(existingRating.comment ?? '');
+    }
+  }, [existingRating]);
 
   if (!batch || !course || !user) return null;
 
@@ -193,12 +204,13 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const submitRating = async () => {
     if (!user) return;
     setSending(true);
+    const isUpdate = Boolean(existingRating);
     try {
       const detailedComment = `[المدرب: ${instructorStars}/5 | المكان والتنظيم: ${venueStars}/5] ${comment.trim()}`.trim();
       await submitCourseRating({ courseId: course.id, stars, comment: detailedComment || undefined });
       await refresh();
       setRateOpen(false);
-      toast(t('journey.ratingThanks'), 'success');
+      toast(isUpdate ? t('journey.ratingUpdated') : t('journey.ratingThanks'), 'success');
     } catch (error) {
       toast((error as Error).message, 'error');
     } finally {
@@ -475,6 +487,31 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
       <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title={t('journey.rateTitle')}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+            {/* بطاقة توضيحية لنقاط التقييم */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                padding: 12,
+                borderRadius: radii.md,
+                backgroundColor: existingRating ? theme.fill : theme.warnSoft,
+                borderWidth: 1,
+                borderColor: existingRating ? theme.line : theme.warn + '40',
+              }}
+            >
+              <Ionicons
+                name={existingRating ? 'checkmark-circle' : 'star'}
+                size={20}
+                color={existingRating ? theme.success : theme.warn}
+              />
+              <Txt variant="caption" color={existingRating ? theme.textSecondary : theme.warn} style={{ flex: 1 }}>
+                {existingRating
+                  ? 'سبق لك تقييم هذا الكورس واحتساب الـ 5 نقاط في محفظتك. يمكنك تعديل تقييمك وملاحظاتك في أي وقت.'
+                  : 'تقييمك لتجربة الكورس والمدرب يمنحك +5 نقاط في محفظتك التدريبية 🌟'}
+              </Txt>
+            </View>
+
             <Card glass style={{ gap: 6, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateOverall')}</Txt>
               <Stars value={stars} size={32} onRate={setStars} />

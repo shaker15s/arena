@@ -307,7 +307,8 @@ export const en: Record<DictKey, string> = {
   'journey.map': 'Journey map',
   'journey.history': 'Attendance history',
   'journey.rateCourse': 'Rate the course ★',
-  'journey.ratingThanks': 'Thanks for your rating! +5 points',
+  'journey.ratingThanks': 'Thanks for your rating! +5 points added 🌟',
+  'journey.ratingUpdated': 'Your rating has been updated successfully ✨ (Points already awarded)',
   'journey.emptyTitle': 'No courses yet',
   'journey.courseComplete': 'Course complete 🏆',
 

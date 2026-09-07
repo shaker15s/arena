@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Platform, StatusBar as RNStatusBar, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Platform, Pressable, StatusBar as RNStatusBar, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -121,10 +121,63 @@ function BootSplash() {
   );
 }
 
-function ToastItem({ message, kind }: { message: string; kind: 'info' | 'success' | 'error' | 'warn' }) {
+function ToastItem({
+  id,
+  message,
+  kind,
+  onDismiss,
+}: {
+  id: number;
+  message: string;
+  kind: 'info' | 'success' | 'error' | 'warn';
+  onDismiss: (id: number) => void;
+}) {
   const { theme, isDark } = useTheme();
-  const { notificationError, notificationSuccess } = useHaptics();
+  const { notificationError, notificationSuccess, impactLight } = useHaptics();
   const entrance = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
+  const panX = useRef(new Animated.Value(0)).current;
+  const panY = useRef(new Animated.Value(0)).current;
+  const isDismissing = useRef(false);
+
+  const dismiss = () => {
+    if (isDismissing.current) return;
+    isDismissing.current = true;
+    try {
+      impactLight();
+    } catch {}
+    Animated.timing(entrance, {
+      toValue: 0,
+      duration: 160,
+      useNativeDriver: true,
+    }).start(() => {
+      onDismiss(id);
+    });
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dx) > 10 || gesture.dy < -10,
+      onPanResponderMove: (_, gesture) => {
+        panX.setValue(gesture.dx);
+        if (gesture.dy < 0) {
+          panY.setValue(gesture.dy);
+        }
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (Math.abs(gesture.dx) > 80 || gesture.dy < -40 || gesture.vx > 0.8 || gesture.vy < -0.8) {
+          dismiss();
+        } else {
+          Animated.parallel([
+            Animated.spring(panX, { toValue: 0, damping: 15, stiffness: 200, useNativeDriver: true }),
+            Animated.spring(panY, { toValue: 0, damping: 15, stiffness: 200, useNativeDriver: true }),
+          ]).start();
+        }
+      },
+    })
+  ).current;
+
   useEffect(() => {
     if (kind === 'success') notificationSuccess();
     if (kind === 'error') notificationError();
@@ -135,6 +188,7 @@ function ToastItem({ message, kind }: { message: string; kind: 'info' | 'success
       useNativeDriver: true,
     }).start();
   }, [entrance, kind, notificationError, notificationSuccess]);
+
   const color = kind === 'success' ? theme.success
     : kind === 'error' ? theme.danger
     : kind === 'warn' ? theme.warn
@@ -143,29 +197,55 @@ function ToastItem({ message, kind }: { message: string; kind: 'info' | 'success
     : kind === 'error' ? 'alert-circle'
     : kind === 'warn' ? 'warning'
     : 'information-circle';
+
   return (
-    <Animated.View style={{
-      opacity: entrance,
-      transform: [
-        { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) },
-        { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
-      ],
-      width: '100%', maxWidth: 520,
-    }}>
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={{
+        opacity: entrance,
+        transform: [
+          { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) },
+          { translateY: panY },
+          { translateX: panX },
+          { scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+        ],
+        width: '100%',
+        maxWidth: 520,
+      }}
+    >
       <GlassSurface
-        intensity={isDark ? 55 : 75}
+        intensity={isDark ? 65 : 85}
         radius={18}
-        tintColor={isDark ? 'rgba(24,24,28,0.92)' : 'rgba(255,255,255,0.94)'}
+        tintColor={isDark ? 'rgba(24,24,28,0.94)' : 'rgba(255,255,255,0.96)'}
         style={{
-          shadowColor: '#000', shadowOpacity: isDark ? 0.32 : 0.14,
-          shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 14,
+          shadowColor: '#000',
+          shadowOpacity: isDark ? 0.35 : 0.16,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 14,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 13 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 }}>
           <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}1F`, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name={icon} size={18} color={color} />
           </View>
-          <Txt variant="caption" color={theme.text} style={{ flex: 1 }}>{message}</Txt>
+          <Txt variant="caption" color={theme.text} style={{ flex: 1, fontWeight: '500' }}>
+            {message}
+          </Txt>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="إغلاق الإشعار"
+            hitSlop={8}
+            onPress={dismiss}
+            style={({ pressed }) => ({
+              padding: 4,
+              borderRadius: 12,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Ionicons name="close" size={16} color={theme.textSecondary} />
+          </Pressable>
         </View>
       </GlassSurface>
     </Animated.View>
@@ -173,15 +253,23 @@ function ToastItem({ message, kind }: { message: string; kind: 'info' | 'success
 }
 
 function ToastHost() {
-  const { toasts } = useApp();
+  const { toasts, dismissToast } = useApp();
   if (toasts.length === 0) return null;
   return (
     <View
-      pointerEvents="none"
+      pointerEvents="box-none"
       accessibilityLiveRegion="polite"
       style={{ position: 'absolute', top: Platform.OS === 'web' ? 18 : 54, left: 16, right: 16, alignItems: 'center', gap: 8, zIndex: 999 }}
     >
-      {toasts.slice(-3).map((toast) => <ToastItem key={toast.id} message={toast.message} kind={toast.kind} />)}
+      {toasts.slice(-3).map((toast) => (
+        <ToastItem
+          key={toast.id}
+          id={toast.id}
+          message={toast.message}
+          kind={toast.kind}
+          onDismiss={dismissToast}
+        />
+      ))}
     </View>
   );
 }
