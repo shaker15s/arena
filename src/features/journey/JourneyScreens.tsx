@@ -9,6 +9,7 @@ import { useApp } from '../../data/store';
 import {
   attendanceOf, attendancePct, batchOf, courseOf, courseStreak, isBatchComplete,
   profileOf, sessionsOfBatch,
+  trainerNameOf,
 } from '../../data/engine';
 import { submitCourseRating, issueBatchCertificates } from '../../data/actions';
 import { useTheme } from '../../design/theme';
@@ -242,7 +243,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     <View style={{ flex: 1 }}>
       <Header
         title={course.title}
-        subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`}
+        subtitle={`${trainerNameOf(db, batch) || instructor?.fullName || ''} · ${batch.room}`}
         back={() => navigation.goBack()}
         right={
           <Row center gap={6}>

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import {
   courseOf, isBatchComplete, profileOf, seatCounts,
+  trainerNameOf,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -53,7 +54,7 @@ export function BatchesAdminScreen({ navigation }: any) {
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Txt variant="bodyMed">{course.title}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>{instructor?.fullName} · {b.room}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>{trainerNameOf(db, b) || instructor?.fullName || ''} · {b.room}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>{b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} {b.schedule.time}</Txt>
                   </View>
                   <Tag label={statusMeta.label} color={statusMeta.color} bg={statusMeta.bg} />

@@ -788,8 +788,8 @@ export interface Database {
   create_branch: { Args: { p_name: string; p_governorate: string; p_address?: string | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   create_committee: { Args: { p_branch_id: string; p_name: string }; Returns: Json };
-  /** 0023_course_lifecycle_truthfulness.sql */
-  create_course: { Args: { p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
+  /** 0031_course_delivery_and_network_course.sql */
+  create_course: { Args: { p_committee_id?: string | null; p_title: string; p_field: string; p_description: string; p_topics: string[]; p_sessions_count: number; p_color?: string; p_delivery_mode?: string; p_organizer_phone?: string | null }; Returns: Json };
   /** 0008_account_deletion.sql */
   delete_my_account: { Args: { p_confirm: string }; Returns: Json };
   /** 0013_offline_command_queue.sql */
@@ -884,8 +884,8 @@ export interface Database {
   submit_support_request: { Args: { p_kind: string; p_subject: string; p_body: string; p_recipient_id?: string | null }; Returns: Json };
   /** 0022_push_tokens.sql */
   unregister_push_token: { Args: { p_token: string }; Returns: Json };
-  /** 0023_course_lifecycle_truthfulness.sql */
-  update_course_details: { Args: { p_course_id: string; p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
+  /** 0031_course_delivery_and_network_course.sql */
+  update_course_details: { Args: { p_course_id: string; p_title: string; p_field: string; p_description: string; p_topics: string[]; p_sessions_count: number; p_color?: string | null; p_delivery_mode?: string | null; p_organizer_phone?: string | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   update_gamification_rule: { Args: { p_key: string; p_value: number }; Returns: Json };
   /** 0005_production_hardening.sql */

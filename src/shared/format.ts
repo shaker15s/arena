@@ -45,6 +45,23 @@ export function timePast(ts: number, lang: 'ar' | 'en'): string {
   return lang === 'ar' ? `منذ ${days} يوم` : `${days}d ago`;
 }
 
+/**
+ * تطبيع رقم موبايل: يشيل المسافات والشرطات والعلامات، ويرجّع null لو الرقم
+ * قصير بزباط. بنفس قاعدة التحقق في الخادم (create_course / update_course_details).
+ */
+export function normalizePhone(raw?: string | null): string | null {
+  const digits = (raw ?? '').replace(/[^0-9+]/g, '');
+  return digits.length >= 8 && digits.length <= 20 ? digits : null;
+}
+
+/** رقم موبايل مقروء للعرض: 01125028050 → 011 2502 8050 */
+export function formatPhone(raw?: string | null): string {
+  const p = normalizePhone(raw);
+  if (!p) return '';
+  if (/^0\d{9}$/.test(p)) return `${p.slice(0, 3)} ${p.slice(3, 7)} ${p.slice(7)}`;
+  return p;
+}
+
 /** بداية الأسبوع: الأحد 00:00 (توصية الوثيقة — توقيت القاهرة) */
 export function weekStartOf(ts: number): number {
   const d = new Date(ts);

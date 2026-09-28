@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../data/store';
 import { joinBatchByCode } from '../../data/actions';
-import { courseOf } from '../../data/engine';
+import { courseOf, deliveryModeKey, trainerNameOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { Btn, Card, Header, Row, Spacer, Txt } from '../../design/components';
@@ -67,6 +67,29 @@ export function JoinBatchScreen({ route, navigation }: any) {
             <Txt variant="h3">{course.title}</Txt>
             <Spacer size={6} />
             <Txt variant="caption" color={theme.textSecondary}>{batch.room} · {batch.schedule.time}</Txt>
+            <Spacer size={4} />
+            <Row center gap={8} wrap>
+              <Row center gap={4}>
+                <Ionicons
+                  name={course.deliveryMode === 'online' ? 'videocam' : course.deliveryMode === 'hybrid' ? 'sync' : 'business'}
+                  size={13}
+                  color={theme.brand}
+                />
+                <Txt variant="micro" color={theme.brand}>{t(deliveryModeKey(course.deliveryMode))}</Txt>
+              </Row>
+              {trainerNameOf(db, batch) ? (
+                <Row center gap={4}>
+                  <Ionicons name="person" size={13} color={theme.textMuted} />
+                  <Txt variant="micro" color={theme.textMuted}>{trainerNameOf(db, batch)}</Txt>
+                </Row>
+              ) : null}
+              {course.organizerPhone ? (
+                <Row center gap={4}>
+                  <Ionicons name="call" size={13} color={theme.textMuted} />
+                  <Txt variant="micro" color={theme.textMuted}>{course.organizerPhone}</Txt>
+                </Row>
+              ) : null}
+            </Row>
           </Card>
         ) : null}
 

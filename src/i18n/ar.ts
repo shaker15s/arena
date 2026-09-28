@@ -301,6 +301,13 @@ export const ar = {
   'course.leaveBatch': 'مغادرة المجموعة',
   'course.leavedBatch': 'تم إلغاء تسجيلك في المجموعة',
   'course.ratingCount': 'تقييمًا',
+  'course.deliveryMode': 'نظام الحضور',
+  'course.modeOffline': 'حضوري في المقر',
+  'course.modeOnline': 'أونلاين',
+  'course.modeHybrid': 'هجين',
+  'course.organizerPhone': 'رقم المنظم',
+  'course.callOrganizer': 'اتصال بالمنظم',
+  'course.trainer': 'المدرب',
 
   // ── ورقة الانضمام ──
   'join.title': 'تأكيد الانضمام',
@@ -659,6 +666,10 @@ export const ar = {
   'courses.descLabel': 'وصف تنظيمي (نص فقط — لا محتوى تعليمي)',
   'courses.sessionsLabel': 'عدد المحاضرات القياسي',
   'courses.topicsLabel': 'المحاور (سطر لكل محور)',
+  'courses.deliveryLabel': 'نظام الحضور',
+  'courses.organizerPhoneLabel': 'رقم المنظم (اختياري)',
+  'courses.organizerPhonePh': '01xxxxxxxxx',
+  'courses.badPhone': 'رقم موبايل غير صحيح',
 
   // ── المجموعات (إدارة) ──
   'batchAdm.title': 'المجموعات',

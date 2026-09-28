@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase';
-import type { Role } from './types';
+import type { DeliveryMode, Role } from './types';
 
 export class ActionError extends Error {
   constructor(message: string, public code = 'action_failed') {
@@ -242,6 +242,8 @@ export async function createCourse(input: {
   topics: string[];
   sessionsCount: number;
   color: string;
+  deliveryMode?: DeliveryMode;
+  organizerPhone?: string | null;
 }): Promise<string> {
   const result = await rpc<{ id: string }>('create_course', {
     p_committee_id: input.committeeId ?? null,
@@ -251,6 +253,8 @@ export async function createCourse(input: {
     p_topics: input.topics,
     p_sessions_count: input.sessionsCount,
     p_color: input.color,
+    p_delivery_mode: input.deliveryMode ?? 'offline',
+    p_organizer_phone: input.organizerPhone ?? null,
   });
   return result.id;
 }
@@ -262,6 +266,9 @@ export async function updateCourse(input: {
   description?: string;
   topics: string[];
   sessionsCount: number;
+  color?: string;
+  deliveryMode?: DeliveryMode;
+  organizerPhone?: string | null;
 }): Promise<void> {
   await rpc('update_course_details', {
     p_course_id: input.courseId,
@@ -270,6 +277,9 @@ export async function updateCourse(input: {
     p_description: input.description ?? '',
     p_topics: input.topics,
     p_sessions_count: input.sessionsCount,
+    p_color: input.color ?? null,
+    p_delivery_mode: input.deliveryMode ?? null,
+    p_organizer_phone: input.organizerPhone ?? null,
   });
 }
 

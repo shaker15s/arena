@@ -39,6 +39,9 @@ export interface Committee {
 
 export type CourseStatus = 'draft' | 'pending_approval' | 'published' | 'running' | 'completed' | 'archived' | 'cancelled';
 
+/** نظام حضور الكورس: حضوري في المقر (offline) · أونلاين · هجين */
+export type DeliveryMode = 'offline' | 'online' | 'hybrid';
+
 export interface Course {
   id: string;
   ownerId?: string | null;
@@ -50,6 +53,10 @@ export interface Course {
   sessionsCount: number;
   status: CourseStatus;
   color: string;
+  /** offline = حضوري في المقر · online = أونلاين · hybrid = هجين */
+  deliveryMode: DeliveryMode;
+  /** رقم موبايل المنظم المعروض للطلبة للاستفسار والتسجيل */
+  organizerPhone?: string | null;
 }
 
 export type CourseRoleType = 'owner' | 'organizer' | 'coordinator' | 'instructor_delegate';
@@ -84,6 +91,8 @@ export interface Batch {
   room: string;
   status: BatchStatus;
   joinCode: string;
+  /** اسم المدرب كنص عرض احتياطي لما يكون لسه معندوش profile في النظام */
+  trainerName?: string | null;
   /** Geofence اختياري — يُفعَّل خادميًا على المجموعات المفعّلة فقط. */
   geofenceEnabled?: boolean;
   latitude?: number;

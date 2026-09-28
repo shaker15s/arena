@@ -141,6 +141,8 @@ export async function fetchRemoteDb(): Promise<Db> {
       id: r.id, ownerId: r.owner_id ?? null, committeeId: r.committee_id ?? '', title: r.title, field: r.field,
       description: r.description ?? '', topics: r.topics ?? [],
       sessionsCount: r.sessions_count ?? 0, status: r.status, color: r.color ?? '#007AFF',
+      deliveryMode: (r.delivery_mode === 'online' || r.delivery_mode === 'hybrid') ? r.delivery_mode : 'offline',
+      organizerPhone: r.organizer_phone ?? null,
     })),
     batches: batches.map((r): Batch => ({
       id: r.id, courseId: r.course_id, branchId: r.branch_id, instructorId: r.instructor_id ?? '',
@@ -150,6 +152,7 @@ export async function fetchRemoteDb(): Promise<Db> {
       schedule: r.schedule ?? { days: [], time: '18:00', durationMin: 120 },
       startDate: tsOr(r.start_date, Date.now()), room: r.room ?? '',
       status: r.status, joinCode: r.join_code ?? '',
+      trainerName: r.trainer_name ?? null,
       geofenceEnabled: Boolean(r.geofence_enabled),
       latitude: r.latitude ?? undefined, longitude: r.longitude ?? undefined,
       radiusM: r.radius_m ?? undefined,
@@ -315,6 +318,9 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         sessionsCount: numOr(row.sessions_count, 10), committeeId: str(row.committee_id ?? ''),
         status: (row.status as Course['status']) ?? 'published',
         color: str(row.color ?? '#0A84FF'),
+        deliveryMode: (row.delivery_mode === 'online' || row.delivery_mode === 'hybrid')
+          ? row.delivery_mode : 'offline',
+        organizerPhone: row.organizer_phone == null ? null : str(row.organizer_phone),
       };
       const i = next.courses.findIndex((x) => x.id === id);
       if (i >= 0) next.courses[i] = c; else next.courses.push(c);
@@ -330,6 +336,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         schedule: (row.schedule as any) ?? { days: [0, 2], time: '18:00', durationMin: 120 },
         startDate: tsVal(row.start_date ?? row.created_at) ?? Date.now(),
         status: (row.status as Batch['status']) ?? 'active',
+        trainerName: row.trainer_name == null ? null : str(row.trainer_name),
         enrolledCount: next.enrollments.filter((e) => e.batchId === id && e.status === 'active').length,
         waitlistCount: next.enrollments.filter((e) => e.batchId === id && e.status === 'waitlist').length,
       };

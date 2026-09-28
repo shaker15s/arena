@@ -2,6 +2,7 @@
  * features/explore — S11 الكتالوج + S12 تفاصيل الكورس + S13 ورقة الانضمام.
  */
 import React, { useMemo, useState } from 'react';
+import * as Linking from 'expo-linking';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
-  batchOf, courseRatingStats, profileOf, seatCounts, sessionsOfBatch,
+  batchOf, courseRatingStats, deliveryModeKey, profileOf, seatCounts, sessionsOfBatch,
+  trainerNameOf,
 } from '../../data/engine';
 import { joinBatch as joinBatchOnServer, leaveBatch, startTrainingSession } from '../../data/actions';
 import { useTheme } from '../../design/theme';
@@ -23,7 +25,7 @@ import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { JellyButton, PillGradientSearchInput, SaveActionButton } from '../../design/interactive';
 import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
-import { formatDate, formatTime } from '../../shared/format';
+import { formatDate, formatPhone, formatTime, getFirstName } from '../../shared/format';
 import { matchesAny } from '../../shared/search';
 import { getCourseOverview } from '../../data/actions';
 import { CelebrationModal } from '../../design/celebrations';
@@ -150,6 +152,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
   const seatsLeft = openBatch ? openBatch.capacity - (seats?.taken ?? 0) : 0;
   const joined = openBatch && user ? db.enrollments.some((e) => e.userId === user.id && e.batchId === openBatch.id) : false;
   const organizer = openBatch?.instructorId ? profileOf(db, openBatch.instructorId) : null;
+  const trainer = trainerNameOf(db, openBatch);
   const isMyCourse = Boolean(user && openBatch && openBatch.instructorId === user.id);
 
   return (
@@ -230,7 +233,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
               </Txt>
             </View>
 
-            {organizer ? (
+            {organizer || trainer ? (
               <View
                 style={{
                   flexDirection: 'row',
@@ -243,9 +246,13 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
                   maxWidth: 160,
                 }}
               >
-                <Avatar name={organizer.fullName} color={organizer.avatarColor} size={18} />
+                <Avatar
+                  name={organizer?.fullName ?? trainer}
+                  color={organizer?.avatarColor ?? course.color}
+                  size={18}
+                />
                 <Txt variant="micro" color="#FFFFFF" numberOfLines={1}>
-                  {isMyCourse ? t('explore.youOrganize') : organizer.fullName.split(' ')[0]}
+                  {isMyCourse ? t('explore.youOrganize') : getFirstName(organizer?.fullName ?? trainer)}
                 </Txt>
               </View>
             ) : (
@@ -368,9 +375,13 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
   // فحص حالة التنظيم للكورس
   const activeBatch = batches.find((b) => b.status === 'active' || b.status === 'scheduled');
   const currentOrganizer = activeBatch ? profileOf(db, activeBatch.instructorId) : null;
+  // اسم المنظم المعروض: profile لو موجود، وإلا النص الاحتياطي على المجموعة
+  const currentOrganizerName = currentOrganizer?.fullName || trainerNameOf(db, activeBatch);
   const isVolunteer = user?.role === 'volunteer' || user?.role === 'admin';
-  const isMyOrganizedCourse = Boolean(user && currentOrganizer && currentOrganizer.id === user.id);
-  const isTakenByOtherVolunteer = Boolean(user && currentOrganizer && currentOrganizer.id !== user.id);
+  const isMyOrganizedCourse = Boolean(user && activeBatch && activeBatch.instructorId === user.id);
+  const isTakenByOtherVolunteer = Boolean(
+    user && activeBatch && currentOrganizerName && (!currentOrganizer || currentOrganizer.id !== user.id),
+  );
 
   const handleSelectBatch = (b: Batch) => {
     if (!user) {
@@ -433,7 +444,15 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               size={44}
             />
           </Row>
-          <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
+          <Row center gap={6} wrap>
+            <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
+            <Tag
+              label={t(deliveryModeKey(course.deliveryMode))}
+              color="#fff"
+              bg="rgba(0,0,0,0.28)"
+              icon={course.deliveryMode === 'online' ? 'videocam' : course.deliveryMode === 'hybrid' ? 'sync' : 'business'}
+            />
+          </Row>
           <Spacer size={10} />
           <Txt variant="h1" color="#fff">{course.title}</Txt>
           <Spacer size={8} />
@@ -463,7 +482,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.warn}>{t('explore.organizedNow')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
-                        {t('explore.currentOrganizer', { name: currentOrganizer?.fullName ?? t('management.delegated') })}
+                        {t('explore.currentOrganizer', { name: currentOrganizerName || t('management.delegated') })}
                       </Txt>
                     </View>
                   </Row>
@@ -572,6 +591,50 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 </Card>
               ) : null}
 
+              {/* مواصفات الكورس المنظمة: نظام الحضور + المدرب + رقم المنظم */}
+              <Card color={theme.card}>
+                <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>
+                  {t('management.details')}
+                </Txt>
+                <View style={{ gap: 8 }}>
+                  <Row center gap={8}>
+                    <Ionicons
+                      name={course.deliveryMode === 'online' ? 'videocam' : course.deliveryMode === 'hybrid' ? 'sync' : 'business'}
+                      size={16}
+                      color={theme.brand}
+                    />
+                    <Txt variant="micro" color={theme.textMuted} style={{ width: 92 }}>{t('course.deliveryMode')}</Txt>
+                    <Txt variant="bodyMed" style={{ flex: 1 }}>{t(deliveryModeKey(course.deliveryMode))}</Txt>
+                  </Row>
+
+                  {activeBatch ? (
+                    <Row center gap={8}>
+                      <Ionicons name="person" size={16} color={theme.brand} />
+                      <Txt variant="micro" color={theme.textMuted} style={{ width: 92 }}>{t('course.trainer')}</Txt>
+                      <Txt variant="bodyMed" style={{ flex: 1 }}>
+                        {trainerNameOf(db, activeBatch) || t('management.unassigned')}
+                      </Txt>
+                    </Row>
+                  ) : null}
+
+                  {course.organizerPhone ? (
+                    <Row center gap={8}>
+                      <Ionicons name="call" size={16} color={theme.brand} />
+                      <Txt variant="micro" color={theme.textMuted} style={{ width: 92 }}>{t('course.organizerPhone')}</Txt>
+                      <Txt variant="bodyMed" style={{ flex: 1 }}>{formatPhone(course.organizerPhone)}</Txt>
+                      <Btn
+                        title={t('course.callOrganizer')}
+                        size="sm"
+                        variant="ghost"
+                        icon="call"
+                        onPress={() => { void Linking.openURL(`tel:${course.organizerPhone}`); }}
+                      />
+                    </Row>
+                  ) : null}
+                </View>
+              </Card>
+              <Spacer size={12} />
+
               <Card>
                 <Txt variant="body" color={theme.textSecondary}>{course.description}</Txt>
               </Card>
@@ -597,6 +660,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   <Spacer size={8} />
                   {batches.map((b) => {
                     const instructor = profileOf(db, b.instructorId);
+                    const trainer = trainerNameOf(db, b);
                     const branch = db.branches.find((x) => x.id === b.branchId);
                     const seats = seatCounts(db, b.id);
                     const left = b.capacity - seats.taken;
@@ -605,7 +669,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                         <Row center gap={12}>
                           {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={42} /> : null}
                           <View style={{ flex: 1 }}>
-                            <Txt variant="bodyMed">{instructor?.fullName ?? ''}</Txt>
+                            <Txt variant="bodyMed">{trainer || t('management.unassigned')}</Txt>
                             <Txt variant="micro" color={theme.textMuted}>
                               {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time}
                             </Txt>
@@ -639,6 +703,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             ) : (
               batches.map((b, i) => {
                 const instructor = profileOf(db, b.instructorId);
+                const trainer = trainerNameOf(db, b);
                 const branch = db.branches.find((x) => x.id === b.branchId);
                 const seats = seatCounts(db, b.id);
                 const left = b.capacity - seats.taken;
@@ -649,7 +714,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                       <Row center gap={12}>
                         {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={46} /> : null}
                         <View style={{ flex: 1, gap: 3 }}>
-                          <Txt variant="bodyMed">{instructor?.fullName ?? ''}</Txt>
+                          <Txt variant="bodyMed">{trainer || t('management.unassigned')}</Txt>
                           <Row center gap={6} wrap>
                             <Row center gap={3}>
                               <Ionicons name="repeat" size={12} color={theme.textMuted} />

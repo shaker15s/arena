@@ -6,8 +6,8 @@ import { useI18n } from '../../../i18n';
 import {
   Avatar, Btn, Card, Empty, FadeIn, ProgressBar, Row, Spacer, Stars, Tag, Txt,
 } from '../../../design/components';
-import { formatDate, formatTime } from '../../../shared/format';
-import { attendancePct, isBatchComplete, profileOf } from '../../../data/engine';
+import { formatDate, formatPhone, formatTime } from '../../../shared/format';
+import { attendancePct, deliveryModeKey, isBatchComplete, profileOf, trainerNameOf } from '../../../data/engine';
 import { Metric, Info } from './CourseManagementSheets';
 import type { Batch, Course, CourseRole, Db, Profile, TrainingSession } from '../../../data/types';
 import type { DetailedCourseAnalytics } from '../../../data/actions';
@@ -73,7 +73,7 @@ export function CourseOverviewTab({
           {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={44} /> : null}
           <View style={{ flex: 1 }}>
             <Txt variant="micro" color={theme.textMuted}>{t('management.instructor')}</Txt>
-            <Txt variant="bodyMed">{instructor?.fullName ?? t('management.unassigned')}</Txt>
+            <Txt variant="bodyMed">{trainerNameOf(db, batch) || t('management.unassigned')}</Txt>
             {instructor?.phone || instructor?.email ? (
               <Txt variant="micro" color={theme.textMuted}>{instructor.phone} {instructor.email ? `· ${instructor.email}` : ''}</Txt>
             ) : null}
@@ -82,6 +82,14 @@ export function CourseOverviewTab({
         </Row>
         <Spacer size={10} />
         <Info icon="business" label={t('common.branch')} value={branch?.name ?? '—'} />
+        <Info
+          icon={course.deliveryMode === 'online' ? 'videocam' : course.deliveryMode === 'hybrid' ? 'sync' : 'business'}
+          label={t('course.deliveryMode')}
+          value={t(deliveryModeKey(course.deliveryMode))}
+        />
+        {course.organizerPhone ? (
+          <Info icon="call" label={t('course.organizerPhone')} value={formatPhone(course.organizerPhone)} />
+        ) : null}
         <Info icon="location" label={t('common.room')} value={batch.room || '—'} />
         <Info icon="calendar" label={t('management.startDate')} value={formatDate(batch.startDate, lang)} />
         <Info icon="time" label={t('common.schedule')} value={`${batch.schedule.days.map((day) => t(`dayShort.${day}` as any)).join(' + ')} · ${batch.schedule.time} · ${batch.schedule.durationMin} ${t('common.minutes')}`} />

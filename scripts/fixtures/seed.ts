@@ -89,37 +89,37 @@ export function buildSeedDb(): Db {
       id: 'c_design', committeeId: 'cm_train', title: 'أساسيات التصميم الجرافيكي', field: 'تصميم',
       description: 'كورس تأسيسي يأخذك من الصفر إلى إخراج تصميم أول متكامل: مبادئ التصميم، نظرية الألوان، التايبوغرافي، وأدوات العمل الاحترافية، ثم مشروع تطبيقي ختامي.',
       topics: ['مبادئ التصميم وعناصره', 'نظرية الألوان والتناسق', 'التايبوغرافي العربي واللاتيني', 'أدوات العمل: فوتوشوب وإليستريتور', 'تكوين التصميم والشبكات', 'الهوية البصرية والشعارات', 'مشروع تطبيقي — الجزء الأول', 'مشروع تطبيقي — التسليم والنقد'],
-      sessionsCount: 8, status: 'published', color: '#8B5CF6',
+      sessionsCount: 8, status: 'published', color: '#8B5CF6', deliveryMode: 'offline', organizerPhone: '01000000001',
     },
     {
       id: 'c_python', committeeId: 'cm_train', title: 'أساسيات البرمجة بلغة بايثون', field: 'برمجة',
       description: 'مدخل عملي للبرمجة من الصفر: المتغيرات، الشروط، الحلقات، الدوال، ثم مشاريع صغيرة تبنى في كل محاضرة.',
       topics: ['مدخل للبرمجة والتثبيت', 'المتغيرات والأنواع', 'الشروط واتخاذ القرار', 'الحلقات التكرارية', 'الدوال', 'القوائم والقواميس', 'التعامل مع الملفات', 'مشروع: آلة حاسبة ذكية', 'مكتبات شائعة', 'مشروع التخرج'],
-      sessionsCount: 10, status: 'published', color: '#14B8A6',
+      sessionsCount: 10, status: 'published', color: '#14B8A6', deliveryMode: 'online', organizerPhone: null,
     },
     {
       id: 'c_english', committeeId: 'cm_train', title: 'الإنجليزية للمحادثة اليومية', field: 'لغات',
       description: 'كسر حاجز التحدث: مواقف يومية، مفردات عملية، وتدريب محادثة مباشر في كل لقاء.',
       topics: ['التعارف والتحيات', 'في الشارع والمواصلات', 'في العمل والمقابلات', 'في المطعم والسفر'],
-      sessionsCount: 12, status: 'published', color: '#F59E0B',
+      sessionsCount: 12, status: 'published', color: '#F59E0B', deliveryMode: 'offline', organizerPhone: '01000000001',
     },
     {
       id: 'c_computer', committeeId: 'cm_train', title: 'أساسيات الحاسوب والإنترنت', field: 'حاسوب',
       description: 'مهارات الحاسوب الأساسية لأي وظيفة حديثة: نظام التشغيل، الملفات، الإنترنت الآمن، والبريد.',
       topics: ['مدخل لنظام التشغيل', 'الملفات والتنظيم', 'الإنترنت الآمن', 'البريد والتقويم'],
-      sessionsCount: 8, status: 'published', color: '#3B82F6',
+      sessionsCount: 8, status: 'published', color: '#3B82F6', deliveryMode: 'offline', organizerPhone: null,
     },
     {
       id: 'c_excel', committeeId: 'cm_train', title: 'إكسل للمحاسبين', field: 'أعمال',
       description: 'احتراف إكسل للعمل المحاسبي: الجداول، المعادلات، التقارير المالية، واللوحات التحليلية.',
       topics: ['الجداول والتنسيق', 'المعادلات الأساسية', 'المعادلات المتقدمة', 'التقارير المالية', 'اللوحات التحليلية', 'مشروع ختامي'],
-      sessionsCount: 6, status: 'published', color: '#EF4444',
+      sessionsCount: 6, status: 'published', color: '#EF4444', deliveryMode: 'hybrid', organizerPhone: '01000000001',
     },
     {
       id: 'c_photo', committeeId: 'cm_train', title: 'التصوير الفوتوغرافي بالهاتف', field: 'تصوير',
       description: 'الإضاءة، الكادر، والمونتاج السريع بالهاتف.',
       topics: ['الإضاءة الطبيعية', 'قواعد الكادر', 'المونتاج بالهاتف'],
-      sessionsCount: 6, status: 'draft', color: '#EC4899',
+      sessionsCount: 6, status: 'draft', color: '#EC4899', deliveryMode: 'offline', organizerPhone: null,
     },
   ];
 

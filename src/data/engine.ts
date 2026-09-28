@@ -6,7 +6,7 @@
  * كل دالة تعدّل نسخة Db ممرّرة ويغطيها اختبار المحرك لتوثيق قواعد العمل.
  */
 import {
-  AuditEntry, Attendance, Badge, Certificate, Db, GamificationProfile,
+  AuditEntry, Attendance, Badge, Certificate, Db, DeliveryMode, GamificationProfile,
   PointEvent, PointReason, Profile, SessionReport, StreakWeek,
   TrainingSession, AppNotification, Batch, Course, Enrollment, Excuse, Role,
 } from './types';
@@ -45,6 +45,20 @@ export function courseOf(db: Db, id: string): Course | undefined {
 
 export function batchOf(db: Db, id: string): Batch | undefined {
   return db.batches.find((b) => b.id === id);
+}
+
+/** مفتاح ترجمة نظام حضور الكورس (حضوري/أونلاين/هجين) */
+export function deliveryModeKey(mode?: DeliveryMode | null): 'course.modeOffline' | 'course.modeOnline' | 'course.modeHybrid' {
+  if (mode === 'online') return 'course.modeOnline';
+  if (mode === 'hybrid') return 'course.modeHybrid';
+  return 'course.modeOffline';
+}
+
+/** اسم المدرب المعروض: profile لو موجود، وإلا النص الاحتياطي على المجموعة */
+export function trainerNameOf(db: Db, batch?: Batch | null): string {
+  if (!batch) return '';
+  const profile = profileOf(db, batch.instructorId);
+  return profile?.fullName || batch.trainerName || '';
 }
 
 export function gamifOf(db: Db, userId: string): GamificationProfile {

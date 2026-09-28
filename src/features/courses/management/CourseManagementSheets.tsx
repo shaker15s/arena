@@ -5,16 +5,16 @@ import { useApp } from '../../../data/store';
 import { useTheme } from '../../../design/theme';
 import { useI18n } from '../../../i18n';
 import {
-  Avatar, Btn, Card, Input, ProgressBar, Row,
+  Avatar, Btn, Card, Chip, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, Tag, Txt,
 } from '../../../design/components';
-import { formatDate, formatTime } from '../../../shared/format';
-import { batchStudents, profileOf, sessionsOfBatch } from '../../../data/engine';
+import { formatDate, formatPhone, formatTime, normalizePhone } from '../../../shared/format';
+import { batchStudents, deliveryModeKey, profileOf, sessionsOfBatch } from '../../../data/engine';
 import {
   assignCourseRole, cancelBatch, cancelTrainingSession,
   getBatchRoster, getSessionRoster, rescheduleTrainingSession, updateCourse,
 } from '../../../data/actions';
-import type { CourseRoleType, TrainingSession } from '../../../data/types';
+import type { CourseRoleType, DeliveryMode, TrainingSession } from '../../../data/types';
 
 export function RescheduleSessionSheet({
   visible,
@@ -261,11 +261,14 @@ export function EditCourseSheet({
 }) {
   const { refresh, toast } = useApp();
   const { t } = useI18n();
+  const { theme } = useTheme();
   const [title, setTitle] = useState(course.title);
   const [field, setField] = useState(course.field);
   const [description, setDescription] = useState(course.description ?? '');
   const [sessionsCount, setSessionsCount] = useState(String(course.sessionsCount));
   const [topics, setTopics] = useState(course.topics ? course.topics.join('\n') : '');
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(course.deliveryMode ?? 'offline');
+  const [organizerPhone, setOrganizerPhone] = useState(course.organizerPhone ?? '');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -275,6 +278,8 @@ export function EditCourseSheet({
     setDescription(course.description ?? '');
     setSessionsCount(String(course.sessionsCount));
     setTopics(course.topics ? course.topics.join('\n') : '');
+    setDeliveryMode(course.deliveryMode ?? 'offline');
+    setOrganizerPhone(course.organizerPhone ?? '');
     setErrors({});
   }, [course, visible]);
 
@@ -289,6 +294,9 @@ export function EditCourseSheet({
     const count = parseInt(sessionsCount, 10);
     if (!count || count < 1 || count > 100) {
       errs.sessionsCount = t('management.sessionsRange');
+    }
+    if (organizerPhone.trim() && !normalizePhone(organizerPhone)) {
+      errs.organizerPhone = t('courses.badPhone');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -305,6 +313,9 @@ export function EditCourseSheet({
         description: description.trim(),
         sessionsCount: parseInt(sessionsCount, 10) || course.sessionsCount,
         topics: topics.split('\n').map((x: string) => x.trim()).filter(Boolean),
+        deliveryMode,
+        // '' = مسح الرقم (الخادم بيفرّق بين null = لا تغيير و '' = امسح)
+        organizerPhone: organizerPhone.trim() ? normalizePhone(organizerPhone) : '',
       });
       await refresh();
       toast(t('management.courseUpdated'), 'success');
@@ -358,6 +369,29 @@ export function EditCourseSheet({
           icon="calendar"
           error={errors.sessionsCount}
         />
+        <Txt variant="caption" color={theme.textSecondary}>{t('courses.deliveryLabel')}</Txt>
+        <Row gap={6} wrap>
+          {(['offline', 'online', 'hybrid'] as DeliveryMode[]).map((mode) => (
+            <Chip
+              key={mode}
+              label={t(deliveryModeKey(mode))}
+              icon={mode === 'offline' ? 'business' : mode === 'online' ? 'videocam' : 'sync'}
+              active={deliveryMode === mode}
+              onPress={() => setDeliveryMode(mode)}
+            />
+          ))}
+        </Row>
+
+        <Input
+          label={t('courses.organizerPhoneLabel')}
+          value={organizerPhone}
+          onChange={(v) => { setOrganizerPhone(v); setErrors((e) => ({ ...e, organizerPhone: '' })); }}
+          placeholder={t('courses.organizerPhonePh')}
+          keyboardType="phone-pad"
+          icon="call"
+          error={errors.organizerPhone}
+        />
+
         <Input
           label={t('courses.topicsLabel')}
           value={topics}

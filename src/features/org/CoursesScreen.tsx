@@ -9,7 +9,10 @@ import {
 } from '../../design/components';
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
+import type { DeliveryMode } from '../../data/types';
 import { createCourse } from '../../data/actions';
+import { deliveryModeKey } from '../../data/engine';
+import { formatPhone, normalizePhone } from '../../shared/format';
 
 export function CoursesScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -22,6 +25,8 @@ export function CoursesScreen({ navigation }: any) {
   const [desc, setDesc] = useState('');
   const [sessionsCount, setSessionsCount] = useState('8');
   const [topics, setTopics] = useState('');
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('offline');
+  const [organizerPhone, setOrganizerPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -33,6 +38,8 @@ export function CoursesScreen({ navigation }: any) {
       setDesc('');
       setSessionsCount('8');
       setTopics('');
+      setDeliveryMode('offline');
+      setOrganizerPhone('');
       setCommitteeId(db.committees[0]?.id ?? null);
     }
   }, [creating, db.committees]);
@@ -48,6 +55,9 @@ export function CoursesScreen({ navigation }: any) {
     const count = parseInt(sessionsCount, 10);
     if (!count || count < 1 || count > 100) {
       errs.sessionsCount = t('management.sessionsRange');
+    }
+    if (organizerPhone.trim() && !normalizePhone(organizerPhone)) {
+      errs.organizerPhone = t('courses.badPhone');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -66,10 +76,12 @@ export function CoursesScreen({ navigation }: any) {
         topics: topics.split('\n').map((x) => x.trim()).filter(Boolean),
         sessionsCount: Math.max(1, parseInt(sessionsCount, 10) || 8),
         color: palette[db.courses.length % palette.length],
+        deliveryMode,
+        organizerPhone: normalizePhone(organizerPhone),
       });
       await refresh();
       setCreating(false);
-      setTitle(''); setDesc(''); setTopics('');
+      setTitle(''); setDesc(''); setTopics(''); setDeliveryMode('offline'); setOrganizerPhone('');
       toast(t('common.done') + ' ✓', 'success');
     } catch (error) {
       const msg = (error as Error).message;
@@ -108,6 +120,20 @@ export function CoursesScreen({ navigation }: any) {
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{c.title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>{c.field} · {t('explore.sessionsCount', { x: c.sessionsCount })} · {active} {t('org.activeBatches')}</Txt>
+                    <Row center gap={6} wrap style={{ marginTop: 4 }}>
+                      <Ionicons
+                        name={c.deliveryMode === 'online' ? 'videocam' : c.deliveryMode === 'hybrid' ? 'sync' : 'business'}
+                        size={12}
+                        color={theme.brand}
+                      />
+                      <Txt variant="micro" color={theme.brand}>{t(deliveryModeKey(c.deliveryMode))}</Txt>
+                      {c.organizerPhone ? (
+                        <>
+                          <Ionicons name="call" size={12} color={theme.textMuted} />
+                          <Txt variant="micro" color={theme.textMuted}>{formatPhone(c.organizerPhone)}</Txt>
+                        </>
+                      ) : null}
+                    </Row>
                   </View>
                   <Tag
                     label={t(`common.${c.status}` as any)}
@@ -175,6 +201,29 @@ export function CoursesScreen({ navigation }: any) {
               />
             </View>
           </Row>
+          <Txt variant="caption" color={theme.textSecondary}>{t('courses.deliveryLabel')}</Txt>
+          <Row gap={6} wrap>
+            {(['offline', 'online', 'hybrid'] as DeliveryMode[]).map((mode) => (
+              <Chip
+                key={mode}
+                label={t(deliveryModeKey(mode))}
+                icon={mode === 'offline' ? 'business' : mode === 'online' ? 'videocam' : 'sync'}
+                active={deliveryMode === mode}
+                onPress={() => setDeliveryMode(mode)}
+              />
+            ))}
+          </Row>
+
+          <Input
+            label={t('courses.organizerPhoneLabel')}
+            value={organizerPhone}
+            onChange={(v) => { setOrganizerPhone(v); setErrors((e) => ({ ...e, organizerPhone: '' })); }}
+            placeholder={t('courses.organizerPhonePh')}
+            keyboardType="phone-pad"
+            icon="call"
+            error={errors.organizerPhone}
+          />
+
           <Input
             label={t('courses.topicsLabel')}
             value={topics}

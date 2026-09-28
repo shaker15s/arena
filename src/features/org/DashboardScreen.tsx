@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
   courseOf, dashboardStats, profileOf, seatCounts,
+  trainerNameOf,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -65,7 +66,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
             b.room,
             c?.title ?? '',
             br?.name ?? '',
-            instructor?.fullName ?? '',
+            trainerNameOf(db, b) || instructor?.fullName || '',
             b.status,
             sc.taken,
             b.capacity,
