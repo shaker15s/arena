@@ -32,10 +32,14 @@
 ## 2) التطبيق على قاعدة البيانات
 
 ```bash
-# من جذر الريبو
-supabase db push
+# من جذر الريبو (مرة واحدة لكل مشروع: npx supabase login ثم npx supabase link --project-ref <REF>)
+npm run db:push
 # أو: الصق محتوى الملف في Supabase → SQL Editor وشغّله
 ```
+
+`npm run db:push` بيطبّق كل الـ migrations اللي لسه متطبّقتش على المشروع المربوط.
+لو المشروع مش متربّط بالـ CLI، أو `db push` اشتكى من تعارض في سجل الـ migrations،
+استخدم SQL Editor — الملف idempotent فينجح في الحالتين.
 
 الملف بيعمل 4 حاجات:
 

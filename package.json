@@ -11,6 +11,7 @@
     "web": "expo start --web",
     "build": "expo export --platform web --output-dir dist",
     "export:web": "expo export --platform web --output-dir dist",
+    "db:push": "npx supabase db push",
     "preview": "node scripts/serve-dist.js",
     "typecheck": "tsc --noEmit",
     "parity": "node scripts/check-i18n-parity.js",

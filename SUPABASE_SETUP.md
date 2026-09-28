@@ -16,7 +16,7 @@
 ```bash
 npx supabase login
 npx supabase link --project-ref <PROJECT-REF>
-npx supabase db push
+npm run db:push            # نفس npx supabase db push
 ```
 
 نفّذ أول نشر على مشروع **staging**، اختبره، ثم كرر `db push` على production. لا تعدّل migration طُبّقت بالفعل؛
