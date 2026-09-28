@@ -2,11 +2,11 @@
  * features/today — S10 «اليوم»: مركز القيادة.
  * تصميم Apple Liquid Glass — Bento Grid + الستريك والنقاط والدوري.
  */
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
@@ -25,14 +25,18 @@ import { MasarMascot, FatenBehaviorState, getRandomMascotQuote } from '../../des
 import { ShimmerProgressBar } from '../../design/animations';
 import { spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, getFirstName, sameDay } from '../../shared/format';
+import { buildIcs, icsFilename } from '../../shared/calendar';
+import { saveIcs } from '../../shared/export';
+import { PUBLIC_APP_URL } from '../../shared/links';
 import { useNow, useHaptics } from '../../shared/hooks';
 import { getMyCourses, getToday } from '../../data/actions';
+import { Icon } from '../../design/icons';
 
 export function TodayScreen() {
   const { t, lang } = useI18n();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { db, user, unreadCount, online, refresh, syncing } = useApp();
+  const { db, user, unreadCount, online, refresh, syncing, toast } = useApp();
   const navigation = useNavigation<any>();
   const tabs = useTabs();
   const { impactLight } = useHaptics();
@@ -91,6 +95,25 @@ export function TodayScreen() {
   const nextBatch = nextSess ? batchOf(db, nextSess.batchId) : undefined;
   const nextCourse = nextBatch ? courseOf(db, nextBatch.courseId) : undefined;
 
+  /** FUNC-03: تصدير موعد الجلسة القادمة كملف ICS صالح (RFC 5545) بمنطقة القاهرة. */
+  const addNextToCalendar = useCallback(async () => {
+    if (!nextSess) return;
+    const courseTitle = nextCourse?.title ?? '';
+    const ics = buildIcs([{
+      uid: nextSess.id,
+      title: courseTitle ? `${courseTitle} — ${nextSess.title}` : nextSess.title,
+      startMs: nextSess.startsAt,
+      durationMinutes: nextSess.durationMin > 0 ? nextSess.durationMin : 90,
+      location: nextBatch?.room,
+      description: t('today.icsDesc', { course: courseTitle }),
+      url: PUBLIC_APP_URL,
+      alarmMinutes: 60,
+    }]);
+    const ok = await saveIcs(icsFilename(courseTitle || nextSess.title, nextSess.startsAt), ics);
+    toast(ok ? t('today.icsOk') : t('today.icsFail'), ok ? 'success' : 'error');
+  }, [nextSess, nextCourse, nextBatch, t, toast]);
+
+
   // تجميع التقدّم يمسح جلسات كل مجموعة نشطة؛ بدون تذكير كان يعاد حسابه في كل
   // رندر (وكل حدث realtime يسبب رندرًا). المفاتيح الدقيقة تُبقيه على تغيّر
   // البيانات المعنية فقط بدل مرجع `db` بالكامل.
@@ -132,8 +155,7 @@ export function TodayScreen() {
   const needed = Math.max(0, Math.ceil(((certPct / 100) * Math.max(totalCount, closedCount)) - totalHonored));
   const hasBatches = activeBatches.length > 0;
 
-  if (!user) return null;
-
+  // هوكات لا يجوز أن تسبقها إرجاعات مبكرة (قاعدة React) — الفحص أدناه بعدها.
   const streakUrgent = gam != null && gam.weekStatus === 'tracking' && liveSess != null && !alreadyChecked;
   const isUpcomingToday = !liveSess && nextSess != null && sameDay(nextSess.startsAt, now);
 
@@ -154,6 +176,9 @@ export function TodayScreen() {
   useEffect(() => {
     setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
   }, [mascotBehavior]);
+
+  if (!user) return null;
+
 
   const defaultMascotQuote = !online
     ? 'أنت في وضع عدم الاتصال.. بياناتك وسجلاتك التدريبية محفوظة محلياً بأمان! 💾'
@@ -212,10 +237,10 @@ export function TodayScreen() {
             >
               <Avatar name={user.fullName} color={user.avatarColor} size={50} ring={theme.brand} />
               <View>
-                <Txt variant="caption" color={theme.textMuted}>{greeting} 👋</Txt>
+                <Txt variant="caption" color={theme.textMuted} heading="h1">{greeting} 👋</Txt>
                 <Row center gap={4}>
                   <Txt variant="h3" numberOfLines={1} style={{ maxWidth: 180 }}>{firstName}</Txt>
-                  <Ionicons name="chevron-forward" size={14} color={theme.textMuted} style={{ opacity: 0.6 }} />
+                  <Icon name="chevron-forward" size={14} color={theme.textMuted} style={{ opacity: 0.6 }} />
                 </Row>
               </View>
             </Pressable>
@@ -274,7 +299,7 @@ export function TodayScreen() {
 
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="التفاعل مع صقر مسار فطن"
+                accessibilityLabel={t('a11y.mascotInteract')}
                 onPress={() => {
                   impactLight();
                   setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
@@ -324,7 +349,7 @@ export function TodayScreen() {
                         borderColor: isDark ? 'rgba(245, 158, 11, 0.45)' : 'rgba(217, 119, 6, 0.35)',
                       }}
                     >
-                      <Ionicons name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
+                      <Icon name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
                       <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'} style={{ fontSize: 10.5 }}>
                         نصيحة فطن 💬
                       </Txt>
@@ -368,7 +393,7 @@ export function TodayScreen() {
                       {activeMascotQuote || defaultMascotQuote}
                     </Txt>
                     <Row center gap={4} style={{ marginTop: 5 }}>
-                      <Ionicons name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
+                      <Icon name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
                       <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 9.5 }}>
                         اضغط على فطن لاقتباس جديد ✨
                       </Txt>
@@ -434,11 +459,11 @@ export function TodayScreen() {
                         flexDirection: 'row', alignItems: 'center', gap: 8,
                         alignSelf: 'flex-start',
                       }}>
-                        <Ionicons name="qr-code" size={18} color="#fff" />
+                        <Icon name="qr-code" size={18} color="#fff" />
                         <Txt variant="bodyMed" color="#fff">{t('today.checkInNow')}</Txt>
                       </View>
                     </View>
-                    <Ionicons name="qr-code-outline" size={72} color="rgba(255,255,255,0.18)" style={{ marginStart: 6 }} />
+                    <Icon name="qr-code-outline" size={72} color="rgba(255,255,255,0.18)" style={{ marginStart: 6 }} />
                   </Row>
                 </LinearGradient>
               </Pressable>
@@ -476,7 +501,7 @@ export function TodayScreen() {
                   <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
                     <Row center gap={6}>
                       <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.success, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                        <Icon name="checkmark" size={16} color="#FFFFFF" />
                       </View>
                       <Txt variant="caption" bold color={theme.success}>
                         {t('today.attendanceConfirmed')}
@@ -495,7 +520,7 @@ export function TodayScreen() {
                     borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.3)',
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Ionicons name="shield-checkmark" size={32} color={theme.success} />
+                    <Icon name="shield-checkmark" size={32} color={theme.success} />
                   </View>
                 </Row>
               </View>
@@ -517,14 +542,14 @@ export function TodayScreen() {
               <StatBubble
                 value={gam.points}
                 label={t('today.pointsLabel')}
-                icon={<Ionicons name="star" size={20} color={theme.certGold} />}
+                icon={<Icon name="star" size={20} color={theme.certGold} />}
                 color={theme.certGold}
                 onPress={() => navigation.navigate('Wallet')}
               />
               <StatBubble
                 value={gam.leagueXp > 0 && gam.leagueRank > 0 ? `#${gam.leagueRank}` : '—'}
                 label={t(`tier.${gam.leagueTier}` as any)}
-                icon={<Ionicons name="shield" size={20} color={leagueTierColors[gam.leagueTier]} />}
+                icon={<Icon name="shield" size={20} color={leagueTierColors[gam.leagueTier]} />}
                 color={leagueTierColors[gam.leagueTier]}
                 onPress={() => navigation.navigate('League')}
               />
@@ -541,7 +566,7 @@ export function TodayScreen() {
                   <View style={{ flex: 1, gap: 6 }}>
                     <Row center gap={6}>
                       <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="calendar" size={13} color={theme.brand} />
+                        <Icon name="calendar" size={13} color={theme.brand} />
                       </View>
                       <Txt variant="caption" color={theme.brand}>{t('today.nextSession')}</Txt>
                     </Row>
@@ -549,23 +574,32 @@ export function TodayScreen() {
                     <Txt variant="caption" color={theme.textSecondary}>{nextSess.title}</Txt>
                     <Row center gap={12} wrap style={{ marginTop: 4 }}>
                       <Row center gap={4}>
-                        <Ionicons name="time-outline" size={14} color={theme.textMuted} />
+                        <Icon name="time-outline" size={14} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>
                           {sameDay(nextSess.startsAt, now) ? t('common.today') : formatDate(nextSess.startsAt, lang)} · {formatTime(nextSess.startsAt, lang)}
                         </Txt>
                       </Row>
                       <Row center gap={4}>
-                        <Ionicons name="location-outline" size={14} color={theme.textMuted} />
+                        <Icon name="location-outline" size={14} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>{nextBatch?.room}</Txt>
                       </Row>
                     </Row>
+                    {/* FUNC-03: تصدير الموعد لملف تقويم (ICS) بضغطة واحدة */}
+                    <Btn
+                      title={t('today.addToCalendar')}
+                      variant="secondary"
+                      size="sm"
+                      icon="calendar-outline"
+                      onPress={() => void addNextToCalendar()}
+                      style={{ marginTop: 10, alignSelf: 'flex-start' }}
+                    />
                   </View>
                   <View style={{
                     width: 68, height: 68, borderRadius: 20,
                     backgroundColor: (nextCourse.color ?? theme.brand) + '1A',
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Ionicons name="book" size={32} color={nextCourse.color ?? theme.brand} />
+                    <Icon name="book" size={32} color={nextCourse.color ?? theme.brand} />
                   </View>
                 </Row>
               </Card>
@@ -588,7 +622,7 @@ export function TodayScreen() {
                     backgroundColor: combinedPct >= certPct ? theme.successSoft : theme.warnSoft,
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Ionicons name={combinedPct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={combinedPct >= certPct ? theme.success : theme.warn} />
+                    <Icon name={combinedPct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={combinedPct >= certPct ? theme.success : theme.warn} />
                   </View>
                   <Txt variant="caption" color={combinedPct >= certPct ? theme.success : theme.warn} align="center">
                     {combinedPct >= certPct ? t('today.eligible') : t('today.needMore', { x: needed })}
@@ -611,7 +645,7 @@ export function TodayScreen() {
                     backgroundColor: theme.brandSoft,
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Ionicons name={near.badge.icon as any} size={28} color={theme.brand} />
+                    <Icon name={near.badge.icon as any} size={28} color={theme.brand} />
                   </View>
                   <View style={{ flex: 1, gap: 6 }}>
                     <Row between center>
@@ -679,7 +713,7 @@ function QuickAction({ icon, label, color, onPress }: { icon: keyof typeof Ionic
           backgroundColor: color + '1A',
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <Ionicons name={icon} size={22} color={color} />
+          <Icon name={icon} size={22} color={color} />
         </View>
         <Txt variant="micro" align="center">{label}</Txt>
       </Card>

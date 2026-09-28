@@ -12,13 +12,16 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
 import { radii, spacing, typography } from './tokens';
 import { isReducedMotion } from './motion';
 import { useHaptics } from '../shared/hooks';
 import { Spinner, Txt } from './components';
+import { Icon } from './icons';
+import { webInputReset } from './a11y/focus';
+import { useI18n } from '../i18n';
 
 // ───────────────────────────── 1. JellyButton (زر الإجراء الحماسي مع الارتداد الزنبركي) ─────────────────────────────
 
@@ -148,7 +151,7 @@ export function JellyButton({
             </View>
           ) : (
             <View style={styles.contentRow}>
-              {icon && <Ionicons name={icon} size={size === 'lg' ? 20 : 18} color="#FFFFFF" />}
+              {icon && <Icon name={icon} size={size === 'lg' ? 20 : 18} color="#FFFFFF" />}
               <Txt variant="bodyMed" color="#FFFFFF" bold style={{ fontSize: size === 'lg' ? 16 : 15 }}>
                 {title}
               </Txt>
@@ -182,6 +185,7 @@ export function PillGradientSearchInput({
   icon = 'search',
   style,
 }: PillGradientSearchInputProps) {
+  const { t } = useI18n();
   const { theme, isDark } = useTheme();
   const [focused, setFocused] = useState(false);
   const borderAnim = useRef(new Animated.Value(0)).current;
@@ -226,7 +230,7 @@ export function PillGradientSearchInput({
             },
           ]}
         >
-          <Ionicons
+          <Icon
             name={icon}
             size={19}
             color={focused ? theme.brand : theme.textMuted}
@@ -246,7 +250,7 @@ export function PillGradientSearchInput({
                 color: theme.text,
                 fontFamily: typography.body.fontFamily,
                 ...(Platform.OS === 'web'
-                  ? ({ outlineStyle: 'none', border: 'none', background: 'transparent' } as object)
+                  ? webInputReset
                   : {}),
               },
             ]}
@@ -254,13 +258,15 @@ export function PillGradientSearchInput({
           {value.length > 0 && (
             <Pressable
               hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.clearInput')}
               onPress={() => {
                 onChangeText('');
                 onClear?.();
               }}
               style={styles.clearBtn}
             >
-              <Ionicons name="close-circle" size={18} color={theme.textMuted} />
+              <Icon name="close-circle" size={18} color={theme.textMuted} />
             </Pressable>
           )}
         </View>
@@ -323,7 +329,7 @@ export function SaveActionButton({ saved, onToggle, size = 42 }: SaveActionButto
       ]}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
-        <Ionicons
+        <Icon
           name={saved ? 'bookmark' : 'bookmark-outline'}
           size={Math.round(size * 0.48)}
           color={saved ? theme.brand : isDark ? '#FFFFFF' : theme.textSecondary}
@@ -350,6 +356,7 @@ export function SuccessWaveAlert({
   actionText,
   onAction,
 }: SuccessWaveAlertProps) {
+  const { t } = useI18n();
   const { theme, isDark } = useTheme();
 
   return (
@@ -364,7 +371,7 @@ export function SuccessWaveAlert({
     >
       {/* الدائرة الخضراء الزاهية للأيقونة */}
       <View style={[styles.successIconBubble, { backgroundColor: theme.successSoft }]}>
-        <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+        <Icon name="checkmark-circle" size={24} color={theme.success} />
       </View>
 
       <View style={{ flex: 1, gap: 2 }}>
@@ -375,7 +382,12 @@ export function SuccessWaveAlert({
           {description}
         </Txt>
         {actionText && onAction && (
-          <Pressable onPress={onAction} style={{ marginTop: 6 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={actionText}
+            onPress={onAction}
+            style={{ marginTop: 6 }}
+          >
             <Txt variant="micro" color={theme.brand} bold>
               {actionText} ←
             </Txt>
@@ -384,8 +396,14 @@ export function SuccessWaveAlert({
       </View>
 
       {onClose && (
-        <Pressable hitSlop={10} onPress={onClose} style={{ alignSelf: 'flex-start' }}>
-          <Ionicons name="close" size={18} color={theme.textMuted} />
+        <Pressable
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.insightDismiss')}
+          onPress={onClose}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <Icon name="close" size={18} color={theme.textMuted} />
         </Pressable>
       )}
     </View>
@@ -422,6 +440,8 @@ export function BubbleExpandButton({ title, onPress, icon, style }: BubbleExpand
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -438,7 +458,7 @@ export function BubbleExpandButton({ title, onPress, icon, style }: BubbleExpand
         ]}
       />
       <View style={styles.contentRow}>
-        {icon && <Ionicons name={icon} size={18} color="#FFFFFF" style={{ zIndex: 2 }} />}
+        {icon && <Icon name={icon} size={18} color="#FFFFFF" style={{ zIndex: 2 }} />}
         <Txt variant="bodyMed" color="#FFFFFF" bold style={{ zIndex: 2 }}>
           {title}
         </Txt>

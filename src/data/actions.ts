@@ -86,10 +86,17 @@ export interface PushPreferences {
   cert: boolean;
   progress: boolean;
   system: boolean;
+  /** FUNC-11: نافذة الحظر الليلي (بتوقيت المستخدم) — الافتراضي 22:00 → 07:00. */
+  quiet_enabled: boolean;
+  quiet_from: string;
+  quiet_to: string;
+  /** تجميع الإشعارات غير العاجلة في ملخص واحد بدل تنبيه لكل حدث. */
+  digest_enabled: boolean;
 }
 
 export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
   session: true, excuse: true, cert: true, progress: true, system: true,
+  quiet_enabled: false, quiet_from: '22:00', quiet_to: '07:00', digest_enabled: false,
 };
 
 /** حفظ تفضيلات الإشعارات — الخادم هو الفارض عند توزيع الدفع (trigger fan-out). */
@@ -109,9 +116,9 @@ export async function logClientError(input: {
   platform: string;
   appVersion: string;
   breadcrumbs: unknown[];
-}): Promise<void> {
+}): Promise<string | null> {
   try {
-    await rpc('log_client_error', {
+    const res = await rpc<{ ok?: boolean; ref?: string } | null>('log_client_error', {
       p_message: input.message,
       p_stack: input.stack ?? null,
       p_component_stack: input.componentStack ?? null,
@@ -120,8 +127,11 @@ export async function logClientError(input: {
       p_app_version: input.appVersion,
       p_breadcrumbs: input.breadcrumbs,
     });
+    // FUNC-15: الخادم يرجع مرجعًا قصيرًا يقتبسه المستخدم للدعم (MSR-XXXXXX).
+    return res?.ref ?? null;
   } catch {
     /* الرصد لا يُسقط التطبيق */
+    return null;
   }
 }
 
@@ -129,7 +139,7 @@ export async function logClientError(input: {
 export async function getPushPreferences(): Promise<PushPreferences> {
   const { data, error } = await getSupabase()
     .from('push_preferences')
-    .select('session, excuse, cert, progress, system')
+    .select('session, excuse, cert, progress, system, quiet_enabled, quiet_from, quiet_to, digest_enabled')
     .maybeSingle();
   if (error || !data) return { ...DEFAULT_PUSH_PREFERENCES };
   const row = data as Partial<PushPreferences>;
@@ -139,6 +149,10 @@ export async function getPushPreferences(): Promise<PushPreferences> {
     cert: row.cert ?? true,
     progress: row.progress ?? true,
     system: row.system ?? true,
+    quiet_enabled: row.quiet_enabled ?? false,
+    quiet_from: (row.quiet_from ?? '22:00').slice(0, 5),
+    quiet_to: (row.quiet_to ?? '07:00').slice(0, 5),
+    digest_enabled: row.digest_enabled ?? false,
   };
 }
 
@@ -737,4 +751,157 @@ export async function getDetailedCourseAnalytics(courseId: string): Promise<Deta
   return rpc<DetailedCourseAnalytics>('get_detailed_course_analytics', {
     p_course_id: courseId,
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNC-05 — نزاع/تصحيح حضور
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface AttendanceDisputeRow {
+  id: string;
+  session_id: string;
+  session_title?: string | null;
+  starts_at?: string | null;
+  claim: string;
+  evidence_url?: string | null;
+  status: 'open' | 'accepted' | 'rejected' | 'withdrawn';
+  decision_note?: string | null;
+  decided_at?: string | null;
+  created_at: string;
+  student_name?: string | null;
+}
+
+/** يقدّم الطالب التماسًا على سجل حضوره (مع مرفق اختياري). */
+export async function submitAttendanceDispute(
+  sessionId: string,
+  claim: string,
+  evidenceUrl?: string,
+): Promise<{ ok: boolean; id?: string }> {
+  return rpc('submit_attendance_dispute', {
+    p_session_id: sessionId,
+    p_claim: claim,
+    p_evidence_url: evidenceUrl ?? null,
+  });
+}
+
+export async function withdrawAttendanceDispute(disputeId: string): Promise<{ ok: boolean }> {
+  return rpc('withdraw_attendance_dispute', { p_dispute_id: disputeId });
+}
+
+export async function listAttendanceDisputes(
+  scope: 'mine' | 'inbox',
+  limit = 50,
+): Promise<AttendanceDisputeRow[]> {
+  const rows = await rpc<AttendanceDisputeRow[] | null>('list_attendance_disputes', {
+    p_scope: scope,
+    p_limit: limit,
+  });
+  return rows ?? [];
+}
+
+/** قرار موثَّق: قبول ⇒ تصحيح سجل الحضور + إشعار، رفض ⇒ سبب مكتوب. */
+export async function resolveAttendanceDispute(
+  disputeId: string,
+  accept: boolean,
+  note?: string,
+  newStatus: 'present' | 'late' | 'excused' = 'present',
+): Promise<{ ok: boolean; status: string }> {
+  return rpc('resolve_attendance_dispute', {
+    p_dispute_id: disputeId,
+    p_accept: accept,
+    p_note: note ?? null,
+    p_new_status: newStatus,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNC-09 — لوحة «يحتاج تدخلك»
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface NeedsAttentionItem {
+  key: string;
+  count: number;
+  action: string;
+  urgency: 'low' | 'normal' | 'high';
+}
+
+export async function needsAttention(): Promise<{ items: NeedsAttentionItem[]; role: string }> {
+  const res = await rpc<{ items?: NeedsAttentionItem[]; role?: string } | null>('needs_attention');
+  return { items: res?.items ?? [], role: res?.role ?? 'student' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNC-12 — التقرير الأسبوعي + FUNC-17 — تدقيق الجيميفيكيشن
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface WeeklyReport {
+  week_start: string;
+  week_end: string;
+  timezone: string;
+  sessions_total: number;
+  sessions_closed: number;
+  sessions_missing_report: number;
+  attendance_present: number;
+  attendance_late: number;
+  attendance_excused: number;
+  attendance_absent: number;
+  attendance_rate: number;
+  distinct_students: number;
+  open_disputes: number;
+  pending_excuses: number;
+}
+
+export async function orgWeeklyReport(weekStart?: number): Promise<WeeklyReport> {
+  return rpc('org_weekly_report', { p_week_start: weekStart ?? null, p_branch_id: null });
+}
+
+export async function setReportSubscription(input: {
+  cadence?: 'weekly' | 'monthly';
+  enabled?: boolean;
+  dayOfWeek?: number;
+  hourLocal?: number;
+}): Promise<void> {
+  await rpc('set_report_subscription', {
+    p_cadence: input.cadence ?? 'weekly',
+    p_enabled: input.enabled ?? true,
+    p_day_of_week: input.dayOfWeek ?? 0,
+    p_hour_local: input.hourLocal ?? 7,
+  });
+}
+
+export interface AnticheatReport {
+  window_days: number;
+  open: number;
+  by_signal: Record<string, number>;
+  rows: Array<{
+    id: number;
+    signal: string;
+    severity: 'info' | 'warn' | 'high';
+    detected_at: string;
+    details: Record<string, unknown>;
+    student_name?: string | null;
+    session_title?: string | null;
+  }>;
+}
+
+export async function anticheatReport(days = 30): Promise<AnticheatReport> {
+  return rpc('anticheat_report', { p_days: days });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FUNC-15 / FUNC-16 / FUNC-04 — الدعم، التوقيت، شهادة Open Badges
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function getErrorByRef(ref: string): Promise<Record<string, unknown> | null> {
+  const res = await rpc<Record<string, unknown> | null>('get_error_by_ref', { p_ref: ref });
+  return res?.ok ? res : null;
+}
+
+export async function setMyTimezone(timezone: string): Promise<{ ok: boolean; timezone?: string }> {
+  return rpc('set_my_timezone', { p_timezone: timezone });
+}
+
+/** حمولة Open Badges 3.0 للشهادة — تُشارَك كما هي وتُتحقَّق خارجيًا. */
+export async function publicBadgeAssertion(serial: string): Promise<Record<string, unknown> | null> {
+  return rpc<Record<string, unknown> | null>('public_badge_assertion', { p_serial: serial });
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { useApp } from '../../data/store';
@@ -34,6 +34,7 @@ import {
   CourseOverviewTab, CourseSessionsTab, CourseStudentsTab,
   CourseStaffTab, CourseAnalyticsTab, CourseReviewsTab,
 } from './management/CourseTabs';
+import { Icon } from '../../design/icons';
 
 export function CourseManagementScreen({ route, navigation }: any) {
   const { db, user, refresh, syncing, toast } = useApp();
@@ -227,7 +228,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
         <Card color={course.color + '14'} style={{ borderColor: course.color + '44' }}>
           <Row center gap={12}>
             <View style={{ width: 54, height: 54, borderRadius: 17, backgroundColor: course.color, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="book" size={25} color="#fff" />
+              <Icon name="book" size={25} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Txt variant="h2">{course.title}</Txt>
@@ -481,7 +482,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
           <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
             <Card glass>
               <Row center gap={8}>
-                <Ionicons name="people" size={18} color={theme.brand} />
+                <Icon name="people" size={18} color={theme.brand} />
                 <Txt variant="bodyMed" color={theme.brand}>
                   {t('management.broadcastReach', { x: students.length })}
                 </Txt>

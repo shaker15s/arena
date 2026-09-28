@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
@@ -20,6 +20,8 @@ import { PUBLIC_APP_URL } from '../shared/links';
 import { navigationRef } from './navRef';
 import { hasSeenOnboarding } from '../shared/onboarding';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
+import { SkipLink, Screen as SemanticScreen } from '../design/a11y/semantics';
+import { announce } from '../design/a11y/announce';
 
 import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
 import { VerifyScreen } from '../features/verify/VerifyScreen';
@@ -36,6 +38,7 @@ import { ProfileScreen } from '../features/profile/ProfileScreens';
 import { VolunteerTodayScreen, MyBatchesScreen } from '../features/volunteer/VolunteerScreens';
 import { LiveSessionScreen } from '../features/volunteer/LiveSessionScreen';
 import { JoinBatchScreen } from '../features/courses/JoinBatchScreen';
+import { Icon } from '../design/icons';
 
 // ─── مغلّف التحميل الكسول (Code Splitting) ───
 function lazyScreen(importer: () => Promise<any>, name: string) {
@@ -77,6 +80,7 @@ const CertificateViewerScreen = lazyScreen(() => import('../features/certificate
 const StudentRecordScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'StudentRecordScreen');
 const SessionsHistoryScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'SessionsHistoryScreen');
 const SupportScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'SupportScreen');
+const SettingsScreen = lazyScreen(() => import('../features/settings/SettingsScreen'), 'SettingsScreen');
 
 // ─── سياق التبويبات الداخلية ───
 interface TabsCtx {
@@ -131,6 +135,7 @@ const linking = {
       Excuses: 'excuses',
       RulesGuide: 'rules',
       Support: 'support',
+      Settings: 'settings',
       Verify: 'verify',
       Courses: 'admin/courses',
       BatchesAdmin: 'admin/batches',
@@ -158,11 +163,14 @@ export interface TabDef {
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null;
 
 // ─── شريط تنقل عائم بحركة موحدة وحالات وصول واضحة ───
-function TabButton({ tab, active, badge, onPress }: {
+function TabButton({ tab, active, badge, onPress, index, total }: {
   tab: TabDef;
   active: boolean;
   badge?: number;
   onPress: () => void;
+  /** A11Y-05: يعلن قارئ الشاشة «تبويب i من n» عبر aria-posinset/aria-setsize. */
+  index: number;
+  total: number;
 }) {
   const { theme, isDark } = useTheme();
   const { impactLight } = useHaptics();
@@ -180,6 +188,9 @@ function TabButton({ tab, active, badge, onPress }: {
       accessibilityRole="tab"
       accessibilityLabel={tab.label}
       accessibilityState={{ selected: active }}
+      {...(Platform.OS === 'web'
+        ? ({ 'aria-posinset': index + 1, 'aria-setsize': total } as unknown as object)
+        : {})}
       onPress={() => { impactLight(); onPress(); }}
       style={({ pressed }) => ([
         webPointer,
@@ -204,7 +215,7 @@ function TabButton({ tab, active, badge, onPress }: {
           { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
         ],
       }}>
-        <Ionicons
+        <Icon
           name={active ? (tab.iconActive ?? tab.icon) : tab.icon}
           size={21}
           color={active ? theme.brand : theme.textMuted}
@@ -236,12 +247,17 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
 }) {
   const { theme, isDark } = useTheme();
   const { impactMedium } = useHaptics();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const fabScale = useRef(new Animated.Value(1)).current;
 
   return (
     <View
       pointerEvents="box-none"
+      // A11Y-05: معلم تنقّل حقيقي على الويب (قارئ الشاشة يقفز إليه بـ D/N في NVDA).
+      {...(Platform.OS === 'web'
+        ? ({ role: 'navigation', 'aria-label': t('a11y.mainNav') } as unknown as object)
+        : {})}
       style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingBottom: Math.max(insets.bottom, 8) }}
     >
       <View style={{
@@ -284,14 +300,21 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
                             shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 12,
                           }}
                         >
-                          <Ionicons name={fab.icon} size={23} color="#fff" />
+                          <Icon name={fab.icon} size={23} color="#fff" />
                         </LinearGradient>
                       </Pressable>
                     </Animated.View>
                     {fab.label ? <Txt variant="micro" color={theme.textMuted} style={{ fontSize: 10, lineHeight: 13 }}>{fab.label}</Txt> : null}
                   </View>
                 ) : null}
-                <TabButton tab={tab} active={tab.key === active} badge={badges?.[tab.key]} onPress={() => onSelect(tab.key)} />
+                <TabButton
+                  tab={tab}
+                  active={tab.key === active}
+                  badge={badges?.[tab.key]}
+                  index={index}
+                  total={tabs.length}
+                  onPress={() => onSelect(tab.key)}
+                />
               </React.Fragment>
             );
           })}
@@ -375,6 +398,9 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   const handleSelectTab = (newTab: string) => {
     visitedTabs.add(newTab);
     setTab(newTab);
+    // A11Y-13: تغيير التبويب إجراء تنقّل لا انتقال كامل — نُعلن اسم التبويب.
+    const def = tabs.find((x) => x.key === newTab);
+    if (def?.label) announce(def.label, 'polite');
   };
 
   const ctx = useMemo(() => ({ tab, setTab: handleSelectTab }), [tab]);
@@ -507,6 +533,7 @@ function StudentStack() {
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
@@ -527,6 +554,7 @@ function VolunteerStack() {
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
@@ -548,6 +576,7 @@ function AdminStack() {
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
@@ -602,7 +631,7 @@ function NotFoundScreen({ navigation }: any) {
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="compass-outline" size={40} color={theme.brand} />
+              <Icon name="compass-outline" size={40} color={theme.brand} />
             </View>
             <Txt variant="h1" align="center">{t('common.notFoundTitle')}</Txt>
             <Txt variant="body" color={theme.textSecondary} align="center" style={{ lineHeight: 22 }}>
@@ -640,7 +669,7 @@ function DisabledAccountScreen() {
         <FadeIn style={{ width: '100%', maxWidth: 520 }}>
           <Card solid style={{ alignItems: 'center', padding: 30, gap: 14 }}>
             <View style={{ width: 82, height: 82, borderRadius: 26, backgroundColor: theme.dangerSoft, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="lock-closed" size={38} color={theme.danger} />
+              <Icon name="lock-closed" size={38} color={theme.danger} />
             </View>
             <Txt variant="h2" align="center">{t('account.disabledTitle')}</Txt>
             <Txt variant="body" color={theme.textSecondary} align="center">{t('account.disabledBody')}</Txt>
@@ -661,10 +690,14 @@ function CompleteProfileStack() {
   );
 }
 
+/** معرّف معلم المحتوى الرئيسي (هدف رابط «تخطَّ إلى المحتوى» وفحوص DOM). */
+export const MAIN_LANDMARK_ID = 'masar-main';
+
 // ─── الجذر ───
 export function RootNavigator() {
   const { user, needsProfile } = useApp();
   const { theme, isDark } = useTheme();
+  const { t } = useI18n();
 
   const navTheme = useMemo(() => ({
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -681,7 +714,16 @@ export function RootNavigator() {
 
   return (
     <AppBackground>
-      <View style={{ flex: 1, width: '100%', maxWidth: 1180, alignSelf: 'center' }}>
+      {/*
+        A11Y-04/11: معلم `main` واحد للصفحة (WAI-ARIA: معلم main واحد لكل صفحة)
+        يغلّف كل الشاشات الـ37، مع هدف رابط «تخطَّ إلى المحتوى» (WCAG 2.4.1).
+      */}
+      <SkipLink label={t('a11y.skipToContent')} targetId={MAIN_LANDMARK_ID} />
+      <SemanticScreen
+        id={MAIN_LANDMARK_ID}
+        label={t('a11y.mainContent')}
+        style={{ width: '100%', maxWidth: 1180, alignSelf: 'center' }}
+      >
         <NavigationContainer
           ref={navigationRef}
           theme={navTheme}
@@ -707,7 +749,7 @@ export function RootNavigator() {
             <AdminStack />
           )}
         </NavigationContainer>
-      </View>
+      </SemanticScreen>
     </AppBackground>
   );
 }

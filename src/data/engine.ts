@@ -5,6 +5,7 @@
  *
  * كل دالة تعدّل نسخة Db ممرّرة ويغطيها اختبار المحرك لتوثيق قواعد العمل.
  */
+import { getLang, tStatic } from '../i18n/core';
 import {
   AuditEntry, Attendance, Badge, Certificate, Db, GamificationProfile,
   PointEvent, PointReason, Profile, SessionReport, StreakWeek,
@@ -476,7 +477,7 @@ export function evaluateStreakWeek(db: Db, userId: string, weekStart: number): S
     g.longestStreakWeeks = Math.max(g.longestStreakWeeks, g.currentStreakWeeks);
     if (g.currentStreakWeeks % 4 === 0 && g.freezesHeld < maxFreeze) {
       g.freezesHeld += 1;
-      notify(db, userId, 'streak', 'كسبت مُجمّد ستريك جديد 🛡️', '4 أسابيع التزام متتالية — أحسنت!');
+      notify(db, userId, 'streak', tStatic('notify.streakFreezeTitle'), tStatic('notify.streakFreezeBody'));
     }
     upsertStreakRow(db, { userId, weekStart, status: 'kept', sessionsTotal: closed.length, sessionsHonored: honored, freezeUsed: false });
     return 'kept';
@@ -507,11 +508,11 @@ export function evaluateStreakWeek(db: Db, userId: string, weekStart: number): S
     status = 'frozen';
     freezeUsed = true;
     g.freezesHeld -= 1;
-    notify(db, userId, 'streak', 'حمينا ستريكك بمُجمّد 🛡️', 'غبت هذا الأسبوع فاستهلكنا مُجمّدًا تلقائيًا. حضورك الجاي مهم!');
+    notify(db, userId, 'streak', tStatic('notify.streakShieldTitle'), tStatic('notify.streakShieldBody'));
   } else {
     status = 'broken';
     if (g.currentStreakWeeks > 0) {
-      notify(db, userId, 'streak', 'انكسر الستريك 💔', `مجهودك محفوظ — أطول سلسلة: ${g.longestStreakWeeks} أسابيع. ابدأ سلسلة جديدة؟`);
+      notify(db, userId, 'streak', tStatic('notify.streakBrokenTitle'), tStatic('notify.streakBrokenBody', { weeks: g.longestStreakWeeks }));
     }
     g.currentStreakWeeks = 0;
   }
@@ -545,8 +546,10 @@ function awardBadge(db: Db, userId: string, code: string): Badge | null {
   const badge = db.badges.find((b) => b.code === code && b.active);
   if (!badge) return null;
   db.userBadges.push({ userId, badgeCode: code, awardedAt: Date.now() });
-  const name = badge.nameAr;
-  notify(db, userId, 'badge', `شارة جديدة: ${name} 🏅`, badge.descAr);
+  // الاسم/الوصف حسب لغة التطبيق الحالية — كان يرسل العربية دائمًا للمستخدم الإنجليزي.
+  const name = getLang() === 'ar' ? badge.nameAr : badge.nameEn;
+  notify(db, userId, 'badge', tStatic('notify.badgeUnlockedTitle', { name }),
+    getLang() === 'ar' ? badge.descAr : badge.descEn);
   return badge;
 }
 
@@ -700,11 +703,11 @@ export function simulateWeekClose(db: Db, actorId: string): { moved: number } {
         g.leagueTier = tiers[ti + 1];
         const b = awardBadge(db, u.id, 'climber');
         if (b) moved++;
-        notify(db, u.id, 'league', `مبروك! صعدت لفئة أعلى 🏆`, 'أسبوع رائع — استمر!');
+        notify(db, u.id, 'league', tStatic('notify.leagueUpTitle'), tStatic('notify.leagueUpBody'));
       } else if (relN > 0 && i >= ranked.length - relN && tier !== 'bronze') {
         outcome = 'relegated';
         g.leagueTier = tiers[ti - 1];
-        notify(db, u.id, 'league', 'أسبوع جديد — فرصة جديدة 💪', 'الدوري اتصفّر والجميع يبدأ من جديد.');
+        notify(db, u.id, 'league', tStatic('notify.leagueNewWeekTitle'), tStatic('notify.leagueNewWeekBody'));
       }
       if (i === 0) awardBadge(db, u.id, 'top_scorer');
       db.leagueWeeks.push({ userId: u.id, weekStart, tier, xpWeek: xp, finalRank: i + 1, outcome });
@@ -725,8 +728,10 @@ export function rpcJoinBatch(db: Db, userId: string, batchId: string): { status:
   db.enrollments.push({ userId, batchId, status, joinedAt: Date.now() });
   const course = courseOf(db, batch.courseId);
   notify(db, userId, 'session',
-    status === 'active' ? 'مقعدك محجوز 🎉' : 'انضممت لقائمة الانتظار ⏳',
-    status === 'active' ? `مجموعة ${course?.title ?? ''} — سنذكّرك قبل أول محاضرة بساعة.` : `سنُشعرك فور توفر مقعد في ${course?.title ?? ''}.`,
+    status === 'active' ? tStatic('notify.seatReservedTitle') : tStatic('notify.waitlistTitle'),
+    status === 'active'
+      ? tStatic('notify.seatReservedBody', { course: course?.title ?? '' })
+      : tStatic('notify.waitlistBody', { course: course?.title ?? '' }),
   );
   return { status };
 }
@@ -745,7 +750,8 @@ export function rpcSubmitExcuse(db: Db, userId: string, sessionId: string, reaso
     const batch = batchOf(db, session.batchId);
     if (batch) {
       const st = profileOf(db, userId);
-      notify(db, batch.instructorId, 'excuse', 'عذر جديد بانتظار مراجعتك', `${st?.fullName ?? 'طالب'} — ${session.title}`);
+      notify(db, batch.instructorId, 'excuse', tStatic('notify.excuseNewTitle'),
+    tStatic('notify.excuseNewBody', { student: st?.fullName ?? tStatic('notify.studentFallback'), session: session.title }));
     }
   }
   return { ok: true };
@@ -762,11 +768,12 @@ export function rpcReviewExcuse(db: Db, excuseId: string, actorId: string, decis
     // التحويل لمعذور: صفر نقاط لكن الستريك محفوظ (وثيقة F5)
     const att = attendanceOf(db, ex.sessionId, ex.userId);
     if (att) att.status = 'excused';
-    else db.attendance.push({ sessionId: ex.sessionId, userId: ex.userId, status: 'excused', note: 'عذر مقبول' });
+    else db.attendance.push({ sessionId: ex.sessionId, userId: ex.userId, status: 'excused', note: tStatic('notify.excuseNoteAccepted') });
     evaluateStreakWeek(db, ex.userId, weekStartOf(session.startsAt));
-    notify(db, ex.userId, 'excuse', 'عذرك مقبول 🛡️', 'الستريك محفوظ — لا توجد نقاط حضور لهذه الجلسة.');
+    notify(db, ex.userId, 'excuse', tStatic('notify.excuseAcceptedTitle'), tStatic('notify.excuseAcceptedBody'));
   } else {
-    notify(db, ex.userId, 'excuse', 'عذرك مرفوض', note ? `السبب: ${note}` : 'راجع المدرب للتفاصيل.');
+    notify(db, ex.userId, 'excuse', tStatic('notify.excuseRejectedTitle'),
+    note ? tStatic('notify.excuseRejectedReason', { reason: note }) : tStatic('notify.excuseRejectedFallback'));
   }
   audit(db, actorId, 'review_excuse', excuseId, { decision, note });
   return { ok: true };
@@ -788,7 +795,7 @@ export function rpcAwardKudos(db: Db, actorId: string, studentId: string, batchI
     idempotencyKey: `kudos:${actorId}:${studentId}:${month}:${q.spent}:${Date.now()}`,
   });
   const actor = profileOf(db, actorId);
-  notify(db, studentId, 'system', `+${points} نقطة تقدير من ${actor?.fullName ?? 'المدرب'} ⭐`, reason);
+  notify(db, studentId, 'system', tStatic('notify.kudosTitle', { points, actor: actor?.fullName ?? tStatic('notify.trainerFallback') }), reason);
   audit(db, actorId, 'award_kudos', studentId, { points, reason, batchId });
   return { ok: true, left: quota - q.spent };
 }
@@ -844,7 +851,7 @@ export function rpcIssueCertificates(db: Db, actorId: string, batchId: string): 
       idempotencyKey: `course.complete:${batchId}:${row.user.id}`,
     });
     evaluateBadges(db, row.user.id);
-    notify(db, row.user.id, 'cert', 'شهادتك جاهزة 🎓', `حصلت على شهادة ${course?.title ?? ''} — حمّلها وشاركها!`);
+    notify(db, row.user.id, 'cert', tStatic('notify.certReadyTitle'), tStatic('notify.certReadyBody', { course: course?.title ?? '' }));
   });
   audit(db, actorId, 'issue_certificates', batchId, { count: issued.length });
   return { issued };
@@ -1010,6 +1017,7 @@ export function generateSessionsForBatch(batch: Batch, count: number): Array<{ s
   if (match) {
     hh = parseInt(match[1], 10);
     mm = match[2] ? parseInt(match[2], 10) : 0;
+    // i18n-lint:ok — تحليل صيغة وقت عربية قادمة من المستخدم، ليست نص واجهة
     if ((timeStr.includes('م') || timeStr.toLowerCase().includes('pm') || timeStr.includes('مساء')) && hh < 12) {
       hh += 12;
     }
@@ -1034,7 +1042,7 @@ export function generateSessionsForBatch(batch: Batch, count: number): Array<{ s
     guard += 1;
     if (selectedDays.includes(cursor.getDay())) {
       seq += 1;
-      out.push({ seq, title: `محاضرة ${seq}`, startsAt: cursor.getTime() });
+      out.push({ seq, title: tStatic('notify.sessionTitle', { seq }), startsAt: cursor.getTime() });
     }
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -1042,7 +1050,7 @@ export function generateSessionsForBatch(batch: Batch, count: number): Array<{ s
   while (out.length < targetCount) {
     seq += 1;
     const lastTs = out[out.length - 1]?.startsAt ?? Date.now();
-    out.push({ seq, title: `محاضرة ${seq}`, startsAt: lastTs + 7 * 86_400_000 });
+    out.push({ seq, title: tStatic('notify.sessionTitle', { seq }), startsAt: lastTs + 7 * 86_400_000 });
   }
 
   return out;

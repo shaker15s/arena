@@ -5,7 +5,7 @@ import React, { useMemo, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, Share, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import {
   balanceOf, badgeProgress, getWeeklyLeague, levelOf, nearestBadge, profileOf,
@@ -23,6 +23,7 @@ import { spacing, radii, leagueTierColors, levels } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
 import { PointReason, BadgeRarity } from '../../data/types';
 import { MasarMascot } from '../../design/mascot';
+import { Icon } from '../../design/icons';
 
 // ───────────────────────────── S19 المحفظة ─────────────────────────────
 
@@ -40,6 +41,7 @@ export function WalletScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, syncing } = useApp();
+
   if (!user) return null;
   const balance = balanceOf(db, user.id);
   const { level, into, nextAt } = levelOf(db, user.id);
@@ -77,7 +79,7 @@ export function WalletScreen({ navigation }: any) {
               <Row center gap={8} style={{ marginTop: 6 }}>
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 7 }}>
                   <Row center gap={6}>
-                    <Ionicons name="shield-half" size={14} color="#fff" />
+                    <Icon name="shield-half" size={14} color="#fff" />
                     <Txt variant="caption" color="#fff">{t('wallet.level')} {level} · {t(`level.${level}` as any)}</Txt>
                   </Row>
                 </View>
@@ -119,7 +121,7 @@ export function WalletScreen({ navigation }: any) {
                 <Card>
                   <Row center gap={12}>
                     <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: theme.successSoft, alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name={meta.icon} size={20} color={theme.success} />
+                      <Icon name={meta.icon} size={20} color={theme.success} />
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <Txt variant="bodyMed">{t(`reason.${e.reasonCode}` as any)}</Txt>
@@ -149,15 +151,9 @@ export function LeagueScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { db, user, toast, refresh, syncing } = useApp();
   const [board, setBoard] = useState<'league' | 'rising' | 'alltime'>('league');
-  if (!user) return null;
 
-  const league = getWeeklyLeague(db, user.id);
-  const rising = risingStars(db, user.id);
-  const tierColor = leagueTierColors[league.tier] ?? theme.brand;
-  const remaining = league.endsAt - Date.now();
-  const daysLeft = Math.floor(remaining / 86_400_000);
-  const hoursLeft = Math.floor((remaining % 86_400_000) / 3_600_000);
-
+  // الهوك قبل الإرجاع المبكر و`user?.id` داخل الحساب (إصلاح خطأ ترتيب كامن).
+  // الهوك قبل الإرجاع المبكر و`user?.id` داخل الحساب (إصلاح خطأ ترتيب كامن).
   const allTimeRows = useMemo(() => {
     return db.profiles
       .filter((p) => p.role === 'student' && p.status === 'active')
@@ -177,11 +173,21 @@ export function LeagueScreen({ navigation }: any) {
           points: totalPts,
           streak: bestStreak,
           badgesCount,
-          isYou: st.id === user.id,
+          isYou: st.id === user?.id,
         };
       })
       .sort((a, b) => b.points - a.points || b.streak - a.streak);
-  }, [db.profiles, db.pointEvents, db.attendance, db.userBadges, db.gamification, db.enrollments, user.id]);
+  }, [db.profiles, db.pointEvents, db.attendance, db.userBadges, db.gamification, db.enrollments, user?.id]);
+
+  if (!user) return null;
+
+  const league = getWeeklyLeague(db, user.id);
+  const rising = risingStars(db, user.id);
+  const tierColor = leagueTierColors[league.tier] ?? theme.brand;
+  const remaining = league.endsAt - Date.now();
+  const daysLeft = Math.floor(remaining / 86_400_000);
+  const hoursLeft = Math.floor((remaining % 86_400_000) / 3_600_000);
+
 
   const renderRow = (r: { user: any; xp: number; rank: number; zone: string; isYou: boolean }, i: number) => (
     <FadeIn key={r.user.id} index={Math.min(i, 8)}>
@@ -203,7 +209,7 @@ export function LeagueScreen({ navigation }: any) {
             <Txt variant="bodyMed">{r.isYou ? `${r.user.fullName} (${t('league.you')})` : r.user.fullName}</Txt>
           </View>
           <Row center gap={4}>
-            <Ionicons name="flash" size={13} color={theme.certGold} />
+            <Icon name="flash" size={13} color={theme.certGold} />
             <Txt variant="h3">{r.xp}</Txt>
           </Row>
         </Row>
@@ -254,11 +260,11 @@ export function LeagueScreen({ navigation }: any) {
                 marginBottom: 2,
               }}
             >
-              <Ionicons name="shield" size={54} color={tierColor} />
+              <Icon name="shield" size={54} color={tierColor} />
             </View>
             <Txt variant="h2" color={tierColor}>{t(`tier.${league.tier}` as any)}</Txt>
             <Row center gap={6}>
-              <Ionicons name="hourglass" size={13} color={theme.textMuted} />
+              <Icon name="hourglass" size={13} color={theme.textMuted} />
               <Txt variant="caption" color={theme.textMuted}>
                 {t('league.endsIn')} {daysLeft} {t('common.days')} · {hoursLeft} {t('common.hours')}
               </Txt>
@@ -306,13 +312,13 @@ export function LeagueScreen({ navigation }: any) {
                         </Row>
                         <Txt variant="micro" color={theme.textMuted}>·</Txt>
                         <Row center gap={3}>
-                          <Ionicons name="ribbon" size={13} color={theme.brand} />
+                          <Icon name="ribbon" size={13} color={theme.brand} />
                           <Txt variant="micro" color={theme.textMuted}>{t('league.badgeCount', { x: r.badgesCount })}</Txt>
                         </Row>
                       </Row>
                     </View>
                     <Row center gap={4}>
-                      <Ionicons name="sparkles" size={14} color={theme.certGold} />
+                      <Icon name="sparkles" size={14} color={theme.certGold} />
                       <Txt variant="h3" color={theme.brand}>{r.points}</Txt>
                     </Row>
                   </Row>
@@ -415,8 +421,8 @@ export function AchievementsScreen({ navigation }: any) {
                     alignItems: 'center', justifyContent: 'center',
                     shadowColor: earned ? color : 'transparent', shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 0 },
                   }}>
-                    <Ionicons name={badge.icon as any} size={32} color={earned ? color : theme.textMuted} />
-                    {!earned ? <Ionicons name="lock-closed" size={14} color={theme.textMuted} style={{ position: 'absolute', bottom: -2, end: -2, backgroundColor: theme.card, borderRadius: 8, padding: 1 }} /> : null}
+                    <Icon name={badge.icon as any} size={32} color={earned ? color : theme.textMuted} />
+                    {!earned ? <Icon name="lock-closed" size={14} color={theme.textMuted} style={{ position: 'absolute', bottom: -2, end: -2, backgroundColor: theme.card, borderRadius: 8, padding: 1 }} /> : null}
                   </View>
                   <Txt variant="micro" color={color}>{rarityLabel(badge.rarity)}</Txt>
                   <Txt variant="caption" align="center" bold>{badgeTitle}</Txt>
@@ -518,7 +524,7 @@ export function RulesGuideScreen({ navigation }: any) {
         <FadeIn index={0}>
           <Card glass>
             <Row center gap={8}>
-              <Ionicons name="eye" size={18} color={theme.brand} />
+              <Icon name="eye" size={18} color={theme.brand} />
               <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('rules.updatedBy')}</Txt>
             </Row>
           </Card>
@@ -573,7 +579,7 @@ function RuleLine({ icon, label, value, color, last }: { icon: keyof typeof Ioni
   return (
     <Row center gap={12} style={{ padding: 13, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.line }}>
       <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={17} color={color} />
+        <Icon name={icon} size={17} color={color} />
       </View>
       <Txt variant="body" style={{ flex: 1 }}>{label}</Txt>
       <Txt variant="h3" color={color}>{value}</Txt>

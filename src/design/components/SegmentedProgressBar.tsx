@@ -7,6 +7,7 @@ import { Animated, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
 import { radii, spacing } from '../tokens';
 import { isReducedMotion } from '../motion';
+import { useI18n } from '../../i18n';
 
 export interface SegmentedProgressBarProps {
   totalSegments: number;
@@ -28,6 +29,7 @@ export function SegmentedProgressBar({
   style,
 }: SegmentedProgressBarProps) {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const reduced = isReducedMotion();
 
   const activeBg = activeColor ?? theme.brand;
@@ -37,7 +39,7 @@ export function SegmentedProgressBar({
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 1, max: totalSegments, now: currentSegment + 1 }}
-      accessibilityLabel={`الخطوة ${currentSegment + 1} من ${totalSegments}`}
+      accessibilityLabel={t('a11y.stepOf', { current: currentSegment + 1, total: totalSegments })}
       style={[styles.container, { gap }, style]}
     >
       {Array.from({ length: totalSegments }).map((_, index) => {

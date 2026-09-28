@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import {
   audit, batchOf, batchStudents, courseOf, isBatchComplete, issuanceTable, previewRuleImpact,
@@ -26,6 +26,7 @@ import {
   type AnalyticsScope, type AnalyticsResult,
 } from '../../data/actions';
 import { saveCsv, toCsv } from '../../shared/export';
+import { Icon } from '../../design/icons';
 
 // ───────────────────────────── Hub (مقسّم) ─────────────────────────────
 
@@ -107,7 +108,7 @@ function AnalyticsPanel() {
     <View style={{ gap: 12 }}>
       <Card glass>
         <Row center gap={8}>
-          <Ionicons name="stats-chart" size={16} color={theme.brand} />
+          <Icon name="stats-chart" size={16} color={theme.brand} />
           <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('analytics.subtitle')}</Txt>
         </Row>
       </Card>
@@ -143,7 +144,7 @@ function AnalyticsPanel() {
           <Card>
             <Row between center>
               <Row center gap={6}>
-                <Ionicons name="pulse" size={16} color={theme.warn} />
+                <Icon name="pulse" size={16} color={theme.warn} />
                 <Txt variant="bodyMed">{t('analytics.attendanceRatio')}</Txt>
               </Row>
               <Txt variant="h2" color={data.attendanceRatio >= 75 ? theme.success : theme.warn}>{data.attendanceRatio}%</Txt>
@@ -185,7 +186,7 @@ function AnalyticsCard({ label, value, color, icon }: { label: string; value: nu
   return (
     <Card style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 14 }}>
       <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={18} color={color} />
+        <Icon name={icon} size={18} color={color} />
       </View>
       <Txt variant="h3">{value}</Txt>
       <Txt variant="micro" align="center">{label}</Txt>
@@ -251,7 +252,7 @@ function RulesStudio() {
     <>
       <Card glass>
         <Row center gap={8}>
-          <Ionicons name="flash" size={16} color={theme.brand} />
+          <Icon name="flash" size={16} color={theme.brand} />
           <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('rules.updatedBy')}</Txt>
         </Row>
       </Card>
@@ -288,7 +289,7 @@ function RulesStudio() {
                   {impact != null ? (
                     <Card color={impact > 0 ? theme.warnSoft : theme.successSoft} noPad style={{ padding: 10, borderColor: impact > 0 ? theme.warn + '44' : theme.success + '44' }}>
                       <Row center gap={8}>
-                        <Ionicons name={impact > 0 ? 'warning' : 'checkmark-circle'} size={16} color={impact > 0 ? theme.warn : theme.success} />
+                        <Icon name={impact > 0 ? 'warning' : 'checkmark-circle'} size={16} color={impact > 0 ? theme.warn : theme.success} />
                         <Txt variant="caption" color={impact > 0 ? theme.warn : theme.success} style={{ flex: 1 }}>
                           {impact > 0 ? t('studio.impactResult', { x: impact }) : t('studio.impactNone')}
                         </Txt>
@@ -333,7 +334,7 @@ function BadgeStudio() {
                   borderWidth: 2, borderColor: rarityColor(badge.rarity),
                   alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Ionicons name={badge.icon as any} size={22} color={badge.active ? rarityColor(badge.rarity) : theme.textMuted} />
+                  <Icon name={badge.icon as any} size={22} color={badge.active ? rarityColor(badge.rarity) : theme.textMuted} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyMed">{lang === 'ar' ? badge.nameAr : badge.nameEn}</Txt>
@@ -445,7 +446,7 @@ function BroadcastComposer() {
         ) : null}
         <Spacer size={10} />
         <Row center gap={6}>
-          <Ionicons name="people" size={14} color={theme.brand} />
+          <Icon name="people" size={14} color={theme.brand} />
           <Txt variant="caption" color={theme.brand}>{targetCount}</Txt>
         </Row>
       </Card>
@@ -471,7 +472,7 @@ function BroadcastComposer() {
           <Card style={{ borderColor: meta.color + '55', backgroundColor: theme.card }}>
             <Row center gap={12}>
               <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={meta.icon} size={19} color={meta.color} />
+                <Icon name={meta.icon} size={19} color={meta.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed">{title}</Txt>
@@ -516,7 +517,7 @@ function AuditLog() {
               <Card>
                 <Row center gap={10}>
                   <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={actionIcon(a.action)} size={17} color={theme.brand} />
+                    <Icon name={actionIcon(a.action)} size={17} color={theme.brand} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="caption" bold>{a.action}</Txt>
@@ -608,7 +609,7 @@ export function IssueCertificatesScreen({ navigation }: any) {
             {alreadyAll ? (
               <Card glass>
                 <Row center gap={8}>
-                  <Ionicons name="checkmark-done" size={18} color={theme.success} />
+                  <Icon name="checkmark-done" size={18} color={theme.success} />
                   <Txt variant="body" color={theme.success}>{t('issue.alreadyIssued')}</Txt>
                 </Row>
               </Card>

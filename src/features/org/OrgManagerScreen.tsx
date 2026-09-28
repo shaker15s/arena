@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
@@ -11,6 +11,7 @@ import {
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
 import { createBranch, createCommittee } from '../../data/actions';
+import { Icon } from '../../design/icons';
 
 export function OrgManagerScreen() {
   const { t } = useI18n();
@@ -79,13 +80,13 @@ export function OrgManagerScreen() {
               <Card>
                 <Row center gap={12}>
                   <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="business" size={26} color={theme.brand} />
+                    <Icon name="business" size={26} color={theme.brand} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="h3">{b.name}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>{b.governorate} · {b.address}</Txt>
                     <Row center gap={6} style={{ marginTop: 4 }}>
-                      <Ionicons name="person-circle" size={13} color={theme.textMuted} />
+                      <Icon name="person-circle" size={13} color={theme.textMuted} />
                       <Txt variant="micro" color={theme.textMuted}>{supervisor ? supervisor.fullName : t('org.pickSupervisor')}</Txt>
                     </Row>
                   </View>

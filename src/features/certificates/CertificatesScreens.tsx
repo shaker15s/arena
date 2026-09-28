@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import { toDataURL as qrToDataUrl } from 'qrcode';
 import * as Print from 'expo-print';
@@ -20,6 +20,7 @@ import { formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
 import { publicVerifyUrl } from '../../shared/links';
 import { CelebrationModal } from '../../design/celebrations';
+import { Icon } from '../../design/icons';
 
 export function CertificatesScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -46,7 +47,7 @@ export function CertificatesScreen({ navigation }: any) {
                   <View style={{ padding: 16, gap: 8 }}>
                     <Row center gap={12}>
                       <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.warnSoft, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="ribbon" size={26} color={theme.certGold} />
+                        <Icon name="ribbon" size={26} color={theme.certGold} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Txt variant="h3">{course?.title ?? ''}</Txt>
@@ -56,7 +57,7 @@ export function CertificatesScreen({ navigation }: any) {
                     </Row>
                     <Row between center>
                       <Row center gap={5}>
-                        <Ionicons name="barcode" size={13} color={theme.textMuted} />
+                        <Icon name="barcode" size={13} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>{cert.serial}</Txt>
                       </Row>
                       {cert.status === 'revoked' ? (
@@ -195,13 +196,13 @@ export function CertificateViewerScreen({ route, navigation }: any) {
             shadowColor: theme.certGold, shadowOpacity: 0.25, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },
           }}>
             <View style={{ position: 'absolute', top: 12, start: 12, opacity: 0.12 }}>
-              <Ionicons name="map" size={44} color={theme.certGold} />
+              <Icon name="map" size={44} color={theme.certGold} />
             </View>
             <View style={{ position: 'absolute', bottom: 12, end: 12, opacity: 0.12 }}>
-              <Ionicons name="map" size={44} color={theme.certGold} />
+              <Icon name="map" size={44} color={theme.certGold} />
             </View>
 
-            <Ionicons name="ribbon" size={40} color={theme.certGold} />
+            <Icon name="ribbon" size={40} color={theme.certGold} />
             <Txt variant="h2" color={certPaper.inkSoft} align="center">{t('certs.of')}</Txt>
 
             <Txt variant="caption" color={certPaper.inkMuted}>{t('certs.awardedTo')}</Txt>
@@ -211,7 +212,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
             <Txt variant="h3" color={certPaper.inkSoft} align="center">{course.title}</Txt>
 
             <Row center gap={6}>
-              <Ionicons name="business" size={13} color={certPaper.inkMuted} />
+              <Icon name="business" size={13} color={certPaper.inkMuted} />
               <Txt variant="caption" color={certPaper.inkMuted}>{branch?.name ?? t('certs.issuedBy')}</Txt>
             </Row>
             <Txt variant="micro" color={certPaper.inkMuted}>{formatDate(cert.issuedAt, lang)}</Txt>

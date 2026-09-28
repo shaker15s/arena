@@ -3,7 +3,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +26,7 @@ import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
 import { BatchFormSheet } from '../org/AdminScreens';
+import { Icon } from '../../design/icons';
 
 // ───────────────────────────── S30 يوم المدرب ─────────────────────────────
 
@@ -85,7 +86,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
           <FadeIn index={0}>
             <Card onPress={() => tabs.setTab('inbox')}>
               <Row center gap={10}>
-                <Ionicons name="shield" size={22} color={theme.warn} />
+                <Icon name="shield" size={22} color={theme.warn} />
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{t('dash.pendingExcuses', { x: pendingExcuses })}</Txt>
               </Row>
             </Card>
@@ -111,7 +112,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
             <Card>
               <Row center gap={10}>
                 <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="calendar" size={26} color={theme.brand} />
+                  <Icon name="calendar" size={26} color={theme.brand} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Txt variant="caption" color={theme.brand}>{t('vtoday.sessionToday')}</Txt>
@@ -129,7 +130,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
           <FadeIn index={0}>
             <Card>
               <Row center gap={10}>
-                <Ionicons name="cafe" size={26} color={theme.teal} />
+                <Icon name="cafe" size={26} color={theme.teal} />
                 <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('vtoday.noSessionToday')}</Txt>
               </Row>
             </Card>
@@ -185,7 +186,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
               <Card key={b.id} style={{ marginBottom: 10 }}>
                 <Row center gap={12}>
                   <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="book" size={21} color={course.color} />
+                    <Icon name="book" size={21} color={course.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{course.title}</Txt>
@@ -210,7 +211,7 @@ function StatCard({ icon, color, value, label, onPress }: { icon: keyof typeof I
   return (
     <Card style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 14 }} onPress={onPress}>
       <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={17} color={color} />
+        <Icon name={icon} size={17} color={color} />
       </View>
       <Txt variant="h3">{value}</Txt>
       <Txt variant="micro" align="center">{label}</Txt>
@@ -296,7 +297,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
                 <Card>
                   <Row center gap={12}>
                     <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: course ? course.color + '22' : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name="book" size={24} color={course ? course.color : theme.brand} />
+                      <Icon name="book" size={24} color={course ? course.color : theme.brand} />
                     </View>
                     <View style={{ flex: 1, gap: 3 }}>
                       <Txt variant="h3">{course?.title ?? t('batches.courseFallback')}</Txt>
@@ -509,7 +510,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
                 </Row>
                 {s.report?.done ? (
                   <Row center gap={6} style={{ marginTop: 6 }}>
-                    <Ionicons name="document-text" size={12} color={theme.success} />
+                    <Icon name="document-text" size={12} color={theme.success} />
                     <Txt variant="micro" color={theme.textSecondary} numberOfLines={1}>{s.report.done}</Txt>
                   </Row>
                 ) : null}
@@ -537,7 +538,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
             <Card glass>
               <Row between center>
                 <Row center gap={6}>
-                  <Ionicons name="people" size={14} color={theme.brand} />
+                  <Icon name="people" size={14} color={theme.brand} />
                   <Txt variant="caption" color={theme.textSecondary}>{t('sess.expected')}</Txt>
                 </Row>
                 <Txt variant="h3">{report.expected}</Txt>
@@ -674,7 +675,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
               const meta = attendanceMeta(att?.status);
               return (
                 <Row key={s.id} center gap={10} style={{ padding: 12, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.line, backgroundColor: meta.bg, borderRadius: radii.md }}>
-                  <Ionicons name={meta.icon as any} size={20} color={meta.color} />
+                  <Icon name={meta.icon as any} size={20} color={meta.color} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="caption">{s.title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>{formatDate(s.startsAt, lang)}{att?.method === 'manual' ? ` · ${t('common.manual')}` : ''}{att?.note ? ` · ${att.note}` : ''}</Txt>
@@ -691,7 +692,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
           <Card>
             <Row between center>
               <Row center gap={8}>
-                <Ionicons name="heart" size={19} color={theme.danger} />
+                <Icon name="heart" size={19} color={theme.danger} />
                 <Txt variant="bodyMed">{t('student.kudos')}</Txt>
               </Row>
               <Tag label={t('student.kudosLeft', { x: left })} color={left > 0 ? theme.brand : theme.danger} bg={left > 0 ? theme.brandSoft : theme.dangerSoft} />
@@ -705,7 +706,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
         <FadeIn index={3}>
           <Card>
             <Row center gap={8} style={{ marginBottom: 8 }}>
-              <Ionicons name="lock-closed" size={15} color={theme.textMuted} />
+              <Icon name="lock-closed" size={15} color={theme.textMuted} />
               <Txt variant="caption" color={theme.textMuted}>{t('student.notes')}</Txt>
             </Row>
             <Input value={note || noteRow?.note || ''} onChange={setNote} placeholder={t('student.notesPlaceholder')} multiline />

@@ -4,7 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -24,11 +24,12 @@ import { JellyButton, PillGradientSearchInput, SaveActionButton } from '../../de
 import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
-import { matchesAny } from '../../shared/search';
+import { useDeferredSearch } from '../../shared/useSearch';
 import { getCourseOverview } from '../../data/actions';
 import { CelebrationModal } from '../../design/celebrations';
 import { batchStudents } from '../../data/engine';
 import { BatchFormSheet } from '../org/AdminScreens';
+import { Icon } from '../../design/icons';
 
 // ───────────────────────────── الكتالوج ─────────────────────────────
 
@@ -43,24 +44,21 @@ export function ExploreScreen({ navigation: propNav }: any) {
   const [field, setField] = useState<string>('all');
   const [branchId, setBranchId] = useState<string>('all');
 
-  const debouncedQuery = useDebounce(query, 250);
-
   const published = useMemo(() => db.courses.filter((c) => c.status === 'published' || c.status === 'running'), [db.courses]);
   const fields = useMemo(() => ['all', ...new Set(published.map((c) => c.field))], [published]);
 
-  const filtered = useMemo(() => {
-    return published.filter((c) => {
-      if (field !== 'all' && c.field !== field) return false;
-      if (branchId !== 'all') {
-        const inBranch = db.batches.some((b) => b.courseId === c.id && b.branchId === branchId && (b.status === 'active' || b.status === 'scheduled'));
-        if (!inBranch) return false;
-      }
-      if (debouncedQuery.trim()) {
-        return matchesAny([c.title, c.field, c.description], debouncedQuery);
-      }
-      return true;
-    });
-  }, [published, field, branchId, debouncedQuery, db.batches]);
+  // FUNC-07: الفلترة بالتصنيف/الفرع أولًا، ثم البحث العربي المرتَّب بالملاءمة
+  // (كان البحث يفلتر بترتيب عشوائي ويسقط أي كتابة بلا همزة).
+  const scoped = useMemo(() => published.filter((c) => {
+    if (field !== 'all' && c.field !== field) return false;
+    if (branchId !== 'all') {
+      const inBranch = db.batches.some((b) => b.courseId === c.id && b.branchId === branchId && (b.status === 'active' || b.status === 'scheduled'));
+      if (!inBranch) return false;
+    }
+    return true;
+  }), [published, field, branchId, db.batches]);
+
+  const { results: filtered } = useDeferredSearch(query, scoped, (c) => [c.title, c.field, c.description]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -188,7 +186,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
           }}
         >
           {/* أيقونة موضوعية في الخلفية كلمسة جمالية */}
-          <Ionicons
+          <Icon
             name="school"
             size={68}
             color="#FFFFFF"
@@ -224,7 +222,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
                 borderRadius: radii.full,
               }}
             >
-              <Ionicons name="bookmark" size={11} color="#FFFFFF" />
+              <Icon name="bookmark" size={11} color="#FFFFFF" />
               <Txt variant="micro" bold color="#FFFFFF">
                 {course.field}
               </Txt>
@@ -260,7 +258,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
                   borderRadius: radii.full,
                 }}
               >
-                <Ionicons name="sparkles" size={11} color="#FFFFFF" />
+                <Icon name="sparkles" size={11} color="#FFFFFF" />
                 <Txt variant="micro" bold color="#FFFFFF">
                   {t('explore.availableToOrganize')}
                 </Txt>
@@ -275,7 +273,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
             <Txt variant="h3" numberOfLines={2} style={{ flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' }}>
               {course.title}
             </Txt>
-            <Ionicons
+            <Icon
               name={lang === 'ar' ? 'chevron-back' : 'chevron-forward'}
               size={16}
               color={theme.textMuted}
@@ -285,7 +283,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
 
           <Row center gap={10} wrap>
             <Row center gap={4}>
-              <Ionicons name="calendar-outline" size={13} color={theme.textMuted} />
+              <Icon name="calendar-outline" size={13} color={theme.textMuted} />
               <Txt variant="caption" color={theme.textSecondary}>
                 {t('explore.sessionsCount', { x: course.sessionsCount })}
               </Txt>
@@ -293,7 +291,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
 
             {stats.count > 0 ? (
               <Row center gap={4}>
-                <Ionicons name="star" size={13} color={theme.certGold} />
+                <Icon name="star" size={13} color={theme.certGold} />
                 <Txt variant="caption" bold color={theme.text}>
                   {stats.avg} <Txt variant="micro" color={theme.textMuted}>({stats.count})</Txt>
                 </Txt>
@@ -359,6 +357,10 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
     void getCourseOverview(courseId).catch(() => {});
   }, [courseId]);
 
+  // حالة الإدخال قبل أي إرجاع مبكر (ترتيب الهوكات ثابت — إصلاح خطأ كامن).
+  const [joinedBatchData, setJoinedBatchData] = useState<null | { batch: Batch; waitlist: boolean }>(null);
+  const [isSaved, setIsSaved] = useState(false);
+
   if (!course) return null;
 
   const myEnrollment = user
@@ -385,7 +387,6 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
     setJoinBatch(b);
   };
 
-  const [joinedBatchData, setJoinedBatchData] = useState<null | { batch: Batch; waitlist: boolean }>(null);
 
   const confirmJoin = async () => {
     if (!joinBatch) return;
@@ -408,7 +409,6 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
     }
   };
 
-  const [isSaved, setIsSaved] = useState(false);
 
   return (
     <View style={{ flex: 1 }}>
@@ -435,16 +435,16 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
           </Row>
           <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
           <Spacer size={10} />
-          <Txt variant="h1" color="#fff">{course.title}</Txt>
+          <Txt variant="h1" color="#fff" heading="h1">{course.title}</Txt>
           <Spacer size={8} />
           <Row center gap={12}>
             <Row center gap={4}>
-              <Ionicons name="calendar" size={14} color="rgba(255,255,255,0.85)" />
+              <Icon name="calendar" size={14} color="rgba(255,255,255,0.85)" />
               <Txt variant="caption" color="rgba(255,255,255,0.85)">{t('explore.sessionsCount', { x: course.sessionsCount })}</Txt>
             </Row>
             {stats.count > 0 ? (
               <Row center gap={4}>
-                <Ionicons name="star" size={14} color="#FFD86B" />
+                <Icon name="star" size={14} color="#FFD86B" />
                 <Txt variant="caption" color="rgba(255,255,255,0.9)">{stats.avg}</Txt>
                 <Txt variant="micro" color="rgba(255,255,255,0.7)">({stats.count} {t('course.ratingCount')})</Txt>
               </Row>
@@ -459,7 +459,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               {isTakenByOtherVolunteer ? (
                 <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55', marginBottom: 4 }}>
                   <Row center gap={10}>
-                    <Ionicons name="lock-closed" size={24} color={theme.warn} />
+                    <Icon name="lock-closed" size={24} color={theme.warn} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.warn}>{t('explore.organizedNow')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
@@ -471,7 +471,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               ) : isMyOrganizedCourse ? (
                 <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: 4 }}>
                   <Row center gap={10}>
-                    <Ionicons name="shield-checkmark" size={24} color={theme.brand} />
+                    <Icon name="shield-checkmark" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.brand}>{t('explore.youAreOrganizer')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
@@ -524,7 +524,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               ) : (
                 <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: 4 }}>
                   <Row center gap={10}>
-                    <Ionicons name="sparkles" size={24} color={theme.brand} />
+                    <Icon name="sparkles" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.brand}>{t('explore.availableToOrganize')}</Txt>
                       <Txt variant="micro" color={theme.textSecondary}>
@@ -561,7 +561,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               {myEnrollment ? (
                 <Card color={theme.successSoft} style={{ borderColor: theme.success + '44', marginBottom: 12 }}>
                   <Row center gap={10}>
-                    <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+                    <Icon name="checkmark-circle" size={24} color={theme.success} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.success}>{t('joinCode.joined')}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>{batchOf(db, myEnrollment.batchId)?.room} · {batchOf(db, myEnrollment.batchId)?.schedule.time}</Txt>
@@ -652,7 +652,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                           <Txt variant="bodyMed">{instructor?.fullName ?? ''}</Txt>
                           <Row center gap={6} wrap>
                             <Row center gap={3}>
-                              <Ionicons name="repeat" size={12} color={theme.textMuted} />
+                              <Icon name="repeat" size={12} color={theme.textMuted} />
                               <Txt variant="micro" color={theme.textMuted}>
                                 {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time}
                               </Txt>
@@ -660,7 +660,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                           </Row>
                           <Row center gap={6} wrap>
                             <Row center gap={3}>
-                              <Ionicons name="location" size={12} color={theme.textMuted} />
+                              <Icon name="location" size={12} color={theme.textMuted} />
                               <Txt variant="micro" color={theme.textMuted}>{b.room} — {branch?.governorate}</Txt>
                             </Row>
                           </Row>
@@ -763,7 +763,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               </Txt>
               <Spacer size={8} />
               <Row center gap={6}>
-                <Ionicons name="flag" size={14} color={theme.success} />
+                <Icon name="flag" size={14} color={theme.success} />
                 <Txt variant="caption" color={theme.success}>
                   {t('join.firstSession')}: {(() => {
                     const next = sessionsOfBatch(db, joinBatch.id).find((s) => s.status === 'scheduled');
@@ -795,14 +795,14 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               </Txt>
               <Spacer size={6} />
               <Row center gap={6}>
-                <Ionicons name="time" size={15} color={theme.brand} />
+                <Icon name="time" size={15} color={theme.brand} />
                 <Txt variant="caption" color={theme.textSecondary}>
                   {t('explore.schedule', { days: joinedBatchData.batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + '), time: joinedBatchData.batch.schedule.time })}
                 </Txt>
               </Row>
               <Spacer size={4} />
               <Row center gap={6}>
-                <Ionicons name="flag" size={15} color={theme.success} />
+                <Icon name="flag" size={15} color={theme.success} />
                 <Txt variant="bodyMed" color={theme.success}>
                   أول محاضرة: {(() => {
                     const next = sessionsOfBatch(db, joinedBatchData.batch.id).find((s) => s.status === 'scheduled');

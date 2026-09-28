@@ -3,11 +3,11 @@
  * لا OTP، لا رقم هاتف في الدخول، لا حسابات تجريبية.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, Image, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -25,6 +25,14 @@ import {
   OnboardingSlide2Illustration,
   OnboardingSlide3Illustration,
 } from '../../design/illustrations';
+import { Icon } from '../../design/icons';
+import {
+  APPLE_BUTTON_MARGIN,
+  APPLE_SIGN_IN,
+  APPLE_TITLE_FONT_SIZE,
+  AUTH_CTA,
+  appleSignInPalette,
+} from '../../design/integrations/appleSignIn';
 
 // ───────────────────────────── Onboarding (تفاعلي حديث 2026) ─────────────────────────────
 
@@ -264,7 +272,7 @@ export function OnboardingScreen({ navigation }: any) {
 
           {/* النصوص التعبيرية المحدثة (D8) */}
           <View style={{ alignItems: 'center', gap: 10, maxWidth: 520, paddingHorizontal: 8 }}>
-            <Txt variant="h1" align="center">
+            <Txt variant="h1" align="center" heading="h1">
               {t(slide.title as any)}
             </Txt>
             <Txt variant="body" color={theme.textSecondary} align="center" style={{ lineHeight: 24 }}>
@@ -327,7 +335,7 @@ export function OnboardingScreen({ navigation }: any) {
                         elevation: isSelected ? 2 : 0,
                       }}
                     >
-                      <Ionicons
+                      <Icon
                         name={opt.icon}
                         size={15}
                         color={isSelected ? theme.accent : theme.textMuted}
@@ -422,8 +430,101 @@ export function OnboardingScreen({ navigation }: any) {
 function GoogleMark({ size = 20 }: { size?: number }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Ionicons name="logo-google" size={size} color="#EA4335" />
+      <Icon name="logo-google" size={size} color="#EA4335" />
     </View>
+  );
+}
+
+// ───────────────────────────── زر Sign in with Apple (HIG) ─────────────────────────────
+
+/**
+ * زر الدخول بـ Apple وفق دليل Apple:
+ *  • iOS: زر النظام `ASAuthorizationAppleIDButton` (مطابقة مضمونة + ترجمة تلقائية
+ *    للعنوان + نص VoiceOver من النظام)، بارتفاع ونصف قطر يطابقان بقية الأزرار.
+ *  • الويب/أندرويد: زر مخصّص بالمواصفات الرسمية (عنوان «المتابعة باستخدام Apple»،
+ *    أسود على خلفية فاتحة وأبيض على داكنة، خط = 43% من الارتفاع).
+ * لا يظهر الزر إن لم تكن الخدمة متاحة أصلًا على الجهاز.
+ */
+function AppleSignInButton({
+  onPress,
+  busy,
+  disabled,
+  isDark,
+}: {
+  onPress: () => void;
+  busy: boolean;
+  disabled: boolean;
+  isDark: boolean;
+}) {
+  const { t } = useI18n();
+  const palette = appleSignInPalette(isDark);
+
+  if (Platform.OS === 'ios') {
+    return (
+      <View style={{ height: APPLE_SIGN_IN.height, opacity: disabled ? 0.5 : 1 }}>
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          buttonStyle={
+            isDark
+              ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+              : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+          }
+          cornerRadius={APPLE_SIGN_IN.radius}
+          onPress={onPress}
+          style={{ width: '100%', height: APPLE_SIGN_IN.height }}
+        />
+        {busy ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <ActivityIndicator color={palette.foreground} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('auth.continueApple')}
+      accessibilityHint={t('auth.appleHint')}
+      accessibilityState={{ disabled: disabled || busy, busy }}
+      onPress={onPress}
+      disabled={disabled || busy}
+      style={({ pressed }) => ({
+        backgroundColor: palette.background,
+        borderRadius: APPLE_SIGN_IN.radius,
+        minHeight: APPLE_SIGN_IN.height,
+        minWidth: APPLE_SIGN_IN.minWidth,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 8,
+        borderWidth: palette.border === 'transparent' ? 0 : 1,
+        borderColor: palette.border,
+        opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+      })}
+    >
+      {busy ? (
+        <ActivityIndicator color={palette.foreground} />
+      ) : (
+        <>
+          <Icon name="logo-apple" size={APPLE_TITLE_FONT_SIZE} color={palette.foreground} />
+          <Txt
+            color={palette.foreground}
+            style={{ fontSize: APPLE_TITLE_FONT_SIZE, lineHeight: APPLE_TITLE_FONT_SIZE + 6, fontWeight: '600' }}
+          >
+            {t('auth.continueApple')}
+          </Txt>
+        </>
+      )}
+    </Pressable>
   );
 }
 
@@ -431,12 +532,24 @@ export function SignInScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { signInWithGoogle, configured, authError } = useApp();
+  const { signInWithGoogle, signInWithApple, configured, authError } = useApp();
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [error, setError] = useState('');
 
   // الوصول لشاشة الدخول يعني أن المستخدم تجاوز الترحيب — لا نعيده إليه لاحقًا.
   useEffect(() => { void markOnboardingSeen(); }, []);
+
+  // زر Apple يظهر فقط حيث تتيحه الخدمة فعليًا (iOS 13+ أو الويب/أندرويد عبر OAuth).
+  useEffect(() => {
+    let alive = true;
+    if (Platform.OS !== 'ios') { setAppleAvailable(true); return; }
+    AppleAuthentication.isAvailableAsync()
+      .then((ok) => { if (alive) setAppleAvailable(ok); })
+      .catch(() => { if (alive) setAppleAvailable(false); });
+    return () => { alive = false; };
+  }, []);
 
   const submit = async () => {
     setError('');
@@ -450,6 +563,21 @@ export function SignInScreen({ navigation }: any) {
       setError(`${t('auth.googleFailed')}: ${(e as Error).message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const submitApple = async () => {
+    setError('');
+    setAppleLoading(true);
+    try {
+      const r = await signInWithApple();
+      if (!r.ok && r.error && r.error !== 'cancelled') {
+        setError(r.error === 'not-configured' ? t('auth.notConfigured') : `${t('auth.appleFailed')}: ${r.error}`);
+      }
+    } catch (e) {
+      setError(`${t('auth.appleFailed')}: ${(e as Error).message}`);
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -482,10 +610,10 @@ export function SignInScreen({ navigation }: any) {
         </FadeIn>
         <Spacer size={16} />
         <FadeIn index={1}>
-          <Txt variant="display">{t('auth.welcomeTitle')}</Txt>
+          <Txt variant="display" heading="h1">{t('auth.welcomeTitle')}</Txt>
           <Spacer size={6} />
           <Txt variant="caption" color={theme.textSecondary}>
-            منظومة إدارة التدريب الذكية — حضورك، ستريكك، وشهاداتك في مكان واحد
+            {t('auth.subtitle')}
           </Txt>
         </FadeIn>
 
@@ -496,7 +624,7 @@ export function SignInScreen({ navigation }: any) {
               size={110}
               behavior="welcome"
               interactive={false}
-              speechText="أهلاً بك في مسار! سجّل دخولك بحساب Google للمتابعة ✨"
+              speechText={t('auth.mascotSignIn')}
             />
           </View>
         </FadeIn>
@@ -517,8 +645,8 @@ export function SignInScreen({ navigation }: any) {
                 borderColor: theme.fillBorder,
               }}
             >
-              <Ionicons name="shield-checkmark" size={15} color={theme.success} />
-              <Txt variant="caption" color={theme.textSecondary} bold>دخول آمن ومشفر</Txt>
+              <Icon name="shield-checkmark" size={15} color={theme.success} />
+              <Txt variant="caption" color={theme.textSecondary} bold>{t('auth.featureSecure')}</Txt>
             </View>
             <View
               style={{
@@ -533,8 +661,8 @@ export function SignInScreen({ navigation }: any) {
                 borderColor: theme.fillBorder,
               }}
             >
-              <Ionicons name="flash" size={15} color={theme.accent} />
-              <Txt variant="caption" color={theme.textSecondary} bold>حضور فوري</Txt>
+              <Icon name="flash" size={15} color={theme.accent} />
+              <Txt variant="caption" color={theme.textSecondary} bold>{t('auth.featureInstant')}</Txt>
             </View>
             <View
               style={{
@@ -549,8 +677,8 @@ export function SignInScreen({ navigation }: any) {
                 borderColor: theme.fillBorder,
               }}
             >
-              <Ionicons name="ribbon" size={15} color={theme.certGold} />
-              <Txt variant="caption" color={theme.textSecondary} bold>شهادات معتمدة</Txt>
+              <Icon name="ribbon" size={15} color={theme.certGold} />
+              <Txt variant="caption" color={theme.textSecondary} bold>{t('auth.featureCerts')}</Txt>
             </View>
           </Row>
         </FadeIn>
@@ -561,7 +689,7 @@ export function SignInScreen({ navigation }: any) {
           <FadeIn index={2}>
             <GlassCard>
               <Row center gap={10}>
-                <Ionicons name="warning" size={20} color={theme.warn} />
+                <Icon name="warning" size={20} color={theme.warn} />
                 <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('auth.notConfigured')}</Txt>
               </Row>
             </GlassCard>
@@ -578,9 +706,9 @@ export function SignInScreen({ navigation }: any) {
             disabled={loading || !configured}
             style={({ pressed }) => ({
               backgroundColor: isDark ? 'rgba(255,255,255,0.96)' : '#FFFFFF',
-              borderRadius: 16,
+              borderRadius: AUTH_CTA.radius,
               paddingVertical: 16,
-              minHeight: 56,
+              minHeight: AUTH_CTA.height,
               alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
               borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(60,60,67,0.12)',
               opacity: !configured ? 0.5 : pressed ? 0.85 : 1,
@@ -593,6 +721,18 @@ export function SignInScreen({ navigation }: any) {
             <Txt variant="h3" color="#1C1C1E">{t('auth.continueGoogle')}</Txt>
           </Pressable>
         </FadeIn>
+
+        {configured && appleAvailable ? (
+          <FadeIn index={3}>
+            <View style={{ height: APPLE_BUTTON_MARGIN }} />
+            <AppleSignInButton
+              onPress={submitApple}
+              busy={appleLoading}
+              disabled={!configured || loading}
+              isDark={isDark}
+            />
+          </FadeIn>
+        ) : null}
 
         {error ? (
           <>
@@ -613,7 +753,7 @@ export function SignInScreen({ navigation }: any) {
         <FadeIn index={4}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('auth.verifyCertCta')} hitSlop={8} onPress={() => navigation.navigate('Verify')} style={{ alignSelf: 'center', padding: 8, minHeight: sizes.touchTarget, justifyContent: 'center' }}>
             <Row center gap={6}>
-              <Ionicons name="ribbon-outline" size={16} color={theme.certGold} />
+              <Icon name="ribbon-outline" size={16} color={theme.certGold} />
               <Txt variant="caption" color={theme.textSecondary}>{t('auth.verifyCertCta')}</Txt>
             </Row>
           </Pressable>
@@ -680,9 +820,9 @@ export function CompleteProfileScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <Row between center>
-        <Txt variant="display">{t('complete.title')}</Txt>
+        <Txt variant="display" heading="h1">{t('complete.title')}</Txt>
         <Pressable accessibilityRole="button" accessibilityLabel={t('profile.logout')} hitSlop={10} onPress={() => void logout()} style={{ padding: 8, minWidth: sizes.touchTarget, minHeight: sizes.touchTarget, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="log-out-outline" size={22} color={theme.textMuted} />
+          <Icon name="log-out-outline" size={22} color={theme.textMuted} />
         </Pressable>
       </Row>
       <Spacer size={22} />
@@ -701,7 +841,7 @@ export function CompleteProfileScreen() {
             ) : avatar ? (
               <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
             ) : (
-              <Ionicons name="person" size={44} color={theme.brand} />
+              <Icon name="person" size={44} color={theme.brand} />
             )}
           </View>
           <View style={{
@@ -710,7 +850,7 @@ export function CompleteProfileScreen() {
             alignItems: 'center', justifyContent: 'center',
             borderWidth: 2, borderColor: theme.bg,
           }}>
-            <Ionicons name="camera" size={16} color="#fff" />
+            <Icon name="camera" size={16} color="#fff" />
           </View>
         </Pressable>
       </View>
@@ -718,12 +858,12 @@ export function CompleteProfileScreen() {
       {/* الإيميل من جوجل — للعرض فقط */}
       <GlassCard>
         <Row center gap={12}>
-          <Ionicons name="mail" size={18} color={theme.brand} />
+          <Icon name="mail" size={18} color={theme.brand} />
           <View style={{ flex: 1 }}>
             <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
             <Txt variant="bodyMed">{identity?.email ?? user?.email ?? '—'}</Txt>
           </View>
-          <Ionicons name="lock-closed" size={16} color={theme.textMuted} />
+          <Icon name="lock-closed" size={16} color={theme.textMuted} />
         </Row>
       </GlassCard>
       <Spacer size={16} />
@@ -749,7 +889,7 @@ export function CompleteProfileScreen() {
             <Pressable key={g} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={t(g === 'm' ? 'common.male' : 'common.female')} onPress={() => setGender(g)} style={{ flex: 1 }}>
               <GlassCard style={{ backgroundColor: active ? theme.brandSoft : undefined, borderColor: active ? theme.brand : undefined }}>
                 <Row center gap={8} style={{ justifyContent: 'center' }}>
-                  <Ionicons name={g === 'm' ? 'male' : 'female'} size={18} color={active ? theme.brand : theme.textMuted} />
+                  <Icon name={g === 'm' ? 'male' : 'female'} size={18} color={active ? theme.brand : theme.textMuted} />
                   <Txt variant="bodyMed" color={active ? theme.brand : theme.text}>{t(g === 'm' ? 'common.male' : 'common.female')}</Txt>
                 </Row>
               </GlassCard>
@@ -770,7 +910,7 @@ export function CompleteProfileScreen() {
                 borderColor: active ? theme.brand : undefined,
               }}>
                 <Row center gap={12}>
-                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? theme.brand : theme.textMuted} />
+                  <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? theme.brand : theme.textMuted} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{b.name}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>{b.governorate}</Txt>

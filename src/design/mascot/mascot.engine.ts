@@ -3,6 +3,7 @@
  * يطبق هرمية الأولويات، ميزانية المحادثة، وتفصيل الردود بحسب سياق الطالب الحقيقي
  */
 
+import { tStatic } from '../../i18n/core';
 import {
   FatenBehaviorState,
   MASCOT_PRIORITY,
@@ -22,7 +23,7 @@ export function resolveMascotReaction(
           state: 'success',
           priority: MASCOT_PRIORITY.SUCCESS,
           messageKey: 'mascot.session_attended',
-          messageFallback: 'حضورك موثق اليوم بنجاح يا بطل! نقاطك واستمرارك محفوظين 🦅',
+          messageFallback: tStatic('mascot.session_attended'),
           hapticPattern: 'success',
           durationMs: 4000,
           pointsToCTA: false,
@@ -32,7 +33,7 @@ export function resolveMascotReaction(
         state: 'attention',
         priority: MASCOT_PRIORITY.ACTION_REQUIRED,
         messageKey: 'mascot.session_live_action',
-        messageFallback: `محاضرة ${event.courseTitle} بدأت الآن! سجّل حضورك وثبّت نقاطك`,
+        messageFallback: tStatic('mascot.session_live_action', { course: event.courseTitle }),
         hapticPattern: 'medium',
         actionHint: 'scan_now',
         pointsToCTA: true,
@@ -41,14 +42,14 @@ export function resolveMascotReaction(
 
     case 'SESSION_UPCOMING': {
       const timeStr = event.startsInMinutes <= 60
-        ? `خلال ${event.startsInMinutes} دقيقة`
-        : `اليوم`;
-      const roomStr = event.room ? ` في ${event.room}` : '';
+        ? tStatic('mascot.session_upcoming_minutes', { minutes: event.startsInMinutes })
+        : tStatic('mascot.session_upcoming_today');
+      const roomStr = event.room ? tStatic('mascot.session_upcoming_room', { room: event.room }) : '';
       return {
         state: 'ready',
         priority: MASCOT_PRIORITY.CONTEXTUAL,
         messageKey: 'mascot.session_upcoming',
-        messageFallback: `جلستك القادمة (${event.courseTitle}) ${timeStr}${roomStr}.. جهّز نفسك!`,
+        messageFallback: tStatic('mascot.session_upcoming', { course: event.courseTitle, time: timeStr, room: roomStr }),
         hapticPattern: 'light',
         durationMs: 3500,
       };
@@ -59,7 +60,7 @@ export function resolveMascotReaction(
         state: 'working',
         priority: MASCOT_PRIORITY.ACTION_REQUIRED,
         messageKey: 'mascot.checking_in',
-        messageFallback: 'لحظة واحدة.. أتحقق من بيانات الحضور والأمان 🔍',
+        messageFallback: tStatic('mascot.checking_in'),
         hapticPattern: 'light',
       };
     }
@@ -69,7 +70,7 @@ export function resolveMascotReaction(
         state: 'achievement',
         priority: MASCOT_PRIORITY.SUCCESS,
         messageKey: 'mascot.checkin_success',
-        messageFallback: `كفو! تم توثوق حضورك وإضافة +${event.points} نقطة بنجاح 🎉`,
+        messageFallback: tStatic('mascot.checkin_success', { points: event.points }),
         hapticPattern: 'success',
         durationMs: 5000,
       };
@@ -80,7 +81,7 @@ export function resolveMascotReaction(
         state: 'success',
         priority: MASCOT_PRIORITY.SUCCESS,
         messageKey: 'mascot.checkin_already_done',
-        messageFallback: 'أنت مسجل حضورك بالفعل في هذه الجلسة ✓ — لا حاجة للمسح مجدداً',
+        messageFallback: tStatic('mascot.checkin_already_done'),
         hapticPattern: 'success',
         durationMs: 4000,
       };
@@ -91,31 +92,35 @@ export function resolveMascotReaction(
         state: 'recovery',
         priority: MASCOT_PRIORITY.CRITICAL_ERROR,
         messageKey: 'mascot.checkin_failed',
-        messageFallback: event.reason || 'تعذر تأكيد الحضور، يرجى إعادة المحاولة مع المنظم',
+        messageFallback: event.reason || tStatic('mascot.checkin_failed'),
         hapticPattern: 'warning',
         durationMs: 4500,
       };
     }
 
     case 'OUTSIDE_GEOFENCE': {
-      const dist = event.distanceMeters ? ` (${event.distanceMeters}م)` : '';
+      const dist = event.distanceMeters
+        ? tStatic('mascot.outside_geofence_distance', { meters: event.distanceMeters })
+        : '';
       return {
         state: 'recovery',
         priority: MASCOT_PRIORITY.ACTION_REQUIRED,
         messageKey: 'mascot.outside_geofence',
-        messageFallback: `أنت خارج نطاق القاعة التدريبية${dist}.. اقترب قليلاً ثم أعد المحاولة 📍`,
+        messageFallback: tStatic('mascot.outside_geofence', { distance: dist }),
         hapticPattern: 'warning',
         durationMs: 4000,
       };
     }
 
     case 'PERMISSION_REQUIRED': {
-      const permName = event.permission === 'camera' ? 'الكاميرا' : 'الموقع الجغرافي';
+      const permName = event.permission === 'camera'
+        ? tStatic('mascot.permission_camera')
+        : tStatic('mascot.permission_location');
       return {
         state: 'recovery',
         priority: MASCOT_PRIORITY.ACTION_REQUIRED,
         messageKey: 'mascot.permission_required',
-        messageFallback: `نحتاج إذن ${permName} للتحقق من حضورك بأمان`,
+        messageFallback: tStatic('mascot.permission_required', { permission: permName }),
         hapticPattern: 'warning',
         durationMs: 4000,
       };
@@ -126,7 +131,7 @@ export function resolveMascotReaction(
         state: 'alert',
         priority: MASCOT_PRIORITY.ACTION_REQUIRED,
         messageKey: 'mascot.streak_at_risk',
-        messageFallback: 'سلسلة التزامك في خطر! سجّل حضورك اليوم للحفاظ على الستريك 🔥',
+        messageFallback: tStatic('mascot.streak_at_risk'),
         hapticPattern: 'warning',
         durationMs: 5000,
         pointsToCTA: true,
@@ -138,7 +143,7 @@ export function resolveMascotReaction(
         state: 'streak_fire',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
         messageKey: 'mascot.streak_safe',
-        messageFallback: `سلسلة خارقة! مستمر منذ ${event.weeks} أسابيع دون انقطاع ⚡`,
+        messageFallback: tStatic('mascot.streak_safe', { weeks: event.weeks }),
         hapticPattern: 'success',
         durationMs: 4000,
       };
@@ -149,7 +154,7 @@ export function resolveMascotReaction(
         state: 'ready',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
         messageKey: 'mascot.near_badge',
-        messageFallback: `اقتربت من شارة "${event.badgeTitle}"! باقي لك ${event.remainingNeeded} فقط 🏅`,
+        messageFallback: tStatic('mascot.near_badge', { badge: event.badgeTitle, remaining: event.remainingNeeded }),
         hapticPattern: 'light',
         durationMs: 4000,
       };
@@ -160,7 +165,7 @@ export function resolveMascotReaction(
         state: 'achievement',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
         messageKey: 'mascot.badge_unlocked',
-        messageFallback: `إنجاز جديد! حصلت على شارة "${event.badgeTitle}" 🎖️`,
+        messageFallback: tStatic('mascot.badge_unlocked', { badge: event.badgeTitle }),
         hapticPattern: 'success',
         durationMs: 5000,
       };
@@ -171,7 +176,7 @@ export function resolveMascotReaction(
         state: 'achievement',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
         messageKey: 'mascot.level_up',
-        messageFallback: `ترقية مستحقة! انتقلت إلى دوري "${event.tier}" 🚀`,
+        messageFallback: tStatic('mascot.level_up', { tier: event.tier }),
         hapticPattern: 'success',
         durationMs: 5000,
       };
@@ -182,7 +187,7 @@ export function resolveMascotReaction(
         state: 'achievement',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
         messageKey: 'mascot.certificate_ready',
-        messageFallback: `مبارك! استوفيت متطلبات شهادة "${event.courseTitle}" 📜`,
+        messageFallback: tStatic('mascot.certificate_ready', { course: event.courseTitle }),
         hapticPattern: 'success',
         durationMs: 6000,
       };
@@ -193,7 +198,7 @@ export function resolveMascotReaction(
         state: 'offline',
         priority: MASCOT_PRIORITY.CONTEXTUAL,
         messageKey: 'mascot.offline_active',
-        messageFallback: 'أنت في وضع عدم الاتصال.. يمكنك تسجيل الحضور وسنرفعه تلقائياً عند عودة الشبكة 💾',
+        messageFallback: tStatic('mascot.offline_active'),
         hapticPattern: 'light',
         durationMs: 4000,
       };
@@ -204,7 +209,7 @@ export function resolveMascotReaction(
         state: 'welcome',
         priority: MASCOT_PRIORITY.CONTEXTUAL,
         messageKey: 'mascot.online_restored',
-        messageFallback: 'عادت الشبكة! تم مزامنة بياناتك وسجلاتك مع السيرفر بنجاح 🌐',
+        messageFallback: tStatic('mascot.online_restored'),
         hapticPattern: 'light',
         durationMs: 3000,
       };
@@ -236,7 +241,7 @@ function resolveUserInteractionReaction(context: MascotContext): MascotReaction 
       state: 'offline',
       priority: MASCOT_PRIORITY.CONTEXTUAL,
       messageKey: 'mascot.offline_active',
-      messageFallback: 'لا تقلق من انقطاع الشبكة، بياناتك وتسجيلاتك محفوظة محلياً بأمان!',
+      messageFallback: tStatic('mascot.offline_active'),
       hapticPattern: 'light',
       durationMs: 3500,
     };
@@ -247,7 +252,7 @@ function resolveUserInteractionReaction(context: MascotContext): MascotReaction 
       state: 'attention',
       priority: MASCOT_PRIORITY.ACTION_REQUIRED,
       messageKey: 'mascot.tap_prompt_checkin',
-      messageFallback: 'جلستك جارية الآن! لا تفوّت تسجيل الحضور وتأكيد نقاطك',
+      messageFallback: tStatic('mascot.tap_prompt_checkin'),
       hapticPattern: 'medium',
       pointsToCTA: true,
       durationMs: 3500,
@@ -259,7 +264,7 @@ function resolveUserInteractionReaction(context: MascotContext): MascotReaction 
       state: 'ready',
       priority: MASCOT_PRIORITY.CONTEXTUAL,
       messageKey: 'mascot.tap_cert_progress',
-      messageFallback: `باقي لك ${context.neededForCert} جلسات لتحقيق نسبة الـ 75% واستحقاق الشهادة 🎓`,
+      messageFallback: tStatic('mascot.tap_cert_progress', { sessions: context.neededForCert }),
       hapticPattern: 'light',
       durationMs: 3500,
     };
@@ -270,7 +275,7 @@ function resolveUserInteractionReaction(context: MascotContext): MascotReaction 
       state: 'streak_fire',
       priority: MASCOT_PRIORITY.ACHIEVEMENT,
       messageKey: 'mascot.tap_streak_praise',
-      messageFallback: `فخور بالتزامك! ${context.streakWeeks} أسابيع متتالية من التميز 🔥`,
+      messageFallback: tStatic('mascot.tap_streak_praise', { weeks: context.streakWeeks }),
       hapticPattern: 'light',
       durationMs: 3500,
     };
@@ -280,7 +285,7 @@ function resolveUserInteractionReaction(context: MascotContext): MascotReaction 
     state: 'welcome',
     priority: MASCOT_PRIORITY.CONTEXTUAL,
     messageKey: 'mascot.tap_general_cheer',
-    messageFallback: 'معاً في مسار لتحقيق أهدافك التدريبية واكتساب المهارات! 🦅',
+    messageFallback: tStatic('mascot.tap_general_cheer'),
     hapticPattern: 'light',
     durationMs: 3000,
   };
@@ -291,7 +296,7 @@ function resolveDefaultIdleReaction(context: MascotContext): MascotReaction {
     return {
       state: 'offline',
       priority: MASCOT_PRIORITY.IDLE,
-      messageFallback: 'وضع عدم الاتصال',
+      messageFallback: tStatic('mascot.idle_offline'),
     };
   }
 
@@ -300,7 +305,7 @@ function resolveDefaultIdleReaction(context: MascotContext): MascotReaction {
       state: 'attention',
       priority: MASCOT_PRIORITY.ACTION_REQUIRED,
       messageKey: 'mascot.session_live_action',
-      messageFallback: 'جلسة تدريبية جارية الآن — سجّل حضورك',
+      messageFallback: tStatic('mascot.idle_session_now'),
       pointsToCTA: true,
     };
   }

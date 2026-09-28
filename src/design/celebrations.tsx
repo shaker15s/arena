@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Platform, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './theme';
@@ -17,6 +17,9 @@ import { radii, spacing } from './tokens';
 import { useI18n } from '../i18n';
 import { MasarMascot } from './mascot';
 import { ConfettiExplosion } from './animations';
+import { Icon } from './icons';
+import { useFocusTrap } from './a11y/useFocusTrap';
+import { PUBLIC_APP_URL } from '../shared/links';
 
 // ── جسيمات الكونفيتي ──
 const CONFETTI_COLORS = ['#007AFF', '#5856D6', '#30D158', '#FF9F0A', '#FF3B30', '#FFB800', '#34C759'];
@@ -116,6 +119,8 @@ export function CelebrationModal({
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
   const flyAnim = useRef(new Animated.Value(0)).current;
+  // A11Y-12: حصر التركيز داخل نافذة الاحتفال + Escape يُغلق + إرجاع التركيز
+  const trapRef = useFocusTrap<View>({ active: visible, onEscape: onClose });
   useEffect(() => {
     if (visible && points != null && fly) {
       flyAnim.setValue(0);
@@ -130,8 +135,12 @@ export function CelebrationModal({
         <ConfettiBurst count={30} />
         <ConfettiExplosion count={32} />
         <Animated.View
+          ref={trapRef as unknown as React.Ref<View>}
           accessibilityRole="alert"
           accessibilityLabel={`${title}. ${subtitle ?? ''}`}
+          {...(Platform.OS === 'web'
+            ? ({ role: 'alertdialog', 'aria-modal': true, 'aria-label': title } as unknown as object)
+            : {})}
           style={{
             backgroundColor: theme.card,
             borderRadius: radii.xl,
@@ -164,7 +173,7 @@ export function CelebrationModal({
           ) : null}
           {streakSafe ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="flame" size={18} color={theme.flameFrom} />
+              <Icon name="flame" size={18} color={theme.flameFrom} />
               <Text style={{ fontSize: 24 }}>{emoji}</Text>
             </View>
           ) : null}
@@ -177,16 +186,21 @@ export function CelebrationModal({
                 if (!isReducedMotion()) {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                 }
-                const shareText = `🎓 ${title}\n${subtitle ? subtitle + '\n' : ''}${points != null ? `+${points} نقطة في مسار!\n` : ''}https://arena-rho-seven.vercel.app`;
+                const shareText = t('share.achievementText', {
+                  title,
+                  subtitle: subtitle ? `${subtitle}\n` : '',
+                  points: points != null ? `${t('share.pointsLine', { points })}\n` : '',
+                  url: PUBLIC_APP_URL,
+                });
                 if (Platform.OS === 'web') {
                   if (typeof navigator !== 'undefined' && navigator.share) {
-                    await navigator.share({ title, text: shareText, url: 'https://arena-rho-seven.vercel.app' }).catch(() => {});
+                    await navigator.share({ title, text: shareText, url: PUBLIC_APP_URL }).catch(() => {});
                   } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
                     await navigator.clipboard.writeText(shareText);
                   }
                 } else {
                   if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync('https://arena-rho-seven.vercel.app', { dialogTitle: title });
+                    await Sharing.shareAsync(PUBLIC_APP_URL, { dialogTitle: title });
                   }
                 }
               }}
@@ -210,6 +224,8 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
   const { t } = useI18n();
   const scale = useRef(new Animated.Value(0.3)).current;
   const rotate = useRef(new Animated.Value(0)).current;
+  // A11Y-12: حصر التركيز داخل نافذة الشارة
+  const trapRef = useFocusTrap<View>({ active: visible, onEscape: onClose });
   useEffect(() => {
     if (visible) {
       scale.setValue(isReducedMotion() ? 1 : 0.3);
@@ -231,8 +247,12 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
       <View style={{ flex: 1, backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.s5 }}>
         <ConfettiBurst count={30} />
         <Animated.View
+          ref={trapRef as unknown as React.Ref<View>}
           accessibilityRole="alert"
-          accessibilityLabel={`شارة جديدة: ${badgeName}. ${badgeDesc}`}
+          accessibilityLabel={t('a11y.newBadge', { name: badgeName, desc: badgeDesc })}
+          {...(Platform.OS === 'web'
+            ? ({ role: 'alertdialog', 'aria-modal': true, 'aria-label': badgeName } as unknown as object)
+            : {})}
           style={{
             transform: [{ scale }, { rotateY: rotateDeg }],
             backgroundColor: theme.card,
@@ -267,7 +287,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
               shadowRadius: 16,
               shadowOffset: { width: 0, height: 6 },
             }}>
-              <Ionicons name={icon} size={52} color={rarityColor} />
+              <Icon name={icon} size={52} color={rarityColor} />
             </Animated.View>
           </View>
           <Txt variant="caption" color={rarityColor}>{rarityLabel}</Txt>

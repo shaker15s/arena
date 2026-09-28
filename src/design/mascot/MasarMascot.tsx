@@ -31,6 +31,7 @@ import * as Haptics from 'expo-haptics';
 import { Txt } from '../components';
 import { radii, spacing } from '../tokens';
 import { isReducedMotion } from '../motion';
+import { tStatic, useI18n, type DictKey } from '../../i18n';
 import { FatenBehaviorState } from './mascot.types';
 import { mascotTokens } from './mascot.tokens';
 
@@ -96,101 +97,104 @@ function normalizeToBehavior(input?: MascotMode | FatenBehaviorState): FatenBeha
   }
 }
 
-const CHEERFUL_PHRASES: Record<FatenBehaviorState, string[]> = {
+// A11Y-33 + §4 (فطن 3.0): كل العبارات من i18n بالعربية والإنجليزية — لا نص مضمّن.
+const PHRASE_KEYS: Record<FatenBehaviorState, DictKey[]> = {
   welcome: [
-    '«إنما العلم بالتعلم، وإنما الحلم بالتحلم» — النبي محمد ﷺ',
-    '«من سلك طريقاً يلتمس فيه علماً سهّل الله له به طريقاً إلى الجنة» — النبي محمد ﷺ',
-    '«سر المضي قدماً هو البدء» — مارك توين',
-    '«ابدأ حيث أنت، استخدم ما تملك، وافعل ما تستطيع» — آرثر آش',
-    '«العالم كتاب، ومن لا يتعلم لا يقرأ منه سوى صفحة واحدة» — القديس أوغسطينوس',
-    '«كل صباح يولد أمل جديد وفرصة لبناء مسارك» — رالف والدو إمرسون',
-    '«اطلبوا العلم من المهد إلى اللحد» — أثر عربي أصيل',
-    'أهلاً بك يا بطل في مسار! جاهز لإنجاز اليوم؟ 🚀',
+    'mascot.p.welcome.1',
+    'mascot.p.welcome.2',
+    'mascot.p.welcome.3',
+    'mascot.p.welcome.4',
+    'mascot.p.welcome.5',
+    'mascot.p.welcome.6',
+    'mascot.p.welcome.7',
+    'mascot.p.welcome.8',
   ],
   streak_fire: [
-    '«على قدر أهل العزم تأتي العزائم، وتأتي على قدر الكرام المكارم» — المتنبي',
-    '«التدريب يصنع الأبطال، والانضباط يجعلهم أساطير» — محمد علي كلاي',
-    '«الالتزام اليومي البسيط يولد نتائج مذهلة مع مرور الأيام» — جيمس كلير',
-    '«وما نيل المطالب بالتمني، ولكن تؤخذ الدنيا غلاباً» — أحمد شوقي',
-    '«الاستمرارية تثقب الصخر.. التزامك يصنع المعجزات» — حكمة عربية',
-    '«قوة الإرادة هي الفرق الحقيقي بين النجاح والتميز» — ابن خلدون',
-    '«المثابرة سر كل عظمة في التاريخ» — سامويل جونسون',
-    'الستريك مشتعل! استمرارك يصنع الفارق 🛡️🔥',
+    'mascot.p.streak_fire.1',
+    'mascot.p.streak_fire.2',
+    'mascot.p.streak_fire.3',
+    'mascot.p.streak_fire.4',
+    'mascot.p.streak_fire.5',
+    'mascot.p.streak_fire.6',
+    'mascot.p.streak_fire.7',
+    'mascot.p.streak_fire.8',
   ],
   achievement: [
-    '«إذا غامَرْتَ في شَرَفٍ مَرُومِ، فَلا تَقنَعْ بما دونَ النّجومِ» — المتنبي',
-    '«التعليم هو أقوى سلاح يمكنك استخدامه لتغيير العالم» — نيلسون مانديلا',
-    '«النجاح ليس صدفة، بل هو تعلّم وتضحية وحب لما تصنعه» — بيليه',
-    '«كل إنجاز عظيم كان في بدايته مجرد قرار بالمحاولة» — غاندي',
-    '«قيمة كل امرئ ما يحسنه ويتقنه» — الإمام علي بن أبي طالب',
-    '«المستقبل ينتمي لأولئك الذين يؤمنون بجمال أحلامهم» — إليانور روزفلت',
-    '«من جدّ وجد، ومن زرع حصد» — مثل عربي أصيل',
-    'مبروووك! إنجاز يستحق الفخر.. أنت أسطورة مسار اليوم! 🌟🏆',
+    'mascot.p.achievement.1',
+    'mascot.p.achievement.2',
+    'mascot.p.achievement.3',
+    'mascot.p.achievement.4',
+    'mascot.p.achievement.5',
+    'mascot.p.achievement.6',
+    'mascot.p.achievement.7',
+    'mascot.p.achievement.8',
   ],
   success: [
-    '«العلم كالشجرة، وثمرته العمل والالتزام» — الإمام الغزالي',
-    '«لا تخف من التقدم ببطء، بل خف فقط من الوقوف ساكناً» — حكمة صينية',
-    '«أحسنت صنعاً! حضورك اليوم لبنة جديدة في قصر نجاحك» — مثل عربي',
-    '«لا تحقرن من المعروف شيئاً، كل خطوة تدريب تقربك لقمة هدفك» — النبي محمد ﷺ',
-    '«الجهد المتواصل — وليس الذكاء أو القوة — هو مفتاح إطلاق طاقاتنا» — ونستون تشرشل',
-    'تم توثيق حضورك وحفظ نقاطك بأمان في مسار! 🦅✨',
+    'mascot.p.success.1',
+    'mascot.p.success.2',
+    'mascot.p.success.3',
+    'mascot.p.success.4',
+    'mascot.p.success.5',
+    'mascot.p.success.6',
   ],
   recovery: [
-    '«السقوط ليس فشلاً، الفشل أن تبقى حيث سقطت» — سقراط',
-    '«إن مع العسر يسراً.. لا بأس، غداً بداية أقوى بإذن الله» — القرآن الكريم',
-    '«النجاح هو الانتقال من تعثر إلى تعثر دون فقدان الحماس» — ونستون تشرشل',
-    '«ما لا يكسرك يجعلك أقوى وأكثر حكمة» — فريدريك نيتشه',
-    '«احرص على ما ينفعك، واستعن بالله ولا تعجز» — النبي محمد ﷺ',
-    '«العقبات هي تلك الأشياء المخيفة التي تراها عندما تصرف عينيك عن هدفك» — هنري فورد',
-    '«لا يكلف الله نفساً إلا وسعها.. استعد للجلسة القادمة بقلب واثق» — القرآن الكريم',
-    'عثرة اليوم بداية قفزة الغد! فطن معك خطوة بخطوة 💚',
+    'mascot.p.recovery.1',
+    'mascot.p.recovery.2',
+    'mascot.p.recovery.3',
+    'mascot.p.recovery.4',
+    'mascot.p.recovery.5',
+    'mascot.p.recovery.6',
+    'mascot.p.recovery.7',
+    'mascot.p.recovery.8',
   ],
   attention: [
-    '«الوقت كالسيف، إن لم تقطعه قطعك» — الإمام الشافعي',
-    '«من لم يذق مرّ التعلم ساعةً، تجرّع ذلّ الجهل طول حياته» — الإمام الشافعي',
-    '«أفضل وقت لغرس شجرة كان قبل عشرين عاماً، والوقت الثاني الأفضل هو الآن» — حكمة مأثورة',
-    'المحاضرة بدأت الآن في القاعة! سجّل حضورك وثبّت نقاطك ⚡🎯',
+    'mascot.p.attention.1',
+    'mascot.p.attention.2',
+    'mascot.p.attention.3',
+    'mascot.p.attention.4',
   ],
   working: [
-    '«إن الله يحب إذا عمل أحدكم عملاً أن يتقنه» — النبي محمد ﷺ',
-    '«التدقيق والتوثيق أساس الأمان والإتقان» — مثل عربي',
-    'أتحقق من البيانات والأمان.. نوثق حضورك بأمان 🔍⏳',
+    'mascot.p.working.1',
+    'mascot.p.working.2',
+    'mascot.p.working.3',
   ],
   ready: [
-    '«لا تتمنّ أن تكون الأمور أسهل، بل تمنّ أن تكون أنت أفضل» — جيم رون',
-    '«الطريق إلى التميز يبدأ بقرار الحضور والانتباه» — أرسطو',
-    '«العلم نور يضيء لك دروب المستقبل والعمل» — ابن القيم',
-    '«تفاءلوا بالخير تجدوه.. استعد لمحاضرة ممتعة اليوم» — أثر عربي',
-    'مستعد للمحاضرة؟ جهّز أدواتك واشحذ همتك! 🎯✨',
+    'mascot.p.ready.1',
+    'mascot.p.ready.2',
+    'mascot.p.ready.3',
+    'mascot.p.ready.4',
+    'mascot.p.ready.5',
   ],
   alert: [
-    '«التفريط في البدايات يورث الحسرة في النهايات» — ابن الجوزي',
-    '«استثمر ساعتك الحالية، فالأيام تمضي سراعاً» — الحسن البصري',
-    'سلسلة التزامك في خطر! بادر بتوثيق حضورك اليوم 🔥⏱️',
+    'mascot.p.alert.1',
+    'mascot.p.alert.2',
+    'mascot.p.alert.3',
   ],
   offline: [
-    '«العلم في الصدور لا في السطور.. بياناتك في أمان تام» — أثر عربي',
-    'بياناتك محفوظة محلياً بدون إنترنت، وسنرفعها فور عودة الشبكة 💾🌐',
+    'mascot.p.offline.1',
+    'mascot.p.offline.2',
   ],
   quiet: [
-    '«مسار.. معاً نصنع قادة الغد ورواد التدريب» — مسار 🦅',
-    '«من أراد العلا سهر الليالي وجدّ واجتهد» — الإمام الشافعي',
+    'mascot.p.quiet.1',
+    'mascot.p.quiet.2',
   ],
   idle: [
-    '«أنا لست عبقرياً، لكني فضولي وشغوف ومثابر بشكل دائم» — ألبرت أينشتاين',
-    '«ليس اليتيم من مات والده، إن اليتيم يتيم العلم والأدب» — الإمام علي بن أبي طالب',
-    '«العلم يبني بيوتاً لا عماد لها، والجهل يهدم بيت العز والشرف» — أحمد شوقي',
-    '«الشغف هو الطاقة؛ اشعر بالقوة التي تأتي من تركيزك على ما يثير حماسك» — أوبرا وينفري',
-    '«إذا أردت أن تعيش حياة سعيدة فاربطها بهدف نبيل» — ألبرت أينشتاين',
-    '«لا تحكم على يومك بما تحصده، بل بما تزرعه من علم وسعي» — روبرت ستيفنسون',
-    '«الموهبة تمنحك البداية، لكن الانضباط والمثابرة هما ما يوصلك للنهاية» — مايكل جوردان',
-    'معاً نحو قمة التدريب والإنجاز! خطوة بخطوة نحو التميز 🦅✨',
+    'mascot.p.idle.1',
+    'mascot.p.idle.2',
+    'mascot.p.idle.3',
+    'mascot.p.idle.4',
+    'mascot.p.idle.5',
+    'mascot.p.idle.6',
+    'mascot.p.idle.7',
+    'mascot.p.idle.8',
   ],
 };
 
+
 export function getRandomMascotQuote(behavior: FatenBehaviorState = 'idle'): string {
-  const list = CHEERFUL_PHRASES[behavior] || CHEERFUL_PHRASES.idle;
-  return list[Math.floor(Math.random() * list.length)];
+  const list = PHRASE_KEYS[behavior] || PHRASE_KEYS.idle;
+  const key = list[Math.floor(Math.random() * list.length)];
+  return tStatic(key);
 }
 
 export function MasarMascot({
@@ -205,6 +209,8 @@ export function MasarMascot({
   hideFloatingBubble = false,
   colorMode = 'light',
 }: MasarMascotProps) {
+  // A11Y-33: أسماء التميمة تُترجم (لا نصوص عربية مضمّنة).
+  const { t } = useI18n();
   const activeBehavior: FatenBehaviorState = normalizeToBehavior(behavior || mode);
   const isScannerMode = mode === 'scanner';
 
@@ -455,8 +461,8 @@ export function MasarMascot({
       }),
     ]).start();
 
-    const list = CHEERFUL_PHRASES[activeBehavior] || CHEERFUL_PHRASES.idle;
-    const picked = speechText || list[Math.floor(Math.random() * list.length)];
+    const list = PHRASE_KEYS[activeBehavior] || PHRASE_KEYS.idle;
+    const picked = speechText || tStatic(list[Math.floor(Math.random() * list.length)]);
     setCurrentPhrase(picked);
 
     if (onQuoteChange) onQuoteChange(picked);
@@ -721,7 +727,7 @@ export function MasarMascot({
       {interactive || onPress ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="التفاعل مع صقر مسار فطن"
+          accessibilityLabel={t('a11y.mascotInteract')}
           onPress={handlePress}
         >
           {mascotContent}

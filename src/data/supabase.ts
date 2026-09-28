@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import type { Database } from '../types/database';
 
 /**
@@ -145,11 +146,72 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error: string |
 }
 
 /**
+ * الدخول بحساب Apple على iOS عبر واجهة النظام (AuthenticationServices):
+ * لا متصفح، لا إعادة توجيه، وواجهة نظام مترجَمة تلقائيًا.
+ *
+ * قرار الـ nonce (مُتحقَّق من المصدر، لا اجتهاد):
+ * خادم Supabase (GoTrue) يفحص الـ nonce بمقارنة ترميزه hex لـ SHA-256 مع قيمة
+ * الـ claim داخل توكن المزوّد، بينما تدفّق Apple يضع القيمة بترميز base64url ⇒
+ * خطأ «Nonces mismatch» موثّق في supabase/auth#2378 (وإصلاحه المقترح #2822).
+ * لذلك لا نُرسل nonce على هذا المسار إطلاقًا: GoTrue يتخطى الفحص عند غياب
+ * الـ claim (شرطه: وجودهما معًا أو غيابهما معًا)، والتوكن هنا يُستلم داخل
+ * العملية من النظام مباشرةً — لا يمرّ برابط إعادة توجيه قابل للاعتراض، وهو
+ * الخطر الوحيد الذي يحميه الـ nonce. ويبقى التحقق الخادمي كاملًا: التوقيع
+ * و iss/aud/exp مقابل Apple.
+ */
+export async function signInWithAppleNative(): Promise<{ handled: boolean; ok: boolean; error: string | null }> {
+  if (Platform.OS !== 'ios') return { handled: false, ok: false, error: null };
+  if (!SUPABASE_ENABLED) return { handled: true, ok: false, error: 'not-configured' };
+
+  let available = false;
+  try { available = await AppleAuthentication.isAvailableAsync(); } catch { available = false; }
+  // على iOS ما قبل 13 (أو إن غاب الموديول) نعود لتدفق OAuth بدل تعطيل الزر.
+  if (!available) return { handled: false, ok: false, error: null };
+
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+    const identityToken = credential.identityToken;
+    if (!identityToken) return { handled: true, ok: false, error: 'apple-identity-token-missing' };
+
+    const sb = getSupabase();
+    const { error } = await sb.auth.signInWithIdToken({ provider: 'apple', token: identityToken });
+    if (error) return { handled: true, ok: false, error: error.message };
+
+    // Apple ترسل الاسم مرة واحدة فقط عند أول تسجيل — نحفظه وإلا ضاع نهائيًا.
+    const fullName = credential.fullName ? AppleAuthentication.formatFullName(credential.fullName) : '';
+    if (fullName && fullName.trim()) {
+      await sb.auth.updateUser({
+        data: {
+          full_name: fullName,
+          given_name: credential.fullName?.givenName ?? null,
+          family_name: credential.fullName?.familyName ?? null,
+        },
+      });
+    }
+    return { handled: true, ok: true, error: null };
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    if (err.code === 'ERR_REQUEST_CANCELED') return { handled: true, ok: false, error: 'cancelled' };
+    return { handled: true, ok: false, error: err.message ?? 'apple-native-failed' };
+  }
+}
+
+/**
  * الدخول بحساب Apple.
- * الويب: إعادة توجيه كاملة. الموبايل: متصفح آمن + التقاط التوكنات من الـ deep link.
+ * iOS: واجهة النظام الأصلية. الويب/أندرويد: OAuth (إعادة توجيه على الويب،
+ * متصفح آمن + التقاط التوكنات من الـ deep link على أندرويد).
  */
 export async function signInWithApple(): Promise<{ ok: boolean; error: string | null }> {
   if (!SUPABASE_ENABLED) return { ok: false, error: 'not-configured' };
+
+  const native = await signInWithAppleNative();
+  if (native.handled) return { ok: native.ok, error: native.error };
+
   const sb = getSupabase();
   const redirectTo = authRedirectUrl();
 

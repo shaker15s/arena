@@ -3,16 +3,17 @@ import { Animated, Easing, Image, PanResponder, Platform, Pressable, StatusBar a
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  useFonts,
-  IBMPlexSansArabic_400Regular,
-  IBMPlexSansArabic_500Medium,
-  IBMPlexSansArabic_600SemiBold,
-  IBMPlexSansArabic_700Bold,
-} from '@expo-google-fonts/ibm-plex-sans-arabic';
-import { Ionicons } from '@expo/vector-icons';
+// استيراد الأوزان المستخدمة فقط من مساراتها المباشرة — البرميل يجلب 7 أوزان
+// (~1.35MB) بينما التصميم يستخدم 4 فقط (regular/medium/semibold/bold).
+import { useFonts } from 'expo-font';
+import { IBMPlexSansArabic_400Regular } from '@expo-google-fonts/ibm-plex-sans-arabic/400Regular';
+import { IBMPlexSansArabic_500Medium } from '@expo-google-fonts/ibm-plex-sans-arabic/500Medium';
+import { IBMPlexSansArabic_600SemiBold } from '@expo-google-fonts/ibm-plex-sans-arabic/600SemiBold';
+import { IBMPlexSansArabic_700Bold } from '@expo-google-fonts/ibm-plex-sans-arabic/700Bold';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
 import { ThemeProvider, useTheme } from '../design/theme';
+import { A11yPreferencesProvider } from '../design/preferences';
 import { I18nProvider } from '../i18n';
 import { AppProvider, useApp } from '../data/store';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
@@ -27,6 +28,7 @@ import { useI18n } from '../i18n';
 import { useHaptics } from '../shared/hooks';
 import { BadgeModal } from '../design/celebrations';
 import type { Badge } from '../data/types';
+import { Icon } from '../design/icons';
 
 /** S01 — Apple-style Splash: اللوجو يتجمع مع توهج ثم fade */
 function BootSplash() {
@@ -132,6 +134,7 @@ function ToastItem({
   kind: 'info' | 'success' | 'error' | 'warn';
   onDismiss: (id: number) => void;
 }) {
+  const { t } = useI18n();
   const { theme, isDark } = useTheme();
   const { notificationError, notificationSuccess, impactLight } = useHaptics();
   const entrance = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
@@ -227,14 +230,14 @@ function ToastItem({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 }}>
           <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}1F`, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name={icon} size={18} color={color} />
+            <Icon name={icon} size={18} color={color} />
           </View>
           <Txt variant="caption" color={theme.text} style={{ flex: 1, fontWeight: '500' }}>
             {message}
           </Txt>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="إغلاق الإشعار"
+            accessibilityLabel={t('a11y.toastDismiss')}
             hitSlop={8}
             onPress={dismiss}
             style={({ pressed }) => ({
@@ -244,7 +247,7 @@ function ToastItem({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Ionicons name="close" size={16} color={theme.textSecondary} />
+            <Icon name="close" size={16} color={theme.textSecondary} />
           </Pressable>
         </View>
       </GlassSurface>
@@ -254,6 +257,7 @@ function ToastItem({
 
 function ToastHost() {
   const { toasts, dismissToast } = useApp();
+  const { t } = useI18n();
   if (toasts.length === 0) return null;
   return (
     <View
@@ -287,7 +291,7 @@ function SetupRequired() {
               colors={[theme.warn, theme.danger]}
               style={{ width: 82, height: 82, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }}
             >
-              <Ionicons name="construct" size={38} color="#fff" />
+              <Icon name="construct" size={38} color="#fff" />
             </LinearGradient>
             <Txt variant="h2" align="center">{t('common.setupRequired')}</Txt>
             <Txt variant="body" color={theme.textSecondary} align="center">{t('auth.notConfigured')}</Txt>
@@ -419,12 +423,14 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <ThemeProvider>
+          <A11yPreferencesProvider>
           <I18nProvider>
             <AppProvider>
               <RNStatusBar barStyle="default" />
               <Shell />
             </AppProvider>
           </I18nProvider>
+          </A11yPreferencesProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
@@ -17,6 +17,7 @@ import { spacing } from '../../design/tokens';
 import { easing, isReducedMotion } from '../../design/motion';
 import type { Db } from '../../data/types';
 import { toCsv, saveCsv } from '../../shared/export';
+import { Icon } from '../../design/icons';
 
 export function DashboardScreen({ navigation: propNav }: any) {
   const hookNav = useNavigation<any>();
@@ -262,7 +263,7 @@ function KpiCard({ icon, color, value, suffix, label, index }: { icon: keyof typ
     <FadeIn index={index} style={{ flexGrow: 1, minWidth: 150, flexBasis: '30%' }}>
       <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 18 }}>
         <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={icon} size={22} color={color} />
+          <Icon name={icon} size={22} color={color} />
         </View>
         <Row center gap={2}>
           <CountUp value={value} variant="numberHero" />

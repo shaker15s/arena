@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../../design/theme';
 import { useI18n } from '../../../i18n';
 import {
@@ -11,6 +11,7 @@ import { attendancePct, isBatchComplete, profileOf } from '../../../data/engine'
 import { Metric, Info } from './CourseManagementSheets';
 import type { Batch, Course, CourseRole, Db, Profile, TrainingSession } from '../../../data/types';
 import type { DetailedCourseAnalytics } from '../../../data/actions';
+import { Icon } from '../../../design/icons';
 
 export function CourseOverviewTab({
   db,
@@ -92,7 +93,7 @@ export function CourseOverviewTab({
       <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44' }}>
         <Row center between>
           <Row center gap={8}>
-            <Ionicons name="qr-code" size={20} color={theme.brand} />
+            <Icon name="qr-code" size={20} color={theme.brand} />
             <Txt variant="bodyMed" color={theme.brand}>{t('joinCode.title')}</Txt>
           </Row>
           <Tag label={batch.joinCode} color={theme.brand} bg="#fff" />

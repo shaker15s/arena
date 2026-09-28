@@ -7,6 +7,17 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { captureError } from './telemetry';
+import { ar } from '../i18n/ar';
+import { en } from '../i18n/en';
+
+/**
+ * A11Y-33: الحاجز لا يستهلك الثيم/الـi18n عبر الهوكس (يجب أن يعمل حتى لو انهار
+ * السياق نفسه)، لذلك يقرأ النصوص من القاموسين مباشرة بلا أي مزوّد.
+ */
+const retryLabel = ar['a11y.errorRetry'];
+const titleLabel = ar['a11y.errorTitle'];
+const titleLabelEn = en['a11y.errorTitle'];
+const bodyLabel = ar['a11y.errorBody'];
 
 interface Props { children: React.ReactNode }
 interface State { error: Error | null }
@@ -34,7 +45,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <View style={{ maxWidth: 420, width: '100%', backgroundColor: '#1E293B', borderRadius: 20, padding: 24, gap: 12 }}>
           <Text style={{ fontSize: 40, textAlign: 'center' }}>⚠️</Text>
           <Text style={{ color: '#F8FAFC', fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
-            حدث خطأ غير متوقع{'\n'}Something went wrong
+            {titleLabel}{'\n'}{titleLabelEn}
           </Text>
           <Text style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center' }} numberOfLines={3}>
             {this.state.error.message}
@@ -42,7 +53,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <Pressable
             onPress={this.reset}
             accessibilityRole="button"
-            accessibilityLabel="إعادة المحاولة — Try again"
+            accessibilityLabel={retryLabel}
             style={({ pressed }) => ({
               backgroundColor: pressed ? '#2563EB' : '#3B82F6',
               borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 4,

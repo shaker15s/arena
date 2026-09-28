@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../../data/store';
 import { useTheme } from '../../../design/theme';
 import { useI18n } from '../../../i18n';
@@ -15,6 +15,7 @@ import {
   getBatchRoster, getSessionRoster, rescheduleTrainingSession, updateCourse,
 } from '../../../data/actions';
 import type { CourseRoleType, TrainingSession } from '../../../data/types';
+import { Icon } from '../../../design/icons';
 
 export function RescheduleSessionSheet({
   visible,
@@ -229,7 +230,7 @@ export function AssignCourseRoleSheet({
                 <Txt variant="micro" color={theme.textMuted}>{cand.role} · {cand.phone}</Txt>
               </View>
               {selectedUserId === cand.id ? (
-                <Ionicons name="checkmark-circle" size={22} color={theme.brand} />
+                <Icon name="checkmark-circle" size={22} color={theme.brand} />
               ) : null}
             </Row>
           </Card>
@@ -550,7 +551,7 @@ export function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyph
   const { theme } = useTheme();
   return (
     <Row center gap={8} style={{ marginTop: 8 }}>
-      <Ionicons name={icon} size={15} color={theme.brand} />
+      <Icon name={icon} size={15} color={theme.brand} />
       <Txt variant="micro" color={theme.textMuted}>{label}</Txt>
       <Txt variant="caption" style={{ flex: 1 }}>{value}</Txt>
     </Row>

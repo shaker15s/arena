@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
@@ -11,9 +11,10 @@ import {
 import { PillGradientSearchInput } from '../../design/interactive';
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
-import { matchesAny } from '../../shared/search';
+import { useDeferredSearch } from '../../shared/useSearch';
 import type { Role } from '../../data/types';
 import { updateUserAccess } from '../../data/actions';
+import { Icon } from '../../design/icons';
 
 export function UsersScreen() {
   const { t } = useI18n();
@@ -23,22 +24,19 @@ export function UsersScreen() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [selected, setSelected] = useState<string | null>(null);
 
-  const debouncedQuery = useDebounce(query, 250);
 
   const roles = ['all', 'student', 'volunteer', 'supervisor', 'admin'];
   const roleLabel: Record<string, string> = {
     student: t('common.student'), volunteer: t('common.volunteer'), supervisor: t('common.supervisor'), admin: t('common.admin'),
   };
 
-  const list = useMemo(() => {
-    return db.profiles.filter((p) => {
-      if (roleFilter !== 'all' && p.role !== roleFilter) return false;
-      if (debouncedQuery.trim()) {
-        return matchesAny([p.fullName, p.phone, p.email], debouncedQuery);
-      }
-      return true;
-    });
-  }, [db.profiles, roleFilter, debouncedQuery]);
+  const scoped = useMemo(
+    () => db.profiles.filter((p) => roleFilter === 'all' || p.role === roleFilter),
+    [db.profiles, roleFilter],
+  );
+
+  // FUNC-07: بحث عربي مُطبَّع ومرتَّب بالملاءمة (أحمد = احمد = أحمَد).
+  const { results: list } = useDeferredSearch(query, scoped, (p) => [p.fullName, p.phone, p.email]);
 
   const selUser = selected ? profileOf(db, selected) : null;
 
@@ -169,7 +167,7 @@ export function UsersScreen() {
 
             <Card glass>
               <Row center gap={8}>
-                <Ionicons name="information-circle" size={15} color={theme.textMuted} />
+                <Icon name="information-circle" size={15} color={theme.textMuted} />
                 <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>
                   {t('users.sessionsAttended')}: {db.attendance.filter((a) => a.userId === selUser.id && a.status !== 'absent').length}
                 </Txt>
