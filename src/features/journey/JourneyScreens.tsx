@@ -591,6 +591,13 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('history.title')} back={() => navigation.goBack()} />
+        {/* FUNC-05: مدخل التماس على سجل الحضور */}
+        <Btn
+          title={t('disputes.entryStudent')}
+          variant="secondary"
+          icon="document-text-outline"
+          onPress={() => navigation.navigate('Disputes', { mode: 'mine' })}
+        />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
         refreshControl={

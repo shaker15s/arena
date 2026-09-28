@@ -17,6 +17,8 @@ import { spacing } from '../../design/tokens';
 import { easing, isReducedMotion } from '../../design/motion';
 import type { Db } from '../../data/types';
 import { toCsv, saveCsv } from '../../shared/export';
+import { anticheatReport, needsAttention, orgWeeklyReport, setReportSubscription, type AnticheatReport, type NeedsAttentionItem, type WeeklyReport } from '../../data/actions';
+import { useA11yPrefsOptional } from '../../design/preferences';
 import { Icon } from '../../design/icons';
 
 export function DashboardScreen({ navigation: propNav }: any) {
@@ -28,6 +30,46 @@ export function DashboardScreen({ navigation: propNav }: any) {
   const tabs = useTabs();
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [exporting, setExporting] = useState(false);
+  // FUNC-09: لوحة «يحتاج تدخلك» — تُجلب من الخادم مرّة واحدة عند فتح اللوحة.
+  const [attention, setAttention] = useState<NeedsAttentionItem[]>([]);
+  // FUNC-12: ملخص التقرير الأسبوعي (نفس حساب الخادم بتوقيت القاهرة).
+  const [weekly, setWeekly] = useState<WeeklyReport | null>(null);
+  // FUNC-17: أحدث إشارات التدقيق ضد التلاعب (للمشرفين).
+  const [signals, setSignals] = useState<AnticheatReport['rows']>([]);
+  const [subBusy, setSubBusy] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void (async () => {
+      try {
+        const [att, report] = await Promise.all([needsAttention(), orgWeeklyReport()]);
+        if (!active) return;
+        setAttention(att.items.filter((i) => i.count > 0 && i.key !== 'live_checkin' && i.key !== 'my_open_disputes'));
+        setWeekly(report);
+        if (user.role !== 'student') {
+          const audit = await anticheatReport(30);
+          if (active) setSignals(audit.rows.slice(0, 3));
+        }
+      } catch {
+        /* اللوحة تعمل ببقية البيانات حتى لو تعذّر جلب الملخص */
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
+
+  const toggleWeeklyReport = async () => {
+    setSubBusy(true);
+    try {
+      await setReportSubscription({ enabled: true, cadence: 'weekly', dayOfWeek: 0, hourLocal: 7 });
+      toast(t('dash.reportSubscribed'), 'success');
+    } catch {
+      toast(t('dash.reportSubFail'), 'error');
+    } finally {
+      setSubBusy(false);
+    }
+  };
+
   if (!user) return null;
 
   const stats = dashboardStats(db, branchFilter === 'all' ? undefined : branchFilter);
@@ -141,8 +183,108 @@ export function DashboardScreen({ navigation: propNav }: any) {
           onPress={handleExportOrgCsv}
         />
 
+        {/* FUNC-09 — كل ما يحتاج تدخلك في بطاقة واحدة، وكل بند له إجراء */}
+        {attention.length > 0 ? (
+          <FadeIn index={5}>
+            <Card>
+              <Row between center style={{ marginBottom: 10 }}>
+                <Txt variant="h3">{t('dash.attention')}</Txt>
+                <Tag label={String(attention.reduce((a, i) => a + i.count, 0))} color={theme.warn} bg={theme.warnSoft} icon="alert" />
+              </Row>
+              <View style={{ gap: 8 }}>
+                {attention.map((item) => (
+                  <Row key={item.key} between center gap={10}>
+                    <Row center gap={8} style={{ flex: 1 }}>
+                      <Icon
+                        name={item.urgency === 'high' ? 'alert-circle' : 'ellipse-outline'}
+                        size={16}
+                        color={item.urgency === 'high' ? theme.danger : theme.textMuted}
+                      />
+                      <Txt variant="caption" style={{ flex: 1 }}>{t(`dash.att.${item.key}` as any)}</Txt>
+                    </Row>
+                    <Tag label={String(item.count)} color={theme.brand} bg={theme.brandSoft} />
+                    <Btn
+                      title={t('dash.attOpen')}
+                      size="sm"
+                      variant="ghost"
+                      onPress={() => {
+                        if (item.key === 'attendance_disputes') navigation.navigate('Disputes', { mode: 'inbox' });
+                        else if (item.key === 'stale_sessions') navigation.navigate('Tabs', { tab: 'live' });
+                        else navigation.navigate('Support');
+                      }}
+                    />
+                  </Row>
+                ))}
+              </View>
+            </Card>
+          </FadeIn>
+        ) : null}
+
+        {/* FUNC-12 — التقرير الأسبوعي (أرقام الخادم بتوقيت القاهرة) */}
+        {weekly ? (
+          <FadeIn index={6}>
+            <Card>
+              <Row between center style={{ marginBottom: 10 }}>
+                <Txt variant="h3">{t('dash.weekly')}</Txt>
+                <Tag label={t('dash.weeklyTz')} color={theme.info} bg={theme.infoSoft} icon="time-outline" />
+              </Row>
+              <Row between center gap={8} style={{ marginBottom: 6 }}>
+                <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklyRate')}</Txt>
+                <Txt variant="bodyMed" color={theme.success}>{weekly.attendance_rate}%</Txt>
+              </Row>
+              <Row between center gap={8} style={{ marginBottom: 6 }}>
+                <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklySessions')}</Txt>
+                <Txt variant="bodyMed">{weekly.sessions_closed} / {weekly.sessions_total}</Txt>
+              </Row>
+              <Row between center gap={8} style={{ marginBottom: 10 }}>
+                <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklyMissing')}</Txt>
+                <Txt variant="bodyMed" color={weekly.sessions_missing_report > 0 ? theme.warn : theme.textMuted}>
+                  {weekly.sessions_missing_report}
+                </Txt>
+              </Row>
+              <Btn
+                title={t('dash.weeklySubscribe')}
+                variant="secondary"
+                size="sm"
+                icon="mail-outline"
+                loading={subBusy}
+                onPress={() => void toggleWeeklyReport()}
+              />
+            </Card>
+          </FadeIn>
+        ) : null}
+
+        {/* FUNC-17 — إشارات التدقيق ضد التلاعب (للمشرفين) */}
+        {signals.length > 0 ? (
+          <FadeIn index={7}>
+            <Card>
+              <Row center gap={8} style={{ marginBottom: 10 }}>
+                <Icon name="shield-half-outline" size={17} color={theme.brand} />
+                <Txt variant="h3" style={{ flex: 1 }}>{t('dash.anticheat')}</Txt>
+              </Row>
+              <View style={{ gap: 8 }}>
+                {signals.map((row) => (
+                  <Row key={row.id} between center gap={10}>
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="caption">{t(`dash.sig.${row.signal}` as any)}</Txt>
+                      <Txt variant="micro" color={theme.textMuted} numberOfLines={1}>
+                        {row.student_name ?? row.session_title ?? ''}
+                      </Txt>
+                    </View>
+                    <Tag
+                      label={row.severity}
+                      color={row.severity === 'high' ? theme.danger : row.severity === 'warn' ? theme.warn : theme.textMuted}
+                      bg={theme.fill}
+                    />
+                  </Row>
+                ))}
+              </View>
+            </Card>
+          </FadeIn>
+        ) : null}
+
         {/* اتجاه الحضور */}
-        <FadeIn index={5}>
+        <FadeIn index={8}>
           <Card>
             <Row between center style={{ marginBottom: 12 }}>
               <Txt variant="h3">{t('dash.trend')}</Txt>

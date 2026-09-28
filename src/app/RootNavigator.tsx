@@ -81,6 +81,7 @@ const StudentRecordScreen = lazyScreen(() => import('../features/volunteer/Volun
 const SessionsHistoryScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'SessionsHistoryScreen');
 const SupportScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'SupportScreen');
 const SettingsScreen = lazyScreen(() => import('../features/settings/SettingsScreen'), 'SettingsScreen');
+const DisputesScreen = lazyScreen(() => import('../features/disputes/DisputesScreen'), 'DisputesScreen');
 
 // ─── سياق التبويبات الداخلية ───
 interface TabsCtx {
@@ -136,6 +137,7 @@ const linking = {
       RulesGuide: 'rules',
       Support: 'support',
       Settings: 'settings',
+      Disputes: 'disputes',
       Verify: 'verify',
       Courses: 'admin/courses',
       BatchesAdmin: 'admin/batches',
@@ -534,6 +536,7 @@ function StudentStack() {
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Disputes" component={DisputesScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
@@ -555,6 +558,7 @@ function VolunteerStack() {
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Disputes" component={DisputesScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
@@ -577,6 +581,7 @@ function AdminStack() {
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Disputes" component={DisputesScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />

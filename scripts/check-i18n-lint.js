@@ -41,6 +41,8 @@ function walk(dir, acc = []) {
 
 function stripComments(s) {
   return s
+    // تعليقات JSX {\/* … *\/} أولًا — أشهر صيغة تعليق في هذا المشروع
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
     .replace(/\/\/.*$/gm, '');
