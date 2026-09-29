@@ -9,7 +9,7 @@ import {
 } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import {
-  Avatar, Btn, Card, Chip, Empty, Header, Input, Row, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
+  Avatar, Btn, Card, Chip, Empty, Header, Input, Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { spacing } from '../../design/tokens';
@@ -104,7 +104,7 @@ export function RequestsScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('requests.title')} style={{ flex: 1 }}>
       <Header title={t('requests.title')} back={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 40, gap: 12 }}
@@ -213,6 +213,6 @@ export function RequestsScreen({ navigation }: any) {
           </ScrollView>
         ) : null}
       </Sheet>
-    </View>
+    </Screen>
   );
 }

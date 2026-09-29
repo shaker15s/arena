@@ -15,7 +15,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, Chip, CustomSwitch, Empty, FadeIn, Header, Input,
-  ListRow, Row, Segmented, Sheet, Spacer, Tag, Txt,
+  ListRow, Row, Screen, Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
@@ -38,7 +38,7 @@ export function HubScreen() {
   const [tab, setTab] = useState<HubTab>('rules');
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('tabs.hub')} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}>
         <Header title={t('tabs.hub')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
@@ -64,7 +64,7 @@ export function HubScreen() {
         {tab === 'audit' ? <AuditLog /> : null}
         {tab === 'analytics' ? <AnalyticsPanel /> : null}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -571,7 +571,7 @@ export function IssueCertificatesScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('issue.title')} style={{ flex: 1 }}>
       <Header title={t('issue.title')} back={() => navigation.goBack()} subtitle={t('issue.ruleNote', { pct: pctRule })} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
         {completedBatches.length === 0 ? (
@@ -633,6 +633,6 @@ export function IssueCertificatesScreen({ navigation }: any) {
         subtitle={t('certs.congrats')}
         emoji="🎓"
       />
-    </View>
+    </Screen>
   );
 }

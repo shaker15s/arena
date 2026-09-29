@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, I18nManager, Platform, Pressable, ToastAndroid, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, I18nManager, Keyboard, Platform, Pressable, ToastAndroid, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -252,10 +252,38 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const fabScale = useRef(new Animated.Value(1)).current;
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // A11Y-12 (WCAG 2.4.11): إخفاء الشريط السفلي والـ FAB عند ظهور لوحة المفاتيح على الجوال لمنع حجب الحقل النشط
+  useEffect(() => {
+    if (Platform.OS === 'web') return undefined;
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardOpen(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardOpen(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  if (keyboardOpen && Platform.OS !== 'web') return null;
 
   return (
     <View
       pointerEvents="box-none"
+      onLayout={(e) => {
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+          const h = Math.ceil(e.nativeEvent.layout.height);
+          if (h > 0) {
+            document.documentElement.style.setProperty('--masar-tabbar-h', String(h + 32) + 'px');
+          }
+        }
+      }}
       // A11Y-05: معلم تنقّل حقيقي على الويب (قارئ الشاشة يقفز إليه بـ D/N في NVDA).
       {...(Platform.OS === 'web'
         ? ({ role: 'navigation', 'aria-label': t('a11y.mainNav') } as unknown as object)

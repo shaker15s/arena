@@ -15,7 +15,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
-  Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
+  Screen, Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { DayStatus } from '../../design/components/StreakCalendarGrid';
@@ -43,7 +43,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
   })();
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('journey.title')} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 120 }}
         refreshControl={
@@ -127,7 +127,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
           )}
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -242,7 +242,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const isEligibleForCert = totalClosed >= sessions.length * 0.75 && attendanceRate >= minCertPct;
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={course.title} style={{ flex: 1 }}>
       <Header
         title={course.title}
         subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`}
@@ -551,7 +551,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         emoji="🎓"
         points={100}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -589,7 +589,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('history.title')} style={{ flex: 1 }}>
       <Header title={t('history.title')} back={() => navigation.goBack()} />
         {/* FUNC-05: مدخل التماس على سجل الحضور */}
         <Btn
@@ -699,6 +699,6 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
           })
         )}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }

@@ -7,7 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, CustomSwitch, Empty, Header, Input, Row, Sheet, Txt } from '../../design/components';
+import { Btn, Card, CustomSwitch, Empty, Header, Input, Row, Screen, Sheet, Txt } from '../../design/components';
 import {
   DEFAULT_PUSH_PREFERENCES, getPushPreferences, setPushPreferences, type PushPreferences,
 } from '../../data/actions';
@@ -273,7 +273,7 @@ export function NotificationsScreen({ navigation }: any) {
   }, [navigation, user?.role]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('notif.title')} style={{ flex: 1 }}>
       <Header
         title={t('notif.title')}
         back={() => navigation.goBack()}
@@ -376,6 +376,6 @@ export function NotificationsScreen({ navigation }: any) {
           <Txt variant="micro" color={theme.textMuted}>{t('notif.prefsWebNote')}</Txt>
         ) : null}
       </Sheet>
-    </View>
+    </Screen>
   );
 }

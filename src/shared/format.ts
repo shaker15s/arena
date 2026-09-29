@@ -9,6 +9,40 @@ export function numAr(n: number): string {
   return String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
 }
 
+/**
+ * A11Y-64: دالة تنسيق أرقام موحّدة (تُخرج أرقامًا لاتينية متناسقة لسهولة القراءة والعدادات).
+ */
+export function formatNumber(
+  n: number,
+  lang: 'ar' | 'en' = 'ar',
+  options?: Intl.NumberFormatOptions,
+): string {
+  if (!Number.isFinite(n)) return '0';
+  try {
+    return new Intl.NumberFormat(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', options).format(n);
+  } catch {
+    return String(n);
+  }
+}
+
+/**
+ * A11Y-65: عزل ثنائي الاتجاه (Unicode FSI \u2068 ... PDI \u2069)
+ * يمنع انقلاب ترتيب الأرقام/الإيميلات/الرموز الإنجليزية داخل الجمل العربية.
+ */
+export function bidiIsolate(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
+  return `\u2068${String(value)}\u2069`;
+}
+
+/**
+ * FUNC-15: توليد رقم مرجعي قصير للأخطاء بصيغة MSR-XXXXXX (6 محارف أبجدية رقمية).
+ */
+export function msrErrorCode(seed?: string): string {
+  const raw = seed && seed.trim().length > 0 ? hashStr(seed).toUpperCase() : uid().replace(/-/g, '').toUpperCase();
+  const clean = raw.replace(/[^A-Z0-9]/g, '').padEnd(6, '0').slice(0, 6);
+  return `MSR-${clean}`;
+}
+
 const MONTHS_AR = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',

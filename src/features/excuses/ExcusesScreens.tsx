@@ -13,7 +13,7 @@ import { useI18n } from '../../i18n';
 import { DetailedSessionReportSheet } from '../volunteer/LiveSessionScreen';
 import { TrainingSession } from '../../data/types';
 import {
-  Avatar, Btn, Card, Empty, FadeIn, Header, Input, Row, Segmented, Spacer,
+  Avatar, Btn, Card, Empty, FadeIn, Header, Input, Row, Screen, Segmented, Spacer,
   Tag, Txt,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
@@ -86,7 +86,7 @@ export function ExcusesScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('excuses.title')}>
       <Header title={t('excuses.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Segmented
@@ -189,7 +189,7 @@ export function ExcusesScreen({ navigation }: any) {
         )}
         </AnimatedTabContent>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -244,7 +244,7 @@ export function ExcusesInboxScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('inbox.title')}>
       <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 120 }}>
         <Header title={t('inbox.title')} />
         <Segmented
@@ -399,7 +399,7 @@ export function ExcusesInboxScreen() {
           onClose={() => setSelectedReportSession(null)}
         />
       ) : null}
-    </View>
+    </Screen>
   );
 }
 

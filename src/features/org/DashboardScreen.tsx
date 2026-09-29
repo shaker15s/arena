@@ -10,7 +10,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Btn, Card, Chip, CountUp, FadeIn, Header, ListRow,
-  NotificationBell, Row, Spacer, Tag, Txt,
+  NotificationBell, Row, Screen, Spacer, Tag, Txt,
 } from '../../design/components';
 import { useTabs } from '../../app/RootNavigator';
 import { spacing } from '../../design/tokens';
@@ -131,7 +131,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('dash.title')} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
         refreshControl={
@@ -344,7 +344,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
           />
         </FadeIn>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

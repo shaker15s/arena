@@ -1313,3 +1313,4 @@ export { NotificationBell } from './components/NotificationBell';
 export { BorderBeam } from './components/BorderBeam';
 export { AnimatedShinyText } from './components/AnimatedShinyText';
 export { SpotlightCard } from './components/SpotlightCard';
+export { Screen, Section, Landmark, LiveRegion, VisuallyHidden, SkipLink } from './a11y/semantics';

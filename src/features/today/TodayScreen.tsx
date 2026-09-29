@@ -16,7 +16,7 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Spacer, StatRing, Tag, Txt,
+  Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Screen, Spacer, StatRing, Tag, Txt,
   BorderBeam, AnimatedShinyText,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
@@ -195,7 +195,7 @@ export function TodayScreen() {
     : 'التعلّم المستمر يصنع المستحيل! كن فخوراً بمسارك اليوم 🦅';
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('tabs.today')}>
       {/* Background gradient orb */}
       <View style={{
         position: 'absolute', top: -80, right: -60,
@@ -694,7 +694,7 @@ export function TodayScreen() {
           </FadeIn>
         )}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

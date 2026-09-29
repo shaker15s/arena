@@ -15,7 +15,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, CountUp, Empty, FadeIn, Flame, Header, ProgressBar,
-  Row, Segmented, Spacer, Tag, Txt, XPBar,
+  Row, Screen, Segmented, Spacer, Tag, Txt, XPBar,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { BadgeModal } from '../../design/celebrations';
@@ -52,7 +52,7 @@ export function WalletScreen({ navigation }: any) {
   const levelMeta = levels[level - 1];
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('wallet.title')} style={{ flex: 1 }}>
       <Header title={t('wallet.title')} back={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
@@ -140,7 +140,7 @@ export function WalletScreen({ navigation }: any) {
           })
         )}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -218,7 +218,7 @@ export function LeagueScreen({ navigation }: any) {
   );
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('league.title')} style={{ flex: 1 }}>
       <Header title={t('league.title')} back={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}
@@ -353,7 +353,7 @@ export function LeagueScreen({ navigation }: any) {
         </AnimatedTabContent>
 
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -375,7 +375,7 @@ export function AchievementsScreen({ navigation }: any) {
   const earnedCount = db.userBadges.filter((u) => u.userId === user.id).length;
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('achievements.title')} style={{ flex: 1 }}>
       <Header title={t('achievements.title')} subtitle={`${earnedCount}/${db.badges.length}`} back={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, gap: 12 }}
@@ -480,7 +480,7 @@ export function AchievementsScreen({ navigation }: any) {
           icon={selectedBadge.icon as any}
         />
       ) : null}
-    </View>
+    </Screen>
   );
 }
 
@@ -518,7 +518,7 @@ export function RulesGuideScreen({ navigation }: any) {
   ];
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('rules.title')} style={{ flex: 1 }}>
       <Header title={t('rules.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <FadeIn index={0}>
@@ -570,7 +570,7 @@ export function RulesGuideScreen({ navigation }: any) {
           </Card>
         </FadeIn>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

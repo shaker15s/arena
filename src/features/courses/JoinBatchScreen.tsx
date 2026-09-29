@@ -6,7 +6,7 @@ import { joinBatchByCode } from '../../data/actions';
 import { courseOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, Header, Row, Spacer, Txt } from '../../design/components';
+import { Btn, Card, Header, Row, Screen, Spacer, Txt } from '../../design/components';
 import { JellyButton, PillGradientSearchInput, SuccessWaveAlert } from '../../design/interactive';
 import { spacing } from '../../design/tokens';
 import { Icon } from '../../design/icons';
@@ -40,7 +40,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('joinCode.title')}>
       <Header title={t('joinCode.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Card glass>
@@ -100,6 +100,6 @@ export function JoinBatchScreen({ route, navigation }: any) {
           />
         )}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }

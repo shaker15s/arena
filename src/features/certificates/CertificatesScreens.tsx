@@ -14,9 +14,9 @@ import { revokeCertificate, reissueCertificate } from '../../data/actions';
 import { batchOf, courseOf, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Input, Row, Spacer, Tag, Txt } from '../../design/components';
+import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Input, Row, Screen, Spacer, Tag, Txt } from '../../design/components';
 import { spacing, radii, certPaper } from '../../design/tokens';
-import { formatDate } from '../../shared/format';
+import { bidiIsolate, formatDate } from '../../shared/format';
 import { duration, easing, isReducedMotion } from '../../design/motion';
 import { publicVerifyUrl } from '../../shared/links';
 import { CelebrationModal } from '../../design/celebrations';
@@ -30,7 +30,7 @@ export function CertificatesScreen({ navigation }: any) {
   const mine = db.certificates.filter((c) => c.userId === user.id).sort((a, b) => b.issuedAt - a.issuedAt);
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('certs.title')}>
       <Header title={t('certs.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         {mine.length === 0 ? (
@@ -58,7 +58,7 @@ export function CertificatesScreen({ navigation }: any) {
                     <Row between center>
                       <Row center gap={5}>
                         <Icon name="barcode" size={13} color={theme.textMuted} />
-                        <Txt variant="micro" color={theme.textMuted}>{cert.serial}</Txt>
+                        <Txt variant="micro" color={theme.textMuted} {...(Platform.OS === 'web' ? ({ lang: 'en', dir: 'ltr' } as any) : {})}>{bidiIsolate(cert.serial)}</Txt>
                       </Row>
                       {cert.status === 'revoked' ? (
                         <Tag label={t('certs.statusRevoked')} color={theme.danger} bg={theme.dangerSoft} icon="ban" />
@@ -73,7 +73,7 @@ export function CertificatesScreen({ navigation }: any) {
           })
         )}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -183,7 +183,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('certs.viewer')}>
       <Header title={t('certs.viewer')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 40 }}>
         <FadeIn index={0}>
@@ -237,7 +237,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
                   </Txt>
                 </Animated.View>
                 <Txt variant="micro" color={certPaper.inkMuted} align="center">{t('certs.serial')}</Txt>
-                <Txt variant="caption" color={certPaper.ink} style={{ letterSpacing: 1 }}>{cert.serial}</Txt>
+                <Txt variant="caption" color={certPaper.ink} style={{ letterSpacing: 1 }} {...(Platform.OS === 'web' ? ({ lang: 'en', dir: 'ltr' } as any) : {})}>{bidiIsolate(cert.serial)}</Txt>
                 {cert.status === 'revoked' ? (
                   <Txt variant="micro" color={theme.danger} align="center">{t('certs.revokeHint')}</Txt>
                 ) : null}
@@ -296,6 +296,6 @@ export function CertificateViewerScreen({ route, navigation }: any) {
         emoji="🎓"
         fly={false}
       />
-    </View>
+    </Screen>
   );
 }

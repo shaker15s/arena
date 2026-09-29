@@ -71,11 +71,12 @@
       [role="main"]:focus { outline: none; }
 
       /*
-        A11Y-15: الشريط السفلي العائم ارتفاعه 68px + 104px هامش محتوى، لذا نمنع
-        حجب العنصر المُركَّز عليه (WCAG 2.2 — 2.4.11) عبر scroll-padding.
+        A11Y-12 / A11Y-15: الشريط السفلي العائم يُقاس ديناميكيًا عبر onLayout (--masar-tabbar-h)
+        مع قيمة افتراضية 140px، لمنع حجب العنصر المُركَّز عليه (WCAG 2.2 — 2.4.11).
       */
-      html, body, #root { scroll-padding-bottom: 140px; scroll-padding-top: 24px; }
-      [role="main"] { scroll-padding-bottom: 140px; }
+      :root { --masar-tabbar-h: 140px; }
+      html, body, #root { scroll-padding-bottom: var(--masar-tabbar-h, 140px); scroll-padding-top: 24px; }
+      [role="main"], [role="region"] { scroll-padding-bottom: var(--masar-tabbar-h, 140px); }
 
       /* احترام تقليل الحركة على مستوى المستند أيضًا */
       @media (prefers-reduced-motion: reduce) {
@@ -189,6 +190,19 @@
           }
           hide();
         }, 20000); // أمان: لو فشل التحميل لا نحبس المستخدم
+
+        // A11Y-12 (WCAG 2.4.11): حارس تمرير عند التركيز لمنع حجب العنصر خلف الشريط السفلي العائم
+        document.addEventListener('focusin', function (e) {
+          var target = e.target;
+          if (!target || typeof target.getBoundingClientRect !== 'function') return;
+          if (target.closest && target.closest('[role="navigation"]')) return;
+          var rect = target.getBoundingClientRect();
+          var rawPad = getComputedStyle(document.documentElement).getPropertyValue('--masar-tabbar-h');
+          var pad = parseInt(rawPad, 10) || 140;
+          if (rect.bottom > window.innerHeight - pad && typeof target.scrollIntoView === 'function') {
+            target.scrollIntoView({ block: 'center', inline: 'nearest' });
+          }
+        }, true);
       })();
     </script>
   </body>

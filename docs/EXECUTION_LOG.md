@@ -190,3 +190,29 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 - `rpc:types`: 84 دالة ✓
 - `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` / `test:load` / `test:e2e`: **62/62** ✓
 
+---
+
+# الموجة B (Wave B) — وصول متقدّم (A11Y) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **A11Y-03/05 تعميم معالم `<Screen>` و`<Section>`** | ✅ منجز | تغليف جميع الشاشات الـ40 المصدَّرة (`*Screen`) في `src/features/**` بمعلم `<Screen>` دلالي (`role="main"` للغلاف الرئيسي و`role="region"` لكل شاشة مع `aria-label` و`accessibilityViewIsModal`) + بوابة فحص ثابتة في `scripts/check-a11y.js` (`40/40 شاشة بمعلم <Screen>`) |
+| **A11Y-12 منع حجب التركيز (WCAG 2.4.11)** | ✅ منجز | `src/app/RootNavigator.tsx › AppleTabBar`: إخفاء الشريط السفلي والـ FAB تلقائيًا عند فتح لوحة المفاتيح على الجوال (`Keyboard.addListener`)، وحساب ارتفاع الشريط ديناميكيًا عبر `onLayout` إلى متغير `--masar-tabbar-h` + حارس `focusin` في `public/index.html` يضمن تمرير العنصر المركّز فوق الشريط العائم |
+| **A11Y-13/14/15 حبس التركيز في كل `<Modal>`** | ✅ منجز | التحقق الآلي في `scripts/check-a11y.js` أن كل ملف يستخدم `<Modal>` يطبّق `useFocusTrap` (`components.tsx › Sheet` و`celebrations.tsx › CelebrationModal`) مع `Escape` وإعادة التركيز |
+| **A11Y-42 بديل السحب في `SwipeRow` (WCAG 2.5.1)** | ✅ منجز | `src/design/components/SwipeRow.tsx`: دعم `accessibilityActions` و`onAccessibilityAction` لقارئات الشاشة + شريط أزرار بضغطة واحدة متاح للكيبورد واللمس المباشر بدون سحب + بوابة فحص في `scripts/check-a11y.js` |
+| **A11Y-52/53 تقليل الحركة الشامل** | ✅ منجز | `src/design/glass.tsx › AmbientOrb` يعيد `null` عند تفعيل `isReducedMotion()` (مع تقليل الكرات المضيئة في `AppBackground` إلى 2)، و`src/design/mascot/MasarMascot.tsx` يعرض إطارًا ثابتًا دون تحويلات حركية عند تفعيل تقليل الحركة |
+| **A11Y-62 تكبير الخط حتى 200%** | ✅ منجز | رفع `maxFontSizeMultiplier` إلى `2` في `src/design/components/Odometer.tsx` و`src/design/glass.tsx › StatBubble` ومطابقته مع `Txt` |
+| **A11Y-64/65 `formatNumber` وعزل Bidi** | ✅ منجز | `src/shared/format.ts`: إضافة `formatNumber(n, lang, options)` و`bidiIsolate(value)` (`\u2068...\u2069`)، وتطبيق العزل ثنائي الاتجاه على الأرقام التسلسلية للشهادات وأكواد الجلسات في `CertificatesScreens.tsx`, `VerifyScreen.tsx`, `LiveSessionScreen.tsx` |
+| **A11Y-30→35 المناطق الحية `<LiveRegion>`** | ✅ منجز | دعم `politeness` في `LiveRegion` وتطبيقه على عدّاد الحضور الحي في `LiveSessionScreen.tsx` وعدد نتائج التصفية في `ExploreScreens.tsx` و`UsersScreen.tsx` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 55 عنصر ضغط · 195 `<Icon>` · **40/40 شاشة h1** · **40/40 شاشة بمعلم `<Screen>`** · 0 أخطاء / 0 تحذيرات
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: 104 نصًا في 22 ملفًا · 0 تراجع ✓
+- `parity`: 1147 مفتاحًا ✓
+- `rpc:check`: 65 نداء / 114 دالة ✓
+- `sql:check`: 30 ملفًا · 137 دالة SECURITY DEFINER · 0 أخطاء ✓
+- `rpc:types`: 84 دالة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` / `test:load` / `test:e2e`: **62/62** ✓

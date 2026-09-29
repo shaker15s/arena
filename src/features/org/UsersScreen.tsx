@@ -6,7 +6,7 @@ import { profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, Header, Input, Row, Sheet, Spacer, Tag, Txt, useDebounce,
+  Avatar, Btn, Card, Chip, Header, Input, LiveRegion, Row, Screen, Sheet, Spacer, Tag, Txt, useDebounce,
 } from '../../design/components';
 import { PillGradientSearchInput } from '../../design/interactive';
 import { MasarMascot } from '../../design/mascot';
@@ -51,7 +51,7 @@ export function UsersScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('users.title')} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={
@@ -75,7 +75,9 @@ export function UsersScreen() {
             <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
           ))}
         </Row>
-        <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
+        <LiveRegion politeness="polite">
+          <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
+        </LiveRegion>
         {list.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>
             <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
@@ -176,6 +178,6 @@ export function UsersScreen() {
           </View>
         ) : null}
       </Sheet>
-    </View>
+    </Screen>
   );
 }

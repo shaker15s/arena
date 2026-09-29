@@ -50,7 +50,7 @@ import { MasarMascot } from '../../design/mascot';
 import { spacing, radii, sizes } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { Icon } from '../../design/icons';
-import { VisuallyHidden } from '../../design/a11y/semantics';
+import { Screen, VisuallyHidden } from '../../design/a11y/semantics';
 
 async function haptic(kind: 'success' | 'error' | 'warning') {
   if (Platform.OS === 'web') return;
@@ -276,7 +276,7 @@ export function ScannerScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.rootContainer}>
+    <Screen label={t('scanner.title')} style={styles.rootContainer}>
       {/* A11Y-04: عنوان الشاشة الدلالي — الشاشة بملء الشاشة بلا رأس مرئي */}
       <VisuallyHidden heading="h1">{t('scanner.title')}</VisuallyHidden>
       {/* 1. الكاميرا بكامل الشاشة (Full-bleed) */}
@@ -543,7 +543,7 @@ export function ScannerScreen({ navigation }: any) {
         already={success?.already ?? false}
         sessionTitle={liveSess?.title}
       />
-    </View>
+    </Screen>
   );
 }
 

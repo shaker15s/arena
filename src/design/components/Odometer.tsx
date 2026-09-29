@@ -65,7 +65,7 @@ export function Odometer({
     <Animated.Text
       numberOfLines={1}
       allowFontScaling
-      maxFontSizeMultiplier={1.4}
+      maxFontSizeMultiplier={2}
       style={[
         {
           fontSize: typo.fontSize,

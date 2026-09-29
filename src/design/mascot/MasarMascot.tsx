@@ -433,33 +433,36 @@ export function MasarMascot({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
 
-    Animated.sequence([
-      Animated.timing(tapScale, {
-        toValue: mascotTokens.physics.tapSquashScale,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.spring(tapScale, {
-        toValue: 1,
-        friction: 4,
-        tension: 160,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    const reduced = isReducedMotion();
+    if (!reduced) {
+      Animated.sequence([
+        Animated.timing(tapScale, {
+          toValue: mascotTokens.physics.tapSquashScale,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.spring(tapScale, {
+          toValue: 1,
+          friction: 4,
+          tension: 160,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
-    Animated.sequence([
-      Animated.timing(gestureAnim, {
-        toValue: 1,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(gestureAnim, {
-        toValue: 0,
-        duration: 350,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
+      Animated.sequence([
+        Animated.timing(gestureAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(gestureAnim, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
 
     const list = PHRASE_KEYS[activeBehavior] || PHRASE_KEYS.idle;
     const picked = speechText || tStatic(list[Math.floor(Math.random() * list.length)]);
@@ -472,40 +475,52 @@ export function MasarMascot({
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
 
       setShowSpeech(true);
-      Animated.timing(speechOpacity, {
-        toValue: 1,
-        duration: mascotTokens.physics.reactionFadeDurationMs,
-        useNativeDriver: true,
-      }).start();
+      if (reduced) {
+        speechOpacity.setValue(1);
+      } else {
+        Animated.timing(speechOpacity, {
+          toValue: 1,
+          duration: mascotTokens.physics.reactionFadeDurationMs,
+          useNativeDriver: true,
+        }).start();
+      }
 
       speechTimerRef.current = setTimeout(() => {
-        Animated.timing(speechOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => {
+        if (reduced) {
+          speechOpacity.setValue(0);
           setShowSpeech(false);
-        });
+        } else {
+          Animated.timing(speechOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowSpeech(false);
+          });
+        }
       }, 3000);
     }
   };
 
   const isQuiet = activeBehavior === 'quiet';
   const effectiveSize = isQuiet ? size * 0.75 : size;
+  const reducedMotion = isReducedMotion();
 
   const mascotContent = (
     <Animated.View
       style={{
-        transform: [
-          { translateY: isQuiet ? 0 : Animated.add(floatAnim, bounceAnim) },
-          { scale: tapScale },
-          {
-            rotate: headTiltAnim.interpolate({
-              inputRange: [-1, 0, 1],
-              outputRange: ['-2.5deg', '0deg', '2.5deg'],
-            }),
-          },
-        ],
+        transform: reducedMotion
+          ? []
+          : [
+              { translateY: isQuiet ? 0 : Animated.add(floatAnim, bounceAnim) },
+              { scale: tapScale },
+              {
+                rotate: headTiltAnim.interpolate({
+                  inputRange: [-1, 0, 1],
+                  outputRange: ['-2.5deg', '0deg', '2.5deg'],
+                }),
+              },
+            ],
       }}
     >
       <Svg width={effectiveSize} height={effectiveSize * 1.1} viewBox="0 0 160 176" fill="none">
@@ -638,13 +653,19 @@ export function MasarMascot({
           </G>
         )}
 
-        {/* العينان التعبيريتان الواسعتان */}
+        {/* العينان التعبيريتان الواسعتان (مميزة لكل حالة من الـ 12 حالة) */}
         {activeBehavior === 'achievement' || activeBehavior === 'success' ? (
           <G>
             {/* عين يسرى مبتسمة ومبتهجة */}
             <Path d="M52 70 Q64 56 76 70" stroke="#003580" strokeWidth="4.5" strokeLinecap="round" fill="none" />
             {/* عين يمنى مبتسمة ومبتهجة */}
             <Path d="M84 70 Q96 56 108 70" stroke="#003580" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+          </G>
+        ) : activeBehavior === 'quiet' || activeBehavior === 'offline' ? (
+          <G>
+            {/* عينان هادئتان/مغمضتان */}
+            <Path d="M52 68 Q64 76 76 68" stroke="#0F172A" strokeWidth="4" strokeLinecap="round" fill="none" />
+            <Path d="M84 68 Q96 76 108 68" stroke="#0F172A" strokeWidth="4" strokeLinecap="round" fill="none" />
           </G>
         ) : (
           <G>
@@ -677,7 +698,7 @@ export function MasarMascot({
         />
         <Path d="M78 75 Q80 74 82 75" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
 
-        {/* إكسسوارات حسب الوضعية */}
+        {/* إكسسوارات حسب الوضعية (12 حالة ثابتة وحركية) */}
         {activeBehavior === 'streak_fire' && (
           <G>
             <Path d="M42 46 Q80 40 118 46" stroke="#EF4444" strokeWidth="8" strokeLinecap="round" fill="none" />
@@ -691,6 +712,27 @@ export function MasarMascot({
             <Path d="M72 118 L80 132 L88 118" stroke="#DC2626" strokeWidth="3" strokeLinecap="round" fill="none" />
             <Circle cx="80" cy="135" r="9" fill="url(#goldMedalGrad)" />
             <Polygon points="80,129 82,133 86,134 83,137 84,141 80,139 76,141 77,137 74,134 78,133" fill="#FFFFFF" />
+          </G>
+        )}
+
+        {activeBehavior === 'ready' && (
+          <G>
+            <Circle cx="122" cy="44" r="10" fill="#22C55E" />
+            <Path d="M117 44 L121 48 L128 40" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </G>
+        )}
+
+        {activeBehavior === 'alert' && (
+          <G>
+            <Circle cx="122" cy="44" r="10" fill="#F59E0B" />
+            <Path d="M122 39 L122 45 M122 49 L122 49.5" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+          </G>
+        )}
+
+        {activeBehavior === 'offline' && (
+          <G>
+            <Circle cx="122" cy="44" r="10" fill="#64748B" />
+            <Path d="M117 44 L127 44" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
           </G>
         )}
 

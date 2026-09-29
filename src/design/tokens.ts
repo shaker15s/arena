@@ -28,9 +28,43 @@ export const sizes = {
   avatarMedium: 48,
   avatarLarge: 72,
   qrCode: 200,
+  minTarget: 24, // الحد الأدنى الإلزامي WCAG 2.5.8 AA
   touchTarget: 44, // الحد الأدنى الموصى به من Apple لإمكانية الوصول
+  iconButton: 44, // معيار أزرار الأيقونات 44×44pt
   ctaButton: 52, // معيار Apple HIG للأزرار التفاعلية الأساسية
   timeField: 64, // حقل ساعة/دقيقة (4 أرقام + مسافة) — يبقى فوق 44px لمسًا
+} as const;
+
+/** سلّم الارتفاع والظلال الموحّد (DESIGN 1.2) */
+export const elevation = {
+  none: { shadowColor: 'transparent', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+  sm: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  md: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  lg: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  modal: { shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 32, shadowOffset: { width: 0, height: 16 }, elevation: 16 },
+} as const;
+
+/** سلّم الطبقات الرأسية الموحّد (DESIGN 1.2) */
+export const zIndex = {
+  base: 0,
+  sticky: 10,
+  header: 20,
+  fab: 30,
+  sheet: 40,
+  modal: 50,
+  toast: 60,
+} as const;
+
+/** درجات الزجاج القياسية (DESIGN 1.3) */
+export const glassLevels = {
+  subtle: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
+  regular: { intensity: 40, opacityLight: 0.72, opacityDark: 0.72 },
+  heavy: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
+} as const;
+
+/** خاصية الأرقام الجدولية الموحّدة للعدادات والجداول (DESIGN 1.5) */
+export const tabularNums = {
+  fontVariant: ['tabular-nums'] as ('tabular-nums')[],
 } as const;
 
 /** إعدادات الـ Springs المعتمدة من Apple Fluid Interfaces (WWDC) */
@@ -303,6 +337,17 @@ export const typography = {
   caption: { fontSize: 13, lineHeight: 20, fontFamily: fonts.medium },
   micro: { fontSize: 11, lineHeight: 17, fontFamily: fonts.medium },
   numberHero: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
+} as const;
+
+/** سلّم التايبوغرافيا القياسي مع ربط lineHeight ≥ 1.45 للعربية (DESIGN 1.4) */
+export const typeScale = {
+  xs: typography.micro,
+  sm: typography.caption,
+  md: typography.body,
+  lg: typography.h3,
+  xl: typography.h2,
+  h1: typography.h1,
+  display: typography.display,
 } as const;
 
 /**

@@ -6,7 +6,7 @@ import { profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, FadeIn, Header, Input, Row, Sheet, Spacer, Tag, Txt,
+  Btn, Card, FadeIn, Header, Input, Row, Screen, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
@@ -57,7 +57,7 @@ export function OrgManagerScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('org.branches')} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
         {db.branches.length === 0 ? (
@@ -122,6 +122,6 @@ export function OrgManagerScreen() {
           <Btn title={t('wizard.addCommittee')} full loading={saving} onPress={saveCommittee} icon="checkmark" disabled={!name.trim()} />
         </View>
       </Sheet>
-    </View>
+    </Screen>
   );
 }

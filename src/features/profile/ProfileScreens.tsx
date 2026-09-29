@@ -12,7 +12,7 @@ import { ThemePref, useTheme } from '../../design/theme';
 import { Lang, useI18n } from '../../i18n';
 import {
   Avatar, BackIcon, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
-  Sheet, Spacer, Tag, Txt,
+  Screen, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
@@ -59,7 +59,7 @@ export function ProfileScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('profile.title')} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
@@ -291,7 +291,7 @@ export function ProfileScreen() {
       </Sheet>
 
       <EditProfileSheet visible={editOpen} onClose={() => setEditOpen(false)} />
-    </View>
+    </Screen>
   );
 }
 
@@ -402,7 +402,7 @@ export function SupportScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme } = useTheme();
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('profile.support')} style={{ flex: 1 }}>
       <Header title={t('profile.support')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         {[
@@ -423,7 +423,7 @@ export function SupportScreen({ navigation }: any) {
           </FadeIn>
         ))}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

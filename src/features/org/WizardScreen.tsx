@@ -11,7 +11,7 @@ import { generateSessionsForBatch, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, FadeIn, Input, ProgressBar, Row, Tag, Txt, Spacer,
+  Avatar, Btn, Card, Chip, FadeIn, Input, ProgressBar, Row, Screen, Tag, Txt, Spacer,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
@@ -121,7 +121,7 @@ export function OrgWizardScreen({ navigation }: any) {
   const stepIcons: Array<keyof typeof Ionicons.glyphMap> = ['business', 'git-network', 'book', 'people', 'game-controller', 'rocket'];
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('wizard.title')} style={{ flex: 1 }}>
       <View style={{ paddingTop: insets.top + spacing.s3, paddingHorizontal: spacing.s5 }}>
         <Row between center>
           <Txt variant="h2" heading="h1">{t('wizard.title')} 🚀</Txt>
@@ -323,7 +323,7 @@ export function OrgWizardScreen({ navigation }: any) {
         title={t('wizard.doneTitle')}
         emoji="🚀"
       />
-    </View>
+    </Screen>
   );
 }
 

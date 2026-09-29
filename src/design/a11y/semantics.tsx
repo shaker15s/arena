@@ -46,7 +46,7 @@ export function Screen({
   style,
   /** اسم الشاشة المنطوق عند الدخول (من i18n). */
   announceOnFocus,
-  /** عنوان الشاشة للربط الدلالي (ويب: aria-label على main). */
+  /** عنوان الشاشة للربط الدلالي (ويب: aria-label على المعلم). */
   label,
   testID,
   id,
@@ -59,6 +59,7 @@ export function Screen({
   id?: string;
 }) {
   const { theme } = useTheme();
+  const isMainShell = id === 'masar-main';
 
   useEffect(() => {
     if (announceOnFocus) announce(announceOnFocus, 'polite');
@@ -69,8 +70,8 @@ export function Screen({
     <View
       testID={testID}
       nativeID={id}
-      style={[{ flex: 1, backgroundColor: theme.bg }, style]}
-      {...(webOnly('main') as object)}
+      style={[{ flex: 1 }, isMainShell ? { backgroundColor: theme.bg } : null, style]}
+      {...(webOnly(isMainShell ? 'main' : 'region') as object)}
       {...(id ? ariaProp('id', id) : {})}
       {...(label ? ariaProp('aria-label', label) : {})}
       {...(id ? { tabIndex: -1 } : {})}
@@ -143,16 +144,19 @@ export function Landmark({
 export function LiveRegion({
   children,
   assertive,
+  politeness,
   style,
 }: {
   children: React.ReactNode;
   assertive?: boolean;
+  politeness?: 'polite' | 'assertive';
   style?: StyleProp<ViewStyle>;
 }) {
+  const mode = politeness ?? (assertive ? 'assertive' : 'polite');
   return (
     <View
-      accessibilityLiveRegion={assertive ? 'assertive' : 'polite'}
-      {...ariaProp('aria-live', assertive ? 'assertive' : 'polite')}
+      accessibilityLiveRegion={mode}
+      {...ariaProp('aria-live', mode)}
       {...ariaProp('aria-atomic', true)}
       style={style}
     >

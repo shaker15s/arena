@@ -65,10 +65,11 @@ export function AmbientOrb({ size = 320, color, drift = 18, style }: {
 }) {
   const { isDark, themeName } = useTheme();
   const oled = themeName === 'oled';
+  const reduced = isReducedMotion();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isReducedMotion()) return undefined;
+    if (reduced) return undefined;
     // حركة طفو مستمرة وهادئة (Orb Drift)
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(progress, { toValue: 1, duration: 12000, useNativeDriver: true }),
@@ -76,15 +77,16 @@ export function AmbientOrb({ size = 320, color, drift = 18, style }: {
     ]));
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduced, progress]);
 
-  const animatedTransform = isReducedMotion()
-    ? []
-    : [
-        { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
-        { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
-        { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
-      ];
+  // A11Y-52: تعطيل الكرات العائمة بالكامل عند تفعيل تقليل الحركة
+  if (reduced) return null;
+
+  const animatedTransform = [
+    { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
+    { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
+    { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
+  ];
 
   const effectiveOpacity = oled ? 0.15 : isDark ? 0.35 : 0.75;
 
@@ -116,7 +118,6 @@ export function AppBackground({ children, style }: { children: React.ReactNode; 
       />
       <AmbientOrb size={420} color={theme.orbPrimary} style={{ top: -190, right: -115 }} />
       <AmbientOrb size={460} color={theme.orbSecondary} drift={-22} style={{ bottom: -180, left: -160 }} />
-      <AmbientOrb size={230} color={theme.orbTertiary} drift={12} style={{ top: '36%' as any, left: -90 }} />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
         borderWidth: Platform.OS === 'web' ? 1 : 0,
         borderColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.2)',
@@ -204,7 +205,7 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
         numberOfLines={1}
         adjustsFontSizeToFit
         allowFontScaling
-        maxFontSizeMultiplier={1.4}
+        maxFontSizeMultiplier={2}
         style={{ color: color ?? theme.text, fontSize: 20, lineHeight: 26, fontFamily: typography.h1.fontFamily, includeFontPadding: false }}
       >
         {String(value)}
@@ -212,7 +213,7 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
       <Animated.Text
         numberOfLines={1}
         allowFontScaling
-        maxFontSizeMultiplier={1.4}
+        maxFontSizeMultiplier={2}
         style={{ color: theme.textMuted, fontSize: 11, lineHeight: 17, fontFamily: typography.caption.fontFamily, includeFontPadding: false }}
       >
         {label}

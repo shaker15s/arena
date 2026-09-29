@@ -16,8 +16,8 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { useHaptics } from '../../shared/hooks';
 import {
-  Avatar, BackIcon, Btn, Card, Chip, Empty, FadeIn, Header, Input, ProgressBar, Row,
-  Segmented, Sheet, Spacer, Stars, Tag, Txt, useDebounce,
+  Avatar, BackIcon, Btn, Card, Chip, Empty, FadeIn, Header, Input, LiveRegion, ProgressBar, Row,
+  Screen, Segmented, Sheet, Spacer, Stars, Tag, Txt, VisuallyHidden, useDebounce,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { JellyButton, PillGradientSearchInput, SaveActionButton } from '../../design/interactive';
@@ -61,12 +61,15 @@ export function ExploreScreen({ navigation: propNav }: any) {
   const { results: filtered } = useDeferredSearch(query, scoped, (c) => [c.title, c.field, c.description]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('explore.title')}>
       {!online ? (
         <View style={{ backgroundColor: theme.warnSoft, padding: 8, marginTop: insets.top }}>
           <Txt variant="caption" color={theme.warn} align="center">{t('common.offlineBanner')}</Txt>
         </View>
       ) : null}
+      <LiveRegion>
+        <VisuallyHidden>{String(filtered.length)}</VisuallyHidden>
+      </LiveRegion>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 110 }}
         refreshControl={
@@ -132,7 +135,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
           )}
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -411,7 +414,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={course.title}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
         {/* غلاف Hero متدرج */}
         <View style={{ backgroundColor: course.color, paddingTop: insets.top + 10, paddingBottom: 26, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
@@ -853,7 +856,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
         onClose={() => setCreateBatchOpen(false)}
         initialCourseId={courseId}
       />
-    </View>
+    </Screen>
   );
 }
 

@@ -94,8 +94,10 @@ for (const file of walk(SRC)) {
   }
 }
 
-// 6) A11Y-04: كل شاشة (مكوّن مُصدَّر اسمه ينتهي بـ Screen) يجب أن تُصدر عنوانًا
-//    دلاليًا h1 — عبر <Header> (المكوّن الذي يولّد h1) أو heading="h1" مباشرة.
+let screensWithLandmark = 0;
+
+// 6) A11Y-04 & A11Y-03/05: كل شاشة (مكوّن مُصدَّر اسمه ينتهي بـ Screen) يجب أن تُصدر عنوانًا
+//    دلاليًا h1 — عبر <Header> (المكوّن الذي يولّد h1) أو heading="h1" مباشرة — ومعلم <Screen>.
 //    الشاشات الفرعية داخل نفس الملف تُفحص بنطاق جسم الدالة.
 for (const file of walk(SRC)) {
   const rel = path.relative(ROOT, file);
@@ -112,6 +114,30 @@ for (const file of walk(SRC)) {
     const hasHeading = /<Header\b/.test(body) || /heading="h1"/.test(body) || /<SemanticScreen\b/.test(body);
     if (hasHeading) screensWithHeading += 1;
     else screensMissingHeading.push(`${rel} — ${name}`);
+
+    const hasLandmark = /<Screen\b/.test(body) || /<SemanticScreen\b/.test(body);
+    if (hasLandmark) screensWithLandmark += 1;
+    else errors.push(`${rel} — ${name} بلا معلم <Screen> دلالي (A11Y-03/05).`);
+  }
+}
+
+// 6b) A11Y-13/14/15: كل ملف يستخدم <Modal> يجب أن يستخدم useFocusTrap
+for (const file of walk(SRC)) {
+  const rel = path.relative(ROOT, file);
+  const src = fs.readFileSync(file, 'utf8');
+  if (/<Modal\b/.test(src) && !/\buseFocusTrap\b/.test(src)) {
+    errors.push(`${rel} — استخدام <Modal> بدون useFocusTrap (A11Y-13/14/15).`);
+  }
+}
+
+// 6c) A11Y-42: SwipeRow يجب أن يوفّر accessibilityActions و onAccessibilityAction
+{
+  const swipeRowPath = path.join(SRC, 'design', 'components', 'SwipeRow.tsx');
+  if (fs.existsSync(swipeRowPath)) {
+    const swipeSrc = fs.readFileSync(swipeRowPath, 'utf8');
+    if (!/accessibilityActions=/.test(swipeSrc) || !/onAccessibilityAction=/.test(swipeSrc)) {
+      errors.push('SwipeRow.tsx — ينقصه accessibilityActions / onAccessibilityAction (A11Y-42).');
+    }
   }
 }
 
@@ -138,6 +164,7 @@ console.log('══════════════════════�
 console.log(`  • عناصر ضغط مفحوصة: ${pressables}`);
 console.log(`  • أيقونات موحّدة (<Icon>): ${icons}`);
 console.log(`  • شاشات بها عنوان h1: ${screensWithHeading}/${screensChecked}`);
+console.log(`  • شاشات بمعلم <Screen>: ${screensWithLandmark}/${screensChecked}`);
 console.log(`  • أخطاء: ${errors.length} · تحذيرات: ${warnings.length}`);
 
 if (screensMissingHeading.length) {

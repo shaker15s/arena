@@ -8,7 +8,7 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, FadeIn, Header, ProgressBar, Row, Spacer, Tag, Txt,
+  Btn, Card, FadeIn, Header, ProgressBar, Row, Screen, Spacer, Tag, Txt,
 } from '../../design/components';
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
@@ -22,7 +22,7 @@ export function BatchesAdminScreen({ navigation }: any) {
   const [creating, setCreating] = useState(false);
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('batchAdm.title')} style={{ flex: 1 }}>
       <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
         {db.batches.length === 0 ? (
@@ -77,6 +77,6 @@ export function BatchesAdminScreen({ navigation }: any) {
         })}
       </ScrollView>
       <BatchFormSheet visible={creating} onClose={() => setCreating(false)} />
-    </View>
+    </Screen>
   );
 }

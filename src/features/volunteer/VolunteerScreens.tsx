@@ -20,7 +20,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, NotificationBell, ProgressBar,
-  Row, Segmented, Sheet, Spacer, Tag, Txt,
+  Row, Screen, Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
@@ -60,7 +60,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   })();
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('vtoday.title')}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
         refreshControl={
@@ -203,7 +203,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
       </ScrollView>
 
       <BatchFormSheet visible={creating} onClose={() => setCreating(false)} />
-    </View>
+    </Screen>
   );
 }
 
@@ -237,7 +237,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
   const batches = filter === 'my' && myBatches.length > 0 ? myBatches : allBatches;
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('batches.title')}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={
@@ -342,7 +342,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
       </ScrollView>
 
       <BatchFormSheet visible={creating} onClose={() => setCreating(false)} />
-    </View>
+    </Screen>
   );
 }
 
@@ -454,7 +454,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={`${course.title} — ${t('sess.title')}`}>
       <Header title={`${course.title} — ${t('sess.title')}`} back={() => navigation.goBack()} right={
         <Row gap={6}>
           <Btn title={t('sess.exportCsv')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
@@ -557,7 +557,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
           </View>
         ) : null}
       </Sheet>
-    </View>
+    </Screen>
   );
 }
 
@@ -641,7 +641,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
     : { icon: 'ellipse-outline', color: theme.line, bg: theme.fill };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('student.title')}>
       <Header title={t('student.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 60 }}>
         <FadeIn index={0}>
@@ -729,6 +729,6 @@ export function StudentRecordScreen({ route, navigation }: any) {
           <Btn title={t('student.award')} full size="lg" loading={sending} onPress={sendKudos} icon="heart" disabled={!kudosReason.trim()} />
         </View>
       </Sheet>
-    </View>
+    </Screen>
   );
 }
