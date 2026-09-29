@@ -2,7 +2,7 @@
 
 > **المرجع:** `MASAR_MASTER_PLAN_2026-09-28.md` (الخطة الواحدة). هذا الملف يوثّق **ما نُفِّذ فعلًا**،
 > بالملف والسطر والأمر والناتج المقيس — بلا أي ادعاء غير مقيس.
-> **آخر تحديث:** 28 سبتمبر 2026 · الفرع: `arena/01a0e854-arena`.
+> **آخر تحديث:** 29 سبتمبر 2026 (الموجة E) · الفرع: `arena/01a0e854-arena`.
 
 ## 0) قيادة التحقق (Verification Gate)
 
@@ -296,6 +296,24 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 | **G-6: الصمود دون اتصال (Offline Resilience)** | طابور أوامر غير قابل للتكرار (`command_log`) + `OfflineQueueBanner` + Service Worker (`public/sw.js`) | ✅ **PASS** | `OfflineQueueBanner` متصل بـ `pendingQueueCount` و`flushOfflineQueue` + `public/sw.js` مسجل في `public/index.html` |
 | **G-7: تميمة «فطن» والهوية البصرية** | 12/12 حالة سلوكية + حارس `MascotStage` + تراجع ثابت مع `isReducedMotion()` + `assets/manifest.json` | ✅ **PASS** | `MascotProvider.tsx` يغطي 12/12 حالة من `FatenBehaviorState` + `assets/manifest.json` يوثّق الأصول وميزانيات الأحجام (`≤ 200KB`) |
 | **G-8: التكامل الشامل وجاهزية النشر** | اجتياز `test:engine` و`test:e2e` بنسبة 100% + رؤوس الأمان في `vercel.json` + التوثيق الرسمي | ✅ **PASS** | `test:engine`: **68/68** · `test:e2e`: **62/62** · `vercel.json`: CSP + HSTS + nosniff + DENY + Permissions-Policy · `ACCESSIBILITY_STATEMENT.md` & `PRIVACY_AND_RETENTION.md` |
+
+---
+
+# الموجة E (Wave E) — إصلاح الأعطال الحرجة + الأداء + توحيد التصميم (29 سبتمبر 2026)
+
+> الخطة المرافقة: `docs/UPGRADE_PLAN_2026-09-29.md`. كل البند أدناه مقيّس — بلا ادعاء بلا قياس.
+
+| البند | الوضع | الدليل المقيس |
+| --- | --- | --- |
+| **P0 خطأ الأدمن/المتطوع (PGRST203)** | ✅ مُصلَّح في DB الحيّ | قبل: 3 بصمات لـ`admin_update_user_access` (pg_proc oids 18983/19267/19305) + 4 نداءات PostgREST كلها `PGRST203`. بعد: `0033_unify_admin_update_user_access.sql` (إسقاط بصمتَي 3-arg و4-arg) ⇒ pg_proc = **بصمة واحدة** + نفس النداءات ⇒ `42501` (صلاحيات سليمة لمفتاح anon؛ الأدمن الموثَّق ينفّذ) + `sql:check` 0 مخالفات |
+| **P1 تعتيق أحداث Realtime** | ✅ | `remote.ts applyRealtimePatch`: `deepClone` كامل القاعدة لكل حدث → نسخة سطحية + `upsert` يعيد مصفوفة جديدة للجدول المتأثر فقط؛ كتلة المقاعد بعد حدث `enrollments` صارت `map` (لا تعديل كائن قديم)؛ `store.tsx writeCache`: coalescing ≤ كل 400ms بدل stringify كامل في كل حدث (فوري للتعطيل/الحذف فقط)؛ `markNotificationsRead`: `map` على الإشعارات بدل clone كامل |
+| **P2 عاصفة الـ refresh** | ✅ | `store.tsx` (AppState active): لا سحب 24 جدولًا إلا عند قِدَم > 60s أو فشل sync — `flushOfflineQueue()` دائمًا و`refresh()` مشروط؛ Realtime يتصل/يفصل مع دورة حياة الخلفية (WIP مكمَّل) |
+| **P3 توحيد التصميم** | ✅ | توكنز `navBar` (68/8/27) في `tokens.ts` + الحجز السفلي في `RootNavigator` من التوكنز (كان 104 ثابتًا ⇒ شريط رمادي ميت)؛ إزالة الحجز المزدوج من 13 شاشة تبويب؛ غلاف `gap: s3` لقوائم العذر/التقارير/المجموعات/المراجعات المتلاصقة؛ `ListRow grow` + شبكة KPI 48% + صناديق الأيقونات على `sizes/radii` + أحجام كسرية → سلّم `typeScale` + `glassHeavy/certGold/cardElevated` بدل القيم المباشرة |
+| **P3 skeleton حقيقي** | ✅ | `PageSkeleton` جديد (fallback الشاشات الكسولة بدل `ActivityIndicator`) + `SkeletonList` مكان سطر «جارٍ التحميل» الجامد في `HubScreens`/`SessionsHistory` |
+| **التحقق** | ✅ | `typecheck` 0 · `a11y`/`hooks`/`contrast`/`i18n:lint`/`parity`(1158)/`rpc:check`(65/126)/`sql:check`(0) · `test:engine` **68/68** · `test:e2e` **62/62** · `export:web` exit 0 (24 حزمة مقسّمة) |
+
+**ملاحظة حوكمة:** `origin/main` (967a57a) والفروع محلية متباينة (~±1000 سطر: main بلا wave-c/d، والفروع بلا 0033) — الدمج قرار المستخدم.
+**ملاحظة قياسية:** DB الحيّ صغيرة (audit_log 52 صفًا، sessions 33) — «ثقل القاعدة» كان وهمًا؛ الثقيلة كانت مزامنة العميل (24 طلبًا لكل foreground) وتُعالج في P1/P2.
 
 
 
