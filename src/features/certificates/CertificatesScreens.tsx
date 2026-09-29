@@ -17,7 +17,7 @@ import { useI18n } from '../../i18n';
 import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Input, Row, Screen, Spacer, Tag, Txt } from '../../design/components';
 import { spacing, radii, certPaper } from '../../design/tokens';
 import { bidiIsolate, formatDate } from '../../shared/format';
-import { duration, easing, isReducedMotion } from '../../design/motion';
+import { duration, isReducedMotion } from '../../design/motion';
 import { publicVerifyUrl } from '../../shared/links';
 import { CelebrationModal } from '../../design/celebrations';
 import { Icon } from '../../design/icons';
@@ -85,7 +85,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, toast, refresh } = useApp();
-  const cert = db.certificates.find((c) => c.id === route.params.certId);
+  const certIdParam = route?.params?.certId ?? '';
+  const cert = db.certificates.find((c) => c.id === certIdParam || c.serial === certIdParam);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
@@ -100,10 +101,17 @@ export function CertificateViewerScreen({ route, navigation }: any) {
     Animated.spring(stamp, { toValue: 1, useNativeDriver: true, damping: isReducedMotion() ? 30 : 10, stiffness: 120 }).start();
   }, [stamp]);
 
-  if (!cert) return null;
-  const batch = batchOf(db, cert.batchId)!;
-  const course = courseOf(db, batch.courseId)!;
-  const student = profileOf(db, cert.userId)!;
+  const batch = cert ? batchOf(db, cert.batchId) : undefined;
+  const course = batch ? courseOf(db, batch.courseId) : undefined;
+  const student = cert ? profileOf(db, cert.userId) : undefined;
+  if (!cert || !batch || !course || !student) {
+    return (
+      <Screen label={t('certs.viewer')}>
+        <Header title={t('certs.viewer')} back={() => navigation.goBack()} />
+        <Empty emoji="🎓" title={t('common.notFoundTitle')} body={t('common.notFoundBody')} />
+      </Screen>
+    );
+  }
   const branch = db.branches.find((b) => b.id === batch.branchId);
   const verifyUrl = publicVerifyUrl(cert.serial);
 
@@ -335,7 +343,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
           {/* تصميم الشهادة الرسمي */}
           <View style={{
             backgroundColor: certPaper.bg,
-            borderRadius: radii.xl,
+            borderRadius: radii.xxl,
             borderWidth: 3, borderColor: theme.certGold,
             padding: 24, alignItems: 'center', gap: 10,
             shadowColor: theme.certGold, shadowOpacity: 0.25, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },

@@ -124,7 +124,7 @@ export function JellyButton({
           styles.jellyPressable,
           {
             height,
-            borderRadius: radii.button,
+            borderRadius: radii.lg,
             shadowColor,
             shadowOpacity: isDark ? 0.35 : 0.25,
             shadowRadius: 16,
@@ -137,7 +137,7 @@ export function JellyButton({
           colors={gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.jellyGradient, { borderRadius: radii.button, height }]}
+          style={[styles.jellyGradient, { borderRadius: radii.lg, height }]}
         >
           {/* لمسة الـ 3D Highlight العلوية الزجاجية */}
           <View style={styles.topGlassHighlight} />
@@ -221,7 +221,7 @@ export function PillGradientSearchInput({
         style={[
           styles.pillOuterGradient,
           {
-            shadowColor: focused ? theme.brand : '#000',
+            shadowColor: focused ? theme.brand : theme.glassShadow,
             shadowOpacity: focused ? 0.22 : 0.04,
             shadowRadius: focused ? 12 : 6,
             elevation: focused ? 4 : 1,
@@ -455,7 +455,7 @@ export function BubbleExpandButton({ title, onPress, icon, style }: BubbleExpand
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={[styles.bubbleBtn, { borderRadius: radii.button }, style]}
+      style={[styles.bubbleBtn, { borderRadius: radii.lg }, style]}
     >
       <Animated.View
         style={[

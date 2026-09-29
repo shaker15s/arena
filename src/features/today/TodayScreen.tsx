@@ -253,7 +253,7 @@ export function TodayScreen() {
           <FadeIn index={1}>
             <View
               style={{
-                borderRadius: radii.xl,
+                borderRadius: radii.xxl,
                 overflow: 'hidden',
                 borderWidth: 1.5,
                 borderColor: isDark ? 'rgba(245, 158, 11, 0.42)' : 'rgba(217, 119, 6, 0.35)',
@@ -294,7 +294,7 @@ export function TodayScreen() {
                 borderWidth={2}
                 colorFrom="#F59E0B"
                 colorTo="#7C3AED"
-                borderRadius={radii.xl}
+                borderRadius={radii.xxl}
               />
 
               <Pressable
@@ -417,7 +417,7 @@ export function TodayScreen() {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{
-                    borderRadius: radii.card,
+                    borderRadius: radii.xl,
                     padding: spacing.s4,
                     overflow: 'hidden',
                     shadowColor: theme.brand,
@@ -435,7 +435,7 @@ export function TodayScreen() {
                     borderWidth={2.5}
                     colorFrom="#FDE68A"
                     colorTo="#38BDF8"
-                    borderRadius={radii.card}
+                    borderRadius={radii.xl}
                   />
 
                   <Row center>
@@ -454,7 +454,7 @@ export function TodayScreen() {
                       <Spacer size={6} />
                       <View style={{
                         backgroundColor: 'rgba(255,255,255,0.2)',
-                        borderRadius: radii.pill,
+                        borderRadius: radii.full,
                         paddingVertical: 10, paddingHorizontal: 16,
                         flexDirection: 'row', alignItems: 'center', gap: 8,
                         alignSelf: 'flex-start',
@@ -475,7 +475,7 @@ export function TodayScreen() {
             <FadeIn index={1}>
               <View
                 style={{
-                  borderRadius: radii.xl,
+                  borderRadius: radii.xxl,
                   overflow: 'hidden',
                   borderWidth: 1.5,
                   borderColor: isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(16, 185, 129, 0.35)',
@@ -495,7 +495,7 @@ export function TodayScreen() {
                   borderWidth={2}
                   colorFrom="#10B981"
                   colorTo="#38BDF8"
-                  borderRadius={radii.xl}
+                  borderRadius={radii.xxl}
                 />
                 <Row center between>
                   <View style={{ flex: 1, gap: 6, minWidth: 0 }}>

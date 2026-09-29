@@ -480,7 +480,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
       {batch ? (
         <Sheet visible={broadcastOpen} onClose={() => setBroadcastOpen(false)} title={t('management.broadcastStudents')}>
           <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
-            <Card glass>
+            <Card>
               <Row center gap={8}>
                 <Icon name="people" size={18} color={theme.brand} />
                 <Txt variant="bodyMed" color={theme.brand}>

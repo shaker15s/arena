@@ -4,8 +4,8 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pressable,
-  StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView, useWindowDimensions,
+  ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable,
+  StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -13,8 +13,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
-import { radii, scaleType, spacing, typography } from './tokens';
-import { easing, isReducedMotion, scalePress, staggerDelay } from './motion';
+import {
+  borderWidth, blurIntensity, componentTokens, fonts, hitSlop, radii, scaleType,
+  shadows, spacing, springs, typography,
+} from './tokens';
+import { isReducedMotion, pressScale, staggerDelay } from './motion';
 import { useI18n } from '../i18n';
 import { useHaptics } from '../shared/hooks';
 import { Icon } from './icons';
@@ -22,6 +25,7 @@ import { webInputReset } from './a11y/focus';
 import { announce } from './a11y/announce';
 import { useFocusTrap } from './a11y/useFocusTrap';
 import { rovingTabIndex, useRovingKeys } from './a11y/roving';
+import { navigationRef, safeBack } from '../app/navRef';
 
 // ───────────────────────────── نصوص ─────────────────────────────
 
@@ -49,10 +53,10 @@ export function Txt({
   /** معرّف العنصر (للربط بـ aria-labelledby في الأقسام). */
   id?: string;
 }) {
-  const { theme } = useTheme();
-  const { width } = useWindowDimensions();
+  const { theme, windowWidth } = useTheme();
   // سلم نصوص متجاوب مع معايرة الخط العربي (1.35x fontSize لمنع قص الحروف الممتدة).
-  const base = scaleType(typography[variant], width);
+  // العرض من سياق الثيم (CMP-05) — اشتراك واحد في أعلى الشجرة بدل اشتراك لكل نص.
+  const base = scaleType(typography[variant], windowWidth);
   const calibratedLineHeight = Math.max(base.lineHeight, Math.round(base.fontSize * 1.35));
   const headingA11y = heading
     ? {
@@ -84,7 +88,8 @@ export function Txt({
         { color: color ?? theme.text, textAlign: align ?? 'auto' },
         base,
         { lineHeight: calibratedLineHeight },
-        bold ? { fontFamily: typography.h3.fontFamily } : null,
+        // DS-04: كان يستخدم h3 (SemiBold 600) — أي أن `bold` لم يكن Bold أصلًا.
+        bold ? { fontFamily: fonts.bold } : null,
         style,
       ]}
     >
@@ -118,19 +123,17 @@ export function Row({ children, style, gap, center, between, wrap }: {
   );
 }
 
-export function Spacer({ size = 8 }: { size?: number }) {
+export function Spacer({ size = spacing.s2 }: { size?: number }) {
   return <View style={{ height: size, width: size }} />;
 }
 
-const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null;
+const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 // ───────────────────────────── بطاقات زجاجية ─────────────────────────────
 
-export function Card({ children, style, glass, color, noPad, onPress, solid, heavy, accessibilityLabel, accessibilityHint }: {
+export function Card({ children, style, color, noPad, onPress, solid, heavy, accessibilityLabel, accessibilityHint }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
-  /** مُبقاة للتوافق — الزجاج صار الأساس */
-  glass?: boolean;
   color?: string;
   noPad?: boolean;
   onPress?: () => void;
@@ -147,22 +150,19 @@ export function Card({ children, style, glass, color, noPad, onPress, solid, hea
   const useGlass = !solid && !color;
 
   const pressIn = () => {
-    if (onPress) Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
+    if (onPress) Animated.spring(scale, { toValue: pressScale.default, useNativeDriver: true, ...springs.default }).start();
   };
   const pressOut = () => {
-    if (onPress) Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
+    if (onPress) Animated.spring(scale, { toValue: 1, useNativeDriver: true, ...springs.default }).start();
   };
 
   const shell: ViewStyle = {
-    borderRadius: radii.card,
-    borderWidth: 1,
+    borderRadius: radii.xl,
+    borderWidth: borderWidth.thin,
     borderColor: theme.glassBorder,
     padding: noPad ? 0 : spacing.s4,
-    shadowColor: '#000',
-    shadowOpacity: isDark ? 0.28 : 0.07,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowColor: theme.glassShadow,
+    ...(isDark ? shadows.card.dark : shadows.card.light),
     overflow: 'hidden',
   };
 
@@ -170,7 +170,7 @@ export function Card({ children, style, glass, color, noPad, onPress, solid, hea
     <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glass : color ?? theme.card, transform: [{ scale }] }, style]}>
       {useGlass && heavy ? (
         <BlurView
-          intensity={isDark ? 34 : 42}
+          intensity={isDark ? blurIntensity.heavyCard.dark : blurIntensity.heavyCard.light}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
@@ -265,7 +265,7 @@ export function Btn({
   const minBtnHeight = size === 'lg' ? 52 : size === 'md' ? 44 : 38;
 
   const press = (v: number) =>
-    Animated.spring(scale, { toValue: v, useNativeDriver: true, damping: 22, stiffness: 260 }).start();
+    Animated.spring(scale, { toValue: v, useNativeDriver: true, ...springs.default }).start();
 
   if (isGradient) {
     return (
@@ -284,7 +284,7 @@ export function Btn({
           accessibilityHint={accessibilityHint}
           accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
           onPress={loading || disabled ? undefined : handlePress}
-          onPressIn={() => press(scalePress)}
+          onPressIn={() => press(pressScale.default)}
           onPressOut={() => press(1)}
           style={webPointer}
         >
@@ -293,7 +293,7 @@ export function Btn({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              borderRadius: radii.button,
+              borderRadius: radii.lg,
               paddingVertical: padV,
               paddingHorizontal: padH,
               minHeight: minBtnHeight,
@@ -331,13 +331,13 @@ export function Btn({
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
         onPress={loading || disabled ? undefined : handlePress}
-        onPressIn={() => press(scalePress)}
+        onPressIn={() => press(pressScale.default)}
         onPressOut={() => press(1)}
         style={[
           webPointer,
           {
             backgroundColor: bg,
-            borderRadius: radii.button,
+            borderRadius: radii.lg,
             paddingVertical: padV,
             paddingHorizontal: padH,
             minHeight: minBtnHeight,
@@ -386,19 +386,23 @@ export function Chip({ label, active, onPress, icon }: {
       accessibilityRole="button"
       accessibilityState={{ selected: Boolean(active) }}
       accessibilityLabel={label}
-      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      hitSlop={{ top: hitSlop.small, bottom: hitSlop.small, left: hitSlop.small, right: hitSlop.small }}
       onPress={onPress ? () => { impactLight(); onPress(); } : undefined}
       style={({ pressed }) => ({
-        flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40,
+        flexDirection: 'row', alignItems: 'center',
+        gap: componentTokens.chip.gap,
+        minHeight: componentTokens.chip.minHeight,
         backgroundColor: active ? theme.brand : theme.glass,
-        borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 9,
-        borderWidth: 0.5,
+        borderRadius: radii.full,
+        paddingHorizontal: componentTokens.chip.paddingHorizontal,
+        paddingVertical: componentTokens.chip.paddingVertical,
+        borderWidth: borderWidth.hairline,
         borderColor: active ? 'transparent' : theme.line,
         opacity: pressed ? 0.7 : 1,
-        transform: [{ scale: pressed ? 0.96 : 1 }],
+        transform: [{ scale: pressed ? pressScale.strong : 1 }],
       })}
     >
-      {icon ? <Icon name={icon} size={14} color={active ? theme.onBrand : theme.textSecondary} /> : null}
+      {icon ? <Icon name={icon} size={componentTokens.chip.iconSize} color={active ? theme.onBrand : theme.textSecondary} /> : null}
       <Txt variant="caption" color={active ? theme.onBrand : theme.textSecondary}>{label}</Txt>
     </Pressable>
   );
@@ -406,8 +410,15 @@ export function Chip({ label, active, onPress, icon }: {
 
 export function Tag({ label, color, bg, icon }: { label: string; color: string; bg: string; icon?: keyof typeof Ionicons.glyphMap }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: bg, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' }}>
-      {icon ? <Icon name={icon} size={12} color={color} /> : null}
+    <View style={{
+      flexDirection: 'row', alignItems: 'center',
+      gap: componentTokens.tag.gap,
+      backgroundColor: bg, borderRadius: radii.full,
+      paddingHorizontal: componentTokens.tag.paddingHorizontal,
+      paddingVertical: componentTokens.tag.paddingVertical,
+      alignSelf: 'flex-start',
+    }}>
+      {icon ? <Icon name={icon} size={componentTokens.tag.iconSize} color={color} /> : null}
       <Txt variant="micro" color={color}>{label}</Txt>
     </View>
   );
@@ -430,7 +441,7 @@ export function Segmented<T extends string>({ options, value, onChange }: {
     },
   });
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: theme.fill, borderRadius: radii.pill, padding: 3 }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: theme.fill, borderRadius: radii.full, padding: componentTokens.segmented.padding }}>
       {options.map((opt, index) => {
         const active = opt.value === value;
         return (
@@ -443,16 +454,14 @@ export function Segmented<T extends string>({ options, value, onChange }: {
             accessibilityLabel={opt.label}
             onPress={() => { impactLight(); onChange(opt.value); }}
             style={{
-              flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center',
+              flex: 1, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
               backgroundColor: active ? theme.card : 'transparent',
-              borderRadius: radii.pill, paddingVertical: 9,
-              shadowColor: active ? '#000' : 'transparent',
-              shadowOpacity: active ? 0.05 : 0,
-              shadowRadius: active ? 8 : 0,
-              shadowOffset: { width: 0, height: 2 },
+              borderRadius: radii.full, paddingVertical: componentTokens.segmented.paddingVertical,
+              shadowColor: theme.glassShadow,
+              ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
             }}
           >
-            {opt.icon ? <Icon name={opt.icon} size={14} color={active ? theme.brand : theme.textMuted} /> : null}
+            {opt.icon ? <Icon name={opt.icon} size={componentTokens.segmented.iconSize} color={active ? theme.brand : theme.textMuted} /> : null}
             <Txt variant="caption" color={active ? theme.text : theme.textMuted}>{opt.label}</Txt>
           </Pressable>
         );
@@ -544,11 +553,13 @@ export function Input({
       ) : null}
       <View
         style={{
-          flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', gap: 10,
+          flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', gap: componentTokens.input.gap,
           backgroundColor: theme.fill,
-          borderRadius: radii.button, borderWidth: error || focused ? 1.5 : 0.5,
+          borderRadius: radii.lg, borderWidth: error || focused ? borderWidth.medium : borderWidth.hairline,
           borderColor: error ? theme.danger : focused ? theme.brand : theme.fillBorder,
-          paddingHorizontal: 16, paddingVertical: multiline ? 12 : 4, minHeight: multiline ? 96 : 54,
+          paddingHorizontal: componentTokens.input.paddingHorizontal,
+          paddingVertical: multiline ? componentTokens.input.paddingVerticalMultiline : componentTokens.input.paddingVertical,
+          minHeight: multiline ? componentTokens.input.minHeightMultiline : componentTokens.input.minHeight,
           shadowColor: focused ? theme.brand : 'transparent',
           shadowOpacity: focused ? 0.12 : 0,
           shadowRadius: focused ? 12 : 0,
@@ -558,13 +569,13 @@ export function Input({
         {icon ? (
           isInteractiveIcon ? (
             <Pressable
-              hitSlop={8}
+              hitSlop={hitSlop.default}
               accessibilityRole="button"
               accessibilityLabel={label ?? t('a11y.insightAction')}
               onPress={handleIconClick}
               style={[Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null, { marginTop: multiline ? 10 : 0 }]}
             >
-              <Icon name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+              <Icon name={icon} size={componentTokens.input.iconSize} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
             </Pressable>
           ) : (
             <View
@@ -572,7 +583,7 @@ export function Input({
               aria-hidden={true}
               style={{ marginTop: multiline ? 10 : 0 }}
             >
-              <Icon name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+              <Icon name={icon} size={componentTokens.input.iconSize} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
             </View>
           )
         ) : null}
@@ -618,7 +629,7 @@ export function Input({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('a11y.clearInput')}
-            hitSlop={8}
+            hitSlop={hitSlop.default}
             onPress={() => onChange('')}
             style={({ pressed }) => ({
               opacity: pressed ? 0.7 : 0.45,
@@ -664,11 +675,13 @@ export function ProgressBar({ progress, color, height = 8, track }: {
   const anim = useRef(new Animated.Value(0)).current;
   const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
   useEffect(() => {
-    Animated.timing(anim, {
-      toValue: Math.min(1, Math.max(0, progress)),
-      duration: isReducedMotion() ? 200 : 600,
-      easing: easing.standard, useNativeDriver: false,
-    }).start();
+    const toValue = Math.min(1, Math.max(0, progress));
+    if (isReducedMotion()) {
+      Animated.timing(anim, { toValue, duration: 200, useNativeDriver: false }).start();
+    } else {
+      // انتقال تقدّم = spring موحّد (DS-08) — لم يعد هناك نظام easing موازٍ.
+      Animated.spring(anim, { toValue, useNativeDriver: false, ...springs.default }).start();
+    }
   }, [progress, anim]);
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   return (
@@ -718,10 +731,12 @@ export function Flame({ size = 22, urgent }: { size?: number; urgent?: boolean }
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (isReducedMotion()) return undefined;
+    // حلقة نبض مستمرة — Easing هنا ليس «نظام حركة» بل دورة بلا هدف (انظر motion.ts).
+    const loopEasing = Easing.inOut(Easing.ease);
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: urgent ? 1.18 : 1.06, duration: urgent ? 520 : 1200, easing: easing.inOut, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: urgent ? 520 : 1200, easing: easing.inOut, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: urgent ? 1.18 : 1.06, duration: urgent ? 520 : 1200, easing: loopEasing, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: urgent ? 520 : 1200, easing: loopEasing, useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -846,14 +861,15 @@ export function Empty({ emoji, title, body, cta, onCta }: {
         <View
           accessible={false}
           style={{
-            width: 92, height: 92, borderRadius: 30,
+            width: componentTokens.emptyState.iconBox, height: componentTokens.emptyState.iconBox,
+            borderRadius: componentTokens.emptyState.iconBoxRadius,
             alignItems: 'center', justifyContent: 'center',
             backgroundColor: theme.brandSoft,
-            borderWidth: 1, borderColor: `${theme.brand}22`,
+            borderWidth: borderWidth.thin, borderColor: `${theme.brand}22`,
             transform: [{ rotate: '-3deg' }],
           }}
         >
-          <Text accessible={false} style={{ fontSize: 44, transform: [{ rotate: '3deg' }] }}>{emoji}</Text>
+          <Text accessible={false} style={{ fontSize: componentTokens.emptyState.emojiSize, transform: [{ rotate: '3deg' }] }}>{emoji}</Text>
         </View>
         <Txt variant="h2" align="center">{title}</Txt>
         {body ? <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 340 }}>{body}</Txt> : null}
@@ -875,10 +891,11 @@ export function Shimmer({ width = '100%', height = 14, radius = 10, style }: {
       anim.setValue(0.55);
       return undefined;
     }
+    const loopEasing = Easing.inOut(Easing.ease);
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 900, easing: easing.inOut, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 700, easing: easing.inOut, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 900, easing: loopEasing, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 700, easing: loopEasing, useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -962,10 +979,18 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('common.back')}
-              hitSlop={8}
-              onPress={back}
+              hitSlop={hitSlop.default}
+              onPress={() => {
+                const beforeKey = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.key : undefined;
+                back();
+                const afterKey = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.key : undefined;
+                if (beforeKey && beforeKey === afterKey && navigationRef.isReady() && !navigationRef.canGoBack()) {
+                  safeBack();
+                }
+              }}
               style={({ pressed }) => ({
-              width: 44, height: 44, borderRadius: 15,
+              width: componentTokens.backButton.size, height: componentTokens.backButton.size,
+              borderRadius: componentTokens.backButton.radius,
               backgroundColor: theme.fill,
               alignItems: 'center', justifyContent: 'center',
               opacity: pressed ? 0.7 : 1,
@@ -997,7 +1022,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                     alignItems: 'center',
                     gap: 4,
                     opacity: pressed ? 0.75 : 1,
-                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    transform: [{ scale: pressed ? pressScale.subtle : 1 }],
                   })}
                 >
                   <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
@@ -1067,25 +1092,27 @@ export function Sheet({ visible, onClose, children, title }: {
               ? ({ role: 'dialog', 'aria-modal': true, 'aria-label': title } as unknown as object)
               : {})}
             style={{
-              width: '100%', maxWidth: 620, alignSelf: 'center',
+              width: '100%', maxWidth: componentTokens.sheet.maxWidth, alignSelf: 'center',
               backgroundColor: theme.card,
-              borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
+              borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl,
               paddingHorizontal: spacing.s5, paddingTop: spacing.s4,
               paddingBottom: Platform.OS === 'web' ? 28 : spacing.s8 + insets.bottom,
               maxHeight: '92%',
-              borderWidth: 1,
+              borderWidth: borderWidth.thin,
               borderBottomWidth: 0,
               borderColor: theme.glassBorder,
-              shadowColor: '#000',
-              shadowOpacity: 0.28,
-              shadowRadius: 36,
-              shadowOffset: { width: 0, height: -12 },
+              shadowColor: theme.glassShadow,
+              ...shadows.sheet,
               transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }],
               display: 'flex',
               flexDirection: 'column',
             }}
           >
-            <View style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: theme.separator, marginBottom: 12 }} />
+            <View style={{
+              alignSelf: 'center',
+              width: componentTokens.sheet.grabberWidth, height: componentTokens.sheet.grabberHeight,
+              borderRadius: 3, backgroundColor: theme.separator, marginBottom: 12,
+            }} />
             
             {title ? (
               <Row between center style={{ marginBottom: 12 }}>
@@ -1094,7 +1121,7 @@ export function Sheet({ visible, onClose, children, title }: {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t('common.close') || 'Close dialog'}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    hitSlop={{ top: hitSlop.generous, bottom: hitSlop.generous, left: hitSlop.generous, right: hitSlop.generous }}
                     onPress={onClose}
                     style={[webPointer, { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }]}
                   >
@@ -1139,20 +1166,27 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger,
       style={({ pressed }) => ([
         webPointer,
         {
-          flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
+          flexDirection: 'row', alignItems: 'center',
+          gap: componentTokens.listRow.gap,
+          minHeight: componentTokens.listRow.minHeight,
           ...(grow ? { flex: 1 } : null),
           backgroundColor: theme.glass,
-          borderRadius: radii.cardSm, padding: 14,
-          borderWidth: 0.5,
+          borderRadius: radii.lg,
+          padding: componentTokens.listRow.padding,
+          borderWidth: borderWidth.hairline,
           borderColor: theme.glassBorder,
           opacity: pressed ? 0.7 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
+          transform: [{ scale: pressed ? pressScale.subtle : 1 }],
         },
       ])}
     >
       {icon ? (
-        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: iconBg ?? theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={icon} size={19} color={danger ? theme.danger : theme.brand} />
+        <View style={{
+          width: componentTokens.listRow.iconBox, height: componentTokens.listRow.iconBox,
+          borderRadius: radii.md, backgroundColor: iconBg ?? theme.brandSoft,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name={icon} size={componentTokens.listRow.iconSize} color={danger ? theme.danger : theme.brand} />
         </View>
       ) : null}
       <View style={{ flex: 1 }}>
@@ -1187,16 +1221,16 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
     outputRange: [theme.fillStrong, color ?? theme.brand],
   });
 
-  // النقل من اليسار لليمين بسلاسة ناعمة
+  // النقل من اليسار لليمين بسلاسة ناعمة — الأبعاد كلها من componentTokens.switch (CMP-01)
   const translate = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [2.5, 23],
+    outputRange: [componentTokens.switch.travelStart, componentTokens.switch.travelEnd],
   });
 
   // تمدد القرص عند اللمس والضغط (تأثير Apple & Uiverse الإنسيابي)
   const thumbWidth = pressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [26, 31],
+    outputRange: [componentTokens.switch.thumb, componentTokens.switch.thumbPressed],
   });
 
   return (
@@ -1215,13 +1249,13 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
       onPressOut={() => {
         Animated.spring(pressAnim, { toValue: 0, damping: 15, stiffness: 250, useNativeDriver: false }).start();
       }}
-      hitSlop={10}
+      hitSlop={hitSlop.comfy}
     >
       <Animated.View
         style={{
-          width: 52,
-          height: 31,
-          borderRadius: 16,
+          width: componentTokens.switch.width,
+          height: componentTokens.switch.height,
+          borderRadius: componentTokens.switch.radius,
           backgroundColor: bg,
           justifyContent: 'center',
           direction: 'ltr',
@@ -1231,15 +1265,12 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
         <Animated.View
           style={{
             width: thumbWidth,
-            height: 26,
-            borderRadius: 13,
+            height: componentTokens.switch.thumb,
+            borderRadius: componentTokens.switch.thumbRadius,
             backgroundColor: '#FFFFFF',
             transform: [{ translateX: translate }],
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 5,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 4,
+            shadowColor: theme.glassShadow,
+            ...shadows.thumb,
           }}
         />
       </Animated.View>
@@ -1266,7 +1297,7 @@ export function Stars({ value, size = 16, onRate }: { value: number; size?: numb
   return (
     <View
       {...(onRate ? { accessibilityRole: 'radiogroup' as const, accessibilityLabel: t('a11y.rating') } : {})}
-      style={{ flexDirection: 'row', gap: 2 }}
+      style={{ flexDirection: 'row', gap: componentTokens.stars.gap }}
     >
       {[1, 2, 3, 4, 5].map((i, index) => (
         <Pressable
@@ -1278,7 +1309,7 @@ export function Stars({ value, size = 16, onRate }: { value: number; size?: numb
           accessibilityState={onRate ? { checked: i === rounded } : undefined}
           onPress={onRate ? () => { impactLight(); onRate(i); } : undefined}
           disabled={!onRate}
-          hitSlop={4}
+          hitSlop={hitSlop.tight}
         >
           <Icon name={i <= Math.round(value) ? 'star' : 'star-outline'} size={size} color={i <= Math.round(value) ? theme.certGold : theme.textMuted} />
         </Pressable>
@@ -1297,7 +1328,7 @@ export function RarityFrame({ rarity, children }: { rarity: 'common' | 'rare' | 
     : rarity === 'rare' ? theme.rarityRare
     : theme.rarityCommon;
   return (
-    <View style={{ borderWidth: 2, borderColor: color, borderRadius: 18, padding: 2, alignSelf: 'center' }}>
+    <View style={{ borderWidth: borderWidth.thick, borderColor: color, borderRadius: radii.lg, padding: 2, alignSelf: 'center' }}>
       {children}
     </View>
   );

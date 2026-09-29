@@ -327,7 +327,7 @@ export function LiveSessionScreen() {
                 borderWidth={2.5}
                 colorFrom="#38BDF8"
                 colorTo="#818CF8"
-                borderRadius={radii.card}
+                borderRadius={radii.xl}
               />
 
               <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
@@ -459,7 +459,7 @@ export function LiveSessionScreen() {
       <Sheet visible={reportStep && !closedSessionReport} onClose={() => {}} title={`${t('report.title')} — ${myLive.title}`}>
         <ScrollView>
           <View style={{ gap: 12 }}>
-            <Card glass>
+            <Card>
               <Row center gap={8}>
                 <Icon name="people" size={16} color={theme.brand} />
                 <Txt variant="bodyMed">{t('report.summary', { x: rows.length, y: students.length })}</Txt>
@@ -523,7 +523,7 @@ export function DetailedSessionReportSheet({
     <Sheet visible={visible} onClose={onClose} title={t('live.reportTitle', { title: data.session.title })}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }} showsVerticalScrollIndicator={false}>
         {/* معلومات المحاضرة */}
-        <Card glass>
+        <Card>
           <Txt variant="h2">{course?.title ?? t('batches.courseFallback')}</Txt>
           <Txt variant="caption" color={theme.textSecondary}>
             {t('live.sessionMeta', { seq: data.session.seq, room: batch?.room ?? t('common.room'), min: durationMin })}

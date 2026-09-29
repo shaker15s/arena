@@ -316,7 +316,7 @@ export function ScannerScreen({ navigation }: any) {
       />
 
       {/* 4. محتوى الواجهة العائم فوق الكاميرا */}
-      <View style={[styles.overlayContainer, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.md }]}>
+      <View style={[styles.overlayContainer, { paddingTop: insets.top + spacing.s2, paddingBottom: insets.bottom + spacing.s4 }]}>
         {/* الهيدر مع أزرار التحكم الزجاجية */}
         <Row between center style={styles.headerRow}>
           <IconGlassButton
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.s4,
   },
   headerRow: {
     width: '100%',
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   sessionStatusTag: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: radii.pill,
+    borderRadius: radii.full,
     backgroundColor: 'rgba(15, 23, 42, 0.75)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
@@ -657,10 +657,10 @@ const styles = StyleSheet.create({
   },
   permissionDeniedCard: {
     alignItems: 'center',
-    padding: spacing.xl,
-    marginHorizontal: spacing.md,
+    padding: spacing.s8,
+    marginHorizontal: spacing.s4,
     backgroundColor: '#0F172A',
-    borderRadius: radii.xl,
+    borderRadius: radii.xxl,
     borderWidth: 1.5,
     borderColor: 'rgba(56, 189, 248, 0.4)',
     shadowColor: '#000',
@@ -671,8 +671,8 @@ const styles = StyleSheet.create({
   },
   manualCodeContainer: {
     width: '100%',
-    padding: spacing.md,
-    borderRadius: radii.xl,
+    padding: spacing.s4,
+    borderRadius: radii.xxl,
     backgroundColor: '#0F172A',
     borderWidth: 1.5,
     borderColor: 'rgba(56, 189, 248, 0.3)',

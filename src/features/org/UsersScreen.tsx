@@ -174,7 +174,7 @@ export function UsersScreen() {
               </View>
             ) : null}
 
-            <Card glass>
+            <Card>
               <Row center gap={8}>
                 <Icon name="information-circle" size={15} color={theme.textMuted} />
                 <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>

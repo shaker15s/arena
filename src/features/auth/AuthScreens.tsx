@@ -300,7 +300,7 @@ export function OnboardingScreen({ navigation }: any) {
                 gap={8}
                 style={{
                   backgroundColor: theme.fill,
-                  borderRadius: radii.pill,
+                  borderRadius: radii.full,
                   padding: 4,
                   borderWidth: 1,
                   borderColor: theme.fillBorder,
@@ -328,7 +328,7 @@ export function OnboardingScreen({ navigation }: any) {
                         gap: 6,
                         paddingVertical: 6,
                         paddingHorizontal: 14,
-                        borderRadius: radii.pill,
+                        borderRadius: radii.full,
                         backgroundColor: isSelected ? (isDark ? theme.brandSoft : theme.card) : 'transparent',
                         shadowColor: isSelected ? '#000' : 'transparent',
                         shadowOpacity: isSelected ? 0.08 : 0,
@@ -394,7 +394,7 @@ export function OnboardingScreen({ navigation }: any) {
             }}
             style={{
               backgroundColor: theme.brand,
-              borderRadius: radii.button,
+              borderRadius: radii.lg,
               minHeight: sizes.ctaButton, // 52pt standard (D3)
               alignItems: 'center',
               justifyContent: 'center',
@@ -640,7 +640,7 @@ export function SignInScreen({ navigation }: any) {
                 gap: 6,
                 paddingHorizontal: 10,
                 paddingVertical: 6,
-                borderRadius: radii.pill,
+                borderRadius: radii.full,
                 backgroundColor: theme.fill,
                 borderWidth: 1,
                 borderColor: theme.fillBorder,
@@ -656,7 +656,7 @@ export function SignInScreen({ navigation }: any) {
                 gap: 6,
                 paddingHorizontal: 10,
                 paddingVertical: 6,
-                borderRadius: radii.pill,
+                borderRadius: radii.full,
                 backgroundColor: theme.fill,
                 borderWidth: 1,
                 borderColor: theme.fillBorder,
@@ -672,7 +672,7 @@ export function SignInScreen({ navigation }: any) {
                 gap: 6,
                 paddingHorizontal: 10,
                 paddingVertical: 6,
-                borderRadius: radii.pill,
+                borderRadius: radii.full,
                 backgroundColor: theme.fill,
                 borderWidth: 1,
                 borderColor: theme.fillBorder,

@@ -166,7 +166,7 @@ export function VerifyScreen({ navigation, route }: any) {
           <FadeIn index={0}>
             <Card style={{ borderColor: theme.success + '66', borderWidth: 2 }}>
               <View style={{ alignItems: 'center', gap: 12, paddingVertical: 8 }}>
-                <View style={{ backgroundColor: theme.successSoft, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 6 }}>
+                <View style={{ backgroundColor: theme.successSoft, borderRadius: radii.full, paddingHorizontal: 16, paddingVertical: 6 }}>
                   <Row center gap={6}>
                     <Icon name="checkmark-circle" size={18} color={theme.success} />
                     <Txt variant="h3" color={theme.success}>{t('verify.verified')}</Txt>

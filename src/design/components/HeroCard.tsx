@@ -88,7 +88,7 @@ export function HeroCard({
           borderWidth={2}
           colorFrom={fromColor}
           colorTo={toColor}
-          borderRadius={radii.card}
+          borderRadius={radii.xl}
         />
       )}
 
@@ -102,7 +102,7 @@ export function HeroCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: radii.card,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     }),
   },
   content: {
-    padding: spacing.lg,
+    padding: spacing.s6,
     position: 'relative',
     zIndex: 1,
   },

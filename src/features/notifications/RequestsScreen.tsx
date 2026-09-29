@@ -184,7 +184,7 @@ export function RequestsScreen({ navigation }: any) {
         <AnimatedTabContent tabKey={tab}>
         {tab === 'new' && isStudent ? (
           <View style={{ gap: 12 }}>
-            <Card glass>
+            <Card>
               <Txt variant="h3">{t('requests.officialTitle')}</Txt>
               <Txt variant="caption" color={theme.textSecondary}>
                 {t('requests.officialBody')}
@@ -257,7 +257,7 @@ export function RequestsScreen({ navigation }: any) {
         {selected ? (
           <ScrollView>
             <View style={{ gap: 12 }}>
-              <Card glass><Txt variant="body" color={theme.textSecondary}>{selected.body}</Txt></Card>
+              <Card><Txt variant="body" color={theme.textSecondary}>{selected.body}</Txt></Card>
               {selected.response ? <Card color={theme.successSoft}><Txt variant="caption" color={theme.success}>{selected.response}</Txt></Card> : null}
               {!isStudent && selected.status !== 'resolved' && selected.status !== 'rejected' ? (
                 <>

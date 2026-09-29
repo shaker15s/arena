@@ -30,6 +30,7 @@ import { CelebrationModal } from '../../design/celebrations';
 import { batchStudents } from '../../data/engine';
 import { BatchFormSheet } from '../org/AdminScreens';
 import { Icon } from '../../design/icons';
+import { safeBack } from '../../app/navRef';
 
 // ───────────────────────────── الكتالوج ─────────────────────────────
 
@@ -172,7 +173,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
         noPad
         style={{
           overflow: 'hidden',
-          borderRadius: radii.xl,
+          borderRadius: radii.xxl,
           borderWidth: 1,
           borderColor: theme.glassBorder,
           backgroundColor: theme.cardElevated,
@@ -373,7 +374,14 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
   const [joinedBatchData, setJoinedBatchData] = useState<null | { batch: Batch; waitlist: boolean }>(null);
   const [isSaved, setIsSaved] = useState(false);
 
-  if (!course) return null;
+  if (!course) {
+    return (
+      <Screen label={t('tabs.explore')}>
+        <Header title={t('tabs.explore')} back={() => safeBack(navigation)} />
+        <Empty emoji="🧭" title={t('common.notFoundTitle')} body={t('common.notFoundBody')} />
+      </Screen>
+    );
+  }
 
   const myEnrollment = user
     ? db.enrollments.find((e) => e.userId === user.id && batches.some((b) => b.id === e.batchId))
@@ -428,12 +436,12 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
          الحجز يتبعه بدقة بدل 130px المتحججة التي شكلت شريطًا رماديًا ميتًا. */}
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 88 }}>
         {/* غلاف Hero متدرج */}
-        <View style={{ backgroundColor: course.color, paddingTop: insets.top + spacing.s2, paddingBottom: spacing.s7, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
+        <View style={{ backgroundColor: course.color, paddingTop: insets.top + spacing.s2, paddingBottom: spacing.s7, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xxl, borderBottomRightRadius: radii.xxl }}>
           <Row between center style={{ marginBottom: spacing.s5 }}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('common.back')}
-              onPress={() => navigation.goBack()}
+              onPress={() => safeBack(navigation)}
               style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' }}
             >
               <BackIcon color="#fff" />
@@ -773,7 +781,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
       <Sheet visible={joinBatch != null} onClose={() => setJoinBatch(null)} title={t('join.title')}>
         {joinBatch ? (
           <View style={{ gap: 12, paddingBottom: 20 }}>
-            <Card glass>
+            <Card>
               <Txt variant="h3">{course.title}</Txt>
               <Spacer size={4} />
               <Txt variant="caption" color={theme.textSecondary}>

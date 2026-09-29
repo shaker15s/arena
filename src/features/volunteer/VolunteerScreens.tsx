@@ -537,7 +537,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
               <ReportStat label={t('history.excused')} value={report.excused} color={attendanceColors.excused} bg={attendanceColors.excused + '1A'} />
               <ReportStat label={t('history.absent')} value={report.absent} color={attendanceColors.absent} bg={attendanceColors.absent + '1A'} />
             </Row>
-            <Card glass>
+            <Card>
               <Row between center>
                 <Row center gap={6}>
                   <Icon name="people" size={14} color={theme.brand} />

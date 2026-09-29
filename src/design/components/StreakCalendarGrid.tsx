@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    marginTop: spacing.sm,
+    marginTop: spacing.s2,
   },
   legendItem: {
     flexDirection: 'row',

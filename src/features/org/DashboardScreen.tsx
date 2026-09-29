@@ -14,7 +14,7 @@ import {
 } from '../../design/components';
 import { useTabs } from '../../app/RootNavigator';
 import { radii, spacing } from '../../design/tokens';
-import { easing, isReducedMotion } from '../../design/motion';
+import { isReducedMotion, springs } from '../../design/motion';
 import type { Db } from '../../data/types';
 import { toCsv, saveCsv } from '../../shared/export';
 import { anticheatReport, needsAttention, orgWeeklyReport, setReportSubscription, type AnticheatReport, type NeedsAttentionItem, type WeeklyReport } from '../../data/actions';
@@ -209,7 +209,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
                       variant="ghost"
                       onPress={() => {
                         if (item.key === 'attendance_disputes') navigation.navigate('Disputes', { mode: 'inbox' });
-                        else if (item.key === 'stale_sessions') navigation.navigate('Tabs', { tab: 'live' });
+                        else if (item.key === 'stale_sessions') navigation.navigate('BatchesAdmin');
                         else navigation.navigate('Support');
                       }}
                     />
@@ -363,12 +363,12 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
         <View style={{ gap: 8 }}>
           {pendingExcuses > 0 ? (
             <Card style={{ backgroundColor: theme.dangerSoft, borderStartWidth: 3, borderStartColor: theme.danger, padding: spacing.s3 }}>
-              <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('Inbox')} />
+              <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('ExcusesInbox')} />
             </Card>
           ) : null}
           {liveSessions > 0 ? (
             <Card style={{ backgroundColor: theme.warnSoft, borderStartWidth: 3, borderStartColor: theme.warn, padding: spacing.s3 }}>
-              <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} />
+              <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} onPress={() => navigation.navigate('BatchesAdmin')} />
             </Card>
           ) : null}
           {completedWithoutCert > 0 ? (
@@ -385,12 +385,16 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
 function TrendBar({ value, index, color, opacity }: { value: number; index: number; color: string; opacity: number }) {
   const progress = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
   useEffect(() => {
-    Animated.timing(progress, {
+    if (isReducedMotion()) {
+      Animated.timing(progress, { toValue: 1, duration: 100, useNativeDriver: false }).start();
+      return;
+    }
+    // انتقال = spring موحّد (DS-08) — حُذف نظام easing الموازي من design/motion.
+    Animated.spring(progress, {
       toValue: 1,
-      duration: isReducedMotion() ? 100 : 520,
-      delay: isReducedMotion() ? 0 : index * 55,
-      easing: easing.standard,
+      delay: index * 55,
       useNativeDriver: false,
+      ...springs.default,
     }).start();
   }, [index, progress]);
   return (

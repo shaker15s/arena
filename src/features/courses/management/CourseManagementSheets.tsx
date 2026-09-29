@@ -464,7 +464,7 @@ export function SessionDetailSheet({
             <Metric value={String(absent)} label={t('history.absent')} color={theme.danger} />
           </Row>
 
-          <Card glass>
+          <Card>
             <Row between center>
               <Txt variant="caption" color={theme.textSecondary}>{t('sess.attendancePct')}</Txt>
               <Txt variant="h3" color={pct >= 75 ? theme.success : theme.warn}>{pct}% ({honored}/{total})</Txt>

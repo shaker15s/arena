@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.s4,
   },
   singleTapBar: {
     position: 'absolute',

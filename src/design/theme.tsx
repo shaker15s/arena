@@ -3,7 +3,7 @@
  * يدعم «حسب النظام» + فاتح + داكن + OLED، ويحفظ اختيار المستخدم.
  */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, Platform } from 'react-native';
+import { Appearance, Platform, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeColors, ThemeName, themes } from './tokens';
 
@@ -19,6 +19,11 @@ interface ThemeCtx {
   preference: ThemePref;
   setTheme: (t: ThemePref) => void;
   isDark: boolean;
+  /**
+   * عرض النافذة الحالي — يُقرأ مرة واحدة هنا (CMP-05) بدل أن يشترك كل مكوّن
+   * نصّي `Txt` في useWindowDimensions (كانت كل شاشة تدفع ثمن عشرات الاشتراكات).
+   */
+  windowWidth: number;
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
@@ -27,17 +32,30 @@ function systemTheme(): ThemeName {
   return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [preference, setPreference] = useState<ThemePref>('system');
-  const [system, setSystem] = useState<ThemeName>(systemTheme());
+/** قراءة متزامنة لاختيار الويب — تمنع وميض الثيم الخاطئ عند أول رسم React (UX-08). */
+function initialPreference(): ThemePref {
+  try {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw === 'light' || raw === 'dark' || raw === 'oled' || raw === 'system') return raw;
+    }
+  } catch {
+    /* تجاهل */
+  }
+  return 'system';
+}
 
-  // استرجاع اختيار المستخدم
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [preference, setPreference] = useState<ThemePref>(initialPreference);
+  const [system, setSystem] = useState<ThemeName>(systemTheme());
+  const { width } = useWindowDimensions();
+
+  // استرجاع اختيار المستخدم (على الجوال فقط — الويب قرأه متزامنًا في initialPreference)
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     void (async () => {
       try {
-        const raw = Platform.OS === 'web' && typeof localStorage !== 'undefined'
-          ? localStorage.getItem(STORAGE_KEY)
-          : await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw === 'light' || raw === 'dark' || raw === 'oled' || raw === 'system') setPreference(raw);
       } catch {
         /* تجاهل */
@@ -79,8 +97,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       preference,
       setTheme,
       isDark: themeName !== 'light',
+      windowWidth: width,
     }),
-    [themeName, preference],
+    [themeName, preference, width],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

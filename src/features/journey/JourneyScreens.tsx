@@ -550,17 +550,17 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
               </Txt>
             </View>
 
-            <Card glass style={{ gap: 6, alignItems: 'center' }}>
+            <Card style={{ gap: 6, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateOverall')}</Txt>
               <Stars value={stars} size={32} onRate={setStars} />
             </Card>
 
-            <Card glass style={{ gap: 6, alignItems: 'center' }}>
+            <Card style={{ gap: 6, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateInstructor')}</Txt>
               <Stars value={instructorStars} size={28} onRate={setInstructorStars} />
             </Card>
 
-            <Card glass style={{ gap: 6, alignItems: 'center' }}>
+            <Card style={{ gap: 6, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateVenue')}</Txt>
               <Stars value={venueStars} size={28} onRate={setVenueStars} />
             </Card>
