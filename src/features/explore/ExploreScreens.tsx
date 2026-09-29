@@ -75,7 +75,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         keyExtractor={(course) => course.id}
         initialNumToRender={8}
         windowSize={5}
-        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 110, gap: 12 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -175,7 +175,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
           borderRadius: radii.xl,
           borderWidth: 1,
           borderColor: theme.glassBorder,
-          backgroundColor: isDark ? 'rgba(24, 24, 32, 0.85)' : 'rgba(255, 255, 255, 0.92)',
+          backgroundColor: theme.cardElevated,
           shadowColor: course.color,
           shadowOpacity: isDark ? 0.25 : 0.08,
           shadowRadius: 14,
@@ -280,9 +280,9 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
         </LinearGradient>
 
         {/* محتوى البطاقة المبسط والمنظم */}
-        <View style={{ padding: 14, gap: 10 }}>
+        <View style={{ padding: spacing.s4, gap: spacing.s3 }}>
           <Row center between>
-            <Txt variant="h3" numberOfLines={2} style={{ flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' }}>
+            <Txt variant="h3" numberOfLines={2} style={{ flex: 1 }}>
               {course.title}
             </Txt>
             <Icon
@@ -424,10 +424,12 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
   return (
     <Screen label={course.title}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
+      {/* DESIGN-02: شريط CTA ثابت أسفل الشاشة (16 + 52 + 12 + safe-area) —
+         الحجز يتبعه بدقة بدل 130px المتحججة التي شكلت شريطًا رماديًا ميتًا. */}
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 88 }}>
         {/* غلاف Hero متدرج */}
-        <View style={{ backgroundColor: course.color, paddingTop: insets.top + 10, paddingBottom: 26, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
-          <Row between center style={{ marginBottom: 18 }}>
+        <View style={{ backgroundColor: course.color, paddingTop: insets.top + spacing.s2, paddingBottom: spacing.s7, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
+          <Row between center style={{ marginBottom: spacing.s5 }}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('common.back')}
@@ -456,7 +458,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             </Row>
             {stats.count > 0 ? (
               <Row center gap={4}>
-                <Icon name="star" size={14} color="#FFD86B" />
+                <Icon name="star" size={14} color={theme.certGold} />
                 <Txt variant="caption" color="rgba(255,255,255,0.9)">{stats.avg}</Txt>
                 <Txt variant="micro" color="rgba(255,255,255,0.7)">({stats.count} {t('course.ratingCount')})</Txt>
               </Row>
@@ -464,12 +466,12 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
           </Row>
         </View>
 
-        <View style={{ padding: spacing.s5, gap: 14 }}>
+        <View style={{ padding: spacing.s5, gap: spacing.s3 }}>
           {/* بطاقة أدوات المنظم السريعة */}
           {isVolunteer ? (
             <FadeIn index={0}>
               {isTakenByOtherVolunteer ? (
-                <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55', marginBottom: 4 }}>
+                <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55', marginBottom: spacing.s2 }}>
                   <Row center gap={10}>
                     <Icon name="lock-closed" size={24} color={theme.warn} />
                     <View style={{ flex: 1 }}>
@@ -481,7 +483,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   </Row>
                 </Card>
               ) : isMyOrganizedCourse ? (
-                <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: 4 }}>
+                <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: spacing.s2 }}>
                   <Row center gap={10}>
                     <Icon name="shield-checkmark" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
@@ -534,7 +536,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                   />
                 </Card>
               ) : (
-                <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: 4 }}>
+                <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: spacing.s2 }}>
                   <Row center gap={10}>
                     <Icon name="sparkles" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
@@ -603,17 +605,17 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
               {/* المجموعات المتاحة مباشرة داخل تبويب "عن الكورس" */}
               {!myEnrollment && batches.length > 0 ? (
-                <>
-                  <Spacer size={16} />
+                <View style={{ gap: spacing.s3 }}>
+                  <Spacer size={spacing.s4} />
                   <Txt variant="h3">{t('course.batches')}</Txt>
-                  <Spacer size={8} />
+                  <Spacer size={spacing.s2} />
                   {batches.map((b) => {
                     const instructor = profileOf(db, b.instructorId);
                     const branch = db.branches.find((x) => x.id === b.branchId);
                     const seats = seatCounts(db, b.id);
                     const left = b.capacity - seats.taken;
                     return (
-                      <Card key={b.id} style={{ marginBottom: 10 }}>
+                      <Card key={b.id}>
                         <Row center gap={12}>
                           {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={42} /> : null}
                           <View style={{ flex: 1 }}>
@@ -640,7 +642,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                       </Card>
                     );
                   })}
-                </>
+                </View>
               ) : null}
             </FadeIn>
           ) : null}
@@ -649,7 +651,8 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             batches.length === 0 ? (
               <Empty emoji="🗓️" title={t('course.noBatches')} />
             ) : (
-              batches.map((b, i) => {
+              <View style={{ gap: spacing.s3 }}>
+              {batches.map((b, i) => {
                 const instructor = profileOf(db, b.instructorId);
                 const branch = db.branches.find((x) => x.id === b.branchId);
                 const seats = seatCounts(db, b.id);
@@ -724,7 +727,8 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                     </Card>
                   </FadeIn>
                 );
-              })
+              })}
+              </View>
             )
           ) : null}
 
@@ -732,7 +736,8 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             reviews.length === 0 ? (
               <Empty emoji="⭐" title={t('explore.noResults')} />
             ) : (
-              reviews.map((r, i) => {
+              <View style={{ gap: spacing.s3 }}>
+              {reviews.map((r, i) => {
                 const reviewer = profileOf(db, r.userId);
                 return (
                   <FadeIn key={`${r.userId}-${i}`} index={i}>
@@ -745,11 +750,12 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                         </View>
                         <Txt variant="micro" color={theme.textMuted}>{formatDate(r.createdAt, lang)}</Txt>
                       </Row>
-                      {r.comment ? <Txt variant="body" color={theme.textSecondary} style={{ marginTop: 8 }}>{r.comment}</Txt> : null}
+                      {r.comment ? <Txt variant="body" color={theme.textSecondary} style={{ marginTop: spacing.s2 }}>{r.comment}</Txt> : null}
                     </Card>
                   </FadeIn>
                 );
-              })
+              })}
+              </View>
             )
           ) : null}
           </AnimatedTabContent>
@@ -758,7 +764,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
       {/* CTA سفلي ثابت */}
       {!myEnrollment && batches.length > 0 ? (
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s4, paddingBottom: insets.bottom + 12, backgroundColor: theme.glass, borderTopWidth: 1, borderTopColor: theme.line }}>
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s4, paddingBottom: insets.bottom + 12, backgroundColor: theme.glassHeavy, borderTopWidth: 1, borderTopColor: theme.line }}>
           <Btn title={t('course.join')} size="lg" full icon="add-circle" onPress={() => handleSelectBatch(batches[0])} />
         </View>
       ) : null}

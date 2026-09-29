@@ -1241,6 +1241,17 @@ export const ar = {
   'share.achievementText': '🎓 {title}\n{subtitle}{points}{url}',
   'share.pointsLine': '+{points} نقطة في مسار!',
   'a11y.newBadge': 'شارة جديدة: {name}. {desc}',
+  'certs.downloadPng': 'تحميل صورة PNG',
+  'certs.openBadge': 'شارة Open Badges 3.0',
+  'certs.openBadgeCopied': 'تم نسخ وثيقة Open Badges 3.0 القابلة للتحقق ✓',
+  'support.refSaved': 'تم تسجيل طلبك برقم مرجعي: {ref}',
+  'support.lookupRef': 'البحث برقم مرجع الخطأ (MSR-XXXXXX)',
+  'support.lookupPlaceholder': 'MSR-XXXXXX',
+  'support.lookupBtn': 'بحث',
+  'support.lookupNotFound': 'لا يوجد سجل خطأ بهذا الرقم المرجعي',
+  'offline.pendingBanner': 'بانتظار المزامنة: {count} عملية محفوظة محليًا',
+  'offline.syncNow': 'مزامنة الآن',
+  'journey.exportSchedule': 'تصدير جدول المجموعة للتقويم (.ics)',
 };
 
 export type DictKey = keyof typeof ar;

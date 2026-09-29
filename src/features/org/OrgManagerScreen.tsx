@@ -58,7 +58,7 @@ export function OrgManagerScreen() {
 
   return (
     <Screen label={t('org.branches')} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
         {db.branches.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>

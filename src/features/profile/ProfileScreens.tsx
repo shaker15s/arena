@@ -15,7 +15,8 @@ import {
   Screen, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
-import { formatDate, formatTime } from '../../shared/format';
+import { bidiIsolate, formatDate, formatTime } from '../../shared/format';
+import { getErrorByRef } from '../../data/actions';
 import { MasarMascot } from '../../design/mascot';
 import { Icon } from '../../design/icons';
 
@@ -61,7 +62,7 @@ export function ProfileScreen() {
   return (
     <Screen label={t('profile.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
       >
         <Header title={t('profile.title')} />
@@ -401,10 +402,60 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
 export function SupportScreen({ navigation }: any) {
   const { t } = useI18n();
   const { theme } = useTheme();
+  const { user, toast } = useApp();
+  const [lookupCode, setLookupCode] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState<Record<string, unknown> | null>(null);
+  const isManager = !!user && (user.role === 'admin' || user.role === 'supervisor');
+
+  const doLookup = async () => {
+    const clean = lookupCode.trim().toUpperCase();
+    if (!clean) return;
+    setLookupLoading(true);
+    try {
+      const res = await getErrorByRef(clean);
+      setLookupResult(res);
+      if (!res) toast(t('support.lookupNotFound'), 'error');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
   return (
     <Screen label={t('profile.support')} style={{ flex: 1 }}>
       <Header title={t('profile.support')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+        {isManager ? (
+          <FadeIn index={0}>
+            <Card glass>
+              <Txt variant="bodyMed">{t('support.lookupRef')}</Txt>
+              <Spacer size={8} />
+              <Row gap={8} center>
+                <View style={{ flex: 1 }}>
+                  <Input
+                    value={lookupCode}
+                    onChange={setLookupCode}
+                    placeholder={t('support.lookupPlaceholder')}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                  />
+                </View>
+                <Btn title={t('support.lookupBtn')} icon="search" loading={lookupLoading} onPress={() => { void doLookup(); }} />
+              </Row>
+              {lookupResult ? (
+                <View style={{ marginTop: 10, gap: 4 }}>
+                  <Txt variant="caption" color={theme.brand}>{bidiIsolate(String(lookupResult.ref_code ?? lookupCode))}</Txt>
+                  <Txt variant="bodyMed">{String(lookupResult.message ?? '')}</Txt>
+                  <Txt variant="micro" color={theme.textMuted}>
+                    {String(lookupResult.screen ?? '—') + ' · ' + String(lookupResult.release ?? '—') + ' · ' + String(lookupResult.created_at ?? '')}
+                  </Txt>
+                </View>
+              ) : null}
+            </Card>
+          </FadeIn>
+        ) : null}
         {[
           { q: t('support.attendanceQ'), a: t('support.attendanceA') },
           { q: t('support.absenceQ'), a: t('support.absenceA') },

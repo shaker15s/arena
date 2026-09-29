@@ -157,7 +157,7 @@ export function LiveSessionScreen() {
     return (
       <Screen label={t('live.title')}>
         <Header title={t('live.title')} />
-        <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, alignItems: 'center', paddingBottom: 130 }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, alignItems: 'center', paddingBottom: spacing.s5 }}>
           <Empty emoji="🎬" title={closedSummary ? `${t('live.closedSnack')}` : t('vtoday.noSessionToday')} />
           {closedSummary ? (
             <Card style={{ alignSelf: 'stretch' }}>
@@ -287,7 +287,7 @@ export function LiveSessionScreen() {
 
   return (
     <Screen label={myLive.title} style={{ flex: 1, backgroundColor: isDark ? theme.bg : '#0E1230' }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 16, paddingBottom: 130 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: spacing.s4, paddingBottom: spacing.s5 }}>
         {/* رأس الجلسة */}
         <FadeIn index={0}>
           <Row between center>

@@ -504,14 +504,19 @@ export function ScannerScreen({ navigation }: any) {
               ref={inputRef}
               value={code}
               onChangeText={(v) => {
-                const cleaned = v.replace(/[^\d]/g, '').slice(0, 6);
+                const normalized = v
+                  .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+                  .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+                const cleaned = normalized.replace(/[^\d]/g, '').slice(0, 6);
                 setCode(cleaned);
                 if (cleaned.length === 6) {
                   void doCheck(cleaned);
                 }
               }}
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={12}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
               style={styles.hiddenInput}
               autoFocus={false}
             />

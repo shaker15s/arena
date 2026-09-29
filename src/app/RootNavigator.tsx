@@ -11,7 +11,7 @@ import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Btn, Card, FadeIn, PageSkeleton, Spacer, Txt } from '../design/components';
+import { Btn, Card, FadeIn, OfflineQueueBanner, PageSkeleton, Spacer, Txt } from '../design/components';
 import { AppBackground, ContentFrame } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
 import { navBar, radii, spacing } from '../design/tokens';
@@ -450,6 +450,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   }, [tab, tabs, t]);
 
   const ctx = useMemo(() => ({ tab, setTab: handleSelectTab }), [tab]);
+  const { online, pendingQueueCount, flushOfflineQueue } = useApp();
 
   return (
     <TabsContext.Provider value={ctx}>
@@ -458,6 +459,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
           FAB = 76 فعليًا ⇒ 28px شريط رمادي ميت فوق الناف بار) + كل شاشة تضيف
           paddingBottom خاصًا بها (110–130) فتتراكم فجوة 200px+. */}
         <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: (fab ? navBar.height + navBar.fabPoke : navBar.height) + Math.max(insets.bottom, navBar.minPad) }}>
+          <OfflineQueueBanner online={online} pendingCount={pendingQueueCount} onSync={() => { void flushOfflineQueue(); }} />
           {tabs.map((t) => {
             const isSelected = t.key === tab;
             if (!visitedTabs.has(t.key) && !isSelected) return null;

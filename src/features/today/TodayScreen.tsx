@@ -209,7 +209,7 @@ export function TodayScreen() {
         </View>
       ) : null}
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, paddingBottom: 110 }}
+        contentContainerStyle={{ paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -350,7 +350,7 @@ export function TodayScreen() {
                       }}
                     >
                       <Icon name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
-                      <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'} style={{ fontSize: 10.5 }}>
+                      <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'}>
                         نصيحة فطن 💬
                       </Txt>
                     </View>
@@ -394,7 +394,7 @@ export function TodayScreen() {
                     </Txt>
                     <Row center gap={4} style={{ marginTop: 5 }}>
                       <Icon name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
-                      <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 9.5 }}>
+                      <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 11 }}>
                         اضغط على فطن لاقتباس جديد ✨
                       </Txt>
                     </Row>
@@ -442,7 +442,7 @@ export function TodayScreen() {
                     <View style={{ flex: 1, gap: 8, minWidth: 0 }}>
                       <Row center gap={8}>
                         <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
-                        <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: 11.5, fontWeight: '700' }}>
+                        <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: 12, fontWeight: '700' }}>
                           ⚡ مباشر الآن
                         </AnimatedShinyText>
                       </Row>

@@ -1118,7 +1118,7 @@ export function Sheet({ visible, onClose, children, title }: {
 
 // ───────────────────────────── سطر قائمة ─────────────────────────────
 
-export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger }: {
+export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger, grow }: {
   icon?: keyof typeof Ionicons.glyphMap;
   iconBg?: string;
   title: string;
@@ -1126,6 +1126,8 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
   onPress?: () => void;
   right?: React.ReactNode;
   danger?: boolean;
+  /** يملأ ارتفاع عموده في الشبكات (أعمدة متساوية بدل ارتفاعات متناثرة حسب التمرير) */
+  grow?: boolean;
 }) {
   const { theme } = useTheme();
   const { impactLight } = useHaptics();
@@ -1138,6 +1140,7 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
         webPointer,
         {
           flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
+          ...(grow ? { flex: 1 } : null),
           backgroundColor: theme.glass,
           borderRadius: radii.cardSm, padding: 14,
           borderWidth: 0.5,
@@ -1296,6 +1299,68 @@ export function RarityFrame({ rarity, children }: { rarity: 'common' | 'rare' | 
   return (
     <View style={{ borderWidth: 2, borderColor: color, borderRadius: 18, padding: 2, alignSelf: 'center' }}>
       {children}
+    </View>
+  );
+}
+
+export function OfflineQueueBanner({
+  online,
+  pendingCount,
+  onSync,
+}: {
+  online: boolean;
+  pendingCount: number;
+  onSync?: () => void;
+}) {
+  const { theme } = useTheme();
+  const { t } = useI18n();
+  if (online && pendingCount <= 0) return null;
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        paddingHorizontal: spacing.s4,
+        paddingVertical: 8,
+        marginHorizontal: spacing.s5,
+        marginTop: spacing.s2,
+        borderRadius: radii.md,
+        backgroundColor: online ? theme.brandSoft : theme.warnSoft,
+        borderWidth: 1,
+        borderColor: online ? theme.brand : theme.warn,
+      }}
+    >
+      <Row center gap={8} style={{ flex: 1 }}>
+        <Icon
+          name={online ? 'cloud-upload-outline' : 'cloud-offline-outline'}
+          size={16}
+          color={online ? theme.brand : theme.warn}
+        />
+        <Txt variant="caption" color={online ? theme.brand : theme.warn} style={{ flex: 1 }}>
+          {pendingCount > 0
+            ? t('offline.pendingBanner', { count: pendingCount })
+            : t('common.offlineBanner')}
+        </Txt>
+      </Row>
+      {online && pendingCount > 0 && onSync ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('offline.syncNow')}
+          onPress={onSync}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: radii.sm,
+            backgroundColor: theme.brand,
+          }}
+        >
+          <Txt variant="micro" color="#FFFFFF">{t('offline.syncNow')}</Txt>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

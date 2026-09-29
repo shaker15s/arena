@@ -21,6 +21,9 @@ import { CelebrationModal } from '../../design/celebrations';
 import { DayStatus } from '../../design/components/StreakCalendarGrid';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
+import { buildIcs, icsFilename } from '../../shared/calendar';
+import { saveIcs } from '../../shared/export';
+import { PUBLIC_APP_URL } from '../../shared/links';
 import { Batch, TrainingSession, AttendanceStatus } from '../../data/types';
 import { useTabs } from '../../app/RootNavigator';
 import { Icon } from '../../design/icons';
@@ -45,7 +48,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('journey.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -241,6 +244,25 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const minCertPct = 75;
   const isEligibleForCert = totalClosed >= sessions.length * 0.75 && attendanceRate >= minCertPct;
 
+  const exportBatchSchedule = async () => {
+    if (sessions.length === 0) return;
+    const ics = buildIcs(
+      sessions.map((s) => ({
+        uid: s.id,
+        title: course.title + ' — ' + s.title,
+        startMs: s.startsAt,
+        durationMinutes: s.durationMin > 0 ? s.durationMin : 90,
+        location: batch.room,
+        description: t('today.icsDesc', { course: course.title }),
+        url: PUBLIC_APP_URL,
+        alarmMinutes: 60,
+      })),
+      course.title,
+    );
+    const ok = await saveIcs(icsFilename(course.title, sessions[0].startsAt), ics);
+    toast(ok ? t('today.icsOk') : t('today.icsFail'), ok ? 'success' : 'error');
+  };
+
   return (
     <Screen label={course.title} style={{ flex: 1 }}>
       <Header
@@ -299,6 +321,19 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 </Txt>
                 <Tag label={t('journey.minPct', { x: minCertPct })} color={theme.certGold} bg={theme.warnSoft} />
               </Row>
+              {sessions.length > 0 ? (
+                <>
+                  <Spacer size={10} />
+                  <Btn
+                    title={t('journey.exportSchedule')}
+                    size="sm"
+                    variant="ghost"
+                    icon="calendar-outline"
+                    full
+                    onPress={() => { void exportBatchSchedule(); }}
+                  />
+                </>
+              ) : null}
             </Card>
           </FadeIn>
 

@@ -57,7 +57,15 @@ export function JoinBatchScreen({ route, navigation }: any) {
           </Txt>
           <PillGradientSearchInput
             value={code}
-            onChangeText={(value) => { setCode(value.replace(/\s+/g, '').toUpperCase()); setJoined(null); }}
+            onChangeText={(value) => {
+              const normalized = value
+                .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+                .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+                .replace(/[\s\-_]+/g, '')
+                .toUpperCase();
+              setCode(normalized);
+              setJoined(null);
+            }}
             placeholder={t('joinCode.code')}
             icon="key"
             autoComplete="one-time-code"

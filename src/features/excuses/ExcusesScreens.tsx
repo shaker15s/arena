@@ -245,7 +245,7 @@ export function ExcusesInboxScreen() {
 
   return (
     <Screen label={t('inbox.title')}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
         <Header title={t('inbox.title')} />
         <Segmented
           value={tab}
@@ -262,7 +262,8 @@ export function ExcusesInboxScreen() {
             {myPending.length === 0 ? (
               <Empty emoji="✨" title={t('inbox.emptyTitle')} />
             ) : (
-              myPending.map((e, i) => {
+              <View style={{ gap: spacing.s3 }}>
+              {myPending.map((e, i) => {
                 const student = profileOf(db, e.userId);
                 const sess = db.sessions.find((s) => s.id === e.sessionId);
                 const isRejecting = rejectId === e.id;
@@ -308,11 +309,12 @@ export function ExcusesInboxScreen() {
                     </Card>
                   </FadeIn>
                 );
-              })
+              })}
+              </View>
             )}
             {handled.length > 0 ? (
-              <>
-                <Txt variant="h3" style={{ marginTop: 8 }}>{t('common.done')}</Txt>
+              <View style={{ gap: spacing.s3 }}>
+                <Txt variant="h3" style={{ marginTop: spacing.s2 }}>{t('common.done')}</Txt>
                 {handled.map((e) => {
                   const student = profileOf(db, e.userId);
                   const sess = db.sessions.find((s) => s.id === e.sessionId);
@@ -333,14 +335,15 @@ export function ExcusesInboxScreen() {
                     </Card>
                   );
                 })}
-              </>
+              </View>
             ) : null}
           </>
         ) : (
           reports.length === 0 ? (
             <Empty emoji="📝" title={t('inbox.noReports')} />
           ) : (
-            reports.map((s, i) => {
+            <View style={{ gap: spacing.s3 }}>
+            {reports.map((s, i) => {
               const batch = batchOf(db, s.batchId);
               const course = batch ? courseOf(db, batch.courseId) : undefined;
               const attended = db.attendance.filter((a) => a.sessionId === s.id && a.status !== 'absent').length;
@@ -370,7 +373,8 @@ export function ExcusesInboxScreen() {
                   </Card>
                 </FadeIn>
               );
-            })
+            })}
+            </View>
           )
         )}
         </AnimatedTabContent>

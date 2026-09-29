@@ -244,3 +244,31 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 - `rpc:types`: **93 دالة** متطابقة ✓
 - `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` (5/5) / `test:load` (p95 = 0.84ms) / `test:e2e` (**62/62**) ✓
 
+---
+
+# الموجة D (Wave D) — فطن والأصول والبصريات والوظائف المتبقية (MASCOT + DESIGN + FUNC) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **DESIGN-01→08 سلالم التوكينز البصرية والحركية** | ✅ منجز | `src/design/tokens.ts`: إضافة `elevation[0..4]`، وتوسيع `zIndex` (`dropdown`, `overlay`)، وإضافة `glassLevels` (`thin`, `thick`, `fallback`)، وإضافة `motionTokens` (`instant: 80ms`, `fast: 150ms`, `normal: 250ms`, `slow: 400ms`, `springGentle`, `springSnappy`, `reduced: 0ms`) |
+| **MASCOT M2 + M3 سلم الريندر وحارس المنسق المركزي** | ✅ منجز | `src/design/mascot/MascotProvider.tsx` و`src/design/mascot/index.ts`: إنشاء `MascotProvider` و`useMascotStage` لمنع ظهور أكثر من تميمة نشطة على الشاشة في آن واحد (`claimStage`), مع سلم التراجع الثابت (`MascotStage` → `MascotSvgFallback` → `FATEN_STATIC_FRAMES`) لـ12 حالة كاملة (`12/12` من `FatenBehaviorState`) واحترام `isReducedMotion()` |
+| **ASSET-01→06 فهرس الأصول الموحّد** | ✅ منجز | `assets/manifest.json`: توثيق جميع أصول الهوية وأيقونات PWA والتميمة والرسوم التوضيحية مع ميزانية الحجم القصوى (`≤ 200KB`) والتراخيص (`MIT`, `OFL-1.1`, `Proprietary`) |
+| **FUNC-13 / FUNC-04 تصدير الشهادة PNG @2x + تثبيت QR في PDF + Open Badges 3.0** | ✅ منجز | `src/features/certificates/CertificatesScreens.tsx`: إضافة `exportCertificatePng()` لتوليد صورة `@2x` (`1600×1120`) عبر `HTMLCanvasElement` مع الـQR والختم وتنزيلها كملف `.png`، وتثبيت إحداثيات QR في قالب PDF (`position:absolute; bottom:16mm; left:18mm; width:32mm; height:32mm`) مع خطوط عربية أصيلة، وإضافة زر `exportOpenBadge()` لنسخ وثيقة `Open Badges 3.0` (`VerifiableCredential`) عبر `publicBadgeAssertion(cert.serial)` |
+| **FUNC-15 رقم مرجع التذكرة والبحث برقم الخطأ (`MSR-XXXXXX`)** | ✅ منجز | `src/features/notifications/RequestsScreen.tsx` و`src/features/profile/ProfileScreens.tsx › SupportScreen`: عرض الرقم المرجعي للتذكرة (`MSR-XXXXXX`) فور إرسال الطلب، وإضافة بطاقة بحث للمشرفين والأدمن عبر `getErrorByRef(ref)` لعرض سجل الخطأ المرتبط |
+| **FUNC-08 شريط طابور عدم الاتصال والمزامنة الفورية** | ✅ منجز | `src/design/components.tsx › OfflineQueueBanner` و`src/app/RootNavigator.tsx › TabsScaffold`: إظهار عدد العمليات المؤجلة (`pendingQueueCount`) وحالة الاتصال مع زر مزامنة فوري يستدعي `flushOfflineQueue()` |
+| **FUNC-18 تطبيع الأرقام العربية واللصق في حقول الأكواد** | ✅ منجز | `src/features/courses/JoinBatchScreen.tsx` و`src/features/attendance/ScannerScreen.tsx`: تحويل الأرقام العربية المشرقية والفارسية (`٠-٩` / `۰-۹`) تلقائيًا إلى `0-9` وإزالة المسافات والشرطات عند اللصق |
+| **FUNC-03 تصدير جدول المجموعة الكامل `.ics`** | ✅ منجز | `src/features/journey/JourneyScreens.tsx › JourneyMapScreen`: زر تصدير جميع جلسات المجموعة التدريبية كملف تقويم `.ics` موحّد عبر `buildIcs` و`saveIcs` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 58 عنصر ضغط · 199 `<Icon>` · 40/40 شاشة h1 · 40/40 شاشة `<Screen>` · 0 أخطاء / 0 تحذيرات
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: **101 نصًا** في **21 ملفًا** (تنظيف `CertificatesScreens.tsx` بالكامل وتثبيت السقف الجديد) ✓
+- `parity`: **1158 مفتاحًا** متطابقًا في `ar.ts` و`en.ts` ✓
+- `rpc:check`: 65 نداء / 126 دالة خادمية ✓
+- `sql:check`: 32 ملفًا · 153 دالة SECURITY DEFINER · 0 أخطاء ✓
+- `rpc:types`: 93 دالة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` (5/5) / `test:load` (p95 = 1.06ms) / `test:e2e` (**62/62**) ✓
+
+

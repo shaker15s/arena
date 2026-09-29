@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../../data/store';
 import {
-  fetchSupportRequests, reviewSupportRequest, submitSupportRequest,
+  fetchSupportRequests, reviewSupportRequest, submitSupportRequest, getErrorByRef,
   type SupportRequestRow,
 } from '../../data/actions';
 import { useTheme } from '../../design/theme';
@@ -13,7 +13,7 @@ import {
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { spacing } from '../../design/tokens';
-import { timePast } from '../../shared/format';
+import { bidiIsolate, timePast } from '../../shared/format';
 import { useI18n } from '../../i18n';
 import { Icon } from '../../design/icons';
 
@@ -43,6 +43,10 @@ export function RequestsScreen({ navigation }: any) {
   const [body, setBody] = useState('');
   const [response, setResponse] = useState('');
   const [sending, setSending] = useState(false);
+  const [lastRefCode, setLastRefCode] = useState<string | null>(null);
+  const [lookupCode, setLookupCode] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState<Record<string, unknown> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,21 +67,39 @@ export function RequestsScreen({ navigation }: any) {
 
   if (!user) return null;
   const isStudent = user.role === 'student';
+  const isManager = user.role === 'admin' || user.role === 'supervisor';
+
+  const doLookup = async () => {
+    const clean = lookupCode.trim().toUpperCase();
+    if (!clean) return;
+    setLookupLoading(true);
+    try {
+      const res = await getErrorByRef(clean);
+      setLookupResult(res);
+      if (!res) toast(t('support.lookupNotFound'), 'error');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
 
   const send = async () => {
     if (subject.trim().length < 3 || body.trim().length < 10) return;
     if (kind === 'course_request' && !recipientId) return;
     setSending(true);
     try {
-      await submitSupportRequest({
+      const reqId = await submitSupportRequest({
         kind,
         subject: subject.trim(),
         body: body.trim(),
         recipientId: kind === 'course_request' ? recipientId : undefined,
       });
+      const refCode = 'MSR-' + String(reqId || '').replace(/-/g, '').slice(0, 6).toUpperCase();
+      setLastRefCode(refCode);
       setSubject('');
       setBody('');
-      toast(t('requests.sent'), 'success');
+      toast(t('support.refSaved', { ref: refCode }), 'success');
       setTab('inbox');
       await load();
     } catch (error) {
@@ -110,6 +132,44 @@ export function RequestsScreen({ navigation }: any) {
         contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 40, gap: 12 }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { void load(); }} tintColor={theme.brand} />}
       >
+        {lastRefCode ? (
+          <Card color={theme.successSoft}>
+            <Row center gap={8}>
+              <Icon name="checkmark-circle" size={18} color={theme.success} />
+              <Txt variant="bodyMed" color={theme.success} style={{ flex: 1 }}>
+                {t('support.refSaved', { ref: bidiIsolate(lastRefCode) })}
+              </Txt>
+            </Row>
+          </Card>
+        ) : null}
+
+        {isManager ? (
+          <Card glass>
+            <Txt variant="bodyMed">{t('support.lookupRef')}</Txt>
+            <Spacer size={8} />
+            <Row gap={8} center>
+              <View style={{ flex: 1 }}>
+                <Input
+                  value={lookupCode}
+                  onChange={setLookupCode}
+                  placeholder={t('support.lookupPlaceholder')}
+                  autoCapitalize="characters"
+                />
+              </View>
+              <Btn title={t('support.lookupBtn')} icon="search" loading={lookupLoading} onPress={() => { void doLookup(); }} />
+            </Row>
+            {lookupResult ? (
+              <View style={{ marginTop: 10, gap: 4 }}>
+                <Txt variant="caption" color={theme.brand}>{bidiIsolate(String(lookupResult.ref_code ?? lookupCode))}</Txt>
+                <Txt variant="bodyMed">{String(lookupResult.message ?? '')}</Txt>
+                <Txt variant="micro" color={theme.textMuted}>
+                  {String(lookupResult.screen ?? '—') + ' · ' + String(lookupResult.release ?? '—') + ' · ' + String(lookupResult.created_at ?? '')}
+                </Txt>
+              </View>
+            ) : null}
+          </Card>
+        ) : null}
+
         {isStudent ? (
           <Segmented
             value={tab}

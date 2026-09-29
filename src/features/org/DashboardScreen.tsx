@@ -13,7 +13,7 @@ import {
   NotificationBell, Row, Screen, Spacer, Tag, Txt,
 } from '../../design/components';
 import { useTabs } from '../../app/RootNavigator';
-import { spacing } from '../../design/tokens';
+import { radii, spacing } from '../../design/tokens';
 import { easing, isReducedMotion } from '../../design/motion';
 import type { Db } from '../../data/types';
 import { toCsv, saveCsv } from '../../shared/export';
@@ -133,7 +133,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('dash.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -187,7 +187,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         {attention.length > 0 ? (
           <FadeIn index={5}>
             <Card>
-              <Row between center style={{ marginBottom: 10 }}>
+              <Row between center style={{ marginBottom: spacing.s2 }}>
                 <Txt variant="h3">{t('dash.attention')}</Txt>
                 <Tag label={String(attention.reduce((a, i) => a + i.count, 0))} color={theme.warn} bg={theme.warnSoft} icon="alert" />
               </Row>
@@ -224,7 +224,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         {weekly ? (
           <FadeIn index={6}>
             <Card>
-              <Row between center style={{ marginBottom: 10 }}>
+              <Row between center style={{ marginBottom: spacing.s2 }}>
                 <Txt variant="h3">{t('dash.weekly')}</Txt>
                 <Tag label={t('dash.weeklyTz')} color={theme.info} bg={theme.infoSoft} icon="time-outline" />
               </Row>
@@ -236,7 +236,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
                 <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklySessions')}</Txt>
                 <Txt variant="bodyMed">{weekly.sessions_closed} / {weekly.sessions_total}</Txt>
               </Row>
-              <Row between center gap={8} style={{ marginBottom: 10 }}>
+              <Row between center gap={8} style={{ marginBottom: spacing.s2 }}>
                 <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklyMissing')}</Txt>
                 <Txt variant="bodyMed" color={weekly.sessions_missing_report > 0 ? theme.warn : theme.textMuted}>
                   {weekly.sessions_missing_report}
@@ -258,7 +258,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         {signals.length > 0 ? (
           <FadeIn index={7}>
             <Card>
-              <Row center gap={8} style={{ marginBottom: 10 }}>
+              <Row center gap={8} style={{ marginBottom: spacing.s2 }}>
                 <Icon name="shield-half-outline" size={17} color={theme.brand} />
                 <Txt variant="h3" style={{ flex: 1 }}>{t('dash.anticheat')}</Txt>
               </Row>
@@ -324,6 +324,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
                 title={t('dash.issueCerts')}
                 subtitle={t('dash.issueEligible')}
                 onPress={() => navigation.navigate('IssueCertificates')}
+                grow
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -332,6 +333,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
                 title={t('courses.title')}
                 subtitle={t('dash.catalogManage')}
                 onPress={() => navigation.navigate('Courses')}
+                grow
               />
             </View>
           </Row>
@@ -357,20 +359,20 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
   return (
     <FadeIn index={0}>
       <Card>
-        <Txt variant="h3" style={{ marginBottom: 10 }}>{t('dash.needsAttention')}</Txt>
+        <Txt variant="h3" style={{ marginBottom: spacing.s2 }}>{t('dash.needsAttention')}</Txt>
         <View style={{ gap: 8 }}>
           {pendingExcuses > 0 ? (
-            <Card style={{ backgroundColor: theme.dangerSoft, borderStartWidth: 3, borderStartColor: theme.danger, padding: 12 }}>
+            <Card style={{ backgroundColor: theme.dangerSoft, borderStartWidth: 3, borderStartColor: theme.danger, padding: spacing.s3 }}>
               <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('Inbox')} />
             </Card>
           ) : null}
           {liveSessions > 0 ? (
-            <Card style={{ backgroundColor: theme.warnSoft, borderStartWidth: 3, borderStartColor: theme.warn, padding: 12 }}>
+            <Card style={{ backgroundColor: theme.warnSoft, borderStartWidth: 3, borderStartColor: theme.warn, padding: spacing.s3 }}>
               <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} />
             </Card>
           ) : null}
           {completedWithoutCert > 0 ? (
-            <Card style={{ backgroundColor: theme.infoSoft, borderStartWidth: 3, borderStartColor: theme.info, padding: 12 }}>
+            <Card style={{ backgroundColor: theme.infoSoft, borderStartWidth: 3, borderStartColor: theme.info, padding: spacing.s3 }}>
               <ListRow icon="ribbon" title={t('dash.readyCerts')} subtitle={String(completedWithoutCert)} onPress={() => navigation.navigate('IssueCertificates')} />
             </Card>
           ) : null}
@@ -402,9 +404,11 @@ function TrendBar({ value, index, color, opacity }: { value: number; index: numb
 function KpiCard({ icon, color, value, suffix, label, index }: { icon: keyof typeof Ionicons.glyphMap; color: string; value: number; suffix?: string; label: string; index: number }) {
   const { theme } = useTheme();
   return (
-    <FadeIn index={index} style={{ flexGrow: 1, minWidth: 150, flexBasis: '30%' }}>
-      <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 18 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
+    {/* DESIGN-03: شبكة 48% بدل 30% — كانت صفوف الـ KPI غير متساوية
+      (3 في صف ثم 2 بـ 50%) فتظهر البطاقات «متناثرة» بين الصفين. */}
+    <FadeIn index={index} style={{ flexGrow: 1, minWidth: 150, flexBasis: '48%' }}>
+      <Card style={{ alignItems: 'center', gap: spacing.s2, paddingVertical: spacing.s4 }}>
+        <View style={{ width: 44, height: 44, borderRadius: radii.md, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={22} color={color} />
         </View>
         <Row center gap={2}>

@@ -10,7 +10,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { useApp } from '../../data/store';
-import { revokeCertificate, reissueCertificate } from '../../data/actions';
+import { revokeCertificate, reissueCertificate, publicBadgeAssertion } from '../../data/actions';
 import { batchOf, courseOf, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -88,6 +88,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const cert = db.certificates.find((c) => c.id === route.params.certId);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
+  const [exportingBadge, setExportingBadge] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(false);
@@ -107,7 +109,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
 
   const copyLink = async () => {
     try {
-      const value = `${t('verify.title')}: ${cert.serial} — ${verifyUrl}`;
+      const value = t('verify.title') + ': ' + cert.serial + ' — ' + verifyUrl;
       if (Platform.OS === 'web' && navigator.clipboard) await navigator.clipboard.writeText(value);
       else await Clipboard.setStringAsync(value);
       setCopied(true);
@@ -121,19 +123,22 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const exportCertificate = async (share: boolean) => {
     setExporting(true);
     try {
-      const qr = await qrToDataUrl(verifyUrl, { margin: 1, width: 180 });
+      const qr = await qrToDataUrl(verifyUrl, { margin: 1, width: 240 });
       const esc = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
-      const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>
-        @page{size:A4 landscape;margin:18mm} body{font-family:Arial,sans-serif;color:#3D2B00;background:#fff;margin:0}
-        .cert{height:155mm;border:6px double #C99B22;padding:18mm;box-sizing:border-box;text-align:center;position:relative;background:#FFFDF5}
-        h1{font-size:34px;color:#7A5C00;margin:6px} h2{font-size:28px;margin:10px} p{font-size:17px;color:#7D6A35;margin:8px}
-        .course{font-size:25px;font-weight:bold;color:#7A5C00}.footer{display:flex;align-items:center;justify-content:center;gap:30px;margin-top:18px}
-        .serial{font-family:monospace;letter-spacing:2px;color:#3D2B00}.seal{border:4px solid #C99B22;border-radius:12px;padding:10px;color:#A67B11;font-weight:bold}
-      </style></head><body><div class="cert"><h1>${esc(t('certs.of'))}</h1><p>${esc(t('certs.awardedTo'))}</p>
-      <h2>${esc(student.fullName)}</h2><p>${esc(t('certs.forCompleting'))}</p><div class="course">${esc(course.title)}</div>
-      <p>${esc(branch?.name ?? t('certs.issuedBy'))} · ${esc(formatDate(cert.issuedAt, lang))}</p>
-      <div class="footer"><img src="${qr}" width="120" height="120"/><div><div class="seal">${esc(t('verify.verified'))}</div><p class="serial">${esc(cert.serial)}</p></div></div>
-      </div></body></html>`;
+      const html = '<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>' +
+        '@page{size:A4 landscape;margin:18mm} body{font-family:"IBM Plex Sans Arabic","Cairo",Arial,sans-serif;color:#3D2B00;background:#fff;margin:0}' +
+        '.cert{height:155mm;border:6px double #C99B22;padding:18mm;box-sizing:border-box;text-align:center;position:relative;background:#FFFDF5}' +
+        'h1{font-size:34px;color:#7A5C00;margin:6px} h2{font-size:28px;margin:10px} p{font-size:17px;color:#7D6A35;margin:8px}' +
+        '.course{font-size:25px;font-weight:bold;color:#7A5C00}.footer{display:flex;align-items:center;justify-content:center;gap:30px;margin-top:18px}' +
+        '.qr-fixed{position:absolute;bottom:16mm;left:18mm;width:32mm;height:32mm;border:1px solid #E8D59E;padding:2mm;background:#fff;border-radius:4mm}' +
+        '.serial{font-family:"JetBrains Mono",monospace;letter-spacing:2px;color:#3D2B00;direction:ltr;unicode-bidi:isolate}' +
+        '.seal{border:4px solid #C99B22;border-radius:12px;padding:10px 18px;color:#A67B11;font-weight:bold}' +
+        '</style></head><body><div class="cert"><h1>' + esc(t('certs.of')) + '</h1><p>' + esc(t('certs.awardedTo')) + '</p>' +
+        '<h2>' + esc(student.fullName) + '</h2><p>' + esc(t('certs.forCompleting')) + '</p><div class="course">' + esc(course.title) + '</div>' +
+        '<p>' + esc(branch?.name ?? t('certs.issuedBy')) + ' · ' + esc(formatDate(cert.issuedAt, lang)) + '</p>' +
+        '<img class="qr-fixed" src="' + qr + '" alt="QR"/>' +
+        '<div class="footer"><div><div class="seal">' + esc(t('verify.verified')) + '</div><p class="serial">' + esc(cert.serial) + '</p></div></div>' +
+        '</div></body></html>';
 
       if (Platform.OS === 'web') {
         await Print.printAsync({ html });
@@ -150,6 +155,144 @@ export function CertificateViewerScreen({ route, navigation }: any) {
       toast((error as Error).message, 'error');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const exportCertificatePng = async () => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      await exportCertificate(true);
+      return;
+    }
+    setExportingPng(true);
+    try {
+      const qrDataUrl = await qrToDataUrl(verifyUrl, { margin: 1, width: 280 });
+      const canvas = document.createElement('canvas');
+      canvas.width = 1600;
+      canvas.height = 1120;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas 2D unsupported');
+
+      // Background & double gold border (@2x resolution)
+      ctx.fillStyle = '#FFFDF5';
+      ctx.fillRect(0, 0, 1600, 1120);
+      ctx.strokeStyle = '#C99B22';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(44, 44, 1512, 1032);
+      ctx.lineWidth = 3;
+      ctx.strokeRect(62, 62, 1476, 996);
+
+      ctx.textAlign = 'center';
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#7A5C00';
+      ctx.font = '700 56px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText(t('certs.of'), 800, 210);
+
+      ctx.fillStyle = '#7D6A35';
+      ctx.font = '500 30px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText(t('certs.awardedTo'), 800, 290);
+
+      ctx.fillStyle = '#3D2B00';
+      ctx.font = '700 64px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText(student.fullName, 800, 395);
+
+      ctx.fillStyle = '#7D6A35';
+      ctx.font = '500 30px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText(t('certs.forCompleting'), 800, 485);
+
+      ctx.fillStyle = '#7A5C00';
+      ctx.font = '700 46px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText(course.title, 800, 565);
+
+      ctx.fillStyle = '#7D6A35';
+      ctx.font = '400 28px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText((branch?.name ?? t('certs.issuedBy')) + ' · ' + formatDate(cert.issuedAt, lang), 800, 645);
+
+      // Seal & serial
+      ctx.strokeStyle = '#C99B22';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(630, 720, 340, 84);
+      ctx.fillStyle = '#A67B11';
+      ctx.font = '700 32px "IBM Plex Sans Arabic", "Cairo", Arial, sans-serif';
+      ctx.fillText(t('verify.verified'), 800, 773);
+
+      ctx.direction = 'ltr';
+      ctx.fillStyle = '#3D2B00';
+      ctx.font = '600 28px "JetBrains Mono", monospace';
+      ctx.fillText(cert.serial, 800, 865);
+
+      // Draw QR code at fixed bottom-left coordinates (x=110, y=760, 240x240)
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(102, 752, 256, 256);
+          ctx.strokeStyle = '#E8D59E';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(102, 752, 256, 256);
+          ctx.drawImage(img, 110, 760, 240, 240);
+          resolve();
+        };
+        img.onerror = () => reject(new Error('QR image load failed'));
+        img.src = qrDataUrl;
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('PNG generation failed');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = cert.serial + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      setShowCelebration(true);
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setExportingPng(false);
+    }
+  };
+
+  const exportOpenBadge = async () => {
+    setExportingBadge(true);
+    try {
+      const remoteAssertion = await publicBadgeAssertion(cert.serial).catch(() => null);
+      const assertion = remoteAssertion ?? {
+        '@context': [
+          'https://www.w3.org/ns/credentials/v2',
+          'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json',
+        ],
+        id: verifyUrl,
+        type: ['VerifiableCredential', 'OpenBadgeCredential'],
+        issuer: {
+          id: 'https://masar.app',
+          type: ['Profile'],
+          name: branch?.name ?? t('certs.issuedBy'),
+        },
+        validFrom: new Date(cert.issuedAt).toISOString(),
+        credentialSubject: {
+          id: 'urn:uuid:' + cert.userId,
+          type: ['AchievementSubject'],
+          achievement: {
+            id: 'https://masar.app/courses/' + course.id,
+            type: ['Achievement'],
+            name: course.title,
+            description: course.description,
+          },
+        },
+      };
+      const jsonText = JSON.stringify(assertion, null, 2);
+      if (Platform.OS === 'web' && navigator.clipboard) {
+        await navigator.clipboard.writeText(jsonText);
+      } else {
+        await Clipboard.setStringAsync(jsonText);
+      }
+      toast(t('certs.openBadgeCopied'), 'success');
+    } catch (error) {
+      toast((error as Error).message, 'error');
+    } finally {
+      setExportingBadge(false);
     }
   };
 
@@ -254,6 +397,11 @@ export function CertificateViewerScreen({ route, navigation }: any) {
             <Btn title={t('certs.downloadPdf')} icon="download" variant="ghost" loading={exporting} onPress={() => { void exportCertificate(false); }} full />
           </Row>
           <Spacer size={8} />
+          <Row gap={10}>
+            <Btn title={t('certs.downloadPng')} icon="image" variant="ghost" loading={exportingPng} onPress={() => { void exportCertificatePng(); }} full />
+            <Btn title={t('certs.openBadge')} icon="shield-checkmark" variant="ghost" loading={exportingBadge} onPress={() => { void exportOpenBadge(); }} full />
+          </Row>
+          <Spacer size={8} />
           <Btn title={t('certs.sharePdf')} icon="share-social" variant="ghost" loading={exporting} full onPress={() => { void exportCertificate(true); }} />
         </FadeIn>
 
@@ -293,8 +441,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
       <CelebrationModal
         visible={showCelebration}
         onClose={() => setShowCelebration(false)}
-        title="شهادتك جاهزة!"
-        subtitle="تم تصدير الشهادة بنجاح"
+        title={t('certs.congrats')}
+        subtitle={t('certs.of')}
         emoji="🎓"
         fly={false}
       />

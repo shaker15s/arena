@@ -5,3 +5,5 @@ export * from './mascot.types';
 export * from './mascot.tokens';
 export * from './mascot.engine';
 export * from './useMascot';
+export * from './MascotProvider';
+
