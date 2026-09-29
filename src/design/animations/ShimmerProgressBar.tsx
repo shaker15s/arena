@@ -78,13 +78,13 @@ export function ShimmerProgressBar({
 const styles = StyleSheet.create({
   track: {
     width: '100%',
-    borderRadius: radii.pill,
+    borderRadius: radii.full,
     overflow: 'hidden',
     position: 'relative',
   },
   fill: {
     height: '100%',
-    borderRadius: radii.pill,
+    borderRadius: radii.full,
     overflow: 'hidden',
     position: 'relative',
   },

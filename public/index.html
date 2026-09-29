@@ -5,6 +5,28 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
+    <script>
+      /*
+        UX-08: منع وميض الثيم الخاطئ (FOUC). يُقرأ اختيار المستخدم من localStorage
+        **قبل أول رسم** ويُلوّن الخلفية فورًا بالقيمة الصحيحة — نفس مفتاح
+        `masar.theme.v1` ومنطق الحسم في src/design/theme.tsx.
+        الألوان مرآة لـ tokens.ts: light bg = #F5F5FA، dark/oled bg = #000000.
+      */
+      (function () {
+        try {
+          var pref = null;
+          try { pref = window.localStorage.getItem('masar.theme.v1'); } catch (e) {}
+          var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = pref === 'dark' || pref === 'oled' || ((pref === null || pref === 'system') && sysDark);
+          var bg = dark ? '#000000' : '#F5F5FA';
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+          var st = document.createElement('style');
+          st.id = 'masar-theme-boot';
+          st.textContent = 'html, body { background: ' + bg + '; } #boot-splash { background: ' + bg + ' !important; }';
+          document.head.appendChild(st);
+        } catch (e) { /* تجاهل — يبقى السلوك الافتراضي */ }
+      })();
+    </script>
     <!-- react-native-web style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       html, body {
@@ -102,7 +124,8 @@
       #boot-splash {
         position: fixed; inset: 0; z-index: 99999;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background: #F7F8FC;
+        /* يطابق bg الفاتح في tokens.ts (#F5F5FA) — تسليم بلا شرخ لوني */
+        background: #F5F5FA;
         font-family: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
       }
       #boot-splash .logo {
@@ -125,7 +148,9 @@
         to { box-shadow: 0 0 44px 6px rgba(0, 122, 255, 0.45); }
       }
       @media (prefers-color-scheme: dark) {
-        #boot-splash { background: #0B1220; }
+        /* يطابق bg الداكن في tokens.ts (#000000) حتى لا يظهر شرخ لوني عند تسليم
+           الشاشة للتطبيق — وسكربت masar-theme-boot أعلاه يغطي الاختيار اليدوي. */
+        #boot-splash { background: #000000; }
         #boot-splash .title { color: #F1F5F9; }
         #boot-splash .spinner { border-color: #1E293B; border-top-color: #0A84FF; }
       }

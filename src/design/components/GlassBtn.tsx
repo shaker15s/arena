@@ -130,7 +130,7 @@ export function GlassBtn({
             height,
             backgroundColor: baseBg,
             borderColor: baseBorderColor,
-            borderRadius: radii.button,
+            borderRadius: radii.lg,
           },
           style,
         ]}
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.s4,
   },
   iconBtnBase: {
     overflow: 'hidden',

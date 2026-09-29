@@ -7,15 +7,15 @@ import { Animated, Platform, Pressable, View, ViewStyle, StyleSheet } from 'reac
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
-import { radii, spacing, typography } from './tokens';
-import { isReducedMotion } from './motion';
+import { blurIntensity, borderWidth, orbs, radii, shadows, sizes, spacing, typography } from './tokens';
+import { isReducedMotion, pressScale } from './motion';
 
 /**
  * سطح زجاجي حقيقي (Apple Liquid Glass): ضبابية خلفية + طبقة لون شفافة
  * + حد فاتح علوي. يُستخدم للطبقات العائمة فقط (شاشة الدخول، البوب‌أوف) — لا يُتعشّش داخل بطاقات.
  */
 export function GlassSurface({
-  children, style, radius = radii.card, tintColor, intensity = 40, borderless,
+  children, style, radius = radii.xl, tintColor, intensity = blurIntensity.surface, borderless,
 }: {
   children?: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
@@ -26,11 +26,13 @@ export function GlassSurface({
 }) {
   const { theme, isDark } = useTheme();
   const isAndroid = Platform.OS === 'android';
+  // GL-01: شدة الضبابية على الويب موحّدة من blurIntensity.webSurface لكل الأسطح.
+  const webBlur = `blur(${blurIntensity.webSurface}px) saturate(180%)`;
   return (
     <View
       style={[
         { borderRadius: radius, overflow: 'hidden' },
-        Platform.OS === 'web' ? ({ backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as any) : null,
+        Platform.OS === 'web' ? ({ backdropFilter: webBlur, WebkitBackdropFilter: webBlur } as unknown as ViewStyle) : null,
         isAndroid ? { backgroundColor: tintColor ?? (isDark ? 'rgba(30, 41, 59, 0.94)' : 'rgba(255, 255, 255, 0.94)'), elevation: 4 } : null,
         style,
       ]}
@@ -49,7 +51,7 @@ export function GlassSurface({
           {
             backgroundColor: isAndroid ? 'transparent' : (tintColor ?? theme.glass),
             borderRadius: radius,
-            borderWidth: borderless ? 0 : 1,
+            borderWidth: borderless ? 0 : borderWidth.thin,
             borderColor: theme.glassBorder,
           },
         ]}
@@ -114,9 +116,10 @@ export function AppBackground({ children, style }: { children: React.ReactNode; 
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <AmbientOrb size={420} color={theme.orbPrimary} style={{ top: -190, right: -115 }} />
-      <AmbientOrb size={460} color={theme.orbSecondary} drift={-22} style={{ bottom: -180, left: -160 }} />
-      <AmbientOrb size={230} color={theme.orbTertiary} drift={12} style={{ top: '36%' as any, left: -90 }} />
+      {/* مقاسات ومواضع الـ Orbs موحّدة من توكنز orbs (GL-02) */}
+      <AmbientOrb size={orbs.size.md} color={theme.orbPrimary} style={orbs.position.topRight} />
+      <AmbientOrb size={orbs.size.lg} color={theme.orbSecondary} drift={-22} style={orbs.position.bottomLeft} />
+      <AmbientOrb size={orbs.size.sm} color={theme.orbTertiary} drift={12} style={orbs.position.midLeft} />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
         borderWidth: Platform.OS === 'web' ? 1 : 0,
         borderColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.2)',
@@ -127,7 +130,7 @@ export function AppBackground({ children, style }: { children: React.ReactNode; 
 }
 
 /** يثبت اتساع المحتوى على الويب/التابلت مع بقاء الموبايل بعرضه الكامل. */
-export function ContentFrame({ children, style, maxWidth = 1120 }: {
+export function ContentFrame({ children, style, maxWidth = sizes.contentMaxWidth }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
   maxWidth?: number;
@@ -150,8 +153,8 @@ export function GlassCard({ children, style }: {
       style={[
         {
           backgroundColor: theme.glass,
-          borderRadius: radii.card,
-          borderWidth: 1,
+          borderRadius: radii.xl,
+          borderWidth: borderWidth.thin,
           borderColor: theme.glassBorder,
           padding: spacing.s4,
           overflow: 'hidden',
@@ -183,20 +186,23 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
       style={({ pressed }) => ({
         flex: 1,
         backgroundColor: theme.glass,
-        borderRadius: radii.cardSm,
+        borderRadius: radii.lg,
         padding: spacing.s3,
         alignItems: 'center',
         gap: 4,
-        borderWidth: 1,
+        borderWidth: borderWidth.thin,
         borderColor: theme.glassBorder,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 } as const,
-        elevation: 6,
-        ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)' } as any : {}),
+        shadowColor: theme.glassShadow,
+        ...shadows.bubble,
+        // GL-01: نفس شدة ضبابية GlassSurface على الويب — سطح واحد = قيمة واحدة.
+        ...(Platform.OS === 'web'
+          ? {
+              backdropFilter: `blur(${blurIntensity.webSurface}px) saturate(180%)`,
+              WebkitBackdropFilter: `blur(${blurIntensity.webSurface}px) saturate(180%)`,
+            } as unknown as ViewStyle
+          : {}),
         opacity: pressed ? 0.85 : 1,
-        transform: [{ scale: pressed ? 0.97 : 1 }],
+        transform: [{ scale: pressed ? pressScale.default : 1 }],
       })}
     >
       {icon ?? null}
@@ -205,7 +211,15 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
         adjustsFontSizeToFit
         allowFontScaling
         maxFontSizeMultiplier={1.4}
-        style={{ color: color ?? theme.text, fontSize: 20, lineHeight: 26, fontFamily: typography.h1.fontFamily, includeFontPadding: false }}
+        // GL-03: من مقياس التايبوغرافيا مباشرة — كانت 20/26 hardcoded بينما h2 الموحّد 20/29
+        // والفرق يقطع امتدادات الحروف العربية.
+        style={{
+          color: color ?? theme.text,
+          fontSize: typography.h2.fontSize,
+          lineHeight: typography.h2.lineHeight,
+          fontFamily: typography.h2.fontFamily,
+          includeFontPadding: false,
+        }}
       >
         {String(value)}
       </Animated.Text>
@@ -213,7 +227,13 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
         numberOfLines={1}
         allowFontScaling
         maxFontSizeMultiplier={1.4}
-        style={{ color: theme.textMuted, fontSize: 11, lineHeight: 17, fontFamily: typography.caption.fontFamily, includeFontPadding: false }}
+        style={{
+          color: theme.textMuted,
+          fontSize: typography.micro.fontSize,
+          lineHeight: typography.micro.lineHeight,
+          fontFamily: typography.micro.fontFamily,
+          includeFontPadding: false,
+        }}
       >
         {label}
       </Animated.Text>

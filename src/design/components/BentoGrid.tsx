@@ -16,7 +16,7 @@ export interface BentoGridProps {
 export function BentoGrid({
   children,
   columns = 2,
-  gap = spacing.md,
+  gap = spacing.s4,
   style,
 }: BentoGridProps) {
   const { width } = useWindowDimensions();

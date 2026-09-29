@@ -393,7 +393,7 @@ export function CourseAnalyticsTab({
         </Card>
       ) : analytics ? (
         <>
-          <Card glass>
+          <Card>
             <Txt variant="h3">{t('management.funnelTitle')}</Txt>
             <Spacer size={12} />
             <Row gap={8}>
@@ -441,7 +441,7 @@ export function CourseReviewsTab({
 
   return (
     <View style={{ gap: 10 }}>
-      <Card glass>
+      <Card>
         <Row center between>
           <View>
             <Txt variant="caption" color={theme.textSecondary}>{t('management.avgStudentRating')}</Txt>

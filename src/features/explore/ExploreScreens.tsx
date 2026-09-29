@@ -160,7 +160,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
         noPad
         style={{
           overflow: 'hidden',
-          borderRadius: radii.xl,
+          borderRadius: radii.xxl,
           borderWidth: 1,
           borderColor: theme.glassBorder,
           backgroundColor: isDark ? 'rgba(24, 24, 32, 0.85)' : 'rgba(255, 255, 255, 0.92)',
@@ -414,7 +414,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
         {/* غلاف Hero متدرج */}
-        <View style={{ backgroundColor: course.color, paddingTop: insets.top + 10, paddingBottom: 26, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xl, borderBottomRightRadius: radii.xl }}>
+        <View style={{ backgroundColor: course.color, paddingTop: insets.top + 10, paddingBottom: 26, paddingHorizontal: spacing.s5, borderBottomLeftRadius: radii.xxl, borderBottomRightRadius: radii.xxl }}>
           <Row between center style={{ marginBottom: 18 }}>
             <Pressable
               accessibilityRole="button"
@@ -755,7 +755,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
       <Sheet visible={joinBatch != null} onClose={() => setJoinBatch(null)} title={t('join.title')}>
         {joinBatch ? (
           <View style={{ gap: 12, paddingBottom: 20 }}>
-            <Card glass>
+            <Card>
               <Txt variant="h3">{course.title}</Txt>
               <Spacer size={4} />
               <Txt variant="caption" color={theme.textSecondary}>

@@ -36,7 +36,7 @@ export interface BorderBeamProps {
   colorFrom?: string;
   /** لون نهاية الشعاع */
   colorTo?: string;
-  /** زاوية انحناء الإطار (مطابقة لـ radii.card أو المحددة) */
+  /** زاوية انحناء الإطار (مطابقة لـ radii.xl أو المحددة) */
   borderRadius?: number;
   /** عكس اتجاه الدوران */
   reverse?: boolean;
@@ -51,7 +51,7 @@ export function BorderBeam({
   borderWidth = 2,
   colorFrom = '#38BDF8',
   colorTo = '#A855F7',
-  borderRadius = radii.card,
+  borderRadius = radii.xl,
   reverse = false,
   delay = 0,
   style,

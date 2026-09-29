@@ -106,7 +106,7 @@ function AnalyticsPanel() {
 
   return (
     <View style={{ gap: 12 }}>
-      <Card glass>
+      <Card>
         <Row center gap={8}>
           <Icon name="stats-chart" size={16} color={theme.brand} />
           <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('analytics.subtitle')}</Txt>
@@ -250,7 +250,7 @@ function RulesStudio() {
 
   return (
     <>
-      <Card glass>
+      <Card>
         <Row center gap={8}>
           <Icon name="flash" size={16} color={theme.brand} />
           <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('rules.updatedBy')}</Txt>
@@ -607,7 +607,7 @@ export function IssueCertificatesScreen({ navigation }: any) {
             ))}
 
             {alreadyAll ? (
-              <Card glass>
+              <Card>
                 <Row center gap={8}>
                   <Icon name="checkmark-done" size={18} color={theme.success} />
                   <Txt variant="body" color={theme.success}>{t('issue.alreadyIssued')}</Txt>

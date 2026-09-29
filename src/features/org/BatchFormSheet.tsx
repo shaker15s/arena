@@ -233,7 +233,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         ) : null}
 
         {preview.length > 0 ? (
-          <Card glass>
+          <Card>
             <Txt variant="caption" color={theme.brand} style={{ marginBottom: 6 }}>👁️ {t('batchAdm.preview')} ({preview.length})</Txt>
             <Row wrap gap={6}>
               {preview.map((p) => (

@@ -107,7 +107,7 @@ export function SpotlightCard({
             StyleSheet.absoluteFill,
             {
               opacity: opacityAnim,
-              borderRadius: radii.card,
+              borderRadius: radii.xl,
               overflow: 'hidden',
               zIndex: 1,
             },
@@ -168,7 +168,7 @@ export function SpotlightCard({
 
 const styles = StyleSheet.create({
   cardShell: {
-    borderRadius: radii.card,
+    borderRadius: radii.xl,
     padding: spacing.s4,
     position: 'relative',
     overflow: 'hidden',

@@ -160,7 +160,7 @@ export function ProfileScreen() {
 
         {/* حالة المزامنة مع الخادم */}
         <FadeIn index={9}>
-          <Card glass>
+          <Card>
             <Row between center>
               <Row center gap={10}>
                 <Icon
@@ -367,7 +367,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
           </View>
         </Pressable>
 
-        <Card glass>
+        <Card>
           <Row center gap={10}>
             <Icon name="mail" size={16} color={theme.brand} />
             <View style={{ flex: 1 }}>

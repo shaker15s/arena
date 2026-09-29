@@ -143,14 +143,14 @@ export function CelebrationModal({
             : {})}
           style={{
             backgroundColor: theme.card,
-            borderRadius: radii.xl,
+            borderRadius: radii.xxl,
             padding: spacing.s6,
             alignItems: 'center',
             width: '100%',
             maxWidth: 380,
             borderWidth: 1,
             borderColor: theme.glassBorder,
-            shadowColor: '#000',
+            shadowColor: theme.glassShadow,
             shadowOpacity: 0.15,
             shadowRadius: 30,
             shadowOffset: { width: 0, height: 12 },
@@ -163,7 +163,7 @@ export function CelebrationModal({
           {points != null && fly ? (
             <Animated.View style={{
               backgroundColor: theme.brandSoft,
-              borderRadius: radii.pill,
+              borderRadius: radii.full,
               paddingHorizontal: 20, paddingVertical: 10,
               opacity: flyAnim,
               transform: [{ translateY: flyAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }, { scale: flyAnim.interpolate({ inputRange: [0, 1], outputRange: [1.4, 1] }) }],
@@ -256,7 +256,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
           style={{
             transform: [{ scale }, { rotateY: rotateDeg }],
             backgroundColor: theme.card,
-            borderRadius: radii.xl,
+            borderRadius: radii.xxl,
             padding: spacing.s6,
             alignItems: 'center',
             width: '100%',
@@ -264,7 +264,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
             gap: 14,
             borderWidth: 1,
             borderColor: theme.glassBorder,
-            shadowColor: '#000',
+            shadowColor: theme.glassShadow,
             shadowOpacity: 0.15,
             shadowRadius: 30,
             shadowOffset: { width: 0, height: 12 },
