@@ -41,7 +41,7 @@ export function LiquidGlassCard({
   const defaultGlow = glowColor ?? (isDark ? 'rgba(0, 122, 255, 0.12)' : 'rgba(0, 122, 255, 0.06)');
 
   const containerStyle: ViewStyle = {
-    borderRadius: radii.xl,
+    borderRadius: radii.xxl,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: defaultBorder,
@@ -98,7 +98,7 @@ export function LiquidGlassCard({
 
 const styles = StyleSheet.create({
   content: {
-    padding: spacing.md,
+    padding: spacing.s4,
   },
   specularEdge: {
     position: 'absolute',

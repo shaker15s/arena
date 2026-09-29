@@ -130,8 +130,8 @@ export function ExploreCardSkeleton() {
       <Skeleton width="45%" height={12} />
       <View style={{ height: 10 }} />
       <View style={styles.row}>
-        <Skeleton width={60} height={24} borderRadius={radii.pill} />
-        <Skeleton width={60} height={24} borderRadius={radii.pill} />
+        <Skeleton width={60} height={24} borderRadius={radii.full} />
+        <Skeleton width={60} height={24} borderRadius={radii.full} />
       </View>
     </View>
   );

@@ -43,7 +43,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
     <View style={{ flex: 1 }}>
       <Header title={t('joinCode.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
-        <Card glass>
+        <Card>
           <Row center gap={10}>
             <Icon name="qr-code" size={28} color={theme.brand} />
             <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('joinCode.body')}</Txt>

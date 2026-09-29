@@ -14,7 +14,7 @@ import {
 } from '../../design/components';
 import { useTabs } from '../../app/RootNavigator';
 import { spacing } from '../../design/tokens';
-import { easing, isReducedMotion } from '../../design/motion';
+import { isReducedMotion, springs } from '../../design/motion';
 import type { Db } from '../../data/types';
 import { toCsv, saveCsv } from '../../shared/export';
 import { anticheatReport, needsAttention, orgWeeklyReport, setReportSubscription, type AnticheatReport, type NeedsAttentionItem, type WeeklyReport } from '../../data/actions';
@@ -383,12 +383,16 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
 function TrendBar({ value, index, color, opacity }: { value: number; index: number; color: string; opacity: number }) {
   const progress = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
   useEffect(() => {
-    Animated.timing(progress, {
+    if (isReducedMotion()) {
+      Animated.timing(progress, { toValue: 1, duration: 100, useNativeDriver: false }).start();
+      return;
+    }
+    // انتقال = spring موحّد (DS-08) — حُذف نظام easing الموازي من design/motion.
+    Animated.spring(progress, {
       toValue: 1,
-      duration: isReducedMotion() ? 100 : 520,
-      delay: isReducedMotion() ? 0 : index * 55,
-      easing: easing.standard,
+      delay: index * 55,
       useNativeDriver: false,
+      ...springs.default,
     }).start();
   }, [index, progress]);
   return (

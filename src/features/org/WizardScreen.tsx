@@ -246,7 +246,7 @@ export function OrgWizardScreen({ navigation }: any) {
               </Row>
               <Input label={t('common.room')} value={room} onChange={setRoom} icon="location" />
               {preview.length > 0 ? (
-                <Card glass>
+                <Card>
                   <Txt variant="caption" color={theme.brand} style={{ marginBottom: 6 }}>👁️ {t('batchAdm.preview')}</Txt>
                   <Row wrap gap={6}>
                     {preview.slice(0, 12).map((p) => (

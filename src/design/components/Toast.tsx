@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.sm + 2,
+    padding: spacing.s2 + 2,
     borderRadius: radii.lg,
     borderWidth: 1.5,
     shadowColor: '#000',
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   iconWrapper: {
-    marginEnd: spacing.sm,
+    marginEnd: spacing.s2,
   },
   textWrapper: {
     flex: 1,

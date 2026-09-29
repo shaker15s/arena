@@ -17,7 +17,7 @@ import { useI18n } from '../../i18n';
 import { Btn, Card, DisclosureIcon, Empty, FadeIn, Header, Input, Row, Spacer, Tag, Txt } from '../../design/components';
 import { spacing, radii, certPaper } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
-import { duration, easing, isReducedMotion } from '../../design/motion';
+import { duration, isReducedMotion } from '../../design/motion';
 import { publicVerifyUrl } from '../../shared/links';
 import { CelebrationModal } from '../../design/celebrations';
 import { Icon } from '../../design/icons';
@@ -190,7 +190,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
           {/* تصميم الشهادة الرسمي */}
           <View style={{
             backgroundColor: certPaper.bg,
-            borderRadius: radii.xl,
+            borderRadius: radii.xxl,
             borderWidth: 3, borderColor: theme.certGold,
             padding: 24, alignItems: 'center', gap: 10,
             shadowColor: theme.certGold, shadowOpacity: 0.25, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },

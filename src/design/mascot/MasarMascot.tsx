@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: spacing.s3,
     paddingVertical: spacing.s2,
-    borderRadius: radii.cardSm,
+    borderRadius: radii.lg,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,

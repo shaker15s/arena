@@ -141,7 +141,7 @@ export function SessionCompleteCelebration({
             borderWidth={2.5}
             colorFrom="#F59E0B"
             colorTo="#10B981"
-            borderRadius={radii.xl}
+            borderRadius={radii.xxl}
           />
 
           {/* هالة فخمة مضيئة خلف فطن */}
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 390,
-    borderRadius: radii.xl,
+    borderRadius: radii.xxl,
     padding: spacing.s6,
     alignItems: 'center',
     borderWidth: 1,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.s3,
-    borderRadius: radii.cardSm,
+    borderRadius: radii.lg,
     borderWidth: 1,
     gap: 10,
   },
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.s4,
     paddingVertical: spacing.s3,
-    borderRadius: radii.button,
+    borderRadius: radii.lg,
     gap: 10,
   },
   actions: {
