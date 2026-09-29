@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
@@ -17,6 +17,11 @@ import { radii, scaleType, spacing, typography } from './tokens';
 import { easing, isReducedMotion, scalePress, staggerDelay } from './motion';
 import { useI18n } from '../i18n';
 import { useHaptics } from '../shared/hooks';
+import { Icon } from './icons';
+import { webInputReset } from './a11y/focus';
+import { announce } from './a11y/announce';
+import { useFocusTrap } from './a11y/useFocusTrap';
+import { rovingTabIndex, useRovingKeys } from './a11y/roving';
 
 // ───────────────────────────── نصوص ─────────────────────────────
 
@@ -24,6 +29,7 @@ type TxtVariant = keyof typeof typography;
 
 export function Txt({
   children, variant = 'body', color, align, style, numberOfLines, bold, shrink,
+  heading, id,
 }: {
   children: React.ReactNode;
   variant?: TxtVariant;
@@ -34,15 +40,38 @@ export function Txt({
   bold?: boolean;
   /** يسمح بتصغير النص ليطابق سطرًا واحدًا بدل قصّه (نص عربي طويل). */
   shrink?: boolean;
+  /**
+   * A11Y-02: يحوّل النص إلى عنوان دلالي حقيقي.
+   * على الويب يُنتج `<h1>/<h2>/<h3>` حقيقيًا (لأن `role=heading` + `aria-level`
+   * يُترجمان إلى وسم العنوان)، وعلى الجوال يُعلنه قارئ الشاشة كـ"عنوان".
+   */
+  heading?: 'h1' | 'h2' | 'h3';
+  /** معرّف العنصر (للربط بـ aria-labelledby في الأقسام). */
+  id?: string;
 }) {
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
   // سلم نصوص متجاوب مع معايرة الخط العربي (1.35x fontSize لمنع قص الحروف الممتدة).
   const base = scaleType(typography[variant], width);
   const calibratedLineHeight = Math.max(base.lineHeight, Math.round(base.fontSize * 1.35));
+  const headingA11y = heading
+    ? {
+        accessibilityRole: 'header' as const,
+        ...(Platform.OS === 'web'
+          ? ({
+              role: 'heading',
+              'aria-level': heading === 'h1' ? 1 : heading === 'h2' ? 2 : 3,
+              // A11Y-13: يُسمح بنقل التركيز إلى عنوان الشاشة عند الانتقال (نمط SPA).
+              tabIndex: -1,
+            } as unknown as object)
+          : {}),
+      }
+    : null;
   return (
     <Text
+      id={id}
       numberOfLines={numberOfLines}
+      {...(headingA11y as object)}
       // قصّ سطر واحد على العربية بلا تصغير = حروف مبتورة؛ نفعّل التصغير التلقائي.
       adjustsFontSizeToFit={shrink ?? (numberOfLines === 1 ? true : undefined)}
       minimumFontScale={numberOfLines === 1 || shrink ? 0.85 : undefined}
@@ -223,11 +252,12 @@ export function Btn({
     : variant === 'success' ? theme.successSoft
     : variant === 'gold' ? theme.certGold
     : 'transparent';
+  // A11Y-21: نصوص الأزرار تستخدم طبقة النصوص الدلالية (≥ 4.5:1) لا الألوان العلامية.
   const fg =
     variant === 'primary' ? theme.onBrand
-    : variant === 'secondary' ? theme.brand
-    : variant === 'danger' ? theme.danger
-    : variant === 'success' ? theme.success
+    : variant === 'secondary' ? theme.brandText
+    : variant === 'danger' ? theme.textDanger
+    : variant === 'success' ? theme.textSuccess
     : variant === 'gold' ? '#3D2B00'
     : theme.textSecondary;
   const padV = size === 'lg' ? 14 : size === 'md' ? 11 : 8;
@@ -259,7 +289,7 @@ export function Btn({
           style={webPointer}
         >
           <LinearGradient
-            colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+            colors={[theme.actionPrimary, theme.actionPrimaryTo]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -281,7 +311,9 @@ export function Btn({
               </View>
             ) : (
               <>
-                {icon ? <Ionicons name={icon} size={18} color="#fff" /> : null}
+                {icon ? (
+                  <Icon name={icon} size={18} color="#fff" decorative />
+                ) : null}
                 <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
               </>
             )}
@@ -326,7 +358,9 @@ export function Btn({
           </View>
         ) : (
           <>
-            {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
+            {icon ? (
+              <Icon name={icon} size={18} color={fg} decorative />
+            ) : null}
             <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
           </>
         )}
@@ -364,7 +398,7 @@ export function Chip({ label, active, onPress, icon }: {
         transform: [{ scale: pressed ? 0.96 : 1 }],
       })}
     >
-      {icon ? <Ionicons name={icon} size={14} color={active ? theme.onBrand : theme.textSecondary} /> : null}
+      {icon ? <Icon name={icon} size={14} color={active ? theme.onBrand : theme.textSecondary} /> : null}
       <Txt variant="caption" color={active ? theme.onBrand : theme.textSecondary}>{label}</Txt>
     </Pressable>
   );
@@ -373,7 +407,7 @@ export function Chip({ label, active, onPress, icon }: {
 export function Tag({ label, color, bg, icon }: { label: string; color: string; bg: string; icon?: keyof typeof Ionicons.glyphMap }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: bg, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' }}>
-      {icon ? <Ionicons name={icon} size={12} color={color} /> : null}
+      {icon ? <Icon name={icon} size={12} color={color} /> : null}
       <Txt variant="micro" color={color}>{label}</Txt>
     </View>
   );
@@ -386,13 +420,24 @@ export function Segmented<T extends string>({ options, value, onChange }: {
 }) {
   const { theme } = useTheme();
   const { impactLight } = useHaptics();
+  // A11Y-14: ←/→ (مع انعكاس RTL) + Home/End تنقل بين التبويبات وتُحدّث القيمة.
+  const activeIndex = Math.max(0, options.findIndex((o) => o.value === value));
+  const rovingRefs = useRovingKeys({
+    count: options.length,
+    onMove: (index) => {
+      const opt = options[index];
+      if (opt && opt.value !== value) { impactLight(); onChange(opt.value); }
+    },
+  });
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: theme.fill, borderRadius: radii.pill, padding: 3 }}>
-      {options.map((opt) => {
+      {options.map((opt, index) => {
         const active = opt.value === value;
         return (
           <Pressable
             key={opt.value}
+            ref={(el: any) => { rovingRefs.current[index] = el as HTMLElement | null; }}
+            {...rovingTabIndex(index, activeIndex)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             accessibilityLabel={opt.label}
@@ -407,7 +452,7 @@ export function Segmented<T extends string>({ options, value, onChange }: {
               shadowOffset: { width: 0, height: 2 },
             }}
           >
-            {opt.icon ? <Ionicons name={opt.icon} size={14} color={active ? theme.brand : theme.textMuted} /> : null}
+            {opt.icon ? <Icon name={opt.icon} size={14} color={active ? theme.brand : theme.textMuted} /> : null}
             <Txt variant="caption" color={active ? theme.text : theme.textMuted}>{opt.label}</Txt>
           </Pressable>
         );
@@ -434,6 +479,8 @@ export function Input({
   onSubmitEditing,
   returnKeyType,
   autoFocus,
+  width,
+  accessibilityLabel,
 }: {
   label?: string;
   value: string;
@@ -450,7 +497,12 @@ export function Input({
   onSubmitEditing?: () => void;
   returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
   autoFocus?: boolean;
+  /** عرض مقيّد (مثلًا حقول HH:MM) — القيمة من `sizes` في tokens. */
+  width?: number;
+  /** تسمية للحقل نفسه لبرامج قراءة الشاشة (لا تُعرَض بصريًا). */
+  accessibilityLabel?: string;
 }) {
+  const { t } = useI18n();
   const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
@@ -472,8 +524,17 @@ export function Input({
   const isInteractiveIcon = Boolean(onIconPress || (Platform.OS === 'web' && icon === 'calendar'));
 
   return (
-    <View style={{ alignSelf: 'stretch' }}>
-      {label ? <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 6 }}>{label}</Txt> : null}
+    <View style={width ? { width, alignSelf: 'center' } : { alignSelf: 'stretch' }}>
+      {label ? (
+        <Txt
+          variant="caption"
+          color={theme.textSecondary}
+          numberOfLines={1}
+          style={{ marginBottom: 6, textAlign: 'center' }}
+        >
+          {label}
+        </Txt>
+      ) : null}
       <View
         style={{
           flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', gap: 10,
@@ -492,11 +553,11 @@ export function Input({
             <Pressable
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={label ? `${label} - إجراء` : 'زر الحقل'}
+              accessibilityLabel={label ?? t('a11y.insightAction')}
               onPress={handleIconClick}
               style={[Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null, { marginTop: multiline ? 10 : 0 }]}
             >
-              <Ionicons name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+              <Icon name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
             </Pressable>
           ) : (
             <View
@@ -504,7 +565,7 @@ export function Input({
               aria-hidden={true}
               style={{ marginTop: multiline ? 10 : 0 }}
             >
-              <Ionicons name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
+              <Icon name={icon} size={20} color={error ? theme.danger : focused ? theme.brand : theme.textMuted} />
             </View>
           )
         ) : null}
@@ -521,7 +582,7 @@ export function Input({
               onSubmitEditing();
             }
           }}
-          accessibilityLabel={label ?? placeholder}
+          accessibilityLabel={accessibilityLabel ?? label ?? placeholder}
           placeholder={placeholder}
           placeholderTextColor={theme.textMuted}
           keyboardType={keyboardType}
@@ -532,15 +593,15 @@ export function Input({
           textAlignVertical={multiline ? 'top' : 'center'}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
-            textAlign: 'auto', paddingVertical: multiline ? 6 : 8, paddingRight: 8,
+            textAlign: width ? 'center' : 'auto', paddingVertical: multiline ? 6 : 8, paddingRight: 8,
             minWidth: 0, width: '100%',
-            ...(Platform.OS === 'web' ? { outlineStyle: 'none', border: 'none', background: 'transparent' } as object : {}),
+            ...webInputReset,
           }}
         />
         {value.length > 0 && !multiline ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="مسح النص"
+            accessibilityLabel={t('a11y.clearInput')}
             hitSlop={8}
             onPress={() => onChange('')}
             style={({ pressed }) => ({
@@ -548,7 +609,7 @@ export function Input({
               cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
             })}
           >
-            <Ionicons name="close-circle" size={18} color={theme.textMuted} />
+            <Icon name="close-circle" size={18} color={theme.textMuted} />
           </Pressable>
         ) : null}
         {Platform.OS === 'web' && icon === 'calendar' && (
@@ -643,7 +704,7 @@ export function Flame({ size = 22, urgent }: { size?: number; urgent?: boolean }
   }, [urgent, pulse]);
   return (
     <Animated.View style={{ transform: [{ scale: pulse }] }}>
-      <Ionicons name="flame" size={size} color={urgent ? '#FF3B30' : '#FF9F0A'} />
+      <Icon name="flame" size={size} color={urgent ? '#FF3B30' : '#FF9F0A'} />
     </Animated.View>
   );
 }
@@ -846,6 +907,22 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
   const { theme } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const titleId = React.useId();
+
+  // A11Y-13: عند تركيب رأس شاشة جديد (انتقال داخل التطبيق) ننقل التركيز إلى
+  // العنوان على الويب ليقرأه قارئ الشاشة فورًا، ونُعلنه صوتيًا على الجوال.
+  useEffect(() => {
+    if (!title) return;
+    if (Platform.OS === 'web') {
+      const el = typeof document !== 'undefined' ? document.getElementById(titleId) : null;
+      if (el && typeof (el as unknown as HTMLElement).focus === 'function') {
+        (el as unknown as HTMLElement).focus({ preventScroll: true });
+      }
+      return;
+    }
+    announce(title, 'polite');
+  }, [title, titleId]);
+
   return (
     <View style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}>
       <Row between center>
@@ -873,10 +950,10 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                 onPress={onTitlePress}
                 style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
               >
-                <Txt variant="h1" numberOfLines={1}>{title}</Txt>
+                <Txt variant="h1" numberOfLines={1} heading="h1" id={titleId}>{title}</Txt>
               </Pressable>
             ) : (
-              <Txt variant="h1" numberOfLines={1}>{title}</Txt>
+              <Txt variant="h1" numberOfLines={1} heading="h1" id={titleId}>{title}</Txt>
             )}
             {subtitle ? (
               onSubtitlePress ? (
@@ -893,7 +970,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                   })}
                 >
                   <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
-                  <Ionicons name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7 }} />
+                  <Icon name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7 }} />
                 </Pressable>
               ) : (
                 <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
@@ -909,12 +986,12 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
 
 export function BackIcon({ color }: { color: string }) {
   const { rtl } = useI18n();
-  return <Ionicons name={rtl ? 'chevron-forward' : 'chevron-back'} size={22} color={color} />;
+  return <Icon name={rtl ? 'chevron-forward' : 'chevron-back'} size={22} color={color} />;
 }
 
 export function DisclosureIcon({ color, size = 18 }: { color: string; size?: number }) {
   const { rtl } = useI18n();
-  return <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} size={size} color={color} />;
+  return <Icon name={rtl ? 'chevron-back' : 'chevron-forward'} size={size} color={color} />;
 }
 
 // ───────────────────────────── ورقة سفلية ─────────────────────────────
@@ -926,6 +1003,8 @@ export function Sheet({ visible, onClose, children, title }: {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
+  // A11Y-12: حصر التركيز داخل اللوح + إغلاق بـEscape + إرجاع التركيز عند الإغلاق
+  const trapRef = useFocusTrap<View>({ active: visible, onEscape: onClose });
   useEffect(() => {
     if (visible) {
       if (isReducedMotion()) anim.setValue(1);
@@ -950,7 +1029,12 @@ export function Sheet({ visible, onClose, children, title }: {
           </Pressable>
 
           <Animated.View
+            ref={trapRef as unknown as React.Ref<View>}
             accessibilityViewIsModal
+            // WAI-ARIA Dialog Pattern: الدور dialog على الويب + اسم من العنوان
+            {...(Platform.OS === 'web'
+              ? ({ role: 'dialog', 'aria-modal': true, 'aria-label': title } as unknown as object)
+              : {})}
             style={{
               width: '100%', maxWidth: 620, alignSelf: 'center',
               backgroundColor: theme.card,
@@ -983,7 +1067,7 @@ export function Sheet({ visible, onClose, children, title }: {
                     onPress={onClose}
                     style={[webPointer, { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }]}
                   >
-                    <Ionicons name="close" size={18} color={theme.textSecondary} />
+                    <Icon name="close" size={18} color={theme.textSecondary} />
                   </Pressable>
                 </View>
               </Row>
@@ -1034,7 +1118,7 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
     >
       {icon ? (
         <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: iconBg ?? theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name={icon} size={19} color={danger ? theme.danger : theme.brand} />
+          <Icon name={icon} size={19} color={danger ? theme.danger : theme.brand} />
         </View>
       ) : null}
       <View style={{ flex: 1 }}>
@@ -1133,23 +1217,39 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
 
 export function Stars({ value, size = 16, onRate }: { value: number; size?: number; onRate?: (v: number) => void }) {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const { impactLight } = useHaptics();
+  // A11Y-14: نمط radiogroup — أسهم ←/→/↑/↓ تغيّر التقييم، وHome/End يقفزان.
+  const rounded = Math.round(value);
+  const rovingRefs = useRovingKeys({
+    count: 5,
+    onMove: (index) => {
+      if (!onRate) return;
+      const next = index + 1;
+      if (next !== rounded) { impactLight(); onRate(next); }
+    },
+  });
   return (
-    <Row gap={2}>
-      {[1, 2, 3, 4, 5].map((i) => (
+    <View
+      {...(onRate ? { accessibilityRole: 'radiogroup' as const, accessibilityLabel: t('a11y.rating') } : {})}
+      style={{ flexDirection: 'row', gap: 2 }}
+    >
+      {[1, 2, 3, 4, 5].map((i, index) => (
         <Pressable
           key={i}
+          ref={(el: any) => { rovingRefs.current[index] = el as HTMLElement | null; }}
+          {...(onRate ? rovingTabIndex(index, Math.max(0, rounded - 1)) : {})}
           accessibilityRole={onRate ? 'radio' : 'image'}
-          accessibilityLabel={`${i} / 5`}
-          accessibilityState={onRate ? { checked: i === Math.round(value) } : undefined}
+          accessibilityLabel={t('a11y.starOf', { i })}
+          accessibilityState={onRate ? { checked: i === rounded } : undefined}
           onPress={onRate ? () => { impactLight(); onRate(i); } : undefined}
           disabled={!onRate}
           hitSlop={4}
         >
-          <Ionicons name={i <= Math.round(value) ? 'star' : 'star-outline'} size={size} color={i <= Math.round(value) ? theme.certGold : theme.textMuted} />
+          <Icon name={i <= Math.round(value) ? 'star' : 'star-outline'} size={size} color={i <= Math.round(value) ? theme.certGold : theme.textMuted} />
         </Pressable>
       ))}
-    </Row>
+    </View>
   );
 }
 

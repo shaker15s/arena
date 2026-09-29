@@ -4,12 +4,13 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleProp, View, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../theme';
 import { useI18n } from '../../i18n';
 import { useHaptics } from '../../shared/hooks';
 import { Txt } from '../components';
 import { isReducedMotion } from '../motion';
+import { Icon } from '../icons';
 
 export interface NotificationBellProps {
   count?: number;
@@ -101,7 +102,7 @@ export function NotificationBell({
         style,
       ]}
     >
-      <Ionicons
+      <Icon
         name={hasUnread ? 'notifications' : 'notifications-outline'}
         size={Math.round(size * 0.48)}
         color={hasUnread ? theme.brand : theme.text}

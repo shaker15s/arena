@@ -26,7 +26,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../../data/store';
@@ -49,6 +49,8 @@ import { SessionCompleteCelebration } from './SessionCompleteCelebration';
 import { MasarMascot } from '../../design/mascot';
 import { spacing, radii, sizes } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
+import { Icon } from '../../design/icons';
+import { VisuallyHidden } from '../../design/a11y/semantics';
 
 async function haptic(kind: 'success' | 'error' | 'warning') {
   if (Platform.OS === 'web') return;
@@ -275,6 +277,8 @@ export function ScannerScreen({ navigation }: any) {
 
   return (
     <View style={styles.rootContainer}>
+      {/* A11Y-04: عنوان الشاشة الدلالي — الشاشة بملء الشاشة بلا رأس مرئي */}
+      <VisuallyHidden heading="h1">{t('scanner.title')}</VisuallyHidden>
       {/* 1. الكاميرا بكامل الشاشة (Full-bleed) */}
       {permission?.granted ? (
         <CameraView
@@ -316,7 +320,7 @@ export function ScannerScreen({ navigation }: any) {
         {/* الهيدر مع أزرار التحكم الزجاجية */}
         <Row between center style={styles.headerRow}>
           <IconGlassButton
-            icon={<Ionicons name="close" size={22} color="#FFF" />}
+            icon={<Icon name="close" size={22} color="#FFF" />}
             onPress={() => navigation.goBack()}
             accessibilityLabel={t('common.close')}
           />
@@ -338,9 +342,9 @@ export function ScannerScreen({ navigation }: any) {
 
           {permission?.granted ? (
             <IconGlassButton
-              icon={<Ionicons name={torch ? 'flashlight' : 'flashlight-outline'} size={20} color={torch ? '#F59E0B' : '#FFF'} />}
+              icon={<Icon name={torch ? 'flashlight' : 'flashlight-outline'} size={20} color={torch ? '#F59E0B' : '#FFF'} />}
               onPress={() => void toggleTorch()}
-              accessibilityLabel="إضاءة الفلاش"
+              accessibilityLabel={t('a11y.torch')}
             />
           ) : (
             <View style={{ width: 44 }} />
@@ -471,7 +475,7 @@ export function ScannerScreen({ navigation }: any) {
           <Animated.View style={{ transform: [{ translateX: otpShakeAnim }], position: 'relative', marginVertical: 4 }}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="إدخال كود الطوارئ 6 أرقام"
+              accessibilityLabel={t('a11y.emergencyCode')}
               onPress={() => inputRef.current?.focus()}
               style={styles.otpBoxesRow}
             >

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -10,6 +10,7 @@ import {
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
 import { createCourse } from '../../data/actions';
+import { Icon } from '../../design/icons';
 
 export function CoursesScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -103,7 +104,7 @@ export function CoursesScreen({ navigation }: any) {
               <Card onPress={() => navigation.navigate('CourseManagement', { courseId: c.id })}>
                 <Row center gap={12}>
                   <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: c.color, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="book" size={22} color="#fff" />
+                    <Icon name="book" size={22} color="#fff" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{c.title}</Txt>

@@ -4,7 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { verifyCertificate } from '../../data/actions';
 import type { VerifiedCertificate } from '../../data/actions';
 import { useTheme } from '../../design/theme';
@@ -12,6 +12,7 @@ import { useI18n } from '../../i18n';
 import { Avatar, Btn, Card, FadeIn, Header, Input, Row, Spacer, Txt } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
+import { Icon } from '../../design/icons';
 
 export function VerifyScreen({ navigation, route }: any) {
   const { t, lang } = useI18n();
@@ -107,7 +108,7 @@ export function VerifyScreen({ navigation, route }: any) {
           <FadeIn index={0}>
             <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55', borderWidth: 1 }}>
               <Row center gap={12}>
-                <Ionicons name="alert-circle" size={32} color={theme.danger} />
+                <Icon name="alert-circle" size={32} color={theme.danger} />
                 <Txt variant="bodyMed" color={theme.danger} style={{ flex: 1, lineHeight: 22 }}>
                   {t('verify.notFound')}
                 </Txt>
@@ -125,7 +126,7 @@ export function VerifyScreen({ navigation, route }: any) {
                     Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
                   ]}
                 >
-                  <Ionicons name="close" size={18} color={theme.danger} />
+                  <Icon name="close" size={18} color={theme.danger} />
                 </Pressable>
               </Row>
             </Card>
@@ -136,7 +137,7 @@ export function VerifyScreen({ navigation, route }: any) {
           <FadeIn index={0}>
             <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55', borderWidth: 1 }}>
               <Row center gap={12}>
-                <Ionicons name="cloud-offline" size={32} color={theme.warn} />
+                <Icon name="cloud-offline" size={32} color={theme.warn} />
                 <Txt variant="bodyMed" color={theme.warn} style={{ flex: 1, lineHeight: 22 }}>
                   {t('common.errorTitle')}
                 </Txt>
@@ -154,7 +155,7 @@ export function VerifyScreen({ navigation, route }: any) {
                     Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
                   ]}
                 >
-                  <Ionicons name="close" size={18} color={theme.warn} />
+                  <Icon name="close" size={18} color={theme.warn} />
                 </Pressable>
               </Row>
             </Card>
@@ -167,7 +168,7 @@ export function VerifyScreen({ navigation, route }: any) {
               <View style={{ alignItems: 'center', gap: 12, paddingVertical: 8 }}>
                 <View style={{ backgroundColor: theme.successSoft, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 6 }}>
                   <Row center gap={6}>
-                    <Ionicons name="checkmark-circle" size={18} color={theme.success} />
+                    <Icon name="checkmark-circle" size={18} color={theme.success} />
                     <Txt variant="h3" color={theme.success}>{t('verify.verified')}</Txt>
                   </Row>
                 </View>
@@ -195,7 +196,7 @@ function InfoRow({ label, value, icon }: { label: string; value: string; icon: k
   const { theme } = useTheme();
   return (
     <Row center gap={10} style={{ backgroundColor: theme.bg, borderRadius: 12, padding: 12 }}>
-      <Ionicons name={icon} size={16} color={theme.textMuted} />
+      <Icon name={icon} size={16} color={theme.textMuted} />
       <Txt variant="caption" color={theme.textMuted} style={{ width: 90 }}>{label}</Txt>
       <Txt variant="bodyMed" style={{ flex: 1 }}>{value}</Txt>
     </Row>

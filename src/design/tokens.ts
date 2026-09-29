@@ -30,6 +30,7 @@ export const sizes = {
   qrCode: 200,
   touchTarget: 44, // الحد الأدنى الموصى به من Apple لإمكانية الوصول
   ctaButton: 52, // معيار Apple HIG للأزرار التفاعلية الأساسية
+  timeField: 64, // حقل ساعة/دقيقة (4 أرقام + مسافة) — يبقى فوق 44px لمسًا
 } as const;
 
 /** إعدادات الـ Springs المعتمدة من Apple Fluid Interfaces (WWDC) */
@@ -82,6 +83,31 @@ export interface ThemeColors {
   text: string;
   textSecondary: string;
   textMuted: string;
+  /**
+   * A11Y-20/21 — طبقة النصوص الدلالية.
+   * كل لون هنا مضمون ≥ 4.5:1 على الخلفيتين `card` و`bg` في الثيم نفسه.
+   * الألوان العلامية (brand/success/warn/danger/accent) تبقى للخلفيات والحدود
+   * والأيقونات ونصوص العرض الكبيرة؛ أما **النصوص الصغيرة** فتستخدم هذه الطبقة.
+   * البوابة: `node scripts/check-contrast.js` تفشل لو انكسر أي زوج.
+   */
+  textSuccess: string;
+  textWarn: string;
+  textDanger: string;
+  textAccent: string;
+  /** أزرق نصّي يمرّ 4.5:1 (لروابط ونصوص brand) */
+  brandText: string;
+  /** خلفية الزر الأساسي — مضمونة مع `onBrand` الأبيض ≥ 4.5:1 */
+  actionPrimary: string;
+  actionPrimaryTo: string;
+  /** خلفيات الإجراءات الدلالية — مضمونة مع نص أبيض ≥ 4.5:1 */
+  actionSuccess: string;
+  actionDanger: string;
+  /**
+   * لون حلقة التركيز (WCAG 2.4.7 / 2.4.13 / 1.4.11): يجب ≥ 3:1 مع الخلفية.
+   * القيمة تُطبَّق في CSS الويب (public/index.html) أيضًا، وبوابة check-a11y.js
+   * تفشل إن تباعدت القيمتان — مصدر واحد للحقيقة.
+   */
+  focusRing: string;
   line: string;
   overlay: string;
   rarityCommon: string;
@@ -143,10 +169,21 @@ export const lightTheme: ThemeColors = {
   glassShadow: 'rgba(0, 0, 0, 0.06)',
   text: '#1C1C1E',
   textSecondary: '#3C3C43',
-  textMuted: '#8E8E93',
+  // كان #8E8E93 = 3.26:1 على الأبيض و3.00:1 على bg (يخالف WCAG 1.4.3) → #6E6E73 = 5.07:1 / 4.67:1
+  textMuted: '#6E6E73',
+  textSuccess: '#1F7A36',
+  textWarn: '#B45309',
+  textDanger: '#C0392B',
+  textAccent: '#A8440A',
+  brandText: '#0055D4',
+  actionPrimary: '#0066CC',
+  actionPrimaryTo: '#4B49C8',
+  actionSuccess: '#1F7A36',
+  actionDanger: '#C0392B',
+  focusRing: '#0066CC',
   line: 'rgba(60, 60, 67, 0.12)',
   overlay: 'rgba(0, 0, 0, 0.4)',
-  rarityCommon: '#8E8E93',
+  rarityCommon: '#6E6E73',
   rarityRare: '#007AFF',
   rarityEpic: '#AF52DE',
   rarityLegendary: '#FF9F0A',
@@ -191,7 +228,18 @@ export const darkTheme: ThemeColors = {
   infoSoft: '#0A1E2E',
   text: '#FFFFFF',
   textSecondary: '#EBEBF5',
-  textMuted: '#8E8E93',
+  // #8E8E93 على #1C1C1E = 5.22:1 لكنه يهبط على بطاقات أوضح؛ #AEAEB2 = 7.69:1
+  textMuted: '#AEAEB2',
+  textSuccess: '#30D158',
+  textWarn: '#FF9F0A',
+  textDanger: '#FF453A',
+  textAccent: '#FBBF24',
+  brandText: '#6FB3FF',
+  actionPrimary: '#0066CC',
+  actionPrimaryTo: '#4B49C8',
+  actionSuccess: '#1F7A36',
+  actionDanger: '#C0392B',
+  focusRing: '#6FB3FF',
   line: 'rgba(84, 84, 88, 0.25)',
   overlay: 'rgba(0, 0, 0, 0.65)',
   cardElevated: 'rgba(44, 44, 46, 0.8)',
@@ -273,11 +321,24 @@ export function uiScale(width: number): number {
 }
 
 /** يقيس حجم/ارتفاع سطر النص مع تقريب صحيح وحد أدنى مقروء (11px). */
+/**
+ * معامل حجم النص الذي يختاره المستخدم (FUNC-10 / WCAG 1.4.4).
+ * يُضبط من `design/preferences.tsx` ويُقرأ هنا حتى يُطبَّق على كل نص في التطبيق
+ * بلا لمس أي شاشة.
+ */
+let userTextScale = 1;
+export function setTextScale(scale: number): void {
+  userTextScale = Math.min(1.5, Math.max(1, Number.isFinite(scale) ? scale : 1));
+}
+export function getTextScale(): number {
+  return userTextScale;
+}
+
 export function scaleType(
   base: { fontSize: number; lineHeight: number },
   width: number,
 ): { fontSize: number; lineHeight: number } {
-  const k = uiScale(width);
+  const k = uiScale(width) * userTextScale;
   if (k === 1) return { fontSize: base.fontSize, lineHeight: base.lineHeight };
   const fontSize = Math.max(11, Math.round(base.fontSize * k));
   // نحافظ على نسبة السطر الأصلية (مهمة للعربية) بدل تقليصها بشكل مستقل.
@@ -318,7 +379,7 @@ export const attendanceColors = {
   present: lightTheme.success,
   late: lightTheme.warn,
   excused: lightTheme.info,
-  absent: '#8E8E93',
+  absent: '#6E6E73',
 };
 
 // ═══════════════ Apple Glass Utilities ═══════════════

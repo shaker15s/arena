@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { attendanceOf, batchOf, courseOf, profileOf } from '../../data/engine';
 import { reviewExcuse } from '../../data/actions';
@@ -22,6 +22,7 @@ import { spacing } from '../../design/tokens';
 import { formatDate, timePast } from '../../shared/format';
 import { Excuse } from '../../data/types';
 import { MasarMascot } from '../../design/mascot';
+import { Icon } from '../../design/icons';
 
 // ───────────────────────────── S24 أعذاري ─────────────────────────────
 
@@ -113,7 +114,7 @@ export function ExcusesScreen({ navigation }: any) {
                   return (
                     <Card key={s.id} onPress={() => setSessionId(s.id)} color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line, borderWidth: active ? 2 : 1 }}>
                       <Row center gap={10}>
-                        <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? theme.brand : theme.textMuted} />
+                        <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? theme.brand : theme.textMuted} />
                         <View style={{ flex: 1 }}>
                           <Txt variant="bodyMed">{course?.title ?? ''}</Txt>
                           <Txt variant="micro" color={theme.textMuted}>{s.title} · {formatDate(s.startsAt, lang)}</Txt>
@@ -162,7 +163,7 @@ export function ExcusesScreen({ navigation }: any) {
                     <>
                       <Spacer size={8} />
                       <Row center gap={6}>
-                        <Ionicons name="shield" size={13} color={theme.info} />
+                        <Icon name="shield" size={13} color={theme.info} />
                         <Txt variant="micro" color={theme.info}>{t('excuses.acceptedNote')}</Txt>
                       </Row>
                     </>
@@ -174,7 +175,7 @@ export function ExcusesScreen({ navigation }: any) {
                         <MasarMascot size={48} mode="encouraging" interactive={false} hideFloatingBubble />
                         <Card color={theme.dangerSoft} noPad style={{ padding: 10, flex: 1 }}>
                           <Row center gap={6}>
-                            <Ionicons name="chatbox" size={13} color={theme.danger} />
+                            <Icon name="chatbox" size={13} color={theme.danger} />
                             <Txt variant="micro" color={theme.danger}>{t('excuses.instructorNote')}: {e.note}</Txt>
                           </Row>
                         </Card>
@@ -279,12 +280,12 @@ export function ExcusesInboxScreen() {
                       <Spacer size={10} />
                       <Card color={theme.bg} noPad style={{ padding: 12 }}>
                         <Row gap={8} center>
-                          <Ionicons name="chatbubble-ellipses" size={15} color={theme.textMuted} />
+                          <Icon name="chatbubble-ellipses" size={15} color={theme.textMuted} />
                           <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{e.reason}</Txt>
                         </Row>
                         {e.attachment ? (
                           <Row center gap={6} style={{ marginTop: 6 }}>
-                            <Ionicons name="attach" size={13} color={theme.info} />
+                            <Icon name="attach" size={13} color={theme.info} />
                             <Txt variant="micro" color={theme.info}>{e.attachment}</Txt>
                           </Row>
                         ) : null}
@@ -363,7 +364,7 @@ export function ExcusesInboxScreen() {
                     ) : null}
                     <Spacer size={8} />
                     <Row center gap={4}>
-                      <Ionicons name="eye" size={13} color={theme.brand} />
+                      <Icon name="eye" size={13} color={theme.brand} />
                       <Txt variant="micro" color={theme.brand}>اضغط لعرض تقرير الحضور المفصل وكشف الأسماء</Txt>
                     </Row>
                   </Card>
@@ -405,7 +406,7 @@ export function ExcusesInboxScreen() {
 function ReportLine({ icon, color, text }: { icon: keyof typeof Ionicons.glyphMap; color: string; text: string }) {
   return (
     <Row center gap={8}>
-      <Ionicons name={icon} size={14} color={color} />
+      <Icon name={icon} size={14} color={color} />
       <Txt variant="caption" style={{ flex: 1 }}>{text}</Txt>
     </Row>
   );

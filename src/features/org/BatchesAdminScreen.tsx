@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import {
   courseOf, isBatchComplete, profileOf, seatCounts,
@@ -13,6 +13,7 @@ import {
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
 import { BatchFormSheet } from './BatchFormSheet';
+import { Icon } from '../../design/icons';
 
 export function BatchesAdminScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -49,7 +50,7 @@ export function BatchesAdminScreen({ navigation }: any) {
               <Card onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })}>
                 <Row center gap={12}>
                   <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="people" size={22} color={course.color} />
+                    <Icon name="people" size={22} color={course.color} />
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Txt variant="bodyMed">{course.title}</Txt>
@@ -67,7 +68,7 @@ export function BatchesAdminScreen({ navigation }: any) {
                 <ProgressBar progress={seats.taken / b.capacity} height={6} color={course.color} />
                 <Spacer size={8} />
                 <Row center gap={6}>
-                  <Ionicons name="link" size={12} color={theme.teal} />
+                  <Icon name="link" size={12} color={theme.teal} />
                   <Txt variant="micro" color={theme.teal}>{t('batchAdm.joinCode')}: {b.joinCode}</Txt>
                 </Row>
               </Card>

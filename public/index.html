@@ -23,6 +23,80 @@
         overflow-x: hidden;
       }
     </style>
+    <style id="masar-a11y-focus">
+      /*
+        A11Y-10 · A11Y-15 — طبقة التركيز المرئي (WCAG 2.4.7 / 2.4.13 / 1.4.11).
+        القيمتان هنا مرآة لقيم `focusRing` في src/design/tokens.ts، وبوابة
+        scripts/check-a11y.js تفشل إذا تباعدتا — مصدر واحد للحقيقة.
+      */
+      :root { --masar-focus: #0066CC; }
+      @media (prefers-color-scheme: dark) { :root { --masar-focus: #6FB3FF; } }
+
+      /* حلقة واضحة عند التنقل بالكيبورد فقط (لا تظهر مع اللمس/الماوس) */
+      :focus-visible {
+        outline: 3px solid var(--masar-focus);
+        outline-offset: 2px;
+      }
+      /* عناصر الإدخال في react-native-web قد تحمل outline:none — نُعيد الحلقة */
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible,
+      [contenteditable]:focus-visible,
+      a:focus-visible,
+      button:focus-visible,
+      [role="button"]:focus-visible,
+      [role="tab"]:focus-visible,
+      [role="link"]:focus-visible {
+        outline: 3px solid var(--masar-focus);
+        outline-offset: 2px;
+      }
+      /* لا نُظهر الحلقة على عنصر main عند نقل التركيز إليه برمجيًا */
+      [role="main"]:focus { outline: none; }
+
+      /*
+        A11Y-15: الشريط السفلي العائم ارتفاعه 68px + 104px هامش محتوى، لذا نمنع
+        حجب العنصر المُركَّز عليه (WCAG 2.2 — 2.4.11) عبر scroll-padding.
+      */
+      html, body, #root { scroll-padding-bottom: 140px; scroll-padding-top: 24px; }
+      [role="main"] { scroll-padding-bottom: 140px; }
+
+      /* احترام تقليل الحركة على مستوى المستند أيضًا */
+      @media (prefers-reduced-motion: reduce) {
+        html:focus-within { scroll-behavior: auto; }
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      /* تباين أعلى لمن يطلبه النظام */
+      @media (prefers-contrast: more) {
+        :root { --masar-focus: #004A99; }
+        @media (prefers-color-scheme: dark) { :root { --masar-focus: #9CCBFF; } }
+      }
+      /* FUNC-10: تباين عالٍ يختاره المستخدم من الإعدادات (يشتد مع إعداد النظام).
+         نرفع قوة الحدود والفواصل وحلقة التركيز بدل تغيير الألوان — التغيير
+         اللوني كان سيُخلّ بنسب التباين المقيسة في check-contrast. */
+      html.masar-contrast {
+        --masar-focus: #004A99;
+      }
+      html.masar-contrast * {
+        border-color: currentColor !important;
+      }
+      html.masar-contrast [role="button"],
+      html.masar-contrast a {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      @media (prefers-color-scheme: dark) {
+        html.masar-contrast { --masar-focus: #9CCBFF; }
+      }
+      /* حجم النص المُختار داخل التطبيق (يُطبّقه design/preferences.tsx) —
+         الجذر يتكبّر أيضًا حتى تتناسب المسافات المبنية على الوحدات النسبية. */
+      html[data-masar-text-scale="1.15"] { font-size: 115%; }
+      html[data-masar-text-scale="1.3"] { font-size: 130%; }
+    </style>
     <style id="expo-boot-splash">
       /* شاشة إقلاع فورية قبل تحميل الحزمة — تستبدلها BootSplash داخل التطبيق */
       #boot-splash {

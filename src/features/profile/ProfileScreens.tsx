@@ -3,7 +3,7 @@
  */
 import React, { useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,6 +17,7 @@ import {
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
 import { MasarMascot } from '../../design/mascot';
+import { Icon } from '../../design/icons';
 
 export function ProfileScreen() {
   const { t, lang, setLang } = useI18n();
@@ -91,6 +92,13 @@ export function ProfileScreen() {
         {/* الإعدادات */}
         <FadeIn index={2}>
           <ListRow icon="create" title={t('profile.edit')} onPress={() => setEditOpen(true)} />
+          {/* FUNC-10: الإعدادات الكاملة (منطقة/إتاحة/بيانات) في مكان واحد */}
+          <ListRow
+            icon="options"
+            title={t('profile.settings')}
+            subtitle={t('settings.regionSection')}
+            onPress={() => navigation.navigate('Settings')}
+          />
         </FadeIn>
         <FadeIn index={3}>
           <ListRow
@@ -155,7 +163,7 @@ export function ProfileScreen() {
           <Card glass>
             <Row between center>
               <Row center gap={10}>
-                <Ionicons
+                <Icon
                   name={!online ? 'cloud-offline' : syncing ? 'sync' : 'cloud-done'}
                   size={18}
                   color={!online ? theme.warn : syncing ? theme.brand : theme.success}
@@ -206,7 +214,7 @@ export function ProfileScreen() {
               key={l}
               icon={l === 'ar' ? 'chatbox' : 'chatbubble'}
               title={l === 'ar' ? t('common.arabic') : t('common.english')}
-              right={lang === l ? <Ionicons name="checkmark-circle" size={22} color={theme.success} /> : undefined}
+              right={lang === l ? <Icon name="checkmark-circle" size={22} color={theme.success} /> : undefined}
               onPress={() => { setLang(l); setLangSheet(false); }}
             />
           ))}
@@ -221,7 +229,7 @@ export function ProfileScreen() {
               key={th}
               icon={th === 'system' ? 'phone-portrait' : th === 'light' ? 'sunny' : th === 'dark' ? 'moon' : 'contrast'}
               title={t(th === 'system' ? 'common.themeSystem' : th === 'light' ? 'common.themeLight' : th === 'dark' ? 'common.themeDark' : 'common.themeOled')}
-              right={preference === th ? <Ionicons name="checkmark-circle" size={22} color={theme.success} /> : undefined}
+              right={preference === th ? <Icon name="checkmark-circle" size={22} color={theme.success} /> : undefined}
               onPress={() => { setTheme(th); setThemeSheet(false); }}
             />
           ))}
@@ -245,7 +253,7 @@ export function ProfileScreen() {
           </View>
           <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55' }}>
             <Row center gap={10}>
-              <Ionicons name="warning" size={26} color={theme.danger} />
+              <Icon name="warning" size={26} color={theme.danger} />
               <Txt variant="body" color={theme.danger} style={{ flex: 1 }}>{t('profile.deleteBody')}</Txt>
             </Row>
           </Card>
@@ -290,7 +298,7 @@ function MiniStat({ label, value, icon, color }: { label: string; value: string;
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: 3, minWidth: 0 }}>
       <Row center gap={4}>
-        <Ionicons name={icon} size={13} color={color} />
+        <Icon name={icon} size={13} color={color} />
         <Txt variant="h3" numberOfLines={1} style={{ fontSize: 15 }}>{value}</Txt>
       </Row>
       <Txt variant="micro" color={theme.textMuted}>{label}</Txt>
@@ -355,18 +363,18 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
           }}>
             {uploading ? <ActivityIndicator color={theme.brand} />
               : avatar ? <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
-              : <Ionicons name="camera" size={30} color={theme.brand} />}
+              : <Icon name="camera" size={30} color={theme.brand} />}
           </View>
         </Pressable>
 
         <Card glass>
           <Row center gap={10}>
-            <Ionicons name="mail" size={16} color={theme.brand} />
+            <Icon name="mail" size={16} color={theme.brand} />
             <View style={{ flex: 1 }}>
               <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
               <Txt variant="bodyMed" numberOfLines={1}>{user.email ?? '—'}</Txt>
             </View>
-            <Ionicons name="lock-closed" size={14} color={theme.textMuted} />
+            <Icon name="lock-closed" size={14} color={theme.textMuted} />
           </Row>
         </Card>
 
@@ -401,7 +409,7 @@ export function SupportScreen({ navigation }: any) {
           <FadeIn key={i} index={i + 1}>
             <Card>
               <Row center gap={8}>
-                <Ionicons name="help-circle" size={18} color={theme.brand} />
+                <Icon name="help-circle" size={18} color={theme.brand} />
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{f.q}</Txt>
               </Row>
               <Spacer size={6} />

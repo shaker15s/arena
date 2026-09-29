@@ -5,11 +5,12 @@
  */
 import React, { useRef } from 'react';
 import { Animated, I18nManager, PanResponder, StyleSheet, View, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Txt } from '../components';
 import { useTheme } from '../theme';
 import { isReducedMotion } from '../motion';
 import { spacing, radii, springs } from '../tokens';
+import { Icon } from '../icons';
 
 export interface SwipeRowProps {
   children: React.ReactNode;
@@ -134,7 +135,7 @@ export function SwipeRow({
               },
             ]}
           >
-            <Ionicons name={physicalLeftIcon} size={24} color="#fff" />
+            <Icon name={physicalLeftIcon} size={24} color="#fff" />
             {physicalLeftLabel && (
               <Txt variant="micro" color="#fff" style={{ marginTop: 2 }}>
                 {physicalLeftLabel}
@@ -159,7 +160,7 @@ export function SwipeRow({
               },
             ]}
           >
-            <Ionicons name={physicalRightIcon} size={24} color="#fff" />
+            <Icon name={physicalRightIcon} size={24} color="#fff" />
             {physicalRightLabel && (
               <Txt variant="micro" color="#fff" style={{ marginTop: 2 }}>
                 {physicalRightLabel}

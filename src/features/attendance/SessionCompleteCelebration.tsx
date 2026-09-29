@@ -12,7 +12,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '../../design/theme';
@@ -24,6 +24,9 @@ import { ConfettiExplosion, ShimmerProgressBar } from '../../design/animations';
 import { MasarMascot } from '../../design/mascot';
 import { radii, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
+import { PUBLIC_APP_URL } from '../../shared/links';
+import { useFocusTrap } from '../../design/a11y/useFocusTrap';
+import { Icon } from '../../design/icons';
 
 export interface SessionCompleteCelebrationProps {
   visible: boolean;
@@ -95,17 +98,22 @@ export function SessionCompleteCelebration({
       }
     } catch {}
 
-    const text = `🎉 حضرت الآن محاضرة ${sessionTitle ? `«${sessionTitle}»` : 'اليوم'} في تطبيق مسار!\n⚡ كسبت +${points} نقطة والستريك مستمر للأسبوع ${streakWeeks} 🔥\nhttps://arena-rho-seven.vercel.app`;
+    const text = t('share.checkinText', {
+      session: sessionTitle ? `«${sessionTitle}»` : t('share.checkinToday'),
+      points,
+      weeks: streakWeeks,
+      url: PUBLIC_APP_URL,
+    });
 
     if (Platform.OS === 'web') {
       if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ title: 'إنجاز مسار', text, url: 'https://arena-rho-seven.vercel.app' }).catch(() => {});
+        await navigator.share({ title: t('share.achievementTitle'), text, url: PUBLIC_APP_URL }).catch(() => {});
       } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(text);
       }
     } else {
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync('https://arena-rho-seven.vercel.app', { dialogTitle: 'مشاركة الحضور' });
+        await Sharing.shareAsync(PUBLIC_APP_URL, { dialogTitle: t('share.dialogTitle') });
       }
     }
   };
@@ -190,7 +198,7 @@ export function SessionCompleteCelebration({
               ]}
             >
               <View style={[styles.rewardIconCircle, { backgroundColor: theme.brand }]}>
-                <Ionicons name="flash" size={20} color="#FFFFFF" />
+                <Icon name="flash" size={20} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Txt variant="micro" color={theme.textMuted}>
@@ -218,7 +226,7 @@ export function SessionCompleteCelebration({
               ]}
             >
               <View style={[styles.rewardIconCircle, { backgroundColor: theme.warn }]}>
-                <Ionicons name="flame" size={20} color="#FFFFFF" />
+                <Icon name="flame" size={20} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Txt variant="micro" color={theme.textMuted}>
@@ -238,7 +246,7 @@ export function SessionCompleteCelebration({
 
           {/* مؤشر تقدم الدوري */}
           <View style={[styles.leagueBanner, { backgroundColor: theme.fill }]}>
-            <Ionicons name="trophy" size={20} color="#F59E0B" />
+            <Icon name="trophy" size={20} color="#F59E0B" />
             <Txt variant="caption" color={theme.text} style={{ flex: 1 }}>
               أنت الآن في المنطقة الآمنة للصعود في دوري الأسبوع 🚀
             </Txt>

@@ -762,6 +762,8 @@ export interface Database {
   // أعِد التوليد: node scripts/gen-rpc-types.js --write
   /** 0030_ocr_audit_remediation.sql */
   admin_update_user_access: { Args: { p_profile_id: string; p_role: string; p_status: string; p_branch_id?: string | null; p_clear_branch?: boolean | null }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  anticheat_report: { Args: { p_days?: number | null }; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
   archive_batch: { Args: { p_batch_id: string }; Returns: Json };
   /** 0024_course_operating_system.sql */
@@ -792,8 +794,12 @@ export interface Database {
   create_course: { Args: { p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
   /** 0008_account_deletion.sql */
   delete_my_account: { Args: { p_confirm: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  detect_checkin_anomalies: { Args: { p_since?: string | null }; Returns: Json };
   /** 0013_offline_command_queue.sql */
   enqueue_command: { Args: { p_command_id: string; p_command: string; p_payload?: Json | null; p_device_created_at?: string | null }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  enqueue_weekly_reports: { Args: { p_at?: string | null }; Returns: Json };
   /** 0013_offline_command_queue.sql */
   finish_command: { Args: { p_command_id: string; p_status?: string | null }; Returns: Json };
   /** 0011_analytics_views.sql */
@@ -810,6 +816,8 @@ export interface Database {
   get_course_overview: { Args: { p_course_id: string }; Returns: Json };
   /** 0024_course_operating_system.sql */
   get_detailed_course_analytics: { Args: { p_course_id: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  get_error_by_ref: { Args: { p_ref: string }; Returns: Json };
   /** 0028_get_today.sql */
   get_my_courses: { Args: Record<string, never>; Returns: Json };
   /** 0005_production_hardening.sql */
@@ -822,8 +830,12 @@ export interface Database {
   get_today: { Args: Record<string, never>; Returns: Json };
   /** 0005_production_hardening.sql */
   is_admin: { Args: Record<string, never>; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  is_quiet_hours: { Args: { p_user: string; p_at?: string | null; p_kind?: string | null }; Returns: Json };
   /** 0030_ocr_audit_remediation.sql */
   is_staff: { Args: Record<string, never>; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  is_valid_timezone: { Args: { p_zone: string }; Returns: Json };
   /** 0017_completion_rule_fix.sql */
   issue_batch_certificates: { Args: { p_batch_id: string }; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
@@ -832,20 +844,30 @@ export interface Database {
   join_batch_by_code: { Args: { p_join_code: string }; Returns: Json };
   /** 0009_waitlist_promotion.sql */
   leave_batch: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  list_attendance_disputes: { Args: { p_scope?: string | null; p_limit?: number | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   list_visible_profiles: { Args: { p_offset?: number | null; p_limit?: number | null }; Returns: Json };
-  /** 0027_client_error_log.sql */
+  /** 0031_functional_completeness.sql */
   log_client_error: { Args: { p_message: string; p_stack?: string | null; p_component_stack?: string | null; p_fatal?: boolean | null; p_platform?: string | null; p_app_version?: string | null; p_breadcrumbs?: Json | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   manual_mark_attendance: { Args: { p_session_id: string; p_user_id: string; p_status: string; p_reason: string }; Returns: Json };
   /** 0014_critical_fixes.sql */
   mark_notifications_read: { Args: Record<string, never>; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  needs_attention: { Args: Record<string, never>; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
   notify_session_absentees: { Args: { p_session_id: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  org_weekly_report: { Args: { p_week_start?: string | null; p_branch_id?: string | null }; Returns: Json };
   /** 0009_waitlist_promotion.sql */
   promote_batch_waitlist: { Args: { p_batch_id: string }; Returns: Json };
   /** 0009_waitlist_promotion.sql */
   promote_waitlists: { Args: Record<string, never>; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  public_badge_assertion: { Args: { p_serial: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  quiet_hours_end: { Args: { p_user: string; p_at?: string | null }; Returns: Json };
   /** 0025_rpc_rate_limits.sql */
   register_push_token: { Args: { p_token: string; p_platform?: string | null }; Returns: Json };
   /** 0020_certificate_revocation.sql */
@@ -854,6 +876,8 @@ export interface Database {
   remove_from_batch: { Args: { p_batch_id: string; p_user_id: string }; Returns: Json };
   /** 0024_course_operating_system.sql */
   reschedule_training_session: { Args: { p_session_id: string; p_starts_at: string; p_reason?: string | null }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  resolve_attendance_dispute: { Args: { p_dispute_id: string; p_accept: boolean; p_note?: string | null; p_new_status?: string | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   review_excuse: { Args: { p_excuse_id: string; p_decision: string; p_note?: string | null }; Returns: Json };
   /** 0005_production_hardening.sql */
@@ -872,10 +896,16 @@ export interface Database {
   set_badge_active: { Args: { p_code: string; p_active: boolean }; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
   set_course_status: { Args: { p_course_id: string; p_status: string }; Returns: Json };
-  /** 0026_push_delivery_outbox.sql */
+  /** 0031_functional_completeness.sql */
+  set_my_timezone: { Args: { p_timezone: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
   set_push_preferences: { Args: { p_prefs: Json }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  set_report_subscription: { Args: { p_cadence?: string | null; p_enabled?: boolean | null; p_day_of_week?: number | null; p_hour_local?: number | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   start_training_session: { Args: { p_batch_id: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  submit_attendance_dispute: { Args: { p_session_id: string; p_claim: string; p_evidence_url?: string | null }; Returns: Json };
   /** 0017_completion_rule_fix.sql */
   submit_course_rating: { Args: { p_course_id: string; p_stars: number; p_comment?: string | null }; Returns: Json };
   /** 0025_rpc_rate_limits.sql */
@@ -892,8 +922,12 @@ export interface Database {
   update_my_profile: { Args: { p_full_name: string; p_phone: string; p_avatar_url?: string | null }; Returns: Json };
   /** 0001_schema.sql */
   update_updated_at_column: { Args: Record<string, never>; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  verify_badge_assertion: { Args: { p_assertion: Json }; Returns: Json };
   /** 0020_certificate_revocation.sql */
   verify_certificate: { Args: { p_serial: string }; Returns: Json };
+  /** 0031_functional_completeness.sql */
+  withdraw_attendance_dispute: { Args: { p_dispute_id: string }; Returns: Json };
   // ─── END GENERATED RPC ARGS ───
     };
   };

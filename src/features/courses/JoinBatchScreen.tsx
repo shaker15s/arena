@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { joinBatchByCode } from '../../data/actions';
 import { courseOf } from '../../data/engine';
@@ -9,6 +9,7 @@ import { useI18n } from '../../i18n';
 import { Btn, Card, Header, Row, Spacer, Txt } from '../../design/components';
 import { JellyButton, PillGradientSearchInput, SuccessWaveAlert } from '../../design/interactive';
 import { spacing } from '../../design/tokens';
+import { Icon } from '../../design/icons';
 
 export function JoinBatchScreen({ route, navigation }: any) {
   const { db, user, refresh, toast } = useApp();
@@ -44,7 +45,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Card glass>
           <Row center gap={10}>
-            <Ionicons name="qr-code" size={28} color={theme.brand} />
+            <Icon name="qr-code" size={28} color={theme.brand} />
             <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('joinCode.body')}</Txt>
           </Row>
         </Card>

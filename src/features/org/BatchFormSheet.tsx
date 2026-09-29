@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import {
   checkInstructorConflict, courseOf, generateSessionsForBatch, profileOf,
@@ -13,6 +13,7 @@ import {
 import { formatDate } from '../../shared/format';
 import { Batch } from '../../data/types';
 import { createBatchWithSessions } from '../../data/actions';
+import { Icon } from '../../design/icons';
 
 export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible: boolean; onClose: () => void; initialCourseId?: string }) {
   const { t, lang } = useI18n();
@@ -176,7 +177,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         {isConflictWithOtherOrganizer && (
           <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55', padding: 10 }}>
             <Row center gap={8}>
-              <Ionicons name="alert-circle" size={20} color={theme.danger} />
+              <Icon name="alert-circle" size={20} color={theme.danger} />
               <Txt variant="micro" color={theme.danger}>
                 تنبيه: هذا الكورس منظم حالياً بواسطة {currentOrganizer?.fullName}. لا يمكنك تنظيم كورس مسند لمنظم آخر.
               </Txt>
@@ -225,7 +226,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         {conflict ? (
           <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55' }}>
             <Row center gap={8}>
-              <Ionicons name="warning" size={18} color={theme.warn} />
+              <Icon name="warning" size={18} color={theme.warn} />
               <Txt variant="caption" color={theme.warn} style={{ flex: 1 }}>{t('batchAdm.conflict')}</Txt>
             </Row>
           </Card>

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2021",
     "module": "commonjs",
     "moduleResolution": "node",
     "ignoreDeprecations": "6.0",
@@ -10,7 +10,14 @@
     "noEmitOnError": false,
     "outDir": ".test-build",
     "rootDir": ".",
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2021",
+      "DOM"
+    ]
   },
   "include": [
     "src/data/**/*.ts",
@@ -20,6 +27,7 @@
     "scripts/engine.test.ts",
     "scripts/rls.test.ts",
     "scripts/search.test.ts",
+    "scripts/calendar.test.ts",
     "scripts/perf-benchmark.ts",
     "scripts/security-pentest.ts",
     "scripts/load-test.ts",

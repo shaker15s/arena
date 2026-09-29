@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
@@ -23,6 +23,7 @@ import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
 import { Batch, TrainingSession, AttendanceStatus } from '../../data/types';
 import { useTabs } from '../../app/RootNavigator';
+import { Icon } from '../../design/icons';
 
 // ───────────────────────────── S14 رحلتي ─────────────────────────────
 
@@ -159,6 +160,11 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     }
   }, [existingRating]);
 
+  // حالة الإدخال قبل الإرجاع المبكر — ترتيب الهوكات ثابت (إصلاح خطأ كامن).
+  const [instructorStars, setInstructorStars] = useState(5);
+  const [venueStars, setVenueStars] = useState(5);
+  const [issuingCert, setIssuingCert] = useState(false);
+
   if (!batch || !course || !user) return null;
 
   const instructor = profileOf(db, batch.instructorId);
@@ -198,8 +204,6 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     }
   };
 
-  const [instructorStars, setInstructorStars] = useState(5);
-  const [venueStars, setVenueStars] = useState(5);
 
   const submitRating = async () => {
     if (!user) return;
@@ -219,7 +223,6 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   };
 
   const myCert = db.certificates.find((c) => c.userId === user.id && c.batchId === batch.id);
-  const [issuingCert, setIssuingCert] = useState(false);
 
   const handleIssueMyCert = async () => {
     setIssuingCert(true);
@@ -350,7 +353,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                           borderColor: meta.color,
                         }}
                       >
-                        <Ionicons name={meta.icon} size={22} color={meta.color} />
+                        <Icon name={meta.icon} size={22} color={meta.color} />
                       </View>
 
                       <View style={{ flex: 1 }}>
@@ -386,7 +389,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                           </Row>
                         ) : st === 'done' || st === 'late' ? (
                           <Row center gap={6} style={{ marginTop: 4 }}>
-                            <Ionicons name="checkmark-circle" size={14} color={theme.success} />
+                            <Icon name="checkmark-circle" size={14} color={theme.success} />
                             <Txt variant="micro" color={theme.success}>
                               {st === 'done' ? `+10 ${t('common.points')}` : `+7 ${t('common.points')} (${t('history.late')})`}
                             </Txt>
@@ -428,7 +431,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                   shadowOffset: { width: 0, height: 6 },
                 }}
               >
-                <Ionicons name="trophy" size={38} color={theme.certGold} />
+                <Icon name="trophy" size={38} color={theme.certGold} />
               </View>
 
               <View style={{ alignItems: 'center', gap: 4 }}>
@@ -500,7 +503,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 borderColor: existingRating ? theme.line : theme.warn + '40',
               }}
             >
-              <Ionicons
+              <Icon
                 name={existingRating ? 'checkmark-circle' : 'star'}
                 size={20}
                 color={existingRating ? theme.success : theme.warn}
@@ -562,15 +565,17 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   const { db, user, refresh, syncing } = useApp();
   const batchId: string | undefined = route.params?.batchId;
   const [filter, setFilter] = useState<Filter>('all');
-  if (!user) return null;
-
+  const myId = user?.id;
   const rows = useMemo(() => {
+    if (!myId) return [];
     return db.attendance
-      .filter((a) => a.userId === user.id)
+      .filter((a) => a.userId === myId)
       .map((a) => ({ att: a, sess: db.sessions.find((s) => s.id === a.sessionId)! }))
       .filter((r) => r.sess && (!batchId || r.sess.batchId === batchId))
       .sort((a, b) => b.sess.startsAt - a.sess.startsAt);
-  }, [db.attendance, db.sessions, user.id, batchId]);
+  }, [db.attendance, db.sessions, myId, batchId]);
+
+  if (!user) return null;
 
   const filtered = filter === 'all' ? rows : rows.filter((r) => r.att.status === filter);
   const honored = rows.filter((r) => r.att.status !== 'absent').length;
@@ -586,6 +591,13 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t('history.title')} back={() => navigation.goBack()} />
+        {/* FUNC-05: مدخل التماس على سجل الحضور */}
+        <Btn
+          title={t('disputes.entryStudent')}
+          variant="secondary"
+          icon="document-text-outline"
+          onPress={() => navigation.navigate('Disputes', { mode: 'mine' })}
+        />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
         refreshControl={
@@ -666,7 +678,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
                 <Card>
                   <Row center gap={12}>
                     <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name={meta.icon} size={22} color={meta.color} />
+                      <Icon name={meta.icon} size={22} color={meta.color} />
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <Txt variant="bodyMed" numberOfLines={1}>{course?.title ?? ''}</Txt>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../../data/store';
 import {
@@ -15,6 +15,7 @@ import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { spacing } from '../../design/tokens';
 import { timePast } from '../../shared/format';
 import { useI18n } from '../../i18n';
+import { Icon } from '../../design/icons';
 
 const STATUS_KEY: Record<SupportRequestRow['status'], string> = {
   open: 'requests.open',
@@ -169,7 +170,7 @@ export function RequestsScreen({ navigation }: any) {
                 <Row center gap={10}>
                   {sender ? <Avatar name={sender.fullName} color={sender.avatarColor} size={40} /> : (
                     <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name="mail" size={18} color={theme.brand} />
+                      <Icon name="mail" size={18} color={theme.brand} />
                     </View>
                   )}
                   <View style={{ flex: 1, gap: 2 }}>

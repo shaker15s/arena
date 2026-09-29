@@ -6,8 +6,9 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { StatusBar } from 'expo-status-bar';
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Circle } from 'react-native-svg';
 import { useApp } from '../../data/store';
@@ -27,7 +28,10 @@ import { BorderBeam } from '../../design/components/BorderBeam';
 import { CelebrationModal } from '../../design/celebrations';
 import { radii, spacing } from '../../design/tokens';
 import { formatTime } from '../../shared/format';
+import { matchesSearch } from '../../shared/search';
+import { enterFullscreen, exitFullscreen, useWakeLock } from '../../shared/kiosk';
 import { TrainingSession } from '../../data/types';
+import { Icon } from '../../design/icons';
 
 export function LiveSessionScreen() {
   const { t, lang } = useI18n();
@@ -51,6 +55,9 @@ export function LiveSessionScreen() {
     closedAt: number;
   }>(null);
   const [qrPayload, setQrPayload] = useState<SessionQrPayload | null>(null);
+  // FUNC-06: وضع الكشك — يخفي الواجهة كلها ويعرض الرمز بحجم كبير مع منع النوم.
+  const [kiosk, setKiosk] = useState(false);
+  const wakeStatus = useWakeLock(kiosk);
 
   // نبضة ساعة للتدوير (كل 500ms)
   useEffect(() => {
@@ -193,7 +200,7 @@ export function LiveSessionScreen() {
                   <Card key={b.id} style={{ alignSelf: 'stretch' }}>
                     <Row center gap={10}>
                       <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: course ? course.color + '22' : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="play" size={22} color={course ? course.color : theme.brand} />
+                        <Icon name="play" size={22} color={course ? course.color : theme.brand} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Txt variant="h3">{nextSess.title}</Txt>
@@ -241,6 +248,40 @@ export function LiveSessionScreen() {
   const students = batchStudents(db, batch.id);
   const rows = db.attendance.filter((a) => a.sessionId === myLive.id && a.status !== 'absent');
   const recent = [...rows].sort((a, b) => (b.checkedInAt ?? 0) - (a.checkedInAt ?? 0)).slice(0, 4);
+
+  const enterKiosk = () => {
+    setKiosk(true);
+    void enterFullscreen();
+  };
+  const leaveKiosk = () => {
+    setKiosk(false);
+    void exitFullscreen();
+  };
+
+  const wakeLabel = wakeStatus === 'active'
+    ? t('kiosk.wakeOn')
+    : wakeStatus === 'unsupported'
+      ? t('kiosk.wakeUnsupported')
+      : t('kiosk.wakeDenied');
+
+  if (kiosk) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#05070F', alignItems: 'center', justifyContent: 'center', padding: spacing.s5, gap: 18 }}>
+        <StatusBar hidden />
+        <Txt variant="h2" color="#F1F5F9" align="center">{myLive.title}</Txt>
+        <View style={{ backgroundColor: '#ffffff', padding: 20, borderRadius: 28 }}>
+          {token ? <QRCode value={token} size={320} /> : <Icon name="sync" size={96} color={theme.brand} />}
+        </View>
+        <Txt variant="display" color="#F8FAFC" bold style={{ letterSpacing: 10, fontSize: 40 }}>{code}</Txt>
+        <Row center gap={10}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80' }} />
+          <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}: {rows.length} / {students.length}</Txt>
+        </Row>
+        <Txt variant="micro" color={wakeStatus === 'active' ? '#4ADE80' : theme.warn} align="center">{wakeLabel}</Txt>
+        <Btn title={t('kiosk.exit')} variant="secondary" icon="contract" onPress={leaveKiosk} accessibilityHint={t('kiosk.exitHint')} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? theme.bg : '#0E1230' }}>
@@ -299,7 +340,7 @@ export function LiveSessionScreen() {
                   shadowRadius: 14,
                   elevation: 6,
                 }}>
-                  {token ? <QRCode value={token} size={176} /> : <Ionicons name="sync" size={64} color={theme.brand} />}
+                  {token ? <QRCode value={token} size={176} /> : <Icon name="sync" size={64} color={theme.brand} />}
                 </View>
               </View>
 
@@ -320,7 +361,7 @@ export function LiveSessionScreen() {
                 }}
               >
                 <Row center gap={6}>
-                  <Ionicons name="keypad" size={16} color={isDark ? '#38BDF8' : theme.brand} />
+                  <Icon name="keypad" size={16} color={isDark ? '#38BDF8' : theme.brand} />
                   <Txt variant="micro" color={isDark ? '#94A3B8' : theme.textSecondary} bold>
                     {t('live.codeLabel')} (في حال تعذر مسح الكاميرا):
                   </Txt>
@@ -383,6 +424,13 @@ export function LiveSessionScreen() {
         <FadeIn index={3}>
           <Row gap={10} wrap>
             <Btn title={t('live.manualMark')} variant="secondary" icon="hand-left" onPress={() => setManualOpen(true)} />
+            <Btn
+              title={t('kiosk.enter')}
+              variant="secondary"
+              icon="expand"
+              onPress={enterKiosk}
+              accessibilityHint={t('kiosk.enterHint')}
+            />
             <View style={{ flex: 1 }} />
             <Btn title={t('live.endSession')} variant="danger" icon="stop-circle" onPress={() => setEndConfirm(true)} />
           </Row>
@@ -393,7 +441,7 @@ export function LiveSessionScreen() {
       <Sheet visible={endConfirm && !reportStep} onClose={() => setEndConfirm(false)} title={t('live.endSession')}>
         <View style={{ gap: 12 }}>
           <Row center gap={10}>
-            <Ionicons name="warning" size={26} color={theme.warn} />
+            <Icon name="warning" size={26} color={theme.warn} />
             <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('live.endConfirm')}</Txt>
           </Row>
           <Row gap={10}>
@@ -409,7 +457,7 @@ export function LiveSessionScreen() {
           <View style={{ gap: 12 }}>
             <Card glass>
               <Row center gap={8}>
-                <Ionicons name="people" size={16} color={theme.brand} />
+                <Icon name="people" size={16} color={theme.brand} />
                 <Txt variant="bodyMed">{t('report.summary', { x: rows.length, y: students.length })}</Txt>
               </Row>
             </Card>
@@ -670,8 +718,8 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
   const students = sourceStudents.filter((st) => {
     const r = db.attendance.find((a) => a.sessionId === session.id && a.userId === st.id);
     const already = r && r.status !== 'absent';
-    const q = query.trim().toLowerCase();
-    const match = q === '' || st.fullName.toLowerCase().includes(q) || (st.phone && st.phone.includes(q));
+    // FUNC-07: بحث عربي مُطبَّع (كان includes لاتيني خام ⇒ يفشل مع «احمد» بلا همزة).
+    const match = matchesSearch(st.fullName, query) || matchesSearch(st.phone ?? '', query);
     return !already && match;
   });
 
@@ -722,7 +770,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
                             <Txt variant="bodyMed">{st.fullName}</Txt>
                             {st.phone ? <Txt variant="micro" color={theme.textMuted}>{st.phone}</Txt> : null}
                           </View>
-                          {active ? <Ionicons name="checkmark-circle" size={20} color={theme.brand} /> : null}
+                          {active ? <Icon name="checkmark-circle" size={20} color={theme.brand} /> : null}
                         </Row>
                       </Card>
                     );

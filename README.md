@@ -28,6 +28,7 @@ npx expo start            # ثم امسح QR من تطبيق Expo Go
 > بدون مفاتيح Supabase يعرض التطبيق شاشة «الإعداد مطلوب» — لأننا لا نعرض بيانات وهمية إطلاقًا.
 > خطوات الإعداد الكاملة (Google OAuth + RLS + bucket الصور): **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)**.
 > تفاصيل ما تغيّر ومقارنة بالمنافسين: **[docs/REALNESS.md](docs/REALNESS.md)**.
+> 🦅 **الخطة الشاملة المتكاملة (Single Source of Truth):** **[MASAR_MASTER_PLAN_2026-09-28.md](MASAR_MASTER_PLAN_2026-09-28.md)** — إمكانية الوصول (WCAG 2.2 AA) + صقر فطن 3.0 + الديزاين + الداتا والسيرفر + الأداء + كتالوج الأسيتس + خارطة 12 أسبوعًا وبوابات القبول. (تلغي وتوحّد `DEV_PLAN_2026-09-28_ACCESSIBILITY.md` و`DEV_PLAN_2026-09-28_UX.md`.)
 > مواصفات المنتج (canonical): **[docs/product/](docs/product/)** و **[docs/arena-audit-plan.txt](docs/arena-audit-plan.txt)**. شهادة الإطلاق: **[MASAR_RELEASE_CERTIFICATION.md](MASAR_RELEASE_CERTIFICATION.md)**.
 
 ## طبقة البيانات

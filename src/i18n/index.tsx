@@ -1,12 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ar, DictKey } from './ar';
-import { en } from './en';
+import { DictKey } from './ar';
+import { dicts, getLang, setCurrentLang, tStatic, type Lang } from './core';
 
-export type Lang = 'ar' | 'en';
-
-const dicts: Record<Lang, Record<DictKey, string>> = { ar, en };
+// النواة النقية تُصدَّر من هنا أيضًا حتى لا يتغيّر أي استدعاء قائم في التطبيق.
+export { getLang, tStatic } from './core';
+export type { DictKey, Lang } from './core';
 const LANG_KEY = 'masar.lang.v1';
 
 interface I18nCtx {
@@ -73,6 +73,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const t = useCallback(
     (key: DictKey, vars?: Record<string, string | number>) => {
+      setCurrentLang(lang);
       let s: string = dicts[lang][key] ?? dicts.ar[key] ?? key;
       if (vars) {
         for (const k of Object.keys(vars)) {

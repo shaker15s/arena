@@ -3,20 +3,21 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, RefreshControl, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, CustomSwitch, Empty, Header, Row, Sheet, Txt } from '../../design/components';
+import { Btn, Card, CustomSwitch, Empty, Header, Input, Row, Sheet, Txt } from '../../design/components';
 import {
   DEFAULT_PUSH_PREFERENCES, getPushPreferences, setPushPreferences, type PushPreferences,
 } from '../../data/actions';
 import { SUPABASE_ENABLED } from '../../data/supabase';
-import { spacing } from '../../design/tokens';
+import { sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { sameDay, timePast } from '../../shared/format';
 import { AppNotification } from '../../data/types';
 import { screenForNotification } from '../../shared/notifyRoute';
+import { Icon } from '../../design/icons';
 
 const TYPE_META: Record<AppNotification['type'], { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   session: { icon: 'calendar', color: '#4F46E5' },
@@ -68,7 +69,7 @@ const NotificationCard = React.memo(function NotificationCard({
             justifyContent: 'center',
           }}
         >
-          <Ionicons name={meta.icon} size={19} color={meta.color} />
+          <Icon name={meta.icon} size={19} color={meta.color} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt variant="bodyMed">{item.title}</Txt>
@@ -133,6 +134,40 @@ const NotificationGroup = React.memo(function NotificationGroup({
   );
 });
 
+/**
+ * حقل وقت HH:MM بسيط: خانتان رقميتان بلا منتقي منصّة (يعمل على الويب
+ * والأجهزة بنفس الشكل)، مع تسمية وصول واضحة لكل خانة.
+ */
+function TimeField({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const { theme } = useTheme();
+  const [hh, mm] = value.split(':');
+  const parts: Array<{ key: 'h' | 'm'; text: string; max: number }> = [
+    { key: 'h', text: hh ?? '00', max: 23 },
+    { key: 'm', text: mm ?? '00', max: 59 },
+  ];
+  return (
+    <Row center gap={4}>
+      {parts.map((p, idx) => (
+        <React.Fragment key={p.key}>
+          {idx === 1 ? <Txt variant="bodyMed" color={theme.textMuted}>:</Txt> : null}
+          <Input
+            value={p.text}
+            onChange={(text) => {
+              const digits = text.replace(/\D/g, '').slice(0, 2);
+              const n = Math.min(p.max, Number(digits || '0'));
+              const next = String(n).padStart(2, '0');
+              onChange(p.key === 'h' ? `${next}:${mm ?? '00'}` : `${hh ?? '00'}:${next}`);
+            }}
+            label={`${label} ${idx === 0 ? 'HH' : 'MM'}`}
+            width={sizes.timeField}
+            accessibilityLabel={`${label} ${idx === 0 ? 'HH' : 'MM'}`}
+          />
+        </React.Fragment>
+      ))}
+    </Row>
+  );
+}
+
 export function NotificationsScreen({ navigation }: any) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -176,7 +211,12 @@ export function NotificationsScreen({ navigation }: any) {
     };
   }, [user]);
 
-  const togglePref = useCallback((key: keyof PushPreferences) => {
+  // FUNC-11: نوع القيمة يحدّد نوع المفتاح (منطقية للتصنيفات، نص للساعات).
+  type BooleanPrefKey = {
+    [K in keyof PushPreferences]: PushPreferences[K] extends boolean ? K : never
+  }[keyof PushPreferences];
+
+  const togglePref = useCallback((key: BooleanPrefKey) => {
     setPrefs((prev) => {
       const next = { ...prev, [key]: !prev[key] };
       // تفاؤلي مع تراجع عند فشل الخادم — لا يُترك المفتاح كاذبًا.
@@ -189,13 +229,33 @@ export function NotificationsScreen({ navigation }: any) {
     });
   }, [t]);
 
-  const PREF_ROWS: Array<{ key: keyof PushPreferences; icon: keyof typeof Ionicons.glyphMap; label: string }> = useMemo(() => [
+  const PREF_ROWS: Array<{ key: BooleanPrefKey; icon: keyof typeof Ionicons.glyphMap; label: string }> = useMemo(() => [
     { key: 'session', icon: 'calendar', label: t('notif.prefSession') },
     { key: 'excuse', icon: 'shield', label: t('notif.prefExcuse') },
     { key: 'cert', icon: 'ribbon', label: t('notif.prefCert') },
     { key: 'progress', icon: 'medal', label: t('notif.prefProgress') },
     { key: 'system', icon: 'megaphone', label: t('notif.prefSystem') },
+    { key: 'quiet_enabled', icon: 'moon', label: t('notif.quietTitle') },
+    { key: 'digest_enabled', icon: 'albums', label: t('notif.digestTitle') },
   ], [t]);
+
+  /** FUNC-11: تحديث نافذة الحظر الليلي — تحقّق قبل الإرسال ثم حفظ تفاؤلي. */
+  const setQuietWindow = useCallback((which: 'quiet_from' | 'quiet_to', value: string) => {
+    if (!/^\d{2}:\d{2}$/.test(value)) return;
+    setPrefs((prev) => {
+      const next = { ...prev, [which]: value } as PushPreferences;
+      if (next.quiet_from === next.quiet_to) {
+        setPrefsError(t('notif.quietInvalid'));
+        return prev;
+      }
+      void setPushPreferences(next).catch(() => {
+        setPrefs(prev);
+        setPrefsError(t('notif.prefsError'));
+      });
+      setPrefsError(null);
+      return next;
+    });
+  }, [t]);
 
   const { todayRows, yesterdayRows, olderRows } = useMemo(() => {
     const now = Date.now();
@@ -288,13 +348,29 @@ export function NotificationsScreen({ navigation }: any) {
           <Card key={row.key} style={{ marginBottom: 8 }}>
             <Row between center gap={12}>
               <Row center gap={10} style={{ flex: 1 }}>
-                <Ionicons name={row.icon} size={19} color={theme.brand} />
+                <Icon name={row.icon} size={19} color={theme.brand} />
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{row.label}</Txt>
               </Row>
               <CustomSwitch value={prefs[row.key]} onChange={() => togglePref(row.key)} />
             </Row>
           </Card>
         ))}
+        {prefs.quiet_enabled ? (
+          <Card style={{ marginBottom: 8 }}>
+            <Txt variant="micro" color={theme.textSecondary} style={{ marginBottom: 8 }}>
+              {t('notif.quietHint')}
+            </Txt>
+            <Row center gap={10}>
+              <Txt variant="caption" color={theme.textSecondary}>{t('notif.quietFrom')}</Txt>
+              <TimeField value={prefs.quiet_from} onChange={(v) => setQuietWindow('quiet_from', v)} label={t('notif.quietFrom')} />
+              <Txt variant="caption" color={theme.textSecondary}>{t('notif.quietTo')}</Txt>
+              <TimeField value={prefs.quiet_to} onChange={(v) => setQuietWindow('quiet_to', v)} label={t('notif.quietTo')} />
+            </Row>
+          </Card>
+        ) : null}
+        {prefs.digest_enabled ? (
+          <Txt variant="micro" color={theme.textMuted} style={{ marginBottom: 8 }}>{t('notif.digestHint')}</Txt>
+        ) : null}
         {prefsError ? <Txt variant="caption" color={theme.danger}>{prefsError}</Txt> : null}
         {Platform.OS === 'web' ? (
           <Txt variant="micro" color={theme.textMuted}>{t('notif.prefsWebNote')}</Txt>
