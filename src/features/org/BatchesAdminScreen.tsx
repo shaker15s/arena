@@ -11,7 +11,7 @@ import {
   Btn, Card, FadeIn, Header, ProgressBar, Row, Screen, Spacer, Tag, Txt,
 } from '../../design/components';
 import { MasarMascot } from '../../design/mascot';
-import { spacing } from '../../design/tokens';
+import { radii, sizes, spacing } from '../../design/tokens';
 import { BatchFormSheet } from './BatchFormSheet';
 import { Icon } from '../../design/icons';
 
@@ -49,25 +49,25 @@ export function BatchesAdminScreen({ navigation }: any) {
             <FadeIn key={b.id} index={i}>
               <Card onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })}>
                 <Row center gap={12}>
-                  <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="people" size={22} color={course.color} />
+                  <View style={{ width: sizes.iconButton, height: sizes.iconButton, borderRadius: radii.md, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="people" size={20} color={course.color} />
                   </View>
-                  <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flex: 1, gap: spacing.s1 }}>
                     <Txt variant="bodyMed">{course.title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>{instructor?.fullName} · {b.room}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>{b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} {b.schedule.time}</Txt>
                   </View>
                   <Tag label={statusMeta.label} color={statusMeta.color} bg={statusMeta.bg} />
                 </Row>
-                <Spacer size={10} />
+                <Spacer size={spacing.s3} />
                 <Row between>
                   <Txt variant="micro" color={theme.textMuted}>{t('batchAdm.occupancy')}</Txt>
                   <Txt variant="micro" color={theme.textMuted}>{seats.taken}/{b.capacity}{seats.waitlist > 0 ? ` · ⏳${seats.waitlist}` : ''}</Txt>
                 </Row>
-                <Spacer size={5} />
+                <Spacer size={spacing.s1} />
                 <ProgressBar progress={seats.taken / b.capacity} height={6} color={course.color} />
-                <Spacer size={8} />
-                <Row center gap={6}>
+                <Spacer size={spacing.s2} />
+                <Row center gap={spacing.s2}>
                   <Icon name="link" size={12} color={theme.teal} />
                   <Txt variant="micro" color={theme.teal}>{t('batchAdm.joinCode')}: {b.joinCode}</Txt>
                 </Row>

@@ -15,7 +15,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, Chip, CustomSwitch, Empty, FadeIn, Header, Input,
-  ListRow, Row, Screen, Segmented, Sheet, Spacer, Tag, Txt,
+  ListRow, Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
@@ -131,7 +131,8 @@ function AnalyticsPanel() {
         </Row>
       ) : null}
       {loading ? (
-        <Txt variant="caption" color={theme.textMuted} align="center" style={{ padding: 16 }}>{t('common.loading')}</Txt>
+        // هيكل رمادي (نمط التطبيقات الكبيرة) بدل سطر نصي جامد لا يوحي بالمكانة.
+        <SkeletonList count={2} height={84} />
       ) : error ? (
         <Card color={theme.dangerSoft}><Txt variant="caption" color={theme.danger}>{error}</Txt></Card>
       ) : data ? (

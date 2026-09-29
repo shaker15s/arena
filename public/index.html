@@ -203,6 +203,13 @@
             target.scrollIntoView({ block: 'center', inline: 'nearest' });
           }
         }, true);
+
+        // WEB-02: تسجيل Service Worker لحفظ القشرة الثابتة والأصول في وضع عدم الاتصال
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+          });
+        }
       })();
     </script>
   </body>

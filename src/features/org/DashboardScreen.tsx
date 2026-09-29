@@ -403,9 +403,9 @@ function TrendBar({ value, index, color, opacity }: { value: number; index: numb
 
 function KpiCard({ icon, color, value, suffix, label, index }: { icon: keyof typeof Ionicons.glyphMap; color: string; value: number; suffix?: string; label: string; index: number }) {
   const { theme } = useTheme();
+  // DESIGN-03: شبكة 48% بدل 30% — كانت صفوف الـ KPI غير متساوية
+  // (3 في صف ثم 2 بـ 50%) فتظهر البطاقات «متناثرة» بين الصفين.
   return (
-    {/* DESIGN-03: شبكة 48% بدل 30% — كانت صفوف الـ KPI غير متساوية
-      (3 في صف ثم 2 بـ 50%) فتظهر البطاقات «متناثرة» بين الصفين. */}
     <FadeIn index={index} style={{ flexGrow: 1, minWidth: 150, flexBasis: '48%' }}>
       <Card style={{ alignItems: 'center', gap: spacing.s2, paddingVertical: spacing.s4 }}>
         <View style={{ width: 44, height: 44, borderRadius: radii.md, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>

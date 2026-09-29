@@ -271,4 +271,31 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 - `rpc:types`: 93 دالة ✓
 - `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` (5/5) / `test:load` (p95 = 1.06ms) / `test:e2e` (**62/62**) ✓
 
+---
+
+# الموجة E (Wave E) — الجاهزية والتوثيق وبوابات الإطلاق (WEB + OPS + DOC + G-1…G-8) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **WEB-02 Service Worker (`public/sw.js`) وتسجيله** | ✅ منجز | `public/sw.js` و`public/index.html` و`vercel.json`: تخزين القشرة الثابتة (`App Shell`) والأصول المجزأة (`/_expo/static/*`) باستراتيجية `Cache-First` للأصول غير القابلة للتغيير و`Network-First` للتنقل مع استثناء تام لطلبات Supabase (`/rest/v1`, `/auth/v1`, `/realtime/v1`, `/storage/v1`, `/functions/v1`) ورأس `no-cache` لـ`/sw.js` |
+| **WEB-05 صفحة `public/404.html` المخصّصة** | ✅ منجز | `public/404.html`: صفحة 404 عربية أصيلة (`dir="rtl"`) تدعم الوضعين الفاتح والداكن تلقائيًا ومعلم `role="main"` وزر عودة مباشر للرئيسية |
+| **PERF-01→06 تقسيم الشاشات الكسول (`Code Splitting`)** | ✅ منجز | `src/app/RootNavigator.tsx`: تحويل جميع مسارات الشاشات إلى `lazyScreen(...)`، مما رفع عدد حزم الويب (`dist/_expo/static/js/web`) من **8 حزم** إلى **24 حزمة** مستقلة وخفّض الحزمة الأولية (`index-*.js`) من **`2150KB (564KB gz)`** إلى **`1710KB (446KB gz)`** (`-440KB` خام / **`-118KB` مضغوطة gzip**) |
+| **DOC-01 بيان الوصول وسياسة الخصوصية والاحتفاظ** | ✅ منجز | إنشاء `docs/ACCESSIBILITY_STATEMENT.md` (مطابقة WCAG 2.2 AA/AAA، قارئات الشاشة، الكيبورد، التباين، وتكبير 200%) و`docs/PRIVACY_AND_RETENTION.md` (معمارية Zero-Trust RLS، إخفاء PII، جداول الاحتفاظ `prune_retention_tables()`، وتصدير/حذف الحساب) |
+
+---
+
+# شهادة بوابات الإطلاق الرسمية (Release Gates G-1 → G-8)
+
+| البوابة | المعيار | الحالة | الدليل الرقمي المُقاس |
+| --- | --- | --- | --- |
+| **G-1: السلامة البرمجية والأنواع** | `tsc --noEmit` = 0 أخطاء + `hooks:check` = 0 مخالفة + `rpc:types` متطابق | ✅ **PASS** | `typecheck`: 0 أخطاء · `hooks:check`: 193 مكوّنًا (0 مخالفة) · `rpc:types`: 93 دالة متطابقة · `rpc:check`: 65 نداء / 126 دالة خادمية |
+| **G-2: انعدام الثقة وأمن قاعدة البيانات** | كل الجداول بـRLS `authenticated` + InitPlan + 0 `SECURITY DEFINER` بلا `search_path` + اجتياز `test:pentest` و`test:rls` | ✅ **PASS** | `sql:check`: 32 ملفًا · 787 عبارة · 161 دالة · **153 دالة SECURITY DEFINER (0 بلا `search_path`، 0 بلا تحكم وصول)** · `test:pentest`: 5/5 · `test:rls`: 15/15 |
+| **G-3: إمكانية الوصول الشاملة (WCAG 2.2 AA)** | 40/40 شاشة بمعلم `<Screen>` وعنوان `h1` + حبس التركيز في `<Modal>` + بديل السحب + تباين 51 زوجًا × 3 ثيمات | ✅ **PASS** | `a11y`: 56 عنصر ضغط · 197 `<Icon>` · **40/40 شاشة h1** · **40/40 شاشة `<Screen>`** · 0 أخطاء / 0 تحذيرات · `contrast`: **51 زوجًا × 3 ثيمات** (0 فشل) |
+| **G-4: الأصالة العربية والتعريب (RTL & i18n)** | تطابق 100% بين `ar.ts` و`en.ts` + 0 تراجع في النصوص المضمّنة + عزل Bidi + تطبيع الأرقام | ✅ **PASS** | `parity`: **1158 مفتاحًا** في القاموسين · `i18n:lint`: 101 نصًا في 21 ملفًا (تحسّن عن خط الأساس 104 في 22 ملفًا) · `test:search`: 32/32 · `test:calendar`: ناجح |
+| **G-5: الأداء وتقسيم الحزم (Performance & Bundle)** | تقسيم كسول للشاشات والأصول الثقيلة (`svgStrings`) + `FlatList` للقوائم الطويلة + اجتياز اختبار الحمل | ✅ **PASS** | `export:web`: **24 حزمة مقسّمة** (الحزمة الأولية انخفضت بـ **118KB gzip** إلى **446KB gz**) · `test:perf`: ناجح · `test:load`: 1000 عملية، **p95 = 1.03ms** (< 1000ms)، خطأ **0.00%** |
+| **G-6: الصمود دون اتصال (Offline Resilience)** | طابور أوامر غير قابل للتكرار (`command_log`) + `OfflineQueueBanner` + Service Worker (`public/sw.js`) | ✅ **PASS** | `OfflineQueueBanner` متصل بـ `pendingQueueCount` و`flushOfflineQueue` + `public/sw.js` مسجل في `public/index.html` |
+| **G-7: تميمة «فطن» والهوية البصرية** | 12/12 حالة سلوكية + حارس `MascotStage` + تراجع ثابت مع `isReducedMotion()` + `assets/manifest.json` | ✅ **PASS** | `MascotProvider.tsx` يغطي 12/12 حالة من `FatenBehaviorState` + `assets/manifest.json` يوثّق الأصول وميزانيات الأحجام (`≤ 200KB`) |
+| **G-8: التكامل الشامل وجاهزية النشر** | اجتياز `test:engine` و`test:e2e` بنسبة 100% + رؤوس الأمان في `vercel.json` + التوثيق الرسمي | ✅ **PASS** | `test:engine`: **68/68** · `test:e2e`: **62/62** · `vercel.json`: CSP + HSTS + nosniff + DENY + Permissions-Policy · `ACCESSIBILITY_STATEMENT.md` & `PRIVACY_AND_RETENTION.md` |
+
+
 

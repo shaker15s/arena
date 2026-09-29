@@ -368,7 +368,7 @@ export function LiveSessionScreen() {
                     {t('live.codeLabel')} (في حال تعذر مسح الكاميرا):
                   </Txt>
                 </Row>
-                <Txt variant="display" color={isDark ? '#F8FAFC' : '#0F172A'} bold style={{ letterSpacing: 8, fontSize: 28 }}>
+                <Txt variant="numberHero" color={isDark ? '#F8FAFC' : '#0F172A'} style={{ letterSpacing: 8 }}>
                   {bidiIsolate(code)}
                 </Txt>
               </View>

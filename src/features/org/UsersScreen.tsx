@@ -95,7 +95,7 @@ export function UsersScreen() {
           </View>
         }
         renderItem={({ item: p }) => (
-          <Card onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
+          <Card onPress={() => setSelected(p.id)}>
             <Row center gap={10}>
               <Avatar name={p.fullName} color={p.avatarColor} size={40} />
               <View style={{ flex: 1 }}>
@@ -118,9 +118,9 @@ export function UsersScreen() {
                 <Txt variant="h3">{selUser.fullName}</Txt>
                 <Txt variant="caption" color={theme.textSecondary}>{selUser.phone || '—'} · {roleLabel[selUser.role]}</Txt>
                 {selUser.email ? (
-                  <Txt variant="caption" color={theme.brand} style={{ marginTop: 2 }}>✉️ {selUser.email}</Txt>
+                  <Txt variant="caption" color={theme.brand} style={{ marginTop: spacing.s1 }}>✉️ {selUser.email}</Txt>
                 ) : null}
-                <Txt variant="micro" color={theme.textMuted} style={{ marginTop: 2 }}>
+                <Txt variant="micro" color={theme.textMuted} style={{ marginTop: spacing.s1 }}>
                   📍 {db.branches.find((b) => b.id === selUser.branchId)?.name ?? t('users.noBranch')}
                 </Txt>
               </View>

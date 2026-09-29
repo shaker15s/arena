@@ -23,21 +23,6 @@ import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { SkipLink, Screen as SemanticScreen } from '../design/a11y/semantics';
 import { announce } from '../design/a11y/announce';
 
-import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
-import { VerifyScreen } from '../features/verify/VerifyScreen';
-import { TodayScreen } from '../features/today/TodayScreen';
-import { ExploreScreen, CourseDetailsScreen } from '../features/explore/ExploreScreens';
-import { JourneyScreen, JourneyMapScreen, AttendanceHistoryScreen } from '../features/journey/JourneyScreens';
-import { ScannerScreen } from '../features/attendance/ScannerScreen';
-import { WalletScreen } from '../features/gamification/GamificationScreens';
-import { CertificatesScreen } from '../features/certificates/CertificatesScreens';
-import { ExcusesScreen, ExcusesInboxScreen } from '../features/excuses/ExcusesScreens';
-import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
-import { RequestsScreen } from '../features/notifications/RequestsScreen';
-import { ProfileScreen } from '../features/profile/ProfileScreens';
-import { VolunteerTodayScreen, MyBatchesScreen } from '../features/volunteer/VolunteerScreens';
-import { LiveSessionScreen } from '../features/volunteer/LiveSessionScreen';
-import { JoinBatchScreen } from '../features/courses/JoinBatchScreen';
 import { Icon } from '../design/icons';
 
 // ─── مغلّف التحميل الكسول (Code Splitting) ───
@@ -65,7 +50,29 @@ function lazyScreen(importer: () => Promise<any>, name: string) {
   };
 }
 
-// شاشات ثانوية وإدارية مُحمّلة كسولاً عند الطلب لتقليص حزمة الويب
+// شاشات التطبيق مُحمّلة كسولاً عند الطلب لتقليص حزمة الويب الأولية (PERF-01→06)
+const OnboardingScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'OnboardingScreen');
+const SignInScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'SignInScreen');
+const CompleteProfileScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'CompleteProfileScreen');
+const TodayScreen = lazyScreen(() => import('../features/today/TodayScreen'), 'TodayScreen');
+const ExploreScreen = lazyScreen(() => import('../features/explore/ExploreScreens'), 'ExploreScreen');
+const JourneyScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'JourneyScreen');
+const ProfileScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'ProfileScreen');
+const VerifyScreen = lazyScreen(() => import('../features/verify/VerifyScreen'), 'VerifyScreen');
+const CourseDetailsScreen = lazyScreen(() => import('../features/explore/ExploreScreens'), 'CourseDetailsScreen');
+const JourneyMapScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'JourneyMapScreen');
+const AttendanceHistoryScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'AttendanceHistoryScreen');
+const ScannerScreen = lazyScreen(() => import('../features/attendance/ScannerScreen'), 'ScannerScreen');
+const WalletScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'WalletScreen');
+const CertificatesScreen = lazyScreen(() => import('../features/certificates/CertificatesScreens'), 'CertificatesScreen');
+const ExcusesScreen = lazyScreen(() => import('../features/excuses/ExcusesScreens'), 'ExcusesScreen');
+const ExcusesInboxScreen = lazyScreen(() => import('../features/excuses/ExcusesScreens'), 'ExcusesInboxScreen');
+const NotificationsScreen = lazyScreen(() => import('../features/notifications/NotificationsScreen'), 'NotificationsScreen');
+const RequestsScreen = lazyScreen(() => import('../features/notifications/RequestsScreen'), 'RequestsScreen');
+const VolunteerTodayScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'VolunteerTodayScreen');
+const MyBatchesScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'MyBatchesScreen');
+const LiveSessionScreen = lazyScreen(() => import('../features/volunteer/LiveSessionScreen'), 'LiveSessionScreen');
+const JoinBatchScreen = lazyScreen(() => import('../features/courses/JoinBatchScreen'), 'JoinBatchScreen');
 const CourseManagementScreen = lazyScreen(() => import('../features/courses/CourseManagementScreen'), 'CourseManagementScreen');
 const OrgWizardScreen = lazyScreen(() => import('../features/org/WizardScreen'), 'OrgWizardScreen');
 const DashboardScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'DashboardScreen');

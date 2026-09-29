@@ -20,9 +20,9 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, NotificationBell, ProgressBar,
-  Row, Screen, Segmented, Sheet, Spacer, Tag, Txt,
+  Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
-import { spacing, radii, attendanceColors } from '../../design/tokens';
+import { spacing, radii, sizes, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
 import { BatchFormSheet } from '../org/AdminScreens';
@@ -111,8 +111,8 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
           <FadeIn index={0}>
             <Card>
               <Row center gap={10}>
-                <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="calendar" size={26} color={theme.brand} />
+                <View style={{ width: sizes.iconMedium, height: sizes.iconMedium, borderRadius: radii.md, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="calendar" size={24} color={theme.brand} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Txt variant="caption" color={theme.brand}>{t('vtoday.sessionToday')}</Txt>
@@ -141,7 +141,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         <FadeIn index={2}>
           <Txt variant="h3">{t('vtoday.quickStats')}</Txt>
           <Spacer size={8} />
-          <Row gap={10}>
+          <Row gap={spacing.s2}>
             <StatCard icon="people" color={theme.brand} value={String(batches.length)} label={t('vtoday.activeBatches')} />
             <StatCard icon="checkmark-done" color={theme.success} value={`${monthAttendance}%`} label={t('vtoday.monthAttendance')} />
             <StatCard icon="shield" color={theme.warn} value={String(pendingExcuses)} label={t('vtoday.pendingExcuses')} onPress={() => tabs.setTab('inbox')} />
@@ -159,6 +159,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
                 title={t('vtoday.createGroup')}
                 subtitle={t('vtoday.createGroupSub')}
                 onPress={() => setCreating(true)}
+                grow
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -167,6 +168,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
                 title={t('vtoday.courses')}
                 subtitle={t('vtoday.coursesSub')}
                 onPress={() => navigation.navigate('Courses')}
+                grow
               />
             </View>
           </Row>
@@ -183,10 +185,10 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
             const course = courseOf(db, b.courseId)!;
             const closed = sessionsOfBatch(db, b.id).filter((s) => s.status === 'closed').length;
             return (
-              <Card key={b.id} style={{ marginBottom: 10 }}>
+              <Card key={b.id}>
                 <Row center gap={12}>
-                  <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="book" size={21} color={course.color} />
+                  <View style={{ width: sizes.iconButton, height: sizes.iconButton, borderRadius: radii.md, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="book" size={20} color={course.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{course.title}</Txt>
@@ -209,8 +211,8 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
 
 function StatCard({ icon, color, value, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; color: string; value: string; label: string; onPress?: () => void }) {
   return (
-    <Card style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 14 }} onPress={onPress}>
-      <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
+    <Card style={{ flex: 1, alignItems: 'center', gap: spacing.s1, paddingVertical: spacing.s4 }} onPress={onPress}>
+      <View style={{ width: sizes.iconSmall, height: sizes.iconSmall, borderRadius: radii.sm, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={17} color={color} />
       </View>
       <Txt variant="h3">{value}</Txt>
@@ -526,7 +528,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
       {/* تقرير الجلسة + إشعار المتغيبين */}
       <Sheet visible={report != null} onClose={() => setReport(null)} title={report?.title ? `${t('sess.report')} — ${report.title}` : t('sess.report')}>
         {reportLoading ? (
-          <Txt variant="caption" color={theme.textMuted} align="center" style={{ padding: 20 }}>{t('common.loading')}</Txt>
+          <SkeletonList count={2} height={72} />
         ) : report ? (
           <View style={{ gap: 10 }}>
             <Row gap={10}>
