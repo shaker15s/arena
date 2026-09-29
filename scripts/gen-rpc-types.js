@@ -21,7 +21,7 @@ const BEGIN = '  // ─── BEGIN GENERATED RPC ARGS (scripts/gen-rpc-types.js
 const END = '  // ─── END GENERATED RPC ARGS ───';
 
 /** الدوال الداخلية (مصادَرة عن العميل) لا تُصدَّر في نوع العميل. */
-const INTERNAL = /^(_|handle_new_user|evaluate_user_badges|auto_close|settle_|close_previous|enqueue_session_reminders|prune_|claim_push_batch|settle_push_batch|my_profile_id|my_role|is_manager|can_manage)/;
+const INTERNAL = /^(_|handle_new_user|evaluate_user_badges|auto_close|settle_|close_previous|enqueue_session_reminders|prune_|claim_push_batch|settle_push_batch|my_profile_id|my_role|is_manager|can_manage|refresh_analytics_views)/;
 
 function sqlTypeToTs(sqlType) {
   const t = sqlType.trim().toLowerCase().replace(/\s+/g, ' ');

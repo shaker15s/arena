@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { FlatList, RefreshControl, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { profileOf } from '../../data/engine';
@@ -52,7 +52,11 @@ export function UsersScreen() {
 
   return (
     <Screen label={t('users.title')} style={{ flex: 1 }}>
-      <ScrollView
+      <FlatList
+        data={list}
+        keyExtractor={(p) => p.id}
+        initialNumToRender={12}
+        windowSize={5}
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 12, paddingBottom: 130 }}
         refreshControl={
           <RefreshControl
@@ -62,23 +66,26 @@ export function UsersScreen() {
             colors={[theme.brand]}
           />
         }
-      >
-        <Header title={t('users.title')} />
-        <PillGradientSearchInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('users.searchHint')}
-          onClear={() => setQuery('')}
-        />
-        <Row gap={6} wrap>
-          {roles.map((r) => (
-            <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
-          ))}
-        </Row>
-        <LiveRegion politeness="polite">
-          <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
-        </LiveRegion>
-        {list.length === 0 ? (
+        ListHeaderComponent={
+          <View style={{ gap: 12 }}>
+            <Header title={t('users.title')} />
+            <PillGradientSearchInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('users.searchHint')}
+              onClear={() => setQuery('')}
+            />
+            <Row gap={6} wrap>
+              {roles.map((r) => (
+                <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
+              ))}
+            </Row>
+            <LiveRegion politeness="polite">
+              <Txt variant="caption" color={theme.textMuted}>{t('users.resultCount', { x: list.length })}</Txt>
+            </LiveRegion>
+          </View>
+        }
+        ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>
             <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
             <View style={{ height: 12 }} />
@@ -86,9 +93,9 @@ export function UsersScreen() {
               {t('explore.noResults')}{'\n'}{t('explore.noResultsBody')}
             </Txt>
           </View>
-        ) : null}
-        {list.map((p) => (
-          <Card key={p.id} onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
+        }
+        renderItem={({ item: p }) => (
+          <Card onPress={() => setSelected(p.id)} style={{ marginBottom: 8 }}>
             <Row center gap={10}>
               <Avatar name={p.fullName} color={p.avatarColor} size={40} />
               <View style={{ flex: 1 }}>
@@ -98,8 +105,8 @@ export function UsersScreen() {
               <Tag label={roleLabel[p.role]} color={p.status === 'active' ? theme.brand : theme.danger} bg={p.status === 'active' ? theme.brandSoft : theme.dangerSoft} />
             </Row>
           </Card>
-        ))}
-      </ScrollView>
+        )}
+      />
 
       {/* S48 تفاصيل المستخدم */}
       <Sheet visible={selUser != null} onClose={() => setSelected(null)} title={selUser?.fullName ?? ''}>

@@ -216,3 +216,31 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 - `sql:check`: 30 ملفًا · 137 دالة SECURITY DEFINER · 0 أخطاء ✓
 - `rpc:types`: 84 دالة ✓
 - `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` / `test:load` / `test:e2e`: **62/62** ✓
+
+---
+
+# الموجة C (Wave C) — الداتا والأداء (DATA + PERF) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **DATA-01 / DATA-02 تأمين سياسات RLS و`InitPlan`** | ✅ منجز | `supabase/migrations/0032_wave_c_security_rpcs_indexes.sql`: تحديث `my_profile_id()` و`my_role()` لاستخدام `(SELECT auth.uid())`، وإعادة تعريف سياسات RLS عبر 30 جدولًا بـ `TO authenticated` صريحة ولفّ كل دوال السياق داخل `(SELECT ...)` (InitPlan)، واستبدال `USING (true)` على `course_roles` بسياسة مقيدة للمسجلين والطاقم |
+| **DATA-04 استكمال محددات التردد الخادمية** | ✅ منجز | `0032_wave_c_security_rpcs_indexes.sql`: إضافة `_check_rate_limit` وتطبيق سقف المعدل المنزلق على `submit_support_request` (10/ساعة) و`submit_course_rating` (15/ساعة) |
+| **DATA-10→13 الـ8 Read-Model RPCs وإيقاف `selectAll` على الجداول النامية** | ✅ منجز | تنفيذ `get_my_home`, `get_my_wallet`, `get_leaderboard`, `list_notifications`, `get_admin_overview`, `get_course_detail`, `get_session_detail`, `list_pending_actions` في `0032` + دوال العميل في `src/data/actions.ts` + توليد الأنواع في `src/types/database.ts` (93 دالة) + استبدال `selectAll('sessions')` بـ `selectSessionWindow()` في `src/data/remote.ts` وتحويل الجداول النامية إلى `selectRecent` محدود |
+| **DATA-20→26 الفهارس المركّبة والـBRIN والـMaterialized Views والـTimeouts** | ✅ منجز | `0032_wave_c_security_rpcs_indexes.sql`: 11 فهرسًا مركبًا/جزئيًا + 3 فهارس BRIN (`attendance`, `point_events`, `audit_log`) + ضبط `autovacuum` للجداول الساخنة + 3 عروض مادية (`mv_batch_stats`, `mv_leaderboard_week`, `mv_admin_overview`) مع فهارس فريدة ودالة `refresh_analytics_views()` (CONCURRENTLY) + ضبط `statement_timeout` (`5s` لـ `authenticated` و`2s` لـ `anon`) |
+| **DATA-30→32 / DATA-50→56 سياسة الاحتفاظ وجدول `metrics_snapshot`** | ✅ منجز | `0032_wave_c_security_rpcs_indexes.sql`: دالة `prune_retention_tables()` (الإشعارات المقروءة 180 يومًا، السجلات والنقاط 730 يومًا، الحضور 1095 يومًا) + جدول `metrics_snapshot` ودالة `capture_metrics_snapshot()` لمؤشرات SLO |
+| **DATA-35→40 تقييد Realtime وإيقافه في الخلفية** | ✅ منجز | `src/data/remote.ts` و`src/data/store.tsx`: فلترة `notifications` و`point_events` بـ `user_id=eq.<profileId>`، وإيقاف القناة تلقائيًا عند انتقال `AppState` إلى `background`/`inactive` وإعادة وصلها مع مزامنة فورية عند `active`، وتهدئة `refresh` الاحتياطي بـ `150ms` |
+| **PERF-10 تحميل كسول لـ `svgStrings.ts` (57KB)** | ✅ منجز | `src/design/illustrations/*.tsx`: تحويل استيراد `svgStrings.ts` إلى `import('./svgStrings')` ديناميكي لفصله عن الحزمة الحرجة الأولية |
+| **PERF-20 تحويل القوائم الطويلة إلى `FlatList`** | ✅ منجز | تحويل القوائم في `NotificationsScreen.tsx`, `UsersScreen.tsx`, `JourneyScreens.tsx › AttendanceHistoryScreen`, `GamificationScreens.tsx › WalletScreen & LeagueScreen`, `ExploreScreens.tsx › ExploreScreen`, `CertificatesScreens.tsx › CertificatesScreen` من `ScrollView` إلى `FlatList` مع `keyExtractor` و`initialNumToRender` و`windowSize` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 55 عنصر ضغط · 195 `<Icon>` · 40/40 شاشة h1 · 40/40 شاشة `<Screen>` · 0 أخطاء
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: **103 نصًا** في 22 ملفًا (تحسّن ملف واحد وتثبيت السقف) ✓
+- `parity`: 1147 مفتاحًا ✓
+- `rpc:check`: 65 نداء / **126 دالة خادمية** ✓
+- `sql:check`: **32 ملفًا** · 787 عبارة · 175 محلَّلة نحويًا · 161 دالة · **153 دالة SECURITY DEFINER (0 بلا search_path)** · 0 بلا تحكم وصول ✓
+- `rpc:types`: **93 دالة** متطابقة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` (5/5) / `test:load` (p95 = 0.84ms) / `test:e2e` (**62/62**) ✓
+

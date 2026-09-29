@@ -2,7 +2,7 @@
  * features/gamification — S19 المحفظة + S20 الدوري + S21 الإنجازات + قواعد اللعبة الشفافة.
  */
 import React, { useMemo, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, Share, View } from 'react-native';
+import { FlatList, Platform, RefreshControl, ScrollView, Share, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -54,7 +54,11 @@ export function WalletScreen({ navigation }: any) {
   return (
     <Screen label={t('wallet.title')} style={{ flex: 1 }}>
       <Header title={t('wallet.title')} back={() => navigation.goBack()} />
-      <ScrollView
+      <FlatList
+        data={events}
+        keyExtractor={(e) => e.id}
+        initialNumToRender={12}
+        windowSize={5}
         contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
         refreshControl={
           <RefreshControl
@@ -64,82 +68,82 @@ export function WalletScreen({ navigation }: any) {
             colors={[theme.brand]}
           />
         }
-      >
-        {/* البطاقة الكبرى — Gradient */}
-        <FadeIn index={0}>
-          <LinearGradient
-            colors={[theme.brandGradientFrom, theme.brandGradientTo]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: radii.card, paddingVertical: 28, paddingHorizontal: 20, shadowColor: theme.brand, shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12 }}
-          >
-            <View style={{ alignItems: 'center', gap: 8 }}>
-              <Txt variant="caption" color="rgba(255,255,255,0.75)">{t('wallet.total')}</Txt>
-              <CountUp value={balance} variant="display" color="#fff" />
-              <Row center gap={8} style={{ marginTop: 6 }}>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 7 }}>
-                  <Row center gap={6}>
-                    <Icon name="shield-half" size={14} color="#fff" />
-                    <Txt variant="caption" color="#fff">{t('wallet.level')} {level} · {t(`level.${level}` as any)}</Txt>
+        ListHeaderComponent={
+          <View style={{ gap: 14 }}>
+            {/* البطاقة الكبرى — Gradient */}
+            <FadeIn index={0}>
+              <LinearGradient
+                colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: radii.card, paddingVertical: 28, paddingHorizontal: 20, shadowColor: theme.brand, shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12 }}
+              >
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <Txt variant="caption" color="rgba(255,255,255,0.75)">{t('wallet.total')}</Txt>
+                  <CountUp value={balance} variant="display" color="#fff" />
+                  <Row center gap={8} style={{ marginTop: 6 }}>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 7 }}>
+                      <Row center gap={6}>
+                        <Icon name="shield-half" size={14} color="#fff" />
+                        <Txt variant="caption" color="#fff">{t('wallet.level')} {level} · {t(('level.' + level) as any)}</Txt>
+                      </Row>
+                    </View>
                   </Row>
                 </View>
-              </Row>
-            </View>
-          </LinearGradient>
-        </FadeIn>
+              </LinearGradient>
+            </FadeIn>
 
-        {/* تقدم المستوى بنظام XPBar المتدرج */}
-        <FadeIn index={1}>
-          <Card style={{ paddingVertical: 18 }}>
-            <XPBar
-              currentXP={into}
-              maxXP={levelSpan ?? into}
-              level={level}
-              levelTitle={t(`level.${level}` as any)}
-              height={12}
-            />
-            {nextAt != null ? (
-              <Txt variant="micro" color={theme.textMuted} align="center" style={{ marginTop: 10 }}>
-                {t('wallet.toNext', { x: nextAt - balance, name: t(`level.${level + 1}` as any) })}
-              </Txt>
-            ) : null}
-          </Card>
-        </FadeIn>
+            {/* تقدم المستوى بنظام XPBar المتدرج */}
+            <FadeIn index={1}>
+              <Card style={{ paddingVertical: 18 }}>
+                <XPBar
+                  currentXP={into}
+                  maxXP={levelSpan ?? into}
+                  level={level}
+                  levelTitle={t(('level.' + level) as any)}
+                  height={12}
+                />
+                {nextAt != null ? (
+                  <Txt variant="micro" color={theme.textMuted} align="center" style={{ marginTop: 10 }}>
+                    {t('wallet.toNext', { x: nextAt - balance, name: t(('level.' + (level + 1)) as any) })}
+                  </Txt>
+                ) : null}
+              </Card>
+            </FadeIn>
 
-        {/* الدفتر */}
-        <FadeIn index={2}>
-          <Txt variant="h3">{t('wallet.ledger')}</Txt>
-        </FadeIn>
-        {events.length === 0 ? (
-          <Empty emoji="💫" title={t('wallet.empty')} />
-        ) : (
-          events.map((e, i) => {
-            const meta = REASON_ICONS[e.reasonCode];
-            const grantedBy = e.awardedBy ? profileOf(db, e.awardedBy) : null;
-            return (
-              <FadeIn key={e.id} index={Math.min(i, 5)}>
-                <Card>
-                  <Row center gap={12}>
-                    <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: theme.successSoft, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={meta.icon} size={20} color={theme.success} />
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Txt variant="bodyMed">{t(`reason.${e.reasonCode}` as any)}</Txt>
-                      <Txt variant="micro" color={theme.textMuted}>
-                        {timePast(e.createdAt, lang)}
-                        {grantedBy ? ` · ${t('wallet.manualGrant', { name: grantedBy.fullName })}` : ''}
-                      </Txt>
-                    </View>
-                    <Txt variant="h3" color={e.points >= 0 ? theme.success : theme.danger}>
-                      {e.points >= 0 ? '+' : ''}{e.points}
+            {/* الدفتر */}
+            <FadeIn index={2}>
+              <Txt variant="h3">{t('wallet.ledger')}</Txt>
+            </FadeIn>
+          </View>
+        }
+        ListEmptyComponent={<Empty emoji="💫" title={t('wallet.empty')} />}
+        renderItem={({ item: e, index: i }) => {
+          const meta = REASON_ICONS[e.reasonCode];
+          const grantedBy = e.awardedBy ? profileOf(db, e.awardedBy) : null;
+          return (
+            <FadeIn index={Math.min(i, 5)}>
+              <Card>
+                <Row center gap={12}>
+                  <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: theme.successSoft, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={meta.icon} size={20} color={theme.success} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Txt variant="bodyMed">{t(('reason.' + e.reasonCode) as any)}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>
+                      {timePast(e.createdAt, lang)}
+                      {grantedBy ? ' · ' + t('wallet.manualGrant', { name: grantedBy.fullName }) : ''}
                     </Txt>
-                  </Row>
-                </Card>
-              </FadeIn>
-            );
-          })
-        )}
-      </ScrollView>
+                  </View>
+                  <Txt variant="h3" color={e.points >= 0 ? theme.success : theme.danger}>
+                    {e.points >= 0 ? '+' : ''}{e.points}
+                  </Txt>
+                </Row>
+              </Card>
+            </FadeIn>
+          );
+        }}
+      />
     </Screen>
   );
 }
@@ -217,10 +221,16 @@ export function LeagueScreen({ navigation }: any) {
     </FadeIn>
   );
 
+  const activeData: any[] = board === 'alltime' ? allTimeRows : board === 'rising' ? rising : league.rows;
+
   return (
     <Screen label={t('league.title')} style={{ flex: 1 }}>
       <Header title={t('league.title')} back={() => navigation.goBack()} />
-      <ScrollView
+      <FlatList
+        data={activeData}
+        keyExtractor={(r: any) => String(r.user?.id ?? r.rank)}
+        initialNumToRender={12}
+        windowSize={5}
         contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}
         refreshControl={
           <RefreshControl
@@ -230,129 +240,126 @@ export function LeagueScreen({ navigation }: any) {
             colors={[theme.brand]}
           />
         }
-      >
-        {/* درع الفئة الزجاجي مع تفاعل Easter Egg */}
-        <FadeIn index={0}>
-          <Card
-            onPress={() => {
-              toast(`درع ${t(`tier.${league.tier}` as any)} — استمر في التقدم للصعود! 🏆`, 'info');
-            }}
-            style={{
-              alignItems: 'center',
-              paddingVertical: 22,
-              gap: 8,
-              borderWidth: 1.5,
-              borderColor: tierColor + '44',
-            }}
-          >
-            <View
-              style={{
-                width: 84,
-                height: 84,
-                borderRadius: 42,
-                backgroundColor: tierColor + '18',
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: tierColor,
-                shadowOpacity: 0.35,
-                shadowRadius: 16,
-                shadowOffset: { width: 0, height: 4 },
-                marginBottom: 2,
-              }}
-            >
-              <Icon name="shield" size={54} color={tierColor} />
-            </View>
-            <Txt variant="h2" color={tierColor}>{t(`tier.${league.tier}` as any)}</Txt>
-            <Row center gap={6}>
-              <Icon name="hourglass" size={13} color={theme.textMuted} />
-              <Txt variant="caption" color={theme.textMuted}>
-                {t('league.endsIn')} {daysLeft} {t('common.days')} · {hoursLeft} {t('common.hours')}
-              </Txt>
-            </Row>
-            <Row gap={14} style={{ marginTop: 4 }}>
-              <Txt variant="micro" color={theme.success}>▲ {t('league.promotionHint', { x: league.promoPct })}</Txt>
-              <Txt variant="micro" color={theme.textMuted}>▼ {t('league.relegationHint', { x: league.relPct })}</Txt>
-            </Row>
-          </Card>
-        </FadeIn>
-
-        <Segmented
-          value={board}
-          onChange={setBoard}
-          options={[
-            { value: 'league', label: t(`tier.${league.tier}` as any), icon: 'shield' },
-            { value: 'rising', label: t('league.rising'), icon: 'rocket' },
-            { value: 'alltime', label: t('league.alltime'), icon: 'trophy' },
-          ]}
-        />
-
-        <AnimatedTabContent tabKey={board}>
-        {board === 'alltime' ? (
-          <>
-            {allTimeRows.map((r, i) => (
-              <FadeIn key={r.user.id} index={Math.min(i, 8)}>
-                <Card
-                  color={r.isYou ? theme.brandSoft : undefined}
+        ListHeaderComponent={
+          <View style={{ gap: 12 }}>
+            <FadeIn index={0}>
+              <Card
+                onPress={() => {
+                  toast('درع ' + t(('tier.' + league.tier) as any) + ' — استمر في التقدم للصعود! 🏆', 'info');
+                }}
+                style={{
+                  alignItems: 'center',
+                  paddingVertical: 22,
+                  gap: 8,
+                  borderWidth: 1.5,
+                  borderColor: tierColor + '44',
+                }}
+              >
+                <View
                   style={{
-                    borderColor: r.isYou ? theme.brand : theme.line,
-                    borderWidth: r.isYou ? 2 : 1,
+                    width: 84,
+                    height: 84,
+                    borderRadius: 42,
+                    backgroundColor: tierColor + '18',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: tierColor,
+                    shadowOpacity: 0.35,
+                    shadowRadius: 16,
+                    shadowOffset: { width: 0, height: 4 },
+                    marginBottom: 2,
                   }}
                 >
-                  <Row center gap={10}>
-                    <Txt variant="h3" color={i === 0 ? theme.certGold : i === 1 ? theme.teal : i === 2 ? theme.brand : theme.textSecondary} style={{ width: 28 }}>
-                      #{i + 1}
-                    </Txt>
-                    <Avatar name={r.user.fullName} color={r.user.avatarColor} size={40} />
-                    <View style={{ flex: 1 }}>
-                      <Txt variant="bodyMed">{r.isYou ? `${r.user.fullName} (${t('league.you')})` : r.user.fullName}</Txt>
-                      <Row center gap={8} style={{ marginTop: 2 }}>
-                        <Row center gap={3}>
-                          <Flame size={13} urgent={r.streak >= 4} />
-                          <Txt variant="micro" color={theme.textMuted}>{t('league.weekCount', { x: r.streak })}</Txt>
-                        </Row>
-                        <Txt variant="micro" color={theme.textMuted}>·</Txt>
-                        <Row center gap={3}>
-                          <Icon name="ribbon" size={13} color={theme.brand} />
-                          <Txt variant="micro" color={theme.textMuted}>{t('league.badgeCount', { x: r.badgesCount })}</Txt>
-                        </Row>
-                      </Row>
-                    </View>
-                    <Row center gap={4}>
-                      <Icon name="sparkles" size={14} color={theme.certGold} />
-                      <Txt variant="h3" color={theme.brand}>{r.points}</Txt>
-                    </Row>
-                  </Row>
-                </Card>
-              </FadeIn>
-            ))}
-          </>
-        ) : board === 'rising' ? (
-          <>
-            {rising.length === 0 ? <Empty emoji="🌱" title={t('league.firstWeek')} /> : rising.map(renderRow)}
-          </>
-        ) : league.rows.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <MasarMascot size={110} mode="greeting" interactive />
-            <View style={{ height: 16 }} />
-            <Txt variant="h3" align="center">{t('league.firstWeek')}</Txt>
-            <Txt variant="body" color={theme.textSecondary} align="center" style={{ marginTop: 8 }}>
-              الدوري بدأ قريبًا — ادعُ زملاءك!
-            </Txt>
-          </View>
-        ) : (
-          <>
-            {/* مفتاح المناطق */}
-            <Row gap={12} style={{ justifyContent: 'center' }}>
-              <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.success + '55' }} /><Txt variant="micro" color={theme.textMuted}>{t('league.promotionZone')}</Txt></Row>
-              <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.card }} /><Txt variant="micro" color={theme.textMuted}>{t('league.safeZone')}</Txt></Row>
-              <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.line }} /><Txt variant="micro" color={theme.textMuted}>{t('league.relegationZone')}</Txt></Row>
-            </Row>
-            {league.rows.map(renderRow)}
-          </>
-        )}
-        </AnimatedTabContent>
+                  <Icon name="shield" size={54} color={tierColor} />
+                </View>
+                <Txt variant="h2" color={tierColor}>{t(('tier.' + league.tier) as any)}</Txt>
+                <Row center gap={6}>
+                  <Icon name="hourglass" size={13} color={theme.textMuted} />
+                  <Txt variant="caption" color={theme.textMuted}>
+                    {t('league.endsIn')} {daysLeft} {t('common.days')} · {hoursLeft} {t('common.hours')}
+                  </Txt>
+                </Row>
+                <Row gap={14} style={{ marginTop: 4 }}>
+                  <Txt variant="micro" color={theme.success}>▲ {t('league.promotionHint', { x: league.promoPct })}</Txt>
+                  <Txt variant="micro" color={theme.textMuted}>▼ {t('league.relegationHint', { x: league.relPct })}</Txt>
+                </Row>
+              </Card>
+            </FadeIn>
 
-      </ScrollView>
+            <Segmented
+              value={board}
+              onChange={setBoard}
+              options={[
+                { value: 'league', label: t(('tier.' + league.tier) as any), icon: 'shield' },
+                { value: 'rising', label: t('league.rising'), icon: 'rocket' },
+                { value: 'alltime', label: t('league.alltime'), icon: 'trophy' },
+              ]}
+            />
+
+            {board === 'league' && league.rows.length > 0 ? (
+              <Row gap={12} style={{ justifyContent: 'center' }}>
+                <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.success + '55' }} /><Txt variant="micro" color={theme.textMuted}>{t('league.promotionZone')}</Txt></Row>
+                <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.card }} /><Txt variant="micro" color={theme.textMuted}>{t('league.safeZone')}</Txt></Row>
+                <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.line }} /><Txt variant="micro" color={theme.textMuted}>{t('league.relegationZone')}</Txt></Row>
+              </Row>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={
+          board === 'rising' ? (
+            <Empty emoji="🌱" title={t('league.firstWeek')} />
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+              <MasarMascot size={110} mode="greeting" interactive />
+              <View style={{ height: 16 }} />
+              <Txt variant="h3" align="center">{t('league.firstWeek')}</Txt>
+              <Txt variant="body" color={theme.textSecondary} align="center" style={{ marginTop: 8 }}>
+                الدوري بدأ قريبًا — ادعُ زملاءك!
+              </Txt>
+            </View>
+          )
+        }
+        renderItem={({ item: r, index: i }) =>
+          board === 'alltime' ? (
+            <FadeIn index={Math.min(i, 8)}>
+              <Card
+                color={r.isYou ? theme.brandSoft : undefined}
+                style={{
+                  borderColor: r.isYou ? theme.brand : theme.line,
+                  borderWidth: r.isYou ? 2 : 1,
+                }}
+              >
+                <Row center gap={10}>
+                  <Txt variant="h3" color={i === 0 ? theme.certGold : i === 1 ? theme.teal : i === 2 ? theme.brand : theme.textSecondary} style={{ width: 28 }}>
+                    #{i + 1}
+                  </Txt>
+                  <Avatar name={r.user.fullName} color={r.user.avatarColor} size={40} />
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="bodyMed">{r.isYou ? r.user.fullName + ' (' + t('league.you') + ')' : r.user.fullName}</Txt>
+                    <Row center gap={8} style={{ marginTop: 2 }}>
+                      <Row center gap={3}>
+                        <Flame size={13} urgent={r.streak >= 4} />
+                        <Txt variant="micro" color={theme.textMuted}>{t('league.weekCount', { x: r.streak })}</Txt>
+                      </Row>
+                      <Txt variant="micro" color={theme.textMuted}>·</Txt>
+                      <Row center gap={3}>
+                        <Icon name="ribbon" size={13} color={theme.brand} />
+                        <Txt variant="micro" color={theme.textMuted}>{t('league.badgeCount', { x: r.badgesCount })}</Txt>
+                      </Row>
+                    </Row>
+                  </View>
+                  <Row center gap={4}>
+                    <Icon name="sparkles" size={14} color={theme.certGold} />
+                    <Txt variant="h3" color={theme.brand}>{r.points}</Txt>
+                  </Row>
+                </Row>
+              </Card>
+            </FadeIn>
+          ) : (
+            renderRow(r, i)
+          )
+        }
+      />
     </Screen>
   );
 }

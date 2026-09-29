@@ -2,7 +2,7 @@
  * features/journey — S14 رحلتي + S15 خريطة الرحلة (التوقيع البصري) + S16 سجل الحضور + S26 تقييم الكورس.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -598,7 +598,11 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
           icon="document-text-outline"
           onPress={() => navigation.navigate('Disputes', { mode: 'mine' })}
         />
-      <ScrollView
+      <FlatList
+        data={filtered}
+        keyExtractor={(r) => r.sess.id}
+        initialNumToRender={12}
+        windowSize={5}
         contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
         refreshControl={
           <RefreshControl
@@ -608,97 +612,96 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
             colors={[theme.brand]}
           />
         }
-      >
-        <FadeIn index={0}>
-          <Card style={{ gap: 14 }}>
-            <Row between center>
-              <View>
-                <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
-                <Txt variant="numberHero">{pct}%</Txt>
-              </View>
-              <Row gap={14}>
-                {(['present', 'late', 'excused', 'absent'] as const).map((s) => (
-                  <View key={s} style={{ alignItems: 'center', gap: 2 }}>
-                    <Txt variant="h3" color={statusMeta[s].color}>{rows.filter((r) => r.att.status === s).length}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>{statusMeta[s].label}</Txt>
+        ListHeaderComponent={
+          <View style={{ gap: 12 }}>
+            <FadeIn index={0}>
+              <Card style={{ gap: 14 }}>
+                <Row between center>
+                  <View>
+                    <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
+                    <Txt variant="numberHero">{pct}%</Txt>
                   </View>
+                  <Row gap={14}>
+                    {(['present', 'late', 'excused', 'absent'] as const).map((s) => (
+                      <View key={s} style={{ alignItems: 'center', gap: 2 }}>
+                        <Txt variant="h3" color={statusMeta[s].color}>{rows.filter((r) => r.att.status === s).length}</Txt>
+                        <Txt variant="micro" color={theme.textMuted}>{statusMeta[s].label}</Txt>
+                      </View>
+                    ))}
+                  </Row>
+                </Row>
+
+                <ProgressBar progress={pct / 100} color={theme.success} />
+
+                {/* شبكة كثافة الالتزام والحضور بنمط Duolingo / GitHub Heatmap */}
+                {rows.length > 0 ? (
+                  <View style={{ paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.line }}>
+                    <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>
+                      سجل كثافة الحضور والستريك
+                    </Txt>
+                    <StreakCalendarGrid
+                      days={rows.slice(0, 14).reverse().map((r, idx) => {
+                        const status: DayStatus =
+                          r.att.status === 'present' ? 'attended'
+                          : r.att.status === 'late' ? 'bonus'
+                          : r.att.status === 'excused' ? 'excused'
+                          : 'absent';
+                        return {
+                          dateKey: String(idx),
+                          status,
+                        };
+                      })}
+                    />
+                  </View>
+                ) : null}
+              </Card>
+            </FadeIn>
+
+            <FadeIn index={1}>
+              <Row gap={8} wrap>
+                {(['all', 'present', 'late', 'excused', 'absent'] as const).map((f) => (
+                  <Chip
+                    key={f}
+                    label={f === 'all' ? t('common.all') : statusMeta[f].label}
+                    active={filter === f}
+                    onPress={() => setFilter(f)}
+                  />
                 ))}
               </Row>
-            </Row>
-
-            <ProgressBar progress={pct / 100} color={theme.success} />
-
-            {/* شبكة كثافة الالتزام والحضور بنمط Duolingo / GitHub Heatmap */}
-            {rows.length > 0 ? (
-              <View style={{ paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.line }}>
-                <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>
-                  سجل كثافة الحضور والستريك
-                </Txt>
-                <StreakCalendarGrid
-                  days={rows.slice(0, 14).reverse().map((r, idx) => {
-                    const status: DayStatus =
-                      r.att.status === 'present' ? 'attended'
-                      : r.att.status === 'late' ? 'bonus'
-                      : r.att.status === 'excused' ? 'excused'
-                      : 'absent';
-                    return {
-                      dateKey: String(idx),
-                      status,
-                    };
-                  })}
-                />
-              </View>
-            ) : null}
-          </Card>
-        </FadeIn>
-
-        <FadeIn index={1}>
-          <Row gap={8} wrap>
-            {(['all', 'present', 'late', 'excused', 'absent'] as const).map((f) => (
-              <Chip
-                key={f}
-                label={f === 'all' ? t('common.all') : statusMeta[f].label}
-                active={filter === f}
-                onPress={() => setFilter(f)}
-              />
-            ))}
-          </Row>
-        </FadeIn>
-
-        {filtered.length === 0 ? (
-          <Empty emoji="🗂️" title={t('history.emptyFilter')} />
-        ) : (
-          filtered.map(({ att, sess }, i) => {
-            const batch = batchOf(db, sess.batchId);
-            const course = batch ? courseOf(db, batch.courseId) : undefined;
-            const meta = statusMeta[att.status];
-            const points = att.status === 'present' ? 10 : att.status === 'late' ? 7 : 0;
-            return (
-              <FadeIn key={sess.id} index={Math.min(i, 6)}>
-                <Card>
-                  <Row center gap={12}>
-                    <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={meta.icon} size={22} color={meta.color} />
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Txt variant="bodyMed" numberOfLines={1}>{course?.title ?? ''}</Txt>
-                      <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
-                      <Txt variant="micro" color={theme.textMuted}>
-                        {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
-                        {att.method === 'manual' ? ` · ${t('common.manual')}` : ''}
-                      </Txt>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Tag label={meta.label} color={meta.color} bg={meta.color + '1F'} />
-                      {points > 0 ? <Txt variant="micro" color={theme.success}>+{points}</Txt> : null}
-                    </View>
-                  </Row>
-                </Card>
-              </FadeIn>
-            );
-          })
-        )}
-      </ScrollView>
+            </FadeIn>
+          </View>
+        }
+        ListEmptyComponent={<Empty emoji="🗂️" title={t('history.emptyFilter')} />}
+        renderItem={({ item: { att, sess }, index: i }) => {
+          const batch = batchOf(db, sess.batchId);
+          const course = batch ? courseOf(db, batch.courseId) : undefined;
+          const meta = statusMeta[att.status];
+          const points = att.status === 'present' ? 10 : att.status === 'late' ? 7 : 0;
+          return (
+            <FadeIn index={Math.min(i, 6)}>
+              <Card>
+                <Row center gap={12}>
+                  <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={meta.icon} size={22} color={meta.color} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Txt variant="bodyMed" numberOfLines={1}>{course?.title ?? ''}</Txt>
+                    <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>
+                      {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
+                      {att.method === 'manual' ? ' · ' + t('common.manual') : ''}
+                    </Txt>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Tag label={meta.label} color={meta.color} bg={meta.color + '1F'} />
+                    {points > 0 ? <Txt variant="micro" color={theme.success}>+{points}</Txt> : null}
+                  </View>
+                </Row>
+              </Card>
+            </FadeIn>
+          );
+        }}
+      />
     </Screen>
   );
 }

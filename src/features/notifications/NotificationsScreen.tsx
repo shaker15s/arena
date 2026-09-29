@@ -2,7 +2,7 @@
  * features/notifications — S25 مركز الإشعارات (مجمعة باليوم).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, RefreshControl, ScrollView, View } from 'react-native';
+import { Animated, FlatList, Platform, RefreshControl, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
@@ -272,6 +272,12 @@ export function NotificationsScreen({ navigation }: any) {
     if (dest) navigation.navigate(dest.name, dest.params);
   }, [navigation, user?.role]);
 
+  const sections = useMemo(() => [
+    { key: 'today', label: t('common.today'), rows: todayRows },
+    { key: 'yesterday', label: t('common.yesterday'), rows: yesterdayRows },
+    { key: 'earlier', label: t('notif.earlier'), rows: olderRows },
+  ].filter((s) => s.rows.length > 0), [t, todayRows, yesterdayRows, olderRows]);
+
   return (
     <Screen label={t('notif.title')} style={{ flex: 1 }}>
       <Header
@@ -298,7 +304,11 @@ export function NotificationsScreen({ navigation }: any) {
           </Row>
         }
       />
-      <ScrollView
+      <FlatList
+        data={sections}
+        keyExtractor={(s) => s.key}
+        initialNumToRender={10}
+        windowSize={5}
         contentContainerStyle={{ padding: spacing.s5, gap: 10, paddingBottom: 60 }}
         refreshControl={
           <RefreshControl
@@ -308,38 +318,18 @@ export function NotificationsScreen({ navigation }: any) {
             colors={[theme.brand]}
           />
         }
-      >
-        {mine.length === 0 ? (
-          <Empty emoji="🔔" title={t('notif.empty')} />
-        ) : (
-          <View style={{ gap: 10 }}>
-            <NotificationGroup
-              label={t('common.today')}
-              rows={todayRows}
-              lang={lang}
-              theme={theme}
-              pulseAnim={pulseAnim}
-              onItemPress={handleCardPress}
-            />
-            <NotificationGroup
-              label={t('common.yesterday')}
-              rows={yesterdayRows}
-              lang={lang}
-              theme={theme}
-              pulseAnim={pulseAnim}
-              onItemPress={handleCardPress}
-            />
-            <NotificationGroup
-              label={t('notif.earlier')}
-              rows={olderRows}
-              lang={lang}
-              theme={theme}
-              pulseAnim={pulseAnim}
-              onItemPress={handleCardPress}
-            />
-          </View>
+        ListEmptyComponent={<Empty emoji="🔔" title={t('notif.empty')} />}
+        renderItem={({ item: sec }) => (
+          <NotificationGroup
+            label={sec.label}
+            rows={sec.rows}
+            lang={lang}
+            theme={theme}
+            pulseAnim={pulseAnim}
+            onItemPress={handleCardPress}
+          />
         )}
-      </ScrollView>
+      />
 
       <Sheet visible={prefsOpen} onClose={() => setPrefsOpen(false)} title={t('notif.prefsTitle')}>
         <Txt variant="caption" color={theme.textSecondary}>{t('notif.prefsHint')}</Txt>

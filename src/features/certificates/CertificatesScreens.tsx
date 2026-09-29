@@ -2,7 +2,7 @@
  * features/certificates — S22 محفظة الشهادات + S23 العارض الرسمي (ختم/سيريال/QR).
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Animated, FlatList, Platform, Pressable, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import { toDataURL as qrToDataUrl } from 'qrcode';
@@ -32,47 +32,49 @@ export function CertificatesScreen({ navigation }: any) {
   return (
     <Screen label={t('certs.title')}>
       <Header title={t('certs.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
-        {mine.length === 0 ? (
-          <Empty emoji="🎓" title={t('certs.emptyTitle')} />
-        ) : (
-          mine.map((cert, i) => {
-            const batch = batchOf(db, cert.batchId);
-            const course = batch ? courseOf(db, batch.courseId) : undefined;
-            const branch = batch ? db.branches.find((b) => b.id === batch.branchId) : undefined;
-            return (
-              <FadeIn key={cert.id} index={i}>
-                <Card onPress={() => navigation.navigate('CertificateViewer', { certId: cert.id })} noPad style={{ overflow: 'hidden' }}>
-                  <View style={{ height: 8, backgroundColor: theme.certGold }} />
-                  <View style={{ padding: 16, gap: 8 }}>
-                    <Row center gap={12}>
-                      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.warnSoft, alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name="ribbon" size={26} color={theme.certGold} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Txt variant="h3">{course?.title ?? ''}</Txt>
-                        <Txt variant="caption" color={theme.textSecondary}>{branch?.name ?? ''}</Txt>
-                      </View>
-                      <DisclosureIcon color={theme.textMuted} />
+      <FlatList
+        data={mine}
+        keyExtractor={(cert) => cert.id}
+        initialNumToRender={10}
+        windowSize={5}
+        contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
+        ListEmptyComponent={<Empty emoji="🎓" title={t('certs.emptyTitle')} />}
+        renderItem={({ item: cert, index: i }) => {
+          const batch = batchOf(db, cert.batchId);
+          const course = batch ? courseOf(db, batch.courseId) : undefined;
+          const branch = batch ? db.branches.find((b) => b.id === batch.branchId) : undefined;
+          return (
+            <FadeIn index={i}>
+              <Card onPress={() => navigation.navigate('CertificateViewer', { certId: cert.id })} noPad style={{ overflow: 'hidden' }}>
+                <View style={{ height: 8, backgroundColor: theme.certGold }} />
+                <View style={{ padding: 16, gap: 8 }}>
+                  <Row center gap={12}>
+                    <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.warnSoft, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="ribbon" size={26} color={theme.certGold} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="h3">{course?.title ?? ''}</Txt>
+                      <Txt variant="caption" color={theme.textSecondary}>{branch?.name ?? ''}</Txt>
+                    </View>
+                    <DisclosureIcon color={theme.textMuted} />
+                  </Row>
+                  <Row between center>
+                    <Row center gap={5}>
+                      <Icon name="barcode" size={13} color={theme.textMuted} />
+                      <Txt variant="micro" color={theme.textMuted} {...(Platform.OS === 'web' ? ({ lang: 'en', dir: 'ltr' } as any) : {})}>{bidiIsolate(cert.serial)}</Txt>
                     </Row>
-                    <Row between center>
-                      <Row center gap={5}>
-                        <Icon name="barcode" size={13} color={theme.textMuted} />
-                        <Txt variant="micro" color={theme.textMuted} {...(Platform.OS === 'web' ? ({ lang: 'en', dir: 'ltr' } as any) : {})}>{bidiIsolate(cert.serial)}</Txt>
-                      </Row>
-                      {cert.status === 'revoked' ? (
-                        <Tag label={t('certs.statusRevoked')} color={theme.danger} bg={theme.dangerSoft} icon="ban" />
-                      ) : (
-                        <Tag label={t('verify.verified')} color={theme.success} bg={theme.successSoft} icon="shield-checkmark" />
-                      )}
-                    </Row>
-                  </View>
-                </Card>
-              </FadeIn>
-            );
-          })
-        )}
-      </ScrollView>
+                    {cert.status === 'revoked' ? (
+                      <Tag label={t('certs.statusRevoked')} color={theme.danger} bg={theme.dangerSoft} icon="ban" />
+                    ) : (
+                      <Tag label={t('verify.verified')} color={theme.success} bg={theme.successSoft} icon="shield-checkmark" />
+                    )}
+                  </Row>
+                </View>
+              </Card>
+            </FadeIn>
+          );
+        }}
+      />
     </Screen>
   );
 }

@@ -1302,7 +1302,7 @@ export function RarityFrame({ rarity, children }: { rarity: 'common' | 'rare' | 
 
 export { ScrollView };
 export { LiquidGlassCard } from './components/LiquidGlassCard';
-export { Skeleton, TodayCardSkeleton } from './components/SkeletonLoader';
+export { Skeleton, PageSkeleton, TodayCardSkeleton } from './components/SkeletonLoader';
 export { Toast } from './components/Toast';
 export { SegmentedProgressBar } from './components/SegmentedProgressBar';
 export { GlassBtn, IconGlassButton } from './components/GlassBtn';

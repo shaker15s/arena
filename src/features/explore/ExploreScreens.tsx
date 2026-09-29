@@ -2,7 +2,7 @@
  * features/explore — S11 الكتالوج + S12 تفاصيل الكورس + S13 ورقة الانضمام.
  */
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,8 +70,12 @@ export function ExploreScreen({ navigation: propNav }: any) {
       <LiveRegion>
         <VisuallyHidden>{String(filtered.length)}</VisuallyHidden>
       </LiveRegion>
-      <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 110 }}
+      <FlatList
+        data={filtered}
+        keyExtractor={(course) => course.id}
+        initialNumToRender={8}
+        windowSize={5}
+        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 110, gap: 12 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -80,43 +84,47 @@ export function ExploreScreen({ navigation: propNav }: any) {
             colors={[theme.brand]}
           />
         }
-      >
-        <Header title={t('explore.title')} />
-        <View style={{ paddingHorizontal: spacing.s5, gap: 12 }}>
-          <FadeIn index={0}>
-            <PillGradientSearchInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t('explore.searchPlaceholder')}
-              onClear={() => setQuery('')}
-            />
-          </FadeIn>
-          <FadeIn index={1}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              accessibilityRole="tablist"
-              contentContainerStyle={{ gap: 8 }}
-            >
-              {fields.map((f) => (
-                <Chip key={f} label={f === 'all' ? t('common.all') : f} active={f === field} onPress={() => setField(f)} />
-              ))}
-            </ScrollView>
-            <Spacer size={8} />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              accessibilityRole="tablist"
-              contentContainerStyle={{ gap: 8 }}
-            >
-              <Chip label={t('common.all')} active={branchId === 'all'} onPress={() => setBranchId('all')} icon="business" />
-              {db.branches.map((b) => (
-                <Chip key={b.id} label={b.name.replace('فرع ', '')} active={branchId === b.id} onPress={() => setBranchId(b.id)} icon="business" />
-              ))}
-            </ScrollView>
-          </FadeIn>
-
-          {filtered.length === 0 ? (
+        ListHeaderComponent={
+          <View>
+            <Header title={t('explore.title')} />
+            <View style={{ paddingHorizontal: spacing.s5, gap: 12 }}>
+              <FadeIn index={0}>
+                <PillGradientSearchInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t('explore.searchPlaceholder')}
+                  onClear={() => setQuery('')}
+                />
+              </FadeIn>
+              <FadeIn index={1}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  accessibilityRole="tablist"
+                  contentContainerStyle={{ gap: 8 }}
+                >
+                  {fields.map((f) => (
+                    <Chip key={f} label={f === 'all' ? t('common.all') : f} active={f === field} onPress={() => setField(f)} />
+                  ))}
+                </ScrollView>
+                <Spacer size={8} />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  accessibilityRole="tablist"
+                  contentContainerStyle={{ gap: 8 }}
+                >
+                  <Chip label={t('common.all')} active={branchId === 'all'} onPress={() => setBranchId('all')} icon="business" />
+                  {db.branches.map((b) => (
+                    <Chip key={b.id} label={b.name.replace('فرع ', '')} active={branchId === b.id} onPress={() => setBranchId(b.id)} icon="business" />
+                  ))}
+                </ScrollView>
+              </FadeIn>
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={{ paddingHorizontal: spacing.s5 }}>
             <Empty
               emoji="🧭"
               title={t('explore.noResults')}
@@ -128,13 +136,14 @@ export function ExploreScreen({ navigation: propNav }: any) {
                 setBranchId('all');
               }}
             />
-          ) : (
-            filtered.map((course, i) => (
-              <CourseCard key={course.id} course={course} index={i} onPress={() => navigation.navigate('CourseDetails', { courseId: course.id })} />
-            ))
-          )}
-        </View>
-      </ScrollView>
+          </View>
+        }
+        renderItem={({ item: course, index: i }) => (
+          <View style={{ paddingHorizontal: spacing.s5 }}>
+            <CourseCard course={course} index={i} onPress={() => navigation.navigate('CourseDetails', { courseId: course.id })} />
+          </View>
+        )}
+      />
     </Screen>
   );
 }

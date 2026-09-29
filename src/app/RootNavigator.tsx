@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, I18nManager, Keyboard, Platform, Pressable, ToastAndroid, View } from 'react-native';
+import { Animated, BackHandler, I18nManager, Keyboard, Platform, Pressable, ToastAndroid, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,10 +11,10 @@ import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Btn, Card, FadeIn, Spacer, Txt } from '../design/components';
+import { Btn, Card, FadeIn, PageSkeleton, Spacer, Txt } from '../design/components';
 import { AppBackground, ContentFrame } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
-import { radii, spacing } from '../design/tokens';
+import { navBar, radii, spacing } from '../design/tokens';
 import { useHaptics } from '../shared/hooks';
 import { PUBLIC_APP_URL } from '../shared/links';
 import { navigationRef } from './navRef';
@@ -51,9 +51,11 @@ function lazyScreen(importer: () => Promise<any>, name: string) {
     const { theme } = useTheme();
     return (
       <React.Suspense
+        // PERF-UX: هيكل رمادي مطابق لشكل الصفحة (نمط التطبيقات الكبيرة)
+        // بدل دائرة التحميل المجردة — المستخدم يرى هيكل المحتوى أثناء تحميل الكود.
         fallback={
-          <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color={theme.brand} />
+          <View style={{ flex: 1, backgroundColor: theme.bg }}>
+            <PageSkeleton />
           </View>
         }
       >
@@ -452,7 +454,10 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   return (
     <TabsContext.Provider value={ctx}>
       <View style={{ flex: 1 }}>
-        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 104 + Math.max(insets.bottom, 8) }}>
+        {/* DESIGN-01: الحجز السفلي من توكينز navBar واحد — كان 104 ثابتًا (شريط بلا
+          FAB = 76 فعليًا ⇒ 28px شريط رمادي ميت فوق الناف بار) + كل شاشة تضيف
+          paddingBottom خاصًا بها (110–130) فتتراكم فجوة 200px+. */}
+        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: (fab ? navBar.height + navBar.fabPoke : navBar.height) + Math.max(insets.bottom, navBar.minPad) }}>
           {tabs.map((t) => {
             const isSelected = t.key === tab;
             if (!visitedTabs.has(t.key) && !isSelected) return null;

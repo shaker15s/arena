@@ -55,6 +55,17 @@ export const zIndex = {
   toast: 60,
 } as const;
 
+/**
+ * شريط التبويبات العائم — الأبعاد الثابتة لحساب الحجز السفلي الواحد (DESIGN 1.2).
+ * الحجز = الارتفاع + (بار FAB؟ ارتفاع بروزه) + max(safeArea, minPad) —
+ * مصدر الحقيقة الوحيد بدل أرقام 104/130 المتناثرة على الشاشات.
+ */
+export const navBar = {
+  height: 68,
+  minPad: 8,
+  fabPoke: 27,
+} as const;
+
 /** درجات الزجاج القياسية (DESIGN 1.3) */
 export const glassLevels = {
   subtle: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
