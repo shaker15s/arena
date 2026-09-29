@@ -118,7 +118,7 @@ if (startIdx === -1 || endIdx === -1) {
 }
 
 const existing = current.slice(startIdx, endIdx + END.length);
-if (existing.trim() === block.trim()) {
+if (existing.replace(/\r\n/g, '\n').trim() === block.replace(/\r\n/g, '\n').trim()) {
   console.log(`✅ RPC types in sync — ${fns.size} functions`);
   process.exit(0);
 }

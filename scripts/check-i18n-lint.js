@@ -26,8 +26,8 @@ const BASELINE_FILE = path.join(__dirname, 'i18n-hardcoded-baseline.json');
 const ARABIC = /[\u0600-\u06FF]/;
 
 const ALLOWLIST = [
-  path.join('src', 'i18n'),
-  path.join('src', 'shared', 'format.ts'), // بيانات لوكال ثنائية اللغة داخل نفس الدالة
+  'src/i18n',
+  'src/shared/format.ts', // بيانات لوكال ثنائية اللغة داخل نفس الدالة
 ];
 
 function walk(dir, acc = []) {
@@ -75,7 +75,7 @@ const baseline = fs.existsSync(BASELINE_FILE)
 const current = {};
 let total = 0;
 for (const file of walk(SRC)) {
-  const rel = path.relative(ROOT, file);
+  const rel = path.relative(ROOT, file).replace(/\\/g, '/');
   if (ALLOWLIST.some((a) => rel.startsWith(a))) continue;
   const count = countArabicLiterals(stripMarkedLines(fs.readFileSync(file, 'utf8')));
   if (count > 0) {

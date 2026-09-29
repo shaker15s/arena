@@ -546,7 +546,7 @@ export function SignInScreen({ navigation }: any) {
     let alive = true;
     if (Platform.OS !== 'ios') { setAppleAvailable(true); return; }
     AppleAuthentication.isAvailableAsync()
-      .then((ok) => { if (alive) setAppleAvailable(ok); })
+      .then((ok: boolean) => { if (alive) setAppleAvailable(ok); })
       .catch(() => { if (alive) setAppleAvailable(false); });
     return () => { alive = false; };
   }, []);
@@ -868,7 +868,15 @@ export function CompleteProfileScreen() {
       </GlassCard>
       <Spacer size={16} />
 
-      <Input label={t('complete.fullName')} value={name} onChange={setName} placeholder={t('complete.fullNamePlaceholder')} icon="person" />
+      <Input
+        label={t('complete.fullName')}
+        value={name}
+        onChange={setName}
+        placeholder={t('complete.fullNamePlaceholder')}
+        icon="person"
+        autoComplete="name"
+        textContentType="name"
+      />
       <Spacer size={16} />
       <Input
         label={t('common.phone')}
@@ -878,6 +886,9 @@ export function CompleteProfileScreen() {
         keyboardType="phone-pad"
         icon="call"
         maxLength={11}
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        inputMode="tel"
       />
       <Spacer size={16} />
 

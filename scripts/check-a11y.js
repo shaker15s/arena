@@ -81,6 +81,17 @@ for (const file of walk(SRC)) {
   if (/outlineStyle:\s*'none'/.test(src) && !/design[\\/]a11y[\\/]focus\.ts$/.test(file)) {
     warnings.push(`${rel} — outlineStyle:'none' خارج الطبقة المركزية؛ راجع مؤشر التركيز.`);
   }
+
+  // 5b) A11Y-45: حقول النماذج في شاشات المصادقة والملف الشخصي يجب أن تحمل autoComplete
+  if (/features[\\/](auth|profile)[\\/]/.test(rel)) {
+    lines.forEach((line, i) => {
+      if (!/<Input\b/.test(line)) return;
+      const window = lines.slice(i, i + 12).join('\n');
+      if (!/autoComplete=/.test(window)) {
+        errors.push(`${rel}:${i + 1} — <Input> في شاشات المصادقة/الملف الشخصي بلا autoComplete (A11Y-45).`);
+      }
+    });
+  }
 }
 
 // 6) A11Y-04: كل شاشة (مكوّن مُصدَّر اسمه ينتهي بـ Screen) يجب أن تُصدر عنوانًا

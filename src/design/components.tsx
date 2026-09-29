@@ -475,6 +475,9 @@ export function Input({
   maxLength,
   secure,
   autoCapitalize,
+  autoComplete,
+  textContentType,
+  inputMode,
   onIconPress,
   onSubmitEditing,
   returnKeyType,
@@ -493,6 +496,9 @@ export function Input({
   maxLength?: number;
   secure?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: 'off' | 'name' | 'tel' | 'email' | 'username' | 'current-password' | 'new-password' | 'one-time-code' | 'organization' | 'street-address';
+  textContentType?: 'none' | 'name' | 'telephoneNumber' | 'emailAddress' | 'username' | 'password' | 'newPassword' | 'oneTimeCode' | 'organizationName' | 'fullStreetAddress';
+  inputMode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
   onIconPress?: () => void;
   onSubmitEditing?: () => void;
   returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
@@ -506,6 +512,7 @@ export function Input({
   const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const errorId = React.useId();
 
   const handleIconClick = () => {
     if (onIconPress) {
@@ -590,6 +597,15 @@ export function Input({
           maxLength={maxLength}
           secureTextEntry={secure}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          inputMode={inputMode}
+          {...(Platform.OS === 'web'
+            ? ({
+                'aria-invalid': Boolean(error),
+                ...(error ? { 'aria-errormessage': errorId, 'aria-describedby': errorId } : {}),
+              } as unknown as object)
+            : {})}
           textAlignVertical={multiline ? 'top' : 'center'}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
@@ -625,7 +641,16 @@ export function Input({
           />
         )}
       </View>
-      {error ? <Txt variant="micro" color={theme.danger} style={{ marginTop: 4 }}>{error}</Txt> : null}
+      {error ? (
+        <View
+          nativeID={errorId}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          {...(Platform.OS === 'web' ? ({ id: errorId, role: 'alert' } as unknown as object) : {})}
+        >
+          <Txt variant="micro" color={theme.danger} style={{ marginTop: 4 }}>{error}</Txt>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -909,11 +934,14 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
   const insets = useSafeAreaInsets();
   const titleId = React.useId();
 
-  // A11Y-13: عند تركيب رأس شاشة جديد (انتقال داخل التطبيق) ننقل التركيز إلى
-  // العنوان على الويب ليقرأه قارئ الشاشة فورًا، ونُعلنه صوتيًا على الجوال.
+  // A11Y-13 + WEB-03: عند تركيب رأس شاشة جديد (انتقال داخل التطبيق) ننقل التركيز إلى
+  // العنوان على الويب ليقرأه قارئ الشاشة فورًا، ونضبط document.title، ونُعلنه صوتيًا على الجوال.
   useEffect(() => {
     if (!title) return;
     if (Platform.OS === 'web') {
+      if (typeof document !== 'undefined') {
+        document.title = `${title} — ${t('common.appName')}`;
+      }
       const el = typeof document !== 'undefined' ? document.getElementById(titleId) : null;
       if (el && typeof (el as unknown as HTMLElement).focus === 'function') {
         (el as unknown as HTMLElement).focus({ preventScroll: true });
@@ -921,10 +949,13 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
       return;
     }
     announce(title, 'polite');
-  }, [title, titleId]);
+  }, [title, titleId, t]);
 
   return (
-    <View style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}>
+    <View
+      {...(Platform.OS === 'web' ? ({ role: 'banner' } as unknown as object) : {})}
+      style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}
+    >
       <Row between center>
         <Row center gap={12} style={{ flex: 1 }}>
           {back ? (

@@ -402,8 +402,22 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
     setTab(newTab);
     // A11Y-13: تغيير التبويب إجراء تنقّل لا انتقال كامل — نُعلن اسم التبويب.
     const def = tabs.find((x) => x.key === newTab);
-    if (def?.label) announce(def.label, 'polite');
+    if (def?.label) {
+      announce(def.label, 'polite');
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.title = `${def.label} — ${t('common.appName')}`;
+      }
+    }
   };
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const def = tabs.find((x) => x.key === tab);
+      if (def?.label) {
+        document.title = `${def.label} — ${t('common.appName')}`;
+      }
+    }
+  }, [tab, tabs, t]);
 
   const ctx = useMemo(() => ({ tab, setTab: handleSelectTab }), [tab]);
 
@@ -698,11 +712,53 @@ function CompleteProfileStack() {
 /** معرّف معلم المحتوى الرئيسي (هدف رابط «تخطَّ إلى المحتوى» وفحوص DOM). */
 export const MAIN_LANDMARK_ID = 'masar-main';
 
+const ROUTE_TITLE_KEYS: Record<string, string> = {
+  Onboarding: 'onboarding.o1Title',
+  SignIn: 'auth.welcomeTitle',
+  CompleteProfile: 'complete.title',
+  CourseDetails: 'tabs.explore',
+  JoinBatch: 'joinCode.title',
+  JourneyMap: 'journey.map',
+  AttendanceHistory: 'history.title',
+  Scanner: 'tabs.scan',
+  Wallet: 'wallet.title',
+  League: 'league.title',
+  Achievements: 'achievements.title',
+  Certificates: 'certs.title',
+  CertificateViewer: 'certs.title',
+  Excuses: 'excuses.title',
+  Notifications: 'profile.notifications',
+  Requests: 'requests.title',
+  RulesGuide: 'rules.title',
+  Support: 'profile.support',
+  Settings: 'profile.settings',
+  Disputes: 'disputes.title',
+  Verify: 'verify.title',
+  Courses: 'org.courses',
+  BatchesAdmin: 'org.batches',
+  CourseManagement: 'org.courses',
+  StudentRecord: 'volunteer.studentRecord',
+  SessionsHistory: 'volunteer.sessionsHistory',
+  IssueCertificates: 'certs.issueTitle',
+  Wizard: 'wizard.title',
+  NotFound: 'common.notFoundTitle',
+};
+
 // ─── الجذر ───
 export function RootNavigator() {
   const { user, needsProfile } = useApp();
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
+
+  const resolveRouteTitle = useCallback(
+    (routeName?: string) => {
+      const appName = t('common.appName');
+      if (!routeName || routeName === 'Tabs') return appName;
+      const key = ROUTE_TITLE_KEYS[routeName];
+      return key ? `${t(key as any)} — ${appName}` : appName;
+    },
+    [t],
+  );
 
   const navTheme = useMemo(() => ({
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -733,11 +789,19 @@ export function RootNavigator() {
           ref={navigationRef}
           theme={navTheme}
           linking={linking}
+          documentTitle={{
+            formatter: (_options, route) => resolveRouteTitle(route?.name),
+          }}
           // اسم الشاشة فقط (لا وسائط) — يعطي تقارير الأعطال مسار المستخدم
           // دون تسريب أي معرّفات أو محتوى.
           onStateChange={(state) => {
             const route = state?.routes?.[state.index ?? 0];
-            if (route?.name) addBreadcrumb('nav', route.name);
+            if (route?.name) {
+              addBreadcrumb('nav', route.name);
+              if (Platform.OS === 'web' && typeof document !== 'undefined' && route.name !== 'Tabs') {
+                document.title = resolveRouteTitle(route.name);
+              }
+            }
           }}
         >
           {needsProfile ? (

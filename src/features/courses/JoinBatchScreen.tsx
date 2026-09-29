@@ -57,9 +57,11 @@ export function JoinBatchScreen({ route, navigation }: any) {
           </Txt>
           <PillGradientSearchInput
             value={code}
-            onChangeText={(value) => { setCode(value); setJoined(null); }}
+            onChangeText={(value) => { setCode(value.replace(/\s+/g, '').toUpperCase()); setJoined(null); }}
             placeholder={t('joinCode.code')}
             icon="key"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
           />
         </View>
 

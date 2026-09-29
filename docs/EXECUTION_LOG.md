@@ -164,3 +164,29 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 **المتبقي (لم يتغيّر):** FUNC-13 PNG حقيقي · PDF عربي + QR ثابت · ربط شاشة الدعم برمز العطل · زر Open Badges في
 شاشة الشهادات · الأوفلاين واجهيًا · تحسين إدخال كود الانضمام · A11Y (حجب التركيز · focus trap · outline) ·
 وتحويل رؤوس CSV العربية إلى i18n (سقف `DashboardScreen` عند 25 بسبب محتوى التقرير).
+
+---
+
+# الموجة A (Wave A) — مكاسب فورية (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **WEB-01 / WEB-06 / OPS-01 رؤوس وبوابات `vercel.json`** | ✅ منجز | `vercel.json`: إضافة `CSP (frame-ancestors 'none')`، `HSTS (max-age=63072000; includeSubDomains; preload)`، `X-Content-Type-Options: nosniff`، `X-Frame-Options: DENY`، `Referrer-Policy`، `Permissions-Policy`، وسياسة كاش `immutable` لـ `/_expo/static/(.*)` و `no-store` لـ `/index.html`، وربط `buildCommand` بـ `typecheck && parity && rpc:check && sql:check && export:web` |
+| **PERF-12 حذف `lucide-react-native`** | ✅ منجز | حُذفت من `package.json` و`package-lock.json` (0 استخدام في `src/`) |
+| **DATA-03 بوابة `search_path` الحقيقية** | ✅ منجز | `scripts/check-sql.js`: فحص تحليلي لكل دالة `SECURITY DEFINER` على حدة للتأكد من وجود `SET search_path` في ترويستها → **137 دالة SECURITY DEFINER · 0 بلا search_path** |
+| **WEB-03/04 `document.title` و Meta/OG** | ✅ منجز | `src/app/RootNavigator.tsx` (`documentTitle` + `TabsScaffold`) + `src/design/components.tsx` (`Header` يضبط `document.title` و `role="banner"`) + `public/index.html` (`meta description` + `og:*` + `twitter:*`) |
+| **WEB-02 / WEB-07 الأيقونات والـ Manifest** | ✅ منجز | `public/manifest.webmanifest` + أيقونات متعددة المقاسات (`icon.svg`, `favicon.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `maskable-icon.png`) |
+| **A11Y-45→48 النماذج و `autoComplete`** | ✅ منجز | `src/design/components.tsx › Input`: دعم `autoComplete`, `textContentType`, `inputMode`, `aria-invalid`, `aria-errormessage` (`role="alert"`) + تطبيقها في `AuthScreens.tsx`, `ProfileScreens.tsx`, `JoinBatchScreen.tsx` + بوابة فحص ثابتة في `scripts/check-a11y.js` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 52 عنصر ضغط · 192 `<Icon>` · 40/40 شاشة h1 · 0 أخطاء / 0 تحذيرات
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: 104 نصًا في 22 ملفًا (توافق مسارات POSIX/Windows)
+- `parity`: 1147 مفتاحًا ✓
+- `rpc:check`: 65 نداء / 114 دالة ✓
+- `sql:check`: 30 ملفًا · 642 عبارة · 155 محلَّلة نحويًا · 145 دالة · **137 SECURITY DEFINER (0 بلا search_path)** · 0 بلا تحكم وصول ✓
+- `rpc:types`: 84 دالة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` / `test:load` / `test:e2e`: **62/62** ✓
+

@@ -263,6 +263,8 @@ export function ProfileScreen() {
             onChange={setDeleteConfirm}
             placeholder={t('profile.deleteConfirmPlaceholder')}
             autoCapitalize="characters"
+            autoComplete="off"
+            textContentType="none"
           />
           {deleteConfirm.trim() !== 'حذف' && deleteConfirm.trim().toUpperCase() !== 'DELETE' ? (
             <Txt variant="micro" color={theme.textMuted}>{t('profile.deleteHint')}</Txt>
@@ -378,7 +380,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
           </Row>
         </Card>
 
-        <Input label={t('complete.fullName')} value={name} onChange={setName} icon="person" />
+        <Input label={t('complete.fullName')} value={name} onChange={setName} icon="person" autoComplete="name" textContentType="name" />
         <Input
           label={t('common.phone')}
           value={phone}
@@ -386,6 +388,9 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
           keyboardType="phone-pad"
           icon="call"
           maxLength={16}
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          inputMode="tel"
         />
         {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
         <Btn title={t('common.save')} full loading={saving} onPress={save} icon="checkmark" />
