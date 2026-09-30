@@ -350,7 +350,7 @@ export function NotificationsScreen({ navigation }: any) {
             <Txt variant="micro" color={theme.textSecondary} style={{ marginBottom: 8 }}>
               {t('notif.quietHint')}
             </Txt>
-            <Row center gap={10}>
+            <Row center gap={10} wrap>
               <Txt variant="caption" color={theme.textSecondary}>{t('notif.quietFrom')}</Txt>
               <TimeField value={prefs.quiet_from} onChange={(v) => setQuietWindow('quiet_from', v)} label={t('notif.quietFrom')} />
               <Txt variant="caption" color={theme.textSecondary}>{t('notif.quietTo')}</Txt>

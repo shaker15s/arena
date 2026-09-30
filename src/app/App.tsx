@@ -74,7 +74,7 @@ function BootSplash() {
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
       >
         {/* Glow orb behind logo */}
-        <Animated.View style={{
+        <Animated.View pointerEvents="none" style={{
           position: 'absolute',
           width: 200, height: 200, borderRadius: 100,
           backgroundColor: theme.brand,

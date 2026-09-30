@@ -207,7 +207,8 @@ export function LeagueScreen({ navigation }: any) {
         }}
       >
         <Row center gap={10}>
-          <Txt variant="h3" color={theme.textSecondary} style={{ width: 28 }}>#{r.rank}</Txt>
+          {/* minWidth لا width: «#10» بعرض 28px كان يُقصّ — العرض يتسع حسب الرقم */}
+          <Txt variant="h3" color={theme.textSecondary} numberOfLines={1} style={{ minWidth: 30 }}>#{r.rank}</Txt>
           <Avatar name={r.user.fullName} color={r.user.avatarColor} size={38} />
           <View style={{ flex: 1 }}>
             <Txt variant="bodyMed">{r.isYou ? `${r.user.fullName} (${t('league.you')})` : r.user.fullName}</Txt>
@@ -330,7 +331,7 @@ export function LeagueScreen({ navigation }: any) {
                 }}
               >
                 <Row center gap={10}>
-                  <Txt variant="h3" color={i === 0 ? theme.certGold : i === 1 ? theme.teal : i === 2 ? theme.brand : theme.textSecondary} style={{ width: 28 }}>
+                  <Txt variant="h3" numberOfLines={1} color={i === 0 ? theme.certGold : i === 1 ? theme.teal : i === 2 ? theme.brand : theme.textSecondary} style={{ minWidth: 30 }}>
                     #{i + 1}
                   </Txt>
                   <Avatar name={r.user.fullName} color={r.user.avatarColor} size={40} />

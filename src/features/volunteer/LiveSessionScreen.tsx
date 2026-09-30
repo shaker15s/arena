@@ -21,12 +21,12 @@ import { QR_ROTATION_MS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CountUp, Empty, FadeIn, Header, Input, LiveRegion, Row, Screen, Sheet,
+  AutoGrid, Avatar, Btn, Card, CountUp, Empty, FadeIn, Header, Input, LiveRegion, Row, Screen, Sheet,
   Spacer, Tag, Txt,
 } from '../../design/components';
 import { BorderBeam } from '../../design/components/BorderBeam';
 import { CelebrationModal } from '../../design/celebrations';
-import { radii, spacing } from '../../design/tokens';
+import { layout, radii, spacing } from '../../design/tokens';
 import { bidiIsolate, formatTime } from '../../shared/format';
 import { matchesSearch } from '../../shared/search';
 import { enterFullscreen, exitFullscreen, useWakeLock } from '../../shared/kiosk';
@@ -161,7 +161,7 @@ export function LiveSessionScreen() {
           <Empty emoji="🎬" title={closedSummary ? `${t('live.closedSnack')}` : t('vtoday.noSessionToday')} />
           {closedSummary ? (
             <Card style={{ alignSelf: 'stretch' }}>
-              <Row center gap={12} style={{ justifyContent: 'center' }}>
+              <Row center gap={12} wrap style={{ justifyContent: 'center' }}>
                 <View style={{ alignItems: 'center' }}>
                   <Txt variant="display" color={theme.success}>{closedSummary.present}</Txt>
                   <Txt variant="caption" color={theme.textMuted}>{t('history.present')}</Txt>
@@ -287,7 +287,7 @@ export function LiveSessionScreen() {
 
   return (
     <Screen label={myLive.title} style={{ flex: 1, backgroundColor: isDark ? theme.bg : '#0E1230' }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: spacing.s4, paddingBottom: spacing.s5 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s5, gap: spacing.s4 }}>
         {/* رأس الجلسة */}
         <FadeIn index={0}>
           <Row between center>
@@ -540,7 +540,7 @@ export function DetailedSessionReportSheet({
         </Card>
 
         {/* إحصائيات الحضور */}
-        <Row gap={8}>
+        <AutoGrid gap={8} minColumnWidth={layout.minColumn.stat}>
           <Card style={{ flex: 1, alignItems: 'center', padding: 10 }}>
             <Txt variant="h2" color={theme.success}>{data.summary.present + data.summary.late}</Txt>
             <Txt variant="micro" color={theme.textMuted}>{t('history.present')}</Txt>
@@ -553,7 +553,7 @@ export function DetailedSessionReportSheet({
             <Txt variant="h2" color={theme.brand}>{data.summary.total}</Txt>
             <Txt variant="micro" color={theme.textMuted}>{t('common.students')}</Txt>
           </Card>
-        </Row>
+        </AutoGrid>
 
         {/* التقرير التدريبي الثلاثي */}
         {(data.report.done || data.report.planned || data.report.challenges) ? (

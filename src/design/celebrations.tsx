@@ -57,6 +57,7 @@ export function ConfettiBurst({ count = 35 }: { count?: number }) {
       {particles.map((p) => (
         <Animated.View
           key={p.key}
+          pointerEvents="none"
           style={{
             position: 'absolute',
             width: p.size,
@@ -272,7 +273,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
         >
           {/* Badge icon with rarity glow */}
           <View style={{ position: 'relative' }}>
-            <View style={{
+            <View pointerEvents="none" style={{
               position: 'absolute', width: 140, height: 140, borderRadius: 70,
               backgroundColor: rarityColor + '15',
               top: -15, left: -15,

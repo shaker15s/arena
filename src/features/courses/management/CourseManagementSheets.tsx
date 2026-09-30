@@ -5,9 +5,10 @@ import { useApp } from '../../../data/store';
 import { useTheme } from '../../../design/theme';
 import { useI18n } from '../../../i18n';
 import {
-  Avatar, Btn, Card, Input, ProgressBar, Row,
+  AutoGrid, Avatar, Btn, Card, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, Tag, Txt,
 } from '../../../design/components';
+import { layout } from '../../../design/tokens';
 import { formatDate, formatTime } from '../../../shared/format';
 import { batchStudents, profileOf, sessionsOfBatch } from '../../../data/engine';
 import {
@@ -457,12 +458,12 @@ export function SessionDetailSheet({
             />
           ) : null}
           {/* إحصاءات الجلسة */}
-          <Row gap={8}>
+          <AutoGrid gap={8} minColumnWidth={layout.minColumn.stat}>
             <Metric value={String(present)} label={t('history.present')} color={theme.success} />
             <Metric value={String(late)} label={t('history.late')} color={theme.warn} />
             <Metric value={String(excused)} label={t('history.excused')} color={theme.info} />
             <Metric value={String(absent)} label={t('history.absent')} color={theme.danger} />
-          </Row>
+          </AutoGrid>
 
           <Card>
             <Row between center>

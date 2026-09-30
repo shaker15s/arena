@@ -37,6 +37,12 @@ jobs:
       - name: RPC types in sync with migrations
         run: npm run rpc:types
 
+      - name: Responsive layout gate (padding clobber / touch-blocking layers / crowded rows)
+        run: npm run layout:check
+
+      - name: Responsive grid math (AutoGrid/columnsFor)
+        run: npm run test:layout
+
       - name: Engine behavioral tests
         run: npm run test:engine
 

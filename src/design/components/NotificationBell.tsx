@@ -120,6 +120,7 @@ export function NotificationBell({
         >
           {/* هالة النبض الخلفية */}
           <Animated.View
+            pointerEvents="none"
             style={{
               position: 'absolute',
               inset: -2,

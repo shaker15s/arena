@@ -2,7 +2,7 @@
  * design/components.tsx — كتالوج المكونات الموحدة بتصميم Apple Liquid Glass.
  * كل مكون من التوكنز فقط — لا ألوان حرفية. RTL تلقائي.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable,
   StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
@@ -14,8 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
 import {
-  borderWidth, blurIntensity, componentTokens, fonts, hitSlop, radii, scaleType,
-  shadows, spacing, springs, typography,
+  borderWidth, blurIntensity, columnsFor, componentTokens, fonts, hitSlop, layout, radii,
+  scaleType, shadows, spacing, springs, typography,
 } from './tokens';
 import { isReducedMotion, pressScale, staggerDelay } from './motion';
 import { useI18n } from '../i18n';
@@ -30,6 +30,9 @@ import { navigationRef, safeBack } from '../app/navRef';
 // ───────────────────────────── نصوص ─────────────────────────────
 
 type TxtVariant = keyof typeof typography;
+
+/** على الويب: صفر min-width حتى ينكمش النص داخل صفوف flex بدل دفع المحتوى للخارج. */
+const webTextShrink = Platform.OS === 'web' ? ({ minWidth: 0 } as unknown as TextStyle) : null;
 
 export function Txt({
   children, variant = 'body', color, align, style, numberOfLines, bold, shrink,
@@ -85,6 +88,12 @@ export function Txt({
         // includeFontPadding=false يجعل ارتفاع السطر مطابقًا لـ lineHeight
         // فلا تُقصّ امتدادات الحروف العربية ولا تتزحزح النصوص عن مركزها (أندرويد).
         { includeFontPadding: false },
+        // LAYOUT-02: في React Native الافتراضي `flexShrink: 0` (عكس الويب) ⇒ أي نص
+        // عربي طويل داخل صف يمدّ الصف خارج الشاشة بدل أن يلتف. نجعله قابلًا
+        // للانكماش دائمًا؛ الانكماش لا يحدث إلا عند التجاوز فعلًا.
+        { flexShrink: 1 },
+        // على الويب عنصر flex لا ينكمش تحت «أعرض كلمة» ما لم نصفر min-width.
+        webTextShrink,
         { color: color ?? theme.text, textAlign: align ?? 'auto' },
         base,
         { lineHeight: calibratedLineHeight },
@@ -111,7 +120,9 @@ export function Row({ children, style, gap, center, between, wrap }: {
   return (
     <View
       style={[
-        { flexDirection: 'row', alignItems: center ? 'center' : 'flex-start' },
+        // minWidth: 0 — عنصر flex على الويب لا ينكمش تحت «أعرض كلمة» افتراضيًا،
+        // فكان الصف المتداخل (صف داخل صف) يدفع إخوته خارج عرض الشاشة.
+        { flexDirection: 'row', alignItems: center ? 'center' : 'flex-start', minWidth: 0 },
         between ? { justifyContent: 'space-between' } : null,
         wrap ? { flexWrap: 'wrap' } : null,
         gap != null ? { gap } : null,
@@ -125,6 +136,61 @@ export function Row({ children, style, gap, center, between, wrap }: {
 
 export function Spacer({ size = spacing.s2 }: { size?: number }) {
   return <View style={{ height: size, width: size }} />;
+}
+
+/**
+ * شبكة أعمدة تتكيّف مع عرضها الحقيقي (LAYOUT-01).
+ *
+ * بديل صفوف `Row` ذات عدد الأعمدة الثابت: تقيس عرضها بـ `onLayout` ثم تختار
+ * أكبر عدد أعمدة يتّسع فيه كل عمود لعرض ≥ `minColumnWidth`، وإلا تنزل لعمود
+ * أقل — فتبقى البطاقات بأبعاد صحيحة على 320pt مثلما على التابلت.
+ *
+ * قبل أول قياس (أول إطار) نستخدم `flexBasis` = أدنى عرض، فيلتف المحتوى تلقائيًا
+ * بلا قفزة بصرية تُذكر.
+ */
+export function AutoGrid({ children, gap = spacing.s3, minColumnWidth = layout.minColumn.stat, style }: {
+  children: React.ReactNode;
+  gap?: number;
+  /** أدنى عرض عمود مقبول قبل الانتقال لعدد أعمدة أقل. */
+  minColumnWidth?: number;
+  style?: ViewStyle | ViewStyle[];
+}) {
+  const { windowWidth } = useTheme();
+  const items = useMemo(() => React.Children.toArray(children).filter(Boolean), [children]);
+  const [width, setWidth] = useState(0);
+
+  const cols = useMemo(() => {
+    // قبل أول قياس نستخدم عرض النافذة مطروحًا منه الحشوة الجانبية القياسية —
+    // تقدير أولي دقيق على الموبايل (العرض = عرض المحتوى) وبلا قفزة تُذكر.
+    const avail = width > 0 ? width : Math.max(minColumnWidth, windowWidth - spacing.s5 * 2);
+    return columnsFor(avail, Math.max(items.length, 1), minColumnWidth, gap);
+  }, [width, windowWidth, gap, minColumnWidth, items.length]);
+
+  const cell = width > 0 ? (width - gap * (cols - 1)) / cols : undefined;
+
+  return (
+    <View
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && Math.abs(w - width) > 0.5) setWidth(w);
+      }}
+      style={[{ flexDirection: 'row', flexWrap: 'wrap', gap }, style]}
+    >
+      {items.map((child, i) => (
+        <View
+          key={i}
+          // الخلية صفّ أفقي: كثير من البطاقات تحمل `flex: 1` داخليًا، وفي عمود
+          // رأسي (flexBasis: 0) كان سينهار ارتفاعها إلى صفر؛ أفقيًا تملأ العرض
+          // ويظل الارتفاع تلقائيًا، والصفوف تتساوى بـ align-items: stretch.
+          style={cell != null
+            ? { flexDirection: 'row', width: cell }
+            : { flexDirection: 'row', flexGrow: 1, flexShrink: 1, flexBasis: minColumnWidth }}
+        >
+          {child}
+        </View>
+      ))}
+    </View>
+  );
 }
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
