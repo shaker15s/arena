@@ -2,7 +2,7 @@
 
 > **المرجع:** `MASAR_MASTER_PLAN_2026-09-28.md` (الخطة الواحدة). هذا الملف يوثّق **ما نُفِّذ فعلًا**،
 > بالملف والسطر والأمر والناتج المقيس — بلا أي ادعاء غير مقيس.
-> **آخر تحديث:** 28 سبتمبر 2026 · الفرع: `arena/01a0e854-arena`.
+> **آخر تحديث:** 29 سبتمبر 2026 (الموجة E) · الفرع: `arena/01a0e854-arena`.
 
 ## 0) قيادة التحقق (Verification Gate)
 
@@ -164,3 +164,156 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 **المتبقي (لم يتغيّر):** FUNC-13 PNG حقيقي · PDF عربي + QR ثابت · ربط شاشة الدعم برمز العطل · زر Open Badges في
 شاشة الشهادات · الأوفلاين واجهيًا · تحسين إدخال كود الانضمام · A11Y (حجب التركيز · focus trap · outline) ·
 وتحويل رؤوس CSV العربية إلى i18n (سقف `DashboardScreen` عند 25 بسبب محتوى التقرير).
+
+---
+
+# الموجة A (Wave A) — مكاسب فورية (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **WEB-01 / WEB-06 / OPS-01 رؤوس وبوابات `vercel.json`** | ✅ منجز | `vercel.json`: إضافة `CSP (frame-ancestors 'none')`، `HSTS (max-age=63072000; includeSubDomains; preload)`، `X-Content-Type-Options: nosniff`، `X-Frame-Options: DENY`، `Referrer-Policy`، `Permissions-Policy`، وسياسة كاش `immutable` لـ `/_expo/static/(.*)` و `no-store` لـ `/index.html`، وربط `buildCommand` بـ `typecheck && parity && rpc:check && sql:check && export:web` |
+| **PERF-12 حذف `lucide-react-native`** | ✅ منجز | حُذفت من `package.json` و`package-lock.json` (0 استخدام في `src/`) |
+| **DATA-03 بوابة `search_path` الحقيقية** | ✅ منجز | `scripts/check-sql.js`: فحص تحليلي لكل دالة `SECURITY DEFINER` على حدة للتأكد من وجود `SET search_path` في ترويستها → **137 دالة SECURITY DEFINER · 0 بلا search_path** |
+| **WEB-03/04 `document.title` و Meta/OG** | ✅ منجز | `src/app/RootNavigator.tsx` (`documentTitle` + `TabsScaffold`) + `src/design/components.tsx` (`Header` يضبط `document.title` و `role="banner"`) + `public/index.html` (`meta description` + `og:*` + `twitter:*`) |
+| **WEB-02 / WEB-07 الأيقونات والـ Manifest** | ✅ منجز | `public/manifest.webmanifest` + أيقونات متعددة المقاسات (`icon.svg`, `favicon.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `maskable-icon.png`) |
+| **A11Y-45→48 النماذج و `autoComplete`** | ✅ منجز | `src/design/components.tsx › Input`: دعم `autoComplete`, `textContentType`, `inputMode`, `aria-invalid`, `aria-errormessage` (`role="alert"`) + تطبيقها في `AuthScreens.tsx`, `ProfileScreens.tsx`, `JoinBatchScreen.tsx` + بوابة فحص ثابتة في `scripts/check-a11y.js` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 52 عنصر ضغط · 192 `<Icon>` · 40/40 شاشة h1 · 0 أخطاء / 0 تحذيرات
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: 104 نصًا في 22 ملفًا (توافق مسارات POSIX/Windows)
+- `parity`: 1147 مفتاحًا ✓
+- `rpc:check`: 65 نداء / 114 دالة ✓
+- `sql:check`: 30 ملفًا · 642 عبارة · 155 محلَّلة نحويًا · 145 دالة · **137 SECURITY DEFINER (0 بلا search_path)** · 0 بلا تحكم وصول ✓
+- `rpc:types`: 84 دالة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` / `test:load` / `test:e2e`: **62/62** ✓
+
+---
+
+# الموجة B (Wave B) — وصول متقدّم (A11Y) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **A11Y-03/05 تعميم معالم `<Screen>` و`<Section>`** | ✅ منجز | تغليف جميع الشاشات الـ40 المصدَّرة (`*Screen`) في `src/features/**` بمعلم `<Screen>` دلالي (`role="main"` للغلاف الرئيسي و`role="region"` لكل شاشة مع `aria-label` و`accessibilityViewIsModal`) + بوابة فحص ثابتة في `scripts/check-a11y.js` (`40/40 شاشة بمعلم <Screen>`) |
+| **A11Y-12 منع حجب التركيز (WCAG 2.4.11)** | ✅ منجز | `src/app/RootNavigator.tsx › AppleTabBar`: إخفاء الشريط السفلي والـ FAB تلقائيًا عند فتح لوحة المفاتيح على الجوال (`Keyboard.addListener`)، وحساب ارتفاع الشريط ديناميكيًا عبر `onLayout` إلى متغير `--masar-tabbar-h` + حارس `focusin` في `public/index.html` يضمن تمرير العنصر المركّز فوق الشريط العائم |
+| **A11Y-13/14/15 حبس التركيز في كل `<Modal>`** | ✅ منجز | التحقق الآلي في `scripts/check-a11y.js` أن كل ملف يستخدم `<Modal>` يطبّق `useFocusTrap` (`components.tsx › Sheet` و`celebrations.tsx › CelebrationModal`) مع `Escape` وإعادة التركيز |
+| **A11Y-42 بديل السحب في `SwipeRow` (WCAG 2.5.1)** | ✅ منجز | `src/design/components/SwipeRow.tsx`: دعم `accessibilityActions` و`onAccessibilityAction` لقارئات الشاشة + شريط أزرار بضغطة واحدة متاح للكيبورد واللمس المباشر بدون سحب + بوابة فحص في `scripts/check-a11y.js` |
+| **A11Y-52/53 تقليل الحركة الشامل** | ✅ منجز | `src/design/glass.tsx › AmbientOrb` يعيد `null` عند تفعيل `isReducedMotion()` (مع تقليل الكرات المضيئة في `AppBackground` إلى 2)، و`src/design/mascot/MasarMascot.tsx` يعرض إطارًا ثابتًا دون تحويلات حركية عند تفعيل تقليل الحركة |
+| **A11Y-62 تكبير الخط حتى 200%** | ✅ منجز | رفع `maxFontSizeMultiplier` إلى `2` في `src/design/components/Odometer.tsx` و`src/design/glass.tsx › StatBubble` ومطابقته مع `Txt` |
+| **A11Y-64/65 `formatNumber` وعزل Bidi** | ✅ منجز | `src/shared/format.ts`: إضافة `formatNumber(n, lang, options)` و`bidiIsolate(value)` (`\u2068...\u2069`)، وتطبيق العزل ثنائي الاتجاه على الأرقام التسلسلية للشهادات وأكواد الجلسات في `CertificatesScreens.tsx`, `VerifyScreen.tsx`, `LiveSessionScreen.tsx` |
+| **A11Y-30→35 المناطق الحية `<LiveRegion>`** | ✅ منجز | دعم `politeness` في `LiveRegion` وتطبيقه على عدّاد الحضور الحي في `LiveSessionScreen.tsx` وعدد نتائج التصفية في `ExploreScreens.tsx` و`UsersScreen.tsx` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 55 عنصر ضغط · 195 `<Icon>` · **40/40 شاشة h1** · **40/40 شاشة بمعلم `<Screen>`** · 0 أخطاء / 0 تحذيرات
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: 104 نصًا في 22 ملفًا · 0 تراجع ✓
+- `parity`: 1147 مفتاحًا ✓
+- `rpc:check`: 65 نداء / 114 دالة ✓
+- `sql:check`: 30 ملفًا · 137 دالة SECURITY DEFINER · 0 أخطاء ✓
+- `rpc:types`: 84 دالة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` / `test:load` / `test:e2e`: **62/62** ✓
+
+---
+
+# الموجة C (Wave C) — الداتا والأداء (DATA + PERF) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **DATA-01 / DATA-02 تأمين سياسات RLS و`InitPlan`** | ✅ منجز | `supabase/migrations/0032_wave_c_security_rpcs_indexes.sql`: تحديث `my_profile_id()` و`my_role()` لاستخدام `(SELECT auth.uid())`، وإعادة تعريف سياسات RLS عبر 30 جدولًا بـ `TO authenticated` صريحة ولفّ كل دوال السياق داخل `(SELECT ...)` (InitPlan)، واستبدال `USING (true)` على `course_roles` بسياسة مقيدة للمسجلين والطاقم |
+| **DATA-04 استكمال محددات التردد الخادمية** | ✅ منجز | `0032_wave_c_security_rpcs_indexes.sql`: إضافة `_check_rate_limit` وتطبيق سقف المعدل المنزلق على `submit_support_request` (10/ساعة) و`submit_course_rating` (15/ساعة) |
+| **DATA-10→13 الـ8 Read-Model RPCs وإيقاف `selectAll` على الجداول النامية** | ✅ منجز | تنفيذ `get_my_home`, `get_my_wallet`, `get_leaderboard`, `list_notifications`, `get_admin_overview`, `get_course_detail`, `get_session_detail`, `list_pending_actions` في `0032` + دوال العميل في `src/data/actions.ts` + توليد الأنواع في `src/types/database.ts` (93 دالة) + استبدال `selectAll('sessions')` بـ `selectSessionWindow()` في `src/data/remote.ts` وتحويل الجداول النامية إلى `selectRecent` محدود |
+| **DATA-20→26 الفهارس المركّبة والـBRIN والـMaterialized Views والـTimeouts** | ✅ منجز | `0032_wave_c_security_rpcs_indexes.sql`: 11 فهرسًا مركبًا/جزئيًا + 3 فهارس BRIN (`attendance`, `point_events`, `audit_log`) + ضبط `autovacuum` للجداول الساخنة + 3 عروض مادية (`mv_batch_stats`, `mv_leaderboard_week`, `mv_admin_overview`) مع فهارس فريدة ودالة `refresh_analytics_views()` (CONCURRENTLY) + ضبط `statement_timeout` (`5s` لـ `authenticated` و`2s` لـ `anon`) |
+| **DATA-30→32 / DATA-50→56 سياسة الاحتفاظ وجدول `metrics_snapshot`** | ✅ منجز | `0032_wave_c_security_rpcs_indexes.sql`: دالة `prune_retention_tables()` (الإشعارات المقروءة 180 يومًا، السجلات والنقاط 730 يومًا، الحضور 1095 يومًا) + جدول `metrics_snapshot` ودالة `capture_metrics_snapshot()` لمؤشرات SLO |
+| **DATA-35→40 تقييد Realtime وإيقافه في الخلفية** | ✅ منجز | `src/data/remote.ts` و`src/data/store.tsx`: فلترة `notifications` و`point_events` بـ `user_id=eq.<profileId>`، وإيقاف القناة تلقائيًا عند انتقال `AppState` إلى `background`/`inactive` وإعادة وصلها مع مزامنة فورية عند `active`، وتهدئة `refresh` الاحتياطي بـ `150ms` |
+| **PERF-10 تحميل كسول لـ `svgStrings.ts` (57KB)** | ✅ منجز | `src/design/illustrations/*.tsx`: تحويل استيراد `svgStrings.ts` إلى `import('./svgStrings')` ديناميكي لفصله عن الحزمة الحرجة الأولية |
+| **PERF-20 تحويل القوائم الطويلة إلى `FlatList`** | ✅ منجز | تحويل القوائم في `NotificationsScreen.tsx`, `UsersScreen.tsx`, `JourneyScreens.tsx › AttendanceHistoryScreen`, `GamificationScreens.tsx › WalletScreen & LeagueScreen`, `ExploreScreens.tsx › ExploreScreen`, `CertificatesScreens.tsx › CertificatesScreen` من `ScrollView` إلى `FlatList` مع `keyExtractor` و`initialNumToRender` و`windowSize` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 55 عنصر ضغط · 195 `<Icon>` · 40/40 شاشة h1 · 40/40 شاشة `<Screen>` · 0 أخطاء
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: **103 نصًا** في 22 ملفًا (تحسّن ملف واحد وتثبيت السقف) ✓
+- `parity`: 1147 مفتاحًا ✓
+- `rpc:check`: 65 نداء / **126 دالة خادمية** ✓
+- `sql:check`: **32 ملفًا** · 787 عبارة · 175 محلَّلة نحويًا · 161 دالة · **153 دالة SECURITY DEFINER (0 بلا search_path)** · 0 بلا تحكم وصول ✓
+- `rpc:types`: **93 دالة** متطابقة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` (5/5) / `test:load` (p95 = 0.84ms) / `test:e2e` (**62/62**) ✓
+
+---
+
+# الموجة D (Wave D) — فطن والأصول والبصريات والوظائف المتبقية (MASCOT + DESIGN + FUNC) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **DESIGN-01→08 سلالم التوكينز البصرية والحركية** | ✅ منجز | `src/design/tokens.ts`: إضافة `elevation[0..4]`، وتوسيع `zIndex` (`dropdown`, `overlay`)، وإضافة `glassLevels` (`thin`, `thick`, `fallback`)، وإضافة `motionTokens` (`instant: 80ms`, `fast: 150ms`, `normal: 250ms`, `slow: 400ms`, `springGentle`, `springSnappy`, `reduced: 0ms`) |
+| **MASCOT M2 + M3 سلم الريندر وحارس المنسق المركزي** | ✅ منجز | `src/design/mascot/MascotProvider.tsx` و`src/design/mascot/index.ts`: إنشاء `MascotProvider` و`useMascotStage` لمنع ظهور أكثر من تميمة نشطة على الشاشة في آن واحد (`claimStage`), مع سلم التراجع الثابت (`MascotStage` → `MascotSvgFallback` → `FATEN_STATIC_FRAMES`) لـ12 حالة كاملة (`12/12` من `FatenBehaviorState`) واحترام `isReducedMotion()` |
+| **ASSET-01→06 فهرس الأصول الموحّد** | ✅ منجز | `assets/manifest.json`: توثيق جميع أصول الهوية وأيقونات PWA والتميمة والرسوم التوضيحية مع ميزانية الحجم القصوى (`≤ 200KB`) والتراخيص (`MIT`, `OFL-1.1`, `Proprietary`) |
+| **FUNC-13 / FUNC-04 تصدير الشهادة PNG @2x + تثبيت QR في PDF + Open Badges 3.0** | ✅ منجز | `src/features/certificates/CertificatesScreens.tsx`: إضافة `exportCertificatePng()` لتوليد صورة `@2x` (`1600×1120`) عبر `HTMLCanvasElement` مع الـQR والختم وتنزيلها كملف `.png`، وتثبيت إحداثيات QR في قالب PDF (`position:absolute; bottom:16mm; left:18mm; width:32mm; height:32mm`) مع خطوط عربية أصيلة، وإضافة زر `exportOpenBadge()` لنسخ وثيقة `Open Badges 3.0` (`VerifiableCredential`) عبر `publicBadgeAssertion(cert.serial)` |
+| **FUNC-15 رقم مرجع التذكرة والبحث برقم الخطأ (`MSR-XXXXXX`)** | ✅ منجز | `src/features/notifications/RequestsScreen.tsx` و`src/features/profile/ProfileScreens.tsx › SupportScreen`: عرض الرقم المرجعي للتذكرة (`MSR-XXXXXX`) فور إرسال الطلب، وإضافة بطاقة بحث للمشرفين والأدمن عبر `getErrorByRef(ref)` لعرض سجل الخطأ المرتبط |
+| **FUNC-08 شريط طابور عدم الاتصال والمزامنة الفورية** | ✅ منجز | `src/design/components.tsx › OfflineQueueBanner` و`src/app/RootNavigator.tsx › TabsScaffold`: إظهار عدد العمليات المؤجلة (`pendingQueueCount`) وحالة الاتصال مع زر مزامنة فوري يستدعي `flushOfflineQueue()` |
+| **FUNC-18 تطبيع الأرقام العربية واللصق في حقول الأكواد** | ✅ منجز | `src/features/courses/JoinBatchScreen.tsx` و`src/features/attendance/ScannerScreen.tsx`: تحويل الأرقام العربية المشرقية والفارسية (`٠-٩` / `۰-۹`) تلقائيًا إلى `0-9` وإزالة المسافات والشرطات عند اللصق |
+| **FUNC-03 تصدير جدول المجموعة الكامل `.ics`** | ✅ منجز | `src/features/journey/JourneyScreens.tsx › JourneyMapScreen`: زر تصدير جميع جلسات المجموعة التدريبية كملف تقويم `.ics` موحّد عبر `buildIcs` و`saveIcs` |
+
+**التحقق المقيس (`npm run test:all`):**
+- `typecheck`: 0 أخطاء
+- `a11y`: 58 عنصر ضغط · 199 `<Icon>` · 40/40 شاشة h1 · 40/40 شاشة `<Screen>` · 0 أخطاء / 0 تحذيرات
+- `hooks:check`: 188 مكوّنًا · 0 مخالفة
+- `contrast`: 51 زوجًا × 3 ثيمات ✓
+- `i18n:lint`: **101 نصًا** في **21 ملفًا** (تنظيف `CertificatesScreens.tsx` بالكامل وتثبيت السقف الجديد) ✓
+- `parity`: **1158 مفتاحًا** متطابقًا في `ar.ts` و`en.ts` ✓
+- `rpc:check`: 65 نداء / 126 دالة خادمية ✓
+- `sql:check`: 32 ملفًا · 153 دالة SECURITY DEFINER · 0 أخطاء ✓
+- `rpc:types`: 93 دالة ✓
+- `test:engine` / `test:rls` / `test:search` / `test:calendar` / `test:perf` / `test:pentest` (5/5) / `test:load` (p95 = 1.06ms) / `test:e2e` (**62/62**) ✓
+
+---
+
+# الموجة E (Wave E) — الجاهزية والتوثيق وبوابات الإطلاق (WEB + OPS + DOC + G-1…G-8) (29 سبتمبر 2026)
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **WEB-02 Service Worker (`public/sw.js`) وتسجيله** | ✅ منجز | `public/sw.js` و`public/index.html` و`vercel.json`: تخزين القشرة الثابتة (`App Shell`) والأصول المجزأة (`/_expo/static/*`) باستراتيجية `Cache-First` للأصول غير القابلة للتغيير و`Network-First` للتنقل مع استثناء تام لطلبات Supabase (`/rest/v1`, `/auth/v1`, `/realtime/v1`, `/storage/v1`, `/functions/v1`) ورأس `no-cache` لـ`/sw.js` |
+| **WEB-05 صفحة `public/404.html` المخصّصة** | ✅ منجز | `public/404.html`: صفحة 404 عربية أصيلة (`dir="rtl"`) تدعم الوضعين الفاتح والداكن تلقائيًا ومعلم `role="main"` وزر عودة مباشر للرئيسية |
+| **PERF-01→06 تقسيم الشاشات الكسول (`Code Splitting`)** | ✅ منجز | `src/app/RootNavigator.tsx`: تحويل جميع مسارات الشاشات إلى `lazyScreen(...)`، مما رفع عدد حزم الويب (`dist/_expo/static/js/web`) من **8 حزم** إلى **24 حزمة** مستقلة وخفّض الحزمة الأولية (`index-*.js`) من **`2150KB (564KB gz)`** إلى **`1710KB (446KB gz)`** (`-440KB` خام / **`-118KB` مضغوطة gzip**) |
+| **DOC-01 بيان الوصول وسياسة الخصوصية والاحتفاظ** | ✅ منجز | إنشاء `docs/ACCESSIBILITY_STATEMENT.md` (مطابقة WCAG 2.2 AA/AAA، قارئات الشاشة، الكيبورد، التباين، وتكبير 200%) و`docs/PRIVACY_AND_RETENTION.md` (معمارية Zero-Trust RLS، إخفاء PII، جداول الاحتفاظ `prune_retention_tables()`، وتصدير/حذف الحساب) |
+
+---
+
+# شهادة بوابات الإطلاق الرسمية (Release Gates G-1 → G-8)
+
+| البوابة | المعيار | الحالة | الدليل الرقمي المُقاس |
+| --- | --- | --- | --- |
+| **G-1: السلامة البرمجية والأنواع** | `tsc --noEmit` = 0 أخطاء + `hooks:check` = 0 مخالفة + `rpc:types` متطابق | ✅ **PASS** | `typecheck`: 0 أخطاء · `hooks:check`: 193 مكوّنًا (0 مخالفة) · `rpc:types`: 93 دالة متطابقة · `rpc:check`: 65 نداء / 126 دالة خادمية |
+| **G-2: انعدام الثقة وأمن قاعدة البيانات** | كل الجداول بـRLS `authenticated` + InitPlan + 0 `SECURITY DEFINER` بلا `search_path` + اجتياز `test:pentest` و`test:rls` | ✅ **PASS** | `sql:check`: 32 ملفًا · 787 عبارة · 161 دالة · **153 دالة SECURITY DEFINER (0 بلا `search_path`، 0 بلا تحكم وصول)** · `test:pentest`: 5/5 · `test:rls`: 15/15 |
+| **G-3: إمكانية الوصول الشاملة (WCAG 2.2 AA)** | 40/40 شاشة بمعلم `<Screen>` وعنوان `h1` + حبس التركيز في `<Modal>` + بديل السحب + تباين 51 زوجًا × 3 ثيمات | ✅ **PASS** | `a11y`: 56 عنصر ضغط · 197 `<Icon>` · **40/40 شاشة h1** · **40/40 شاشة `<Screen>`** · 0 أخطاء / 0 تحذيرات · `contrast`: **51 زوجًا × 3 ثيمات** (0 فشل) |
+| **G-4: الأصالة العربية والتعريب (RTL & i18n)** | تطابق 100% بين `ar.ts` و`en.ts` + 0 تراجع في النصوص المضمّنة + عزل Bidi + تطبيع الأرقام | ✅ **PASS** | `parity`: **1158 مفتاحًا** في القاموسين · `i18n:lint`: 101 نصًا في 21 ملفًا (تحسّن عن خط الأساس 104 في 22 ملفًا) · `test:search`: 32/32 · `test:calendar`: ناجح |
+| **G-5: الأداء وتقسيم الحزم (Performance & Bundle)** | تقسيم كسول للشاشات والأصول الثقيلة (`svgStrings`) + `FlatList` للقوائم الطويلة + اجتياز اختبار الحمل | ✅ **PASS** | `export:web`: **24 حزمة مقسّمة** (الحزمة الأولية انخفضت بـ **118KB gzip** إلى **446KB gz**) · `test:perf`: ناجح · `test:load`: 1000 عملية، **p95 = 1.03ms** (< 1000ms)، خطأ **0.00%** |
+| **G-6: الصمود دون اتصال (Offline Resilience)** | طابور أوامر غير قابل للتكرار (`command_log`) + `OfflineQueueBanner` + Service Worker (`public/sw.js`) | ✅ **PASS** | `OfflineQueueBanner` متصل بـ `pendingQueueCount` و`flushOfflineQueue` + `public/sw.js` مسجل في `public/index.html` |
+| **G-7: تميمة «فطن» والهوية البصرية** | 12/12 حالة سلوكية + حارس `MascotStage` + تراجع ثابت مع `isReducedMotion()` + `assets/manifest.json` | ✅ **PASS** | `MascotProvider.tsx` يغطي 12/12 حالة من `FatenBehaviorState` + `assets/manifest.json` يوثّق الأصول وميزانيات الأحجام (`≤ 200KB`) |
+| **G-8: التكامل الشامل وجاهزية النشر** | اجتياز `test:engine` و`test:e2e` بنسبة 100% + رؤوس الأمان في `vercel.json` + التوثيق الرسمي | ✅ **PASS** | `test:engine`: **68/68** · `test:e2e`: **62/62** · `vercel.json`: CSP + HSTS + nosniff + DENY + Permissions-Policy · `ACCESSIBILITY_STATEMENT.md` & `PRIVACY_AND_RETENTION.md` |
+
+---
+
+# الموجة E (Wave E) — إصلاح الأعطال الحرجة + الأداء + توحيد التصميم (29 سبتمبر 2026)
+
+> الخطة المرافقة: `docs/UPGRADE_PLAN_2026-09-29.md`. كل البند أدناه مقيّس — بلا ادعاء بلا قياس.
+
+| البند | الوضع | الدليل المقيس |
+| --- | --- | --- |
+| **P0 خطأ الأدمن/المتطوع (PGRST203)** | ✅ مُصلَّح في DB الحيّ | قبل: 3 بصمات لـ`admin_update_user_access` (pg_proc oids 18983/19267/19305) + 4 نداءات PostgREST كلها `PGRST203`. بعد: `0033_unify_admin_update_user_access.sql` (إسقاط بصمتَي 3-arg و4-arg) ⇒ pg_proc = **بصمة واحدة** + نفس النداءات ⇒ `42501` (صلاحيات سليمة لمفتاح anon؛ الأدمن الموثَّق ينفّذ) + `sql:check` 0 مخالفات |
+| **P1 تعتيق أحداث Realtime** | ✅ | `remote.ts applyRealtimePatch`: `deepClone` كامل القاعدة لكل حدث → نسخة سطحية + `upsert` يعيد مصفوفة جديدة للجدول المتأثر فقط؛ كتلة المقاعد بعد حدث `enrollments` صارت `map` (لا تعديل كائن قديم)؛ `store.tsx writeCache`: coalescing ≤ كل 400ms بدل stringify كامل في كل حدث (فوري للتعطيل/الحذف فقط)؛ `markNotificationsRead`: `map` على الإشعارات بدل clone كامل |
+| **P2 عاصفة الـ refresh** | ✅ | `store.tsx` (AppState active): لا سحب 24 جدولًا إلا عند قِدَم > 60s أو فشل sync — `flushOfflineQueue()` دائمًا و`refresh()` مشروط؛ Realtime يتصل/يفصل مع دورة حياة الخلفية (WIP مكمَّل) |
+| **P3 توحيد التصميم** | ✅ | توكنز `navBar` (68/8/27) في `tokens.ts` + الحجز السفلي في `RootNavigator` من التوكنز (كان 104 ثابتًا ⇒ شريط رمادي ميت)؛ إزالة الحجز المزدوج من 13 شاشة تبويب؛ غلاف `gap: s3` لقوائم العذر/التقارير/المجموعات/المراجعات المتلاصقة؛ `ListRow grow` + شبكة KPI 48% + صناديق الأيقونات على `sizes/radii` + أحجام كسرية → سلّم `typeScale` + `glassHeavy/certGold/cardElevated` بدل القيم المباشرة |
+| **P3 skeleton حقيقي** | ✅ | `PageSkeleton` جديد (fallback الشاشات الكسولة بدل `ActivityIndicator`) + `SkeletonList` مكان سطر «جارٍ التحميل» الجامد في `HubScreens`/`SessionsHistory` |
+| **التحقق** | ✅ | `typecheck` 0 · `a11y`/`hooks`/`contrast`/`i18n:lint`/`parity`(1158)/`rpc:check`(65/126)/`sql:check`(0) · `test:engine` **68/68** · `test:e2e` **62/62** · `export:web` exit 0 (24 حزمة مقسّمة) |
+
+**ملاحظة حوكمة:** `origin/main` (967a57a) والفروع محلية متباينة (~±1000 سطر: main بلا wave-c/d، والفروع بلا 0033) — الدمج قرار المستخدم.
+**ملاحظة قياسية:** DB الحيّ صغيرة (audit_log 52 صفًا، sessions 33) — «ثقل القاعدة» كان وهمًا؛ الثقيلة كانت مزامنة العميل (24 طلبًا لكل foreground) وتُعالج في P1/P2.
+
+
+

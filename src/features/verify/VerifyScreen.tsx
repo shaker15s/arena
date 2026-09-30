@@ -9,10 +9,11 @@ import { verifyCertificate } from '../../data/actions';
 import type { VerifiedCertificate } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Avatar, Btn, Card, FadeIn, Header, Input, Row, Spacer, Txt } from '../../design/components';
+import { Avatar, Btn, Card, FadeIn, Header, Input, Row, Screen, Spacer, Txt } from '../../design/components';
 import { spacing, radii } from '../../design/tokens';
-import { formatDate } from '../../shared/format';
+import { bidiIsolate, formatDate } from '../../shared/format';
 import { Icon } from '../../design/icons';
+import { safeBack } from '../../app/navRef';
 
 export function VerifyScreen({ navigation, route }: any) {
   const { t, lang } = useI18n();
@@ -52,8 +53,8 @@ export function VerifyScreen({ navigation, route }: any) {
   const found = result && typeof result !== 'string' ? result : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <Header title={t('verify.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
+    <Screen label={t('verify.title')} style={{ flex: 1, backgroundColor: theme.bg }}>
+      <Header title={t('verify.title')} back={() => safeBack(navigation)} />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.s5,
@@ -181,14 +182,14 @@ export function VerifyScreen({ navigation, route }: any) {
                   <InfoRow label={t('verify.course')} value={found.course_title} icon="book" />
                   <InfoRow label={t('common.branch')} value={found.branch_name} icon="business" />
                   <InfoRow label={t('verify.issuedAt')} value={formatDate(new Date(found.issued_at).getTime(), lang)} icon="calendar" />
-                  <InfoRow label={t('certs.serial')} value={found.serial} icon="barcode" />
+                  <InfoRow label={t('certs.serial')} value={bidiIsolate(found.serial)} icon="barcode" />
                 </View>
               </View>
             </Card>
           </FadeIn>
         ) : null}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 

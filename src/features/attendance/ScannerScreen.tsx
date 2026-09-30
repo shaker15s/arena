@@ -50,7 +50,8 @@ import { MasarMascot } from '../../design/mascot';
 import { spacing, radii, sizes } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { Icon } from '../../design/icons';
-import { VisuallyHidden } from '../../design/a11y/semantics';
+import { Screen, VisuallyHidden } from '../../design/a11y/semantics';
+import { safeBack } from '../../app/navRef';
 
 async function haptic(kind: 'success' | 'error' | 'warning') {
   if (Platform.OS === 'web') return;
@@ -276,7 +277,7 @@ export function ScannerScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.rootContainer}>
+    <Screen label={t('scanner.title')} style={styles.rootContainer}>
       {/* A11Y-04: عنوان الشاشة الدلالي — الشاشة بملء الشاشة بلا رأس مرئي */}
       <VisuallyHidden heading="h1">{t('scanner.title')}</VisuallyHidden>
       {/* 1. الكاميرا بكامل الشاشة (Full-bleed) */}
@@ -321,7 +322,7 @@ export function ScannerScreen({ navigation }: any) {
         <Row between center style={styles.headerRow}>
           <IconGlassButton
             icon={<Icon name="close" size={22} color="#FFF" />}
-            onPress={() => navigation.goBack()}
+            onPress={() => safeBack(navigation)}
             accessibilityLabel={t('common.close')}
           />
 
@@ -504,14 +505,19 @@ export function ScannerScreen({ navigation }: any) {
               ref={inputRef}
               value={code}
               onChangeText={(v) => {
-                const cleaned = v.replace(/[^\d]/g, '').slice(0, 6);
+                const normalized = v
+                  .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+                  .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+                const cleaned = normalized.replace(/[^\d]/g, '').slice(0, 6);
                 setCode(cleaned);
                 if (cleaned.length === 6) {
                   void doCheck(cleaned);
                 }
               }}
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={12}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
               style={styles.hiddenInput}
               autoFocus={false}
             />
@@ -535,7 +541,7 @@ export function ScannerScreen({ navigation }: any) {
         visible={success != null}
         onClose={() => {
           setSuccess(null);
-          navigation.goBack();
+          safeBack(navigation);
         }}
         points={success?.points ?? 10}
         status={success?.status ?? 'present'}
@@ -543,7 +549,7 @@ export function ScannerScreen({ navigation }: any) {
         already={success?.already ?? false}
         sessionTitle={liveSess?.title}
       />
-    </View>
+    </Screen>
   );
 }
 

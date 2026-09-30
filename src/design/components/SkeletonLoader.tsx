@@ -186,9 +186,37 @@ export function KpiCardSkeleton() {
   );
 }
 
+/**
+ * هيكل صفحة عام (fallback الشاشات الكسولة في RootNavigator) —
+ * يحاكي شكل الشاشة القياسية: عنوان + صف مؤشرات + بطاقات،
+ * بدل دائرة ActivityIndicator المجردة التي كانت الوحيدة أثناء التحميل.
+ */
+export function PageSkeleton() {
+  return (
+    <View style={styles.pageSkeleton}>
+      <View style={styles.row}>
+        <Skeleton width="40%" height={22} />
+      </View>
+      <View style={{ height: 16 }} />
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={{ flex: 1 }}><Skeleton height={76} borderRadius={radii.lg} /></View>
+        <View style={{ flex: 1 }}><Skeleton height={76} borderRadius={radii.lg} /></View>
+      </View>
+      <View style={{ height: 16 }} />
+      <ExploreCardSkeleton />
+      <ExploreCardSkeleton />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   skeletonBase: {
     overflow: 'hidden',
+  },
+  pageSkeleton: {
+    flex: 1,
+    padding: 20,
+    gap: 12,
   },
   cardSkeleton: {
     padding: 16,

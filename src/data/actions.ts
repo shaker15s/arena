@@ -905,3 +905,71 @@ export async function setMyTimezone(timezone: string): Promise<{ ok: boolean; ti
 export async function publicBadgeAssertion(serial: string): Promise<Record<string, unknown> | null> {
   return rpc<Record<string, unknown> | null>('public_badge_assertion', { p_serial: serial });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA-10 .. DATA-13 & DATA-50 — Read-Model RPCs & SLO Metrics
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function getMyHome(): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('get_my_home');
+}
+
+export async function getMyWallet(limit = 50, cursor?: string): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('get_my_wallet', {
+    p_limit: limit,
+    p_cursor: cursor ?? null,
+  });
+}
+
+export async function getLeaderboard(
+  tier?: string,
+  branchId?: string,
+  limit = 50,
+): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('get_leaderboard', {
+    p_tier: tier ?? null,
+    p_branch_id: branchId ?? null,
+    p_limit: limit,
+  });
+}
+
+export async function listNotifications(
+  limit = 50,
+  cursor?: string,
+  unreadOnly = false,
+): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('list_notifications', {
+    p_limit: limit,
+    p_cursor: cursor ?? null,
+    p_unread_only: unreadOnly,
+  });
+}
+
+export async function getAdminOverview(branchId?: string): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('get_admin_overview', {
+    p_branch_id: branchId ?? null,
+  });
+}
+
+export async function getCourseDetail(courseId: string): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('get_course_detail', {
+    p_course_id: courseId,
+  });
+}
+
+export async function getSessionDetail(sessionId: string): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('get_session_detail', {
+    p_session_id: sessionId,
+  });
+}
+
+export async function listPendingActions(limit = 50): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('list_pending_actions', {
+    p_limit: limit,
+  });
+}
+
+export async function captureMetricsSnapshot(): Promise<Record<string, unknown>> {
+  return rpc<Record<string, unknown>>('capture_metrics_snapshot');
+}
+

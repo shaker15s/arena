@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, I18nManager, Platform, Pressable, ToastAndroid, View } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { Animated, BackHandler, I18nManager, Keyboard, Platform, Pressable, ToastAndroid, View } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme, getStateFromPath as defaultGetStateFromPath } from '@react-navigation/native';
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,33 +11,18 @@ import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Btn, Card, FadeIn, Spacer, Txt } from '../design/components';
+import { Btn, Card, FadeIn, OfflineQueueBanner, PageSkeleton, Spacer, Txt } from '../design/components';
 import { AppBackground, ContentFrame } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
-import { radii, spacing } from '../design/tokens';
+import { navBar, radii, spacing } from '../design/tokens';
 import { useHaptics } from '../shared/hooks';
 import { PUBLIC_APP_URL } from '../shared/links';
-import { navigationRef } from './navRef';
+import { navigationRef, safeBack } from './navRef';
 import { hasSeenOnboarding } from '../shared/onboarding';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { SkipLink, Screen as SemanticScreen } from '../design/a11y/semantics';
 import { announce } from '../design/a11y/announce';
 
-import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
-import { VerifyScreen } from '../features/verify/VerifyScreen';
-import { TodayScreen } from '../features/today/TodayScreen';
-import { ExploreScreen, CourseDetailsScreen } from '../features/explore/ExploreScreens';
-import { JourneyScreen, JourneyMapScreen, AttendanceHistoryScreen } from '../features/journey/JourneyScreens';
-import { ScannerScreen } from '../features/attendance/ScannerScreen';
-import { WalletScreen } from '../features/gamification/GamificationScreens';
-import { CertificatesScreen } from '../features/certificates/CertificatesScreens';
-import { ExcusesScreen, ExcusesInboxScreen } from '../features/excuses/ExcusesScreens';
-import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
-import { RequestsScreen } from '../features/notifications/RequestsScreen';
-import { ProfileScreen } from '../features/profile/ProfileScreens';
-import { VolunteerTodayScreen, MyBatchesScreen } from '../features/volunteer/VolunteerScreens';
-import { LiveSessionScreen } from '../features/volunteer/LiveSessionScreen';
-import { JoinBatchScreen } from '../features/courses/JoinBatchScreen';
 import { Icon } from '../design/icons';
 
 // ─── مغلّف التحميل الكسول (Code Splitting) ───
@@ -51,9 +36,11 @@ function lazyScreen(importer: () => Promise<any>, name: string) {
     const { theme } = useTheme();
     return (
       <React.Suspense
+        // PERF-UX: هيكل رمادي مطابق لشكل الصفحة (نمط التطبيقات الكبيرة)
+        // بدل دائرة التحميل المجردة — المستخدم يرى هيكل المحتوى أثناء تحميل الكود.
         fallback={
-          <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color={theme.brand} />
+          <View style={{ flex: 1, backgroundColor: theme.bg }}>
+            <PageSkeleton />
           </View>
         }
       >
@@ -63,7 +50,29 @@ function lazyScreen(importer: () => Promise<any>, name: string) {
   };
 }
 
-// شاشات ثانوية وإدارية مُحمّلة كسولاً عند الطلب لتقليص حزمة الويب
+// شاشات التطبيق مُحمّلة كسولاً عند الطلب لتقليص حزمة الويب الأولية (PERF-01→06)
+const OnboardingScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'OnboardingScreen');
+const SignInScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'SignInScreen');
+const CompleteProfileScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'CompleteProfileScreen');
+const TodayScreen = lazyScreen(() => import('../features/today/TodayScreen'), 'TodayScreen');
+const ExploreScreen = lazyScreen(() => import('../features/explore/ExploreScreens'), 'ExploreScreen');
+const JourneyScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'JourneyScreen');
+const ProfileScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'ProfileScreen');
+const VerifyScreen = lazyScreen(() => import('../features/verify/VerifyScreen'), 'VerifyScreen');
+const CourseDetailsScreen = lazyScreen(() => import('../features/explore/ExploreScreens'), 'CourseDetailsScreen');
+const JourneyMapScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'JourneyMapScreen');
+const AttendanceHistoryScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'AttendanceHistoryScreen');
+const ScannerScreen = lazyScreen(() => import('../features/attendance/ScannerScreen'), 'ScannerScreen');
+const WalletScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'WalletScreen');
+const CertificatesScreen = lazyScreen(() => import('../features/certificates/CertificatesScreens'), 'CertificatesScreen');
+const ExcusesScreen = lazyScreen(() => import('../features/excuses/ExcusesScreens'), 'ExcusesScreen');
+const ExcusesInboxScreen = lazyScreen(() => import('../features/excuses/ExcusesScreens'), 'ExcusesInboxScreen');
+const NotificationsScreen = lazyScreen(() => import('../features/notifications/NotificationsScreen'), 'NotificationsScreen');
+const RequestsScreen = lazyScreen(() => import('../features/notifications/RequestsScreen'), 'RequestsScreen');
+const VolunteerTodayScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'VolunteerTodayScreen');
+const MyBatchesScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'MyBatchesScreen');
+const LiveSessionScreen = lazyScreen(() => import('../features/volunteer/LiveSessionScreen'), 'LiveSessionScreen');
+const JoinBatchScreen = lazyScreen(() => import('../features/courses/JoinBatchScreen'), 'JoinBatchScreen');
 const CourseManagementScreen = lazyScreen(() => import('../features/courses/CourseManagementScreen'), 'CourseManagementScreen');
 const OrgWizardScreen = lazyScreen(() => import('../features/org/WizardScreen'), 'OrgWizardScreen');
 const DashboardScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'DashboardScreen');
@@ -101,26 +110,17 @@ const screenOpts = {
   presentation: 'card' as const,
   contentStyle: { backgroundColor: 'transparent' },
 };
+const TAB_SLUGS = new Set([
+  'today', 'journey', 'explore', 'gamification', 'profile',
+  'dash', 'org', 'users', 'hub', 'batches', 'live', 'inbox', 'history',
+]);
+
 const linking = {
   prefixes: [Linking.createURL('/'), ...(PUBLIC_APP_URL ? [PUBLIC_APP_URL] : [])],
   config: {
+    initialRouteName: 'Tabs' as const,
     screens: {
-      Tabs: {
-        path: '',
-        screens: {
-          today: 'today',
-          journey: 'journey',
-          explore: 'explore',
-          gamification: 'gamification',
-          profile: 'profile',
-          dash: 'dash',
-          org: 'org',
-          users: 'users',
-          hub: 'hub',
-          batches: 'batches',
-          history: 'history',
-        },
-      },
+      Tabs: '',
       Notifications: 'notifications',
       Requests: 'requests',
       CourseDetails: 'course/:courseId',
@@ -134,6 +134,7 @@ const linking = {
       Certificates: 'certificates',
       CertificateViewer: 'certificate/:certId',
       Excuses: 'excuses',
+      ExcusesInbox: 'admin/excuses',
       RulesGuide: 'rules',
       Support: 'support',
       Settings: 'settings',
@@ -151,6 +152,15 @@ const linking = {
       CompleteProfile: 'complete-profile',
       NotFound: '*',
     },
+  },
+  getStateFromPath(path: string, options: any) {
+    const clean = path.replace(/^\/+|\/+$/g, '').split('?')[0];
+    if (clean && TAB_SLUGS.has(clean)) {
+      return {
+        routes: [{ name: 'Tabs', params: { tab: clean === 'history' ? 'journey' : clean } }],
+      };
+    }
+    return defaultGetStateFromPath(path, options);
   },
 };
 
@@ -252,10 +262,38 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const fabScale = useRef(new Animated.Value(1)).current;
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // A11Y-12 (WCAG 2.4.11): إخفاء الشريط السفلي والـ FAB عند ظهور لوحة المفاتيح على الجوال لمنع حجب الحقل النشط
+  useEffect(() => {
+    if (Platform.OS === 'web') return undefined;
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardOpen(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardOpen(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  if (keyboardOpen && Platform.OS !== 'web') return null;
 
   return (
     <View
       pointerEvents="box-none"
+      onLayout={(e) => {
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+          const h = Math.ceil(e.nativeEvent.layout.height);
+          if (h > 0) {
+            document.documentElement.style.setProperty('--masar-tabbar-h', String(h + 32) + 'px');
+          }
+        }
+      }}
       // A11Y-05: معلم تنقّل حقيقي على الويب (قارئ الشاشة يقفز إليه بـ D/N في NVDA).
       {...(Platform.OS === 'web'
         ? ({ role: 'navigation', 'aria-label': t('a11y.mainNav') } as unknown as object)
@@ -398,19 +436,39 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   }, [requestedTab, renders, visitedTabs]);
 
   const handleSelectTab = (newTab: string) => {
+    handledRequest.current = newTab;
     visitedTabs.add(newTab);
     setTab(newTab);
     // A11Y-13: تغيير التبويب إجراء تنقّل لا انتقال كامل — نُعلن اسم التبويب.
     const def = tabs.find((x) => x.key === newTab);
-    if (def?.label) announce(def.label, 'polite');
+    if (def?.label) {
+      announce(def.label, 'polite');
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.title = `${def.label} — ${t('common.appName')}`;
+      }
+    }
   };
 
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const def = tabs.find((x) => x.key === tab);
+      if (def?.label) {
+        document.title = `${def.label} — ${t('common.appName')}`;
+      }
+    }
+  }, [tab, tabs, t]);
+
   const ctx = useMemo(() => ({ tab, setTab: handleSelectTab }), [tab]);
+  const { online, pendingQueueCount, flushOfflineQueue } = useApp();
 
   return (
     <TabsContext.Provider value={ctx}>
       <View style={{ flex: 1 }}>
-        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: 104 + Math.max(insets.bottom, 8) }}>
+        {/* DESIGN-01: الحجز السفلي من توكينز navBar واحد — كان 104 ثابتًا (شريط بلا
+          FAB = 76 فعليًا ⇒ 28px شريط رمادي ميت فوق الناف بار) + كل شاشة تضيف
+          paddingBottom خاصًا بها (110–130) فتتراكم فجوة 200px+. */}
+        <ContentFrame maxWidth={maxWidth} style={{ flex: 1, paddingBottom: (fab ? navBar.height + navBar.fabPoke : navBar.height) + Math.max(insets.bottom, navBar.minPad) }}>
+          <OfflineQueueBanner online={online} pendingCount={pendingQueueCount} onSync={() => { void flushOfflineQueue(); }} />
           {tabs.map((t) => {
             const isSelected = t.key === tab;
             if (!visitedTabs.has(t.key) && !isSelected) return null;
@@ -549,10 +607,12 @@ function VolunteerStack() {
       <Stack.Screen name="Tabs" component={VolunteerTabs} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
-      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} />
+      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
       <Stack.Screen name="SessionsHistory" component={SessionsHistoryScreen} />
       <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
+      <Stack.Screen name="ExcusesInbox" component={ExcusesInboxScreen} />
+      <Stack.Screen name="CertificateViewer" component={CertificateViewerScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
@@ -574,8 +634,12 @@ function AdminStack() {
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
       <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
+      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
+      <Stack.Screen name="SessionsHistory" component={SessionsHistoryScreen} />
+      <Stack.Screen name="ExcusesInbox" component={ExcusesInboxScreen} />
       <Stack.Screen name="IssueCertificates" component={IssueCertificatesScreen} />
+      <Stack.Screen name="CertificateViewer" component={CertificateViewerScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
@@ -591,7 +655,17 @@ function AdminStack() {
 
 function AuthStack() {
   const { authError } = useApp();
-  const [initial, setInitial] = useState<'Onboarding' | 'SignIn' | null>(null);
+  const [initial, setInitial] = useState<'Onboarding' | 'SignIn' | null>(() => {
+    if (authError) return 'SignIn';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        return window.localStorage.getItem('masar.onboarding.seen.v1') === '1' ? 'SignIn' : 'Onboarding';
+      } catch {
+        return 'SignIn';
+      }
+    }
+    return null;
+  });
 
   // الأونبوردينج يظهر مرة واحدة فقط: من رآه (أو حاول الدخول للتو وفشل)
   // يبدأ من شاشة الدخول مباشرة بدل إعادته للشريحة الأولى كل مرة.
@@ -649,13 +723,7 @@ function NotFoundScreen({ navigation }: any) {
               full
               size="lg"
               icon="home"
-              onPress={() => {
-                if (navigation.canGoBack?.()) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate?.(user ? 'Tabs' : 'SignIn');
-                }
-              }}
+              onPress={() => safeBack(navigation, user ? 'Tabs' : 'SignIn')}
             />
           </Card>
         </FadeIn>
@@ -698,11 +766,54 @@ function CompleteProfileStack() {
 /** معرّف معلم المحتوى الرئيسي (هدف رابط «تخطَّ إلى المحتوى» وفحوص DOM). */
 export const MAIN_LANDMARK_ID = 'masar-main';
 
+const ROUTE_TITLE_KEYS: Record<string, string> = {
+  Onboarding: 'onboarding.o1Title',
+  SignIn: 'auth.welcomeTitle',
+  CompleteProfile: 'complete.title',
+  CourseDetails: 'tabs.explore',
+  JoinBatch: 'joinCode.title',
+  JourneyMap: 'journey.map',
+  AttendanceHistory: 'history.title',
+  Scanner: 'tabs.scan',
+  Wallet: 'wallet.title',
+  League: 'league.title',
+  Achievements: 'achievements.title',
+  Certificates: 'certs.title',
+  CertificateViewer: 'certs.title',
+  Excuses: 'excuses.title',
+  ExcusesInbox: 'inbox.title',
+  Notifications: 'profile.notifications',
+  Requests: 'requests.title',
+  RulesGuide: 'rules.title',
+  Support: 'profile.support',
+  Settings: 'profile.settings',
+  Disputes: 'disputes.title',
+  Verify: 'verify.title',
+  Courses: 'org.courses',
+  BatchesAdmin: 'org.batches',
+  CourseManagement: 'org.courses',
+  StudentRecord: 'student.title',
+  SessionsHistory: 'sess.title',
+  IssueCertificates: 'certs.issueTitle',
+  Wizard: 'wizard.title',
+  NotFound: 'common.notFoundTitle',
+};
+
 // ─── الجذر ───
 export function RootNavigator() {
   const { user, needsProfile } = useApp();
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
+
+  const resolveRouteTitle = useCallback(
+    (routeName?: string) => {
+      const appName = t('common.appName');
+      if (!routeName || routeName === 'Tabs') return appName;
+      const key = ROUTE_TITLE_KEYS[routeName];
+      return key ? `${t(key as any)} — ${appName}` : appName;
+    },
+    [t],
+  );
 
   const navTheme = useMemo(() => ({
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -733,11 +844,19 @@ export function RootNavigator() {
           ref={navigationRef}
           theme={navTheme}
           linking={linking}
+          documentTitle={{
+            formatter: (_options, route) => resolveRouteTitle(route?.name),
+          }}
           // اسم الشاشة فقط (لا وسائط) — يعطي تقارير الأعطال مسار المستخدم
           // دون تسريب أي معرّفات أو محتوى.
           onStateChange={(state) => {
             const route = state?.routes?.[state.index ?? 0];
-            if (route?.name) addBreadcrumb('nav', route.name);
+            if (route?.name) {
+              addBreadcrumb('nav', route.name);
+              if (Platform.OS === 'web' && typeof document !== 'undefined' && route.name !== 'Tabs') {
+                document.title = resolveRouteTitle(route.name);
+              }
+            }
           }}
         >
           {needsProfile ? (

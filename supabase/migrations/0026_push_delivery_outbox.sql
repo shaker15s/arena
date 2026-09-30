@@ -207,7 +207,7 @@ BEGIN
     'masar-housekeeping', '7 3 * * *',
     'SELECT public.prune_checkin_attempts(); SELECT public.prune_rate_events(); SELECT public.prune_push_outbox();'
   );
-EXCEPTION WHEN undefined_function OR undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_function OR undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 COMMIT;

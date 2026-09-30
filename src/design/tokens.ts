@@ -37,7 +37,9 @@ export const sizes = {
   avatarMedium: 48,
   avatarLarge: 72,
   qrCode: 200,
+  minTarget: 24, // الحد الأدنى الإلزامي WCAG 2.5.8 AA
   touchTarget: 44, // الحد الأدنى الموصى به من Apple لإمكانية الوصول
+  iconButton: 44, // معيار أزرار الأيقونات 44×44pt
   ctaButton: 52, // معيار Apple HIG للأزرار التفاعلية الأساسية
   timeField: 64, // حقل ساعة/دقيقة (4 أرقام + مسافة) — يبقى فوق 44px لمسًا
   /** أقصى عرض لإطار المحتوى على الويب/التابلت (ContentFrame) */
@@ -145,6 +147,74 @@ export const componentTokens = {
   backButton: { size: 44, radius: 15 },
   emptyState: { iconBox: 92, iconBoxRadius: 30, emojiSize: 44 },
   sheet: { maxWidth: 620, grabberWidth: 44, grabberHeight: 5 },
+} as const;
+
+/** سلّم الارتفاع والظلال الموحّد (DESIGN 1.2) */
+export const elevation = {
+  0: { shadowColor: 'transparent', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+  1: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  2: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  3: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  4: { shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 32, shadowOffset: { width: 0, height: 16 }, elevation: 16 },
+  none: { shadowColor: 'transparent', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+  sm: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  md: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  lg: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  modal: { shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 32, shadowOffset: { width: 0, height: 16 }, elevation: 16 },
+} as const;
+
+/** سلّم الطبقات الرأسية الموحّد (DESIGN 1.2) */
+export const zIndex = {
+  base: 0,
+  sticky: 10,
+  header: 20,
+  dropdown: 25,
+  fab: 30,
+  overlay: 35,
+  sheet: 40,
+  modal: 50,
+  toast: 60,
+} as const;
+
+/**
+ * شريط التبويبات العائم — الأبعاد الثابتة لحساب الحجز السفلي الواحد (DESIGN 1.2).
+ * الحجز = الارتفاع + (بار FAB؟ ارتفاع بروزه) + max(safeArea, minPad) —
+ * مصدر الحقيقة الوحيد بدل أرقام 104/130 المتناثرة على الشاشات.
+ */
+export const navBar = {
+  height: 68,
+  minPad: 8,
+  fabPoke: 27,
+} as const;
+
+/** درجات الزجاج القياسية (DESIGN 1.3) */
+export const glassLevels = {
+  thin: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
+  subtle: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
+  regular: { intensity: 40, opacityLight: 0.72, opacityDark: 0.72 },
+  thick: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
+  heavy: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
+  fallback: { intensity: 0, opacityLight: 0.94, opacityDark: 0.94 },
+} as const;
+
+/** توكنز الحركة الموحّدة (DESIGN-06) */
+export const motionTokens = {
+  duration: {
+    instant: 80,
+    fast: 160,
+    normal: 240,
+    slow: 380,
+  },
+  easing: {
+    standard: [0.2, 0, 0, 1] as const,
+    decelerate: [0, 0, 0.2, 1] as const,
+    accelerate: [0.4, 0, 1, 1] as const,
+  },
+} as const;
+
+/** خاصية الأرقام الجدولية الموحّدة للعدادات والجداول (DESIGN 1.5) */
+export const tabularNums = {
+  fontVariant: ['tabular-nums'] as ('tabular-nums')[],
 } as const;
 
 /** إعدادات الـ Springs المعتمدة من Apple Fluid Interfaces (WWDC) */
@@ -434,6 +504,17 @@ export const typography = {
   caption: { fontSize: 13, lineHeight: 20, fontFamily: fonts.medium },
   micro: { fontSize: 11, lineHeight: 17, fontFamily: fonts.medium },
   numberHero: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
+} as const;
+
+/** سلّم التايبوغرافيا القياسي مع ربط lineHeight ≥ 1.45 للعربية (DESIGN 1.4) */
+export const typeScale = {
+  xs: typography.micro,
+  sm: typography.caption,
+  md: typography.body,
+  lg: typography.h3,
+  xl: typography.h2,
+  h1: typography.h1,
+  display: typography.display,
 } as const;
 
 /**

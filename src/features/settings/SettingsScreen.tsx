@@ -19,7 +19,7 @@ import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { useA11yPrefs, type TextScale } from '../../design/preferences';
-import { Btn, Card, CustomSwitch, FadeIn, Header, Input, Row, Segmented, Sheet, Txt } from '../../design/components';
+import { Btn, Card, CustomSwitch, FadeIn, Header, Input, Row, Screen, Segmented, Sheet, Txt } from '../../design/components';
 import { Icon } from '../../design/icons';
 import { radii, spacing } from '../../design/tokens';
 import { saveTextFile } from '../../shared/export';
@@ -136,7 +136,7 @@ export function SettingsScreen({ navigation }: any) {
   ];
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('settings.title')} style={{ flex: 1 }}>
       <Header title={t('settings.title')} back={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 100, gap: 12 }}
@@ -315,6 +315,6 @@ export function SettingsScreen({ navigation }: any) {
           <Btn title={t('settings.exportFirst')} variant="secondary" icon="download-outline" onPress={() => void exportData()} />
         </View>
       </Sheet>
-    </View>
+    </Screen>
   );
 }

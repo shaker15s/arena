@@ -67,10 +67,11 @@ export function AmbientOrb({ size = 320, color, drift = 18, style }: {
 }) {
   const { isDark, themeName } = useTheme();
   const oled = themeName === 'oled';
+  const reduced = isReducedMotion();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isReducedMotion()) return undefined;
+    if (reduced) return undefined;
     // حركة طفو مستمرة وهادئة (Orb Drift)
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(progress, { toValue: 1, duration: 12000, useNativeDriver: true }),
@@ -78,15 +79,16 @@ export function AmbientOrb({ size = 320, color, drift = 18, style }: {
     ]));
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduced, progress]);
 
-  const animatedTransform = isReducedMotion()
-    ? []
-    : [
-        { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
-        { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
-        { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
-      ];
+  // A11Y-52: تعطيل الكرات العائمة بالكامل عند تفعيل تقليل الحركة
+  if (reduced) return null;
+
+  const animatedTransform = [
+    { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
+    { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
+    { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
+  ];
 
   const effectiveOpacity = oled ? 0.15 : isDark ? 0.35 : 0.75;
 

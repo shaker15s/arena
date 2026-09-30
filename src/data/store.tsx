@@ -22,8 +22,6 @@ import {
 import { applyRealtimePatch, emptyDb, fetchRemoteDb, subscribeRealtime } from './remote';
 import { runCommandOnServer } from './actions';
 import { clearCommands, loadCommands, markApplied, markFailed, pruneCommands, pushOfflineCommand } from '../shared/offline';
-import { deepClone } from '../shared/clone';
-
 const CACHE_KEY = 'masar.cache.v2';
 
 interface Toast {
@@ -63,6 +61,8 @@ interface AppCtx {
   dismissToast: (id: number) => void;
   /** كتابة قابلة للتأجيل: فورية أونلاين، مؤجلة أوفلاين وتُعاد تلقائيًا */
   submitOrQueue: (command: string, payload: Record<string, unknown>) => Promise<{ status: 'applied' | 'queued'; error?: string }>;
+  pendingQueueCount: number;
+  flushOfflineQueue: () => Promise<void>;
   refresh: () => Promise<void>;
   signInWithGoogle: () => Promise<{ ok: boolean; error: string | null }>;
   signInWithApple: () => Promise<{ ok: boolean; error: string | null }>;
@@ -100,7 +100,7 @@ async function readCache(expectedOwner: string | null): Promise<Db | null> {
   }
 }
 
-function writeCache(db: Db) {
+function persistCache(db: Db) {
   try {
     const raw = JSON.stringify({ owner: cacheOwner, db } satisfies CacheEnvelope);
     if (Platform.OS === 'web' && typeof localStorage !== 'undefined') localStorage.setItem(CACHE_KEY, raw);
@@ -108,6 +108,30 @@ function writeCache(db: Db) {
   } catch {
     /* تجاوز حدود التخزين */
   }
+}
+
+let cacheWriteTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * PERF-41: دفعة أحداث Realtime لم تعد تستدعي JSON.stringify كامل قاعدة البيانات
+ * في كل حدث — نحفظ أحدث نسخة بحد أقصى مرة كل 400ms. الكاش best-effort (الإقلاع
+ * يسحب من الخادم)، فلا نفقد أكثر من أحدث تغييرات عند إغلاق فوري.
+ * `immediate` للتغييرات الحساسة هويةً (تسجيل الخروج/الحذف) حتى لا يتسرب كاش
+ * مستخدم سابق لمستخدم اللاحق.
+ */
+function writeCache(db: Db, immediate = false) {
+  if (cacheWriteTimer) {
+    clearTimeout(cacheWriteTimer);
+    cacheWriteTimer = null;
+  }
+  if (immediate) {
+    persistCache(db);
+    return;
+  }
+  cacheWriteTimer = setTimeout(() => {
+    cacheWriteTimer = null;
+    persistCache(db);
+  }, 400);
 }
 
 // ───────────────────────── المزوّد ─────────────────────────
@@ -123,12 +147,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
+  const [pendingQueueCount, setPendingQueueCount] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeq = useRef(0);
   const refreshInFlight = useRef<Promise<void> | null>(null);
   const refreshQueued = useRef(false);
   const dbRef = useRef(db);
   dbRef.current = db;
+  const syncMetaRef = useRef<{ lastSyncAt: number | null; syncError: string | null }>({ lastSyncAt: null, syncError: null });
+  syncMetaRef.current = { lastSyncAt, syncError };
+
+  const syncPendingQueueCount = useCallback(async () => {
+    try {
+      const cmds = await loadCommands();
+      setPendingQueueCount(cmds.filter((c) => c.status === 'pending').length);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const toast = useCallback((message: string, kind: Toast['kind'] = 'info') => {
     toastSeq.current += 1;
@@ -164,7 +200,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setOnline(true);
       } catch (error) {
         // فتات سياق: أغلب أعطال الواجهة تسبقها مزامنة فاشلة — نريدها في التقرير.
-        addBreadcrumb('net', `refresh failed: ${(error as Error).message}`);
+        addBreadcrumb('net', 'refresh failed: ' + (error as Error).message);
         setSyncError((error as Error).message);
         setOnline(false);
       } finally {
@@ -197,6 +233,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const pending = (await loadCommands())
         .filter((c) => c.status === 'pending')
         .sort((a, b) => a.deviceCreatedAt - b.deviceCreatedAt);
+      setPendingQueueCount(pending.length);
       if (!pending.length) return;
       let appliedAny = false;
       for (const c of pending) {
@@ -211,17 +248,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           // خطأ شبكة/جلسة: يبقى pending ويُعاد في الدورة القادمة (حتى MAX_ATTEMPTS).
-          addBreadcrumb('net', `offline command failed: ${c.command}`);
+          addBreadcrumb('net', 'offline command failed: ' + c.command);
           await markFailed(c.id, (error as Error).message);
         }
       }
+      await syncPendingQueueCount();
       if (appliedAny) await refresh();
     } catch {
       // لا نكسر حلقة التزامن إن فشل الطابور
     } finally {
       flushInFlight.current = false;
     }
-  }, [identity, refresh]);
+  }, [identity, refresh, syncPendingQueueCount]);
 
   /**
    * كتابة قابلة للتأجيل: أونلاين تُنفَّذ فورًا عبر run_command، وأوفلاين تُسجَّل
@@ -232,24 +270,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     payload: Record<string, unknown>,
   ): Promise<{ status: 'applied' | 'queued'; error?: string }> => {
     const cmd = await pushOfflineCommand(command, payload);
-    if (!online || !SUPABASE_ENABLED) return { status: 'queued' };
+    if (!online || !SUPABASE_ENABLED) {
+      await syncPendingQueueCount();
+      return { status: 'queued' };
+    }
     try {
       const result = await runCommandOnServer(cmd.id, cmd.command, cmd.payload, cmd.deviceCreatedAt);
       if (result.status === 'applied') {
         await markApplied(cmd.id);
+        await syncPendingQueueCount();
         if (cmd.command !== 'mark_notifications_read') {
           void refresh();
         }
         return { status: 'applied' };
       }
       await markFailed(cmd.id, result.error ?? 'failed', true);
+      await syncPendingQueueCount();
       return { status: 'applied', error: result.error ?? 'failed' };
     } catch {
       // خطأ شبكة أثناء المحاولة الفورية → يتحول لأمر مؤجل بشفافية.
       setOnline(false);
+      await syncPendingQueueCount();
       return { status: 'queued' };
     }
-  }, [online, refresh]);
+  }, [online, refresh, syncPendingQueueCount]);
 
   /** يربط جلسة Supabase بالبروفايل المحلي */
   const applySession = useCallback(async (session: Session | null) => {
@@ -261,26 +305,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     cacheOwner = authUser.id;
-    setIdentity(identityOf(authUser));
     setAuthError(null);
     setLoading(true);
     try {
       const sb = getSupabase();
-      const { data } = await sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle();
+      const [{ data }] = await Promise.all([
+        sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle(),
+        refresh(),
+      ]);
       setProfileId(data?.id ?? null);
-      await refresh();
+      setIdentity(identityOf(authUser));
+      await syncPendingQueueCount();
     } finally {
       setLoading(false);
     }
-  }, [refresh]);
+  }, [refresh, syncPendingQueueCount]);
 
   // ── الإقلاع ──
   useEffect(() => {
     let isMounted = true;
-    let unsubRealtime: (() => void) | undefined;
     let unsubAuth: (() => void) | undefined;
 
     const boot = async () => {
+      void syncPendingQueueCount();
       if (SUPABASE_ENABLED) {
         const sb = getSupabase();
         // اقرأ الكاش فقط بعد معرفة صاحب الجلسة الحالية — كاش مستخدم آخر يُتجاهل.
@@ -301,7 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // TOKEN_REFRESHED يصدر كل ساعة ولا يغيّر الهوية — كان يسبّب
           // إعادة تحميل كاملة لقاعدة البيانات بلا داعٍ في كل مرة.
           const nextId = s?.user?.id ?? null;
-          if (event === 'TOKEN_REFRESHED' && nextId === lastAuthUserId) return;
+          if ((event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && nextId === lastAuthUserId) return;
           lastAuthUserId = nextId;
           void applySession(s);
         });
@@ -310,7 +357,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
           const { data: { session } } = await sb.auth.getSession();
           if (isMounted) {
-            await applySession(session);
+            const nextId = session?.user?.id ?? null;
+            if (nextId !== lastAuthUserId) {
+              lastAuthUserId = nextId;
+              await applySession(session);
+            }
             // ويب: رجعنا من جوجل بلا جلسة؟ نظّف بارامترات الرجوع من الـ URL
             // وأظهر سبب الفشل — بدل إعادة المستخدم للأونبوردينج بصمت.
             if (Platform.OS === 'web') {
@@ -319,19 +370,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setAuthError(callback.error ?? 'oauth-callback-failed');
               }
             }
-            // Realtime incremental: طبّق التغيير محليًا بدل سحب كل الجداول؛
-            // إن تعذّر (جدول/حدث غير مُعالج) نعمل refresh كامل.
-            unsubRealtime = subscribeRealtime((patch) => {
-              if (!isMounted) return;
-              const next = applyRealtimePatch(dbRef.current, patch);
-              if (next) {
-                dbRef.current = next;
-                setDb(next);
-                writeCache(next);
-              } else {
-                void refresh();
-              }
-            });
           }
         } catch {
           // خطأ شبكة أثناء استرجاع الجلسة
@@ -344,16 +382,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
       unsubAuth?.();
-      unsubRealtime?.();
     };
-  }, [applySession, refresh]);
+  }, [applySession, syncPendingQueueCount]);
 
-  // ── إعادة المزامنة عند عودة التطبيق للمقدمة ──
+  // ── اشتراك Realtime المقيّد بالمستخدم + إيقافه في الخلفية (DATA-35..40) ──
   useEffect(() => {
+    if (!SUPABASE_ENABLED) return;
+    let isMounted = true;
+    let unsubRealtime: (() => void) | undefined;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const connectRealtime = () => {
+      unsubRealtime?.();
+      unsubRealtime = subscribeRealtime(
+        (patch) => {
+          if (!isMounted) return;
+          const next = applyRealtimePatch(dbRef.current, patch);
+          if (next) {
+            dbRef.current = next;
+            setDb(next);
+            writeCache(next);
+          } else {
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            fallbackTimer = setTimeout(() => { void refresh(); }, 150);
+          }
+        },
+        {
+          profileId,
+          onReconnect: () => {
+            if (isMounted) void refresh().then(() => flushOfflineQueue());
+          },
+        },
+      );
+    };
+
+    connectRealtime();
+
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && profileId) void refresh().then(() => flushOfflineQueue());
+      if (state === 'active') {
+        connectRealtime();
+        if (profileId) {
+          void flushOfflineQueue(); // يمسح الطابور ويعمل refresh فقط لو طبّق أوامر فعلًا.
+          // PERF-42: لا نسحب 24 جدولًا عند كل عودة للمقدمة — Realtime يُمسك
+          // التحديث أثناء المقدمة، والسحب الكامل يكون فقط إن كانت المزامنة
+          // قديمة (> 60s) أو فشلت. (كان سبب «تحميل كل الكويريز في كل ريفريش».)
+          const meta = syncMetaRef.current;
+          const stale = meta.syncError !== null || meta.lastSyncAt === null || Date.now() - meta.lastSyncAt > 60_000;
+          if (stale) void refresh();
+        }
+      } else if (state === 'background' || state === 'inactive') {
+        unsubRealtime?.();
+        unsubRealtime = undefined;
+      }
     });
-    return () => sub.remove();
+
+    return () => {
+      isMounted = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      unsubRealtime?.();
+      sub.remove();
+    };
   }, [profileId, refresh, flushOfflineQueue]);
 
   // ── تسجيل توكن الجهاز (Push) + استقبال الإشعارات بعد الدخول ──
@@ -468,9 +556,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cacheOwner = null;
     dbRef.current = emptyDb();
     setDb(emptyDb());
-    writeCache(emptyDb());
+    writeCache(emptyDb(), true);
     // لا تتسرب أوامر مؤجلة من مستخدم لمستخدم آخر على نفس الجهاز.
     await clearCommands();
+    setPendingQueueCount(0);
   }, []);
 
   /** حذف الحساب على الخادم ثم إنهاء الجلسة محليًا. */
@@ -484,8 +573,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       cacheOwner = null;
       dbRef.current = emptyDb();
       setDb(emptyDb());
-      writeCache(emptyDb());
+      writeCache(emptyDb(), true);
       await clearCommands();
+      setPendingQueueCount(0);
       return { ok: true };
     } catch (error) {
       return { ok: false, error: (error as Error).message };
@@ -503,8 +593,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!hasUnread) return;
     // تحديث متفائل محلي، والكتابة الفعلية عبر RPC خادمية (0014) لأن upsert
     // المباشر على notifications ترفضه RLS. أوفلاين: يدخل الطابور ويُعاد تلقائيًا.
-    const next = deepClone(dbRef.current);
-    next.notifications.forEach((n) => { if (n.userId === profileId) n.read = true; });
+    // PERF-41: نسخة سطحية بدل deepClone كامل القاعدة — نوّد جدول الإشعارات فقط
+    // (والصفوف المقروءة أصلًا تبقى بمراجعها القديمة بلا عمل سالب).
+    const current = dbRef.current;
+    const next = {
+      ...current,
+      notifications: current.notifications.map((n) =>
+        n.userId === profileId && !n.read ? { ...n, read: true } : n),
+    };
     dbRef.current = next;
     setDb(next);
     writeCache(next);
@@ -516,16 +612,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [db.profiles, profileId],
   );
 
-  const needsProfile = Boolean(identity) && (!user || (user.status !== 'disabled' && !user.phone));
+  const needsProfile = !loading && Boolean(identity) && (!user || (user.status !== 'disabled' && !user.phone));
 
   const value = useMemo<AppCtx>(() => ({
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, authError, loading, syncing,
-    lastSyncAt, syncError, online, setOnline, toasts, toast, dismissToast, submitOrQueue, refresh,
+    lastSyncAt, syncError, online, setOnline, toasts, toast, dismissToast, submitOrQueue,
+    pendingQueueCount, flushOfflineQueue, refresh,
     signInWithGoogle, signInWithApple, completeProfile, updateProfile, uploadAvatar, logout,
     deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, authError, loading, syncing, lastSyncAt, syncError, online,
-    toasts, toast, dismissToast, submitOrQueue, refresh, signInWithGoogle, signInWithApple, completeProfile, updateProfile,
+    toasts, toast, dismissToast, submitOrQueue, pendingQueueCount, flushOfflineQueue, refresh,
+    signInWithGoogle, signInWithApple, completeProfile, updateProfile,
     uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 

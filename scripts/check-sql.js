@@ -113,6 +113,8 @@ let structuralErrors = 0;
 let statements = 0;
 let functions = 0;
 let grantsMissing = 0;
+let searchPathMissing = 0;
+let securityDefinerCount = 0;
 
 console.log('═══════════════════════════════════════════════════════');
 console.log('  مسار — بوابة SQL (تحليل نحوي + سياسات الصلاحيات)');
@@ -138,6 +140,23 @@ for (const file of files) {
   for (const stmt of parts) {
     const body = stmt.replace(/^\s*(BEGIN|COMMIT)\s*$/i, '');
     if (!body) continue;
+
+    // (DATA-03) كل دالة SECURITY DEFINER يجب أن تضبط SET search_path صراحةً في ترويستها
+    if (/^\s*CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\b/i.test(body)) {
+      const fnMatch = body.match(/FUNCTION\s+(public\.\w+|\w+)/i);
+      const fnName = fnMatch ? fnMatch[1] : '<anonymous>';
+      // نفصل ترويسة الدالة عن جسمها (قبل أول علامة $...$)
+      const firstDollar = body.search(/\$[A-Za-z_]*\$/);
+      const header = firstDollar === -1 ? body : body.slice(0, firstDollar);
+      if (/\bSECURITY\s+DEFINER\b/i.test(header)) {
+        securityDefinerCount += 1;
+        if (!/\bSET\s+search_path\b/i.test(header)) {
+          searchPathMissing += 1;
+          console.log(`✗ ${file}: الدالة ${fnName} معرَّفة بـ SECURITY DEFINER بلا SET search_path (DATA-03)`);
+        }
+      }
+    }
+
     if (!SUPPORTED_STATEMENT.test(body)) {
       const kind = (body.match(/^([A-Za-z]+)\s+(?:OR\s+REPLACE\s+)?([A-Za-z]+)?/i) ?? [])
         .slice(1).filter(Boolean).join(' ').toUpperCase();
@@ -208,8 +227,9 @@ for (const [kind, n] of [...skipped.entries()].sort((a, b) => b[1] - a[1]).slice
 console.log(`  • أخطاء نحوية: ${parseErrors}`);
 console.log(`  • مخالفات بنيوية: ${structuralErrors}`);
 console.log(`  • دوال بلا تحكم وصول: ${grantsMissing}`);
+console.log(`  • دوال SECURITY DEFINER (${securityDefinerCount}) بلا search_path: ${searchPathMissing}`);
 
-const failed = parseErrors + structuralErrors + grantsMissing;
+const failed = parseErrors + structuralErrors + grantsMissing + searchPathMissing;
 if (failed > 0) {
   console.error(`\n✗ فشل: ${failed} مشكلة في ترحيلات SQL.`);
   process.exit(1);

@@ -11,7 +11,7 @@ import { generateSessionsForBatch, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, FadeIn, Input, ProgressBar, Row, Tag, Txt, Spacer,
+  Avatar, Btn, Card, Chip, FadeIn, Input, ProgressBar, Row, Screen, Tag, Txt, Spacer,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { spacing, radii } from '../../design/tokens';
@@ -20,6 +20,7 @@ import { formatDate } from '../../shared/format';
 import { bootstrapOrganization } from '../../data/actions';
 import { publicJoinUrl } from '../../shared/links';
 import { Icon } from '../../design/icons';
+import { safeBack } from '../../app/navRef';
 
 export function OrgWizardScreen({ navigation }: any) {
   const { t, lang } = useI18n();
@@ -77,7 +78,7 @@ export function OrgWizardScreen({ navigation }: any) {
   }, [step, branchName, branchGovernorate, branchAddress, committeeNames.length, courseTitle, courseField, previewCourse.sessionsCount, instructorId, room, days.length, isCapacityValid, isTimeValid]);
 
   const next = async () => {
-    if (createdJoinCode) { navigation.goBack(); return; }
+    if (createdJoinCode) { safeBack(navigation); return; }
     if (step < 6) { setStep(step + 1); return; }
     if (!previewBatch || !instructorId || savingRef.current) return;
     savingRef.current = true;
@@ -121,11 +122,11 @@ export function OrgWizardScreen({ navigation }: any) {
   const stepIcons: Array<keyof typeof Ionicons.glyphMap> = ['business', 'git-network', 'book', 'people', 'game-controller', 'rocket'];
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('wizard.title')} style={{ flex: 1 }}>
       <View style={{ paddingTop: insets.top + spacing.s3, paddingHorizontal: spacing.s5 }}>
         <Row between center>
           <Txt variant="h2" heading="h1">{t('wizard.title')} 🚀</Txt>
-          <Btn title={t('common.close')} size="sm" variant="ghost" onPress={() => navigation.goBack()} />
+          <Btn title={t('common.close')} size="sm" variant="ghost" onPress={() => safeBack(navigation)} />
         </Row>
         <Spacer size={10} />
         {/* شريط تقدم المعالج */}
@@ -323,7 +324,7 @@ export function OrgWizardScreen({ navigation }: any) {
         title={t('wizard.doneTitle')}
         emoji="🚀"
       />
-    </View>
+    </Screen>
   );
 }
 

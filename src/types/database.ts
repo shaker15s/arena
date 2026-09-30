@@ -778,6 +778,8 @@ export interface Database {
   cancel_batch: { Args: { p_batch_id: string; p_reason?: string | null }; Returns: Json };
   /** 0024_course_operating_system.sql */
   cancel_training_session: { Args: { p_session_id: string; p_reason?: string | null }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  capture_metrics_snapshot: { Args: Record<string, never>; Returns: Json };
   /** 0021_geofence_optional.sql */
   check_in_with_token: { Args: { p_payload: string; p_lat?: number | null; p_lng?: number | null }; Returns: Json };
   /** 0017_completion_rule_fix.sql */
@@ -802,6 +804,8 @@ export interface Database {
   enqueue_weekly_reports: { Args: { p_at?: string | null }; Returns: Json };
   /** 0013_offline_command_queue.sql */
   finish_command: { Args: { p_command_id: string; p_status?: string | null }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  get_admin_overview: { Args: { p_branch_id?: string | null }; Returns: Json };
   /** 0011_analytics_views.sql */
   get_analytics: { Args: { p_scope: string; p_scope_id?: string | null }; Returns: Json };
   /** 0030_ocr_audit_remediation.sql */
@@ -812,14 +816,24 @@ export interface Database {
   get_batch_stats: { Args: { p_offset?: number | null; p_limit?: number | null }; Returns: Json };
   /** 0013_offline_command_queue.sql */
   get_command: { Args: { p_command_id: string }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  get_course_detail: { Args: { p_course_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_course_overview: { Args: { p_course_id: string }; Returns: Json };
   /** 0024_course_operating_system.sql */
   get_detailed_course_analytics: { Args: { p_course_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
   get_error_by_ref: { Args: { p_ref: string }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  get_leaderboard: { Args: { p_branch_id?: string | null; p_week?: string | null; p_limit?: number | null; p_tier?: string | null }; Returns: Json };
   /** 0028_get_today.sql */
   get_my_courses: { Args: Record<string, never>; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  get_my_home: { Args: Record<string, never>; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  get_my_wallet: { Args: { p_cursor?: string | null; p_limit?: number | null }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  get_session_detail: { Args: { p_session_id: string }; Returns: Json };
   /** 0005_production_hardening.sql */
   get_session_qr_payload: { Args: { p_session_id: string }; Returns: Json };
   /** 0010_session_report.sql */
@@ -846,6 +860,10 @@ export interface Database {
   leave_batch: { Args: { p_batch_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
   list_attendance_disputes: { Args: { p_scope?: string | null; p_limit?: number | null }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  list_notifications: { Args: { p_cursor?: string | null; p_limit?: number | null; p_unread_only?: boolean | null }; Returns: Json };
+  /** 0032_wave_c_security_rpcs_indexes.sql */
+  list_pending_actions: { Args: { p_limit?: number | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   list_visible_profiles: { Args: { p_offset?: number | null; p_limit?: number | null }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -906,11 +924,11 @@ export interface Database {
   start_training_session: { Args: { p_batch_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
   submit_attendance_dispute: { Args: { p_session_id: string; p_claim: string; p_evidence_url?: string | null }; Returns: Json };
-  /** 0017_completion_rule_fix.sql */
+  /** 0032_wave_c_security_rpcs_indexes.sql */
   submit_course_rating: { Args: { p_course_id: string; p_stars: number; p_comment?: string | null }; Returns: Json };
   /** 0025_rpc_rate_limits.sql */
   submit_excuse: { Args: { p_session_id: string; p_reason: string; p_attachment_url?: string | null }; Returns: Json };
-  /** 0005_production_hardening.sql */
+  /** 0032_wave_c_security_rpcs_indexes.sql */
   submit_support_request: { Args: { p_kind: string; p_subject: string; p_body: string; p_recipient_id?: string | null }; Returns: Json };
   /** 0022_push_tokens.sql */
   unregister_push_token: { Args: { p_token: string }; Returns: Json };

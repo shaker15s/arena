@@ -13,7 +13,7 @@ import { useI18n } from '../../i18n';
 import { DetailedSessionReportSheet } from '../volunteer/LiveSessionScreen';
 import { TrainingSession } from '../../data/types';
 import {
-  Avatar, Btn, Card, Empty, FadeIn, Header, Input, Row, Segmented, Spacer,
+  Avatar, Btn, Card, Empty, FadeIn, Header, Input, Row, Screen, Segmented, Spacer,
   Tag, Txt,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
@@ -86,7 +86,7 @@ export function ExcusesScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('excuses.title')}>
       <Header title={t('excuses.title')} back={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Segmented
@@ -189,13 +189,13 @@ export function ExcusesScreen({ navigation }: any) {
         )}
         </AnimatedTabContent>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 // ───────────────────────────── S35 صندوق الأعذار (المدرب) ─────────────────────────────
 
-export function ExcusesInboxScreen() {
+export function ExcusesInboxScreen({ navigation }: any = {}) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast } = useApp();
@@ -206,7 +206,8 @@ export function ExcusesInboxScreen() {
   const [selectedReportSession, setSelectedReportSession] = useState<TrainingSession | null>(null);
   if (!user) return null;
 
-  const myBatchIds = db.batches.filter((b) => b.instructorId === user.id).map((b) => b.id);
+  const isManager = user.role === 'admin' || user.role === 'supervisor';
+  const myBatchIds = db.batches.filter((b) => isManager || b.instructorId === user.id).map((b) => b.id);
   const myPending = db.excuses
     .filter((e) => {
       const s = db.sessions.find((x) => x.id === e.sessionId);
@@ -244,9 +245,9 @@ export function ExcusesInboxScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 120 }}>
-        <Header title={t('inbox.title')} />
+    <Screen label={t('inbox.title')}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
+        <Header title={t('inbox.title')} back={navigation ? () => navigation.goBack() : undefined} />
         <Segmented
           value={tab}
           onChange={setTab}
@@ -262,7 +263,8 @@ export function ExcusesInboxScreen() {
             {myPending.length === 0 ? (
               <Empty emoji="✨" title={t('inbox.emptyTitle')} />
             ) : (
-              myPending.map((e, i) => {
+              <View style={{ gap: spacing.s3 }}>
+              {myPending.map((e, i) => {
                 const student = profileOf(db, e.userId);
                 const sess = db.sessions.find((s) => s.id === e.sessionId);
                 const isRejecting = rejectId === e.id;
@@ -308,11 +310,12 @@ export function ExcusesInboxScreen() {
                     </Card>
                   </FadeIn>
                 );
-              })
+              })}
+              </View>
             )}
             {handled.length > 0 ? (
-              <>
-                <Txt variant="h3" style={{ marginTop: 8 }}>{t('common.done')}</Txt>
+              <View style={{ gap: spacing.s3 }}>
+                <Txt variant="h3" style={{ marginTop: spacing.s2 }}>{t('common.done')}</Txt>
                 {handled.map((e) => {
                   const student = profileOf(db, e.userId);
                   const sess = db.sessions.find((s) => s.id === e.sessionId);
@@ -333,14 +336,15 @@ export function ExcusesInboxScreen() {
                     </Card>
                   );
                 })}
-              </>
+              </View>
             ) : null}
           </>
         ) : (
           reports.length === 0 ? (
             <Empty emoji="📝" title={t('inbox.noReports')} />
           ) : (
-            reports.map((s, i) => {
+            <View style={{ gap: spacing.s3 }}>
+            {reports.map((s, i) => {
               const batch = batchOf(db, s.batchId);
               const course = batch ? courseOf(db, batch.courseId) : undefined;
               const attended = db.attendance.filter((a) => a.sessionId === s.id && a.status !== 'absent').length;
@@ -370,7 +374,8 @@ export function ExcusesInboxScreen() {
                   </Card>
                 </FadeIn>
               );
-            })
+            })}
+            </View>
           )
         )}
         </AnimatedTabContent>
@@ -399,7 +404,7 @@ export function ExcusesInboxScreen() {
           onClose={() => setSelectedReportSession(null)}
         />
       ) : null}
-    </View>
+    </Screen>
   );
 }
 

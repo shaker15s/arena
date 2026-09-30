@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>الصفحة غير موجودة (404) — مسار</title>
+    <meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <style>
+      :root {
+        --bg: #F7F8FC;
+        --card: #FFFFFF;
+        --text: #0F172A;
+        --muted: #475569;
+        --brand: #0066CC;
+        --border: rgba(15, 23, 42, 0.08);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0B1220;
+          --card: #131C2E;
+          --text: #F8FAFC;
+          --muted: #94A3B8;
+          --brand: #0A84FF;
+          --border: rgba(255, 255, 255, 0.12);
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans Arabic", "Cairo", "Segoe UI", Tahoma, system-ui, sans-serif;
+      }
+      main {
+        width: 100%;
+        max-width: 460px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 32px 24px;
+        text-align: center;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+      }
+      .badge {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 16px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #007AFF, #5856D6);
+        color: #FFFFFF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 700;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        line-height: 1.35;
+      }
+      p {
+        margin: 0 0 24px;
+        font-size: 15px;
+        line-height: 1.65;
+        color: var(--muted);
+      }
+      a.cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 24px;
+        border-radius: 14px;
+        background: var(--brand);
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+      }
+      a.cta:focus-visible {
+        outline: 3px solid var(--brand);
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main role="main" aria-labelledby="err-title">
+      <div class="badge" aria-hidden="true">404</div>
+      <h1 id="err-title">الصفحة غير موجودة</h1>
+      <p>الرابط الذي تحاول الوصول إليه غير متاح أو قد تم نقله. يمكنك العودة مباشرةً إلى الصفحة الرئيسية في مسار.</p>
+      <a class="cta" href="/">العودة إلى مسار</a>
+    </main>
+  </body>
+</html>

@@ -3,13 +3,13 @@
  * يتيح سحب المحتوى يميناً أو يساراً لإظهار إجراءات مثل القراءة أو الحذف.
  * يدعم اتجاهات RTL والحركة المخفضة.
  */
-import React, { useRef } from 'react';
-import { Animated, I18nManager, PanResponder, StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Animated, I18nManager, PanResponder, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Txt } from '../components';
 import { useTheme } from '../theme';
 import { isReducedMotion } from '../motion';
-import { spacing, radii, springs } from '../tokens';
+import { spacing, radii, sizes, springs } from '../tokens';
 import { Icon } from '../icons';
 
 export interface SwipeRowProps {
@@ -43,6 +43,7 @@ export function SwipeRow({
 }: SwipeRowProps) {
   const { theme } = useTheme();
   const pan = useRef(new Animated.Value(0)).current;
+  const [showActions, setShowActions] = useState(false);
 
   const isRTL = I18nManager.isRTL;
 
@@ -58,6 +59,11 @@ export function SwipeRow({
 
   const physicalLeftLabel = isRTL ? rightLabel : leftLabel;
   const physicalRightLabel = isRTL ? leftLabel : rightLabel;
+
+  const accessibilityActions = [
+    ...(onSwipeLeft ? [{ name: 'swipeLeft', label: leftLabel ?? 'swipeLeft' }] : []),
+    ...(onSwipeRight ? [{ name: 'swipeRight', label: rightLabel ?? 'swipeRight' }] : []),
+  ];
 
   const panResponder = useRef(
     PanResponder.create({
@@ -116,7 +122,14 @@ export function SwipeRow({
   ).current;
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      style={[styles.container, style]}
+      accessibilityActions={accessibilityActions}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'swipeLeft') onSwipeLeft?.();
+        if (event.nativeEvent.actionName === 'swipeRight') onSwipeRight?.();
+      }}
+    >
       {/* الطبقة الخلفية */}
       <View style={StyleSheet.absoluteFill}>
         {/* الجهة اليسرى الجسدية (تظهر عند السحب لليمين) */}
@@ -177,6 +190,47 @@ export function SwipeRow({
       >
         {children}
       </Animated.View>
+
+      {/* A11Y-42 (WCAG 2.5.1): بديل ضغطة واحدة بدون سحب */}
+      {!disabled && (onSwipeLeft || onSwipeRight) && (
+        <View style={styles.singleTapBar}>
+          {showActions && onSwipeRight && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={rightLabel ?? 'Action'}
+              onPress={() => {
+                setShowActions(false);
+                onSwipeRight();
+              }}
+              style={[styles.singleTapBtn, { backgroundColor: rightColor ?? theme.danger }]}
+            >
+              <Icon name={rightIcon} size={18} color="#fff" />
+            </Pressable>
+          )}
+          {showActions && onSwipeLeft && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={leftLabel ?? 'Action'}
+              onPress={() => {
+                setShowActions(false);
+                onSwipeLeft();
+              }}
+              style={[styles.singleTapBtn, { backgroundColor: leftColor ?? theme.success }]}
+            >
+              <Icon name={leftIcon} size={18} color="#fff" />
+            </Pressable>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={rightLabel ?? leftLabel ?? 'Actions'}
+            onPress={() => setShowActions((v) => !v)}
+            hitSlop={8}
+            style={styles.moreBtn}
+          >
+            <Icon name="ellipsis-horizontal" size={16} color={theme.textMuted} />
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -186,6 +240,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radii.md,
     minHeight: 44,
+    position: 'relative',
   },
   actionContainer: {
     position: 'absolute',
@@ -195,5 +250,28 @@ const styles = StyleSheet.create({
     right: 0,
     justifyContent: 'center',
     paddingHorizontal: spacing.s4,
+  },
+  singleTapBar: {
+    position: 'absolute',
+    top: spacing.s1,
+    insetInlineEnd: spacing.s1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s1,
+  },
+  singleTapBtn: {
+    minWidth: sizes.iconButton,
+    minHeight: sizes.iconButton,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.s2,
+  },
+  moreBtn: {
+    minWidth: sizes.minTarget,
+    minHeight: sizes.minTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.75,
   },
 });

@@ -5,6 +5,23 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
+    <meta name="description" content="منظومة تنظيم مراكز التدريب: حضور ذكي بـQR دوّار، جيميفيكيشن كامل، وشهادات رقمية قابلة للتحقق الفوري." />
+    <meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
+    <meta property="og:site_name" content="مسار — Masar" />
+    <meta property="og:title" content="مسار — منظومة تنظيم مراكز التدريب" />
+    <meta property="og:description" content="حضور ذكي بـQR دوّار، جيميفيكيشن كامل، وشهادات رقمية قابلة للتحقق الفوري." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ar_EG" />
+    <meta property="og:image" content="/icon-512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="مسار — Masar" />
+    <meta name="twitter:description" content="حضور ذكي بـQR دوّار، جيميفيكيشن كامل، وشهادات رقمية قابلة للتحقق الفوري." />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <script>
       /*
         UX-08: منع وميض الثيم الخاطئ (FOUC). يُقرأ اختيار المستخدم من localStorage
@@ -76,11 +93,12 @@
       [role="main"]:focus { outline: none; }
 
       /*
-        A11Y-15: الشريط السفلي العائم ارتفاعه 68px + 104px هامش محتوى، لذا نمنع
-        حجب العنصر المُركَّز عليه (WCAG 2.2 — 2.4.11) عبر scroll-padding.
+        A11Y-12 / A11Y-15: الشريط السفلي العائم يُقاس ديناميكيًا عبر onLayout (--masar-tabbar-h)
+        مع قيمة افتراضية 140px، لمنع حجب العنصر المُركَّز عليه (WCAG 2.2 — 2.4.11).
       */
-      html, body, #root { scroll-padding-bottom: 140px; scroll-padding-top: 24px; }
-      [role="main"] { scroll-padding-bottom: 140px; }
+      :root { --masar-tabbar-h: 140px; }
+      html, body, #root { scroll-padding-bottom: var(--masar-tabbar-h, 140px); scroll-padding-top: 24px; }
+      [role="main"], [role="region"] { scroll-padding-bottom: var(--masar-tabbar-h, 140px); }
 
       /* احترام تقليل الحركة على مستوى المستند أيضًا */
       @media (prefers-reduced-motion: reduce) {
@@ -197,6 +215,26 @@
           }
           hide();
         }, 20000); // أمان: لو فشل التحميل لا نحبس المستخدم
+
+        // A11Y-12 (WCAG 2.4.11): حارس تمرير عند التركيز لمنع حجب العنصر خلف الشريط السفلي العائم
+        document.addEventListener('focusin', function (e) {
+          var target = e.target;
+          if (!target || typeof target.getBoundingClientRect !== 'function') return;
+          if (target.closest && target.closest('[role="navigation"]')) return;
+          var rect = target.getBoundingClientRect();
+          var rawPad = getComputedStyle(document.documentElement).getPropertyValue('--masar-tabbar-h');
+          var pad = parseInt(rawPad, 10) || 140;
+          if (rect.bottom > window.innerHeight - pad && typeof target.scrollIntoView === 'function') {
+            target.scrollIntoView({ block: 'center', inline: 'nearest' });
+          }
+        }, true);
+
+        // WEB-02: تسجيل Service Worker لحفظ القشرة الثابتة والأصول في وضع عدم الاتصال
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+          });
+        }
       })();
     </script>
   </body>

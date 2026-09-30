@@ -5,7 +5,7 @@ import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, Chip, FadeIn, Header, Input, Row, Sheet, Spacer, Tag, Txt,
+  Btn, Card, Chip, FadeIn, Header, Input, Row, Screen, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
@@ -82,7 +82,7 @@ export function CoursesScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('courses.title')} style={{ flex: 1 }}>
       <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
         {db.courses.length === 0 ? (
@@ -186,6 +186,6 @@ export function CoursesScreen({ navigation }: any) {
           <Btn title={t('courses.save')} full size="lg" loading={saving} onPress={save} icon="checkmark-circle" />
         </ScrollView>
       </Sheet>
-    </View>
+    </Screen>
   );
 }

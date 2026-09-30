@@ -11,7 +11,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, FadeIn, GlassBtn, Input, Row, SegmentedProgressBar, Spacer, Txt } from '../../design/components';
+import { Btn, FadeIn, GlassBtn, Input, Row, Screen, SegmentedProgressBar, Spacer, Txt } from '../../design/components';
 import { GlassCard } from '../../design/glass';
 import { radii, sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
@@ -150,7 +150,8 @@ export function OnboardingScreen({ navigation }: any) {
   };
 
   return (
-    <View
+    <Screen
+      label={t('common.appName')}
       style={{
         flex: 1,
         width: '100%',
@@ -421,7 +422,7 @@ export function OnboardingScreen({ navigation }: any) {
           style={{ alignSelf: 'center' }}
         />
       </View>
-    </View>
+    </Screen>
   );
 }
 
@@ -546,7 +547,7 @@ export function SignInScreen({ navigation }: any) {
     let alive = true;
     if (Platform.OS !== 'ios') { setAppleAvailable(true); return; }
     AppleAuthentication.isAvailableAsync()
-      .then((ok) => { if (alive) setAppleAvailable(ok); })
+      .then((ok: boolean) => { if (alive) setAppleAvailable(ok); })
       .catch(() => { if (alive) setAppleAvailable(false); });
     return () => { alive = false; };
   }, []);
@@ -582,7 +583,7 @@ export function SignInScreen({ navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <Screen label={t('auth.welcomeTitle')} style={{ flex: 1, backgroundColor: theme.bg }}>
       <View style={{
         position: 'absolute', top: -60, right: -80,
         width: 320, height: 320, borderRadius: 160,
@@ -759,7 +760,7 @@ export function SignInScreen({ navigation }: any) {
           </Pressable>
         </FadeIn>
       </View>
-    </View>
+    </Screen>
   );
 }
 
@@ -814,122 +815,135 @@ export function CompleteProfileScreen() {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.bg }}
-      contentContainerStyle={{ width: '100%', maxWidth: 680, alignSelf: 'center', padding: spacing.s6, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Row between center>
-        <Txt variant="display" heading="h1">{t('complete.title')}</Txt>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('profile.logout')} hitSlop={10} onPress={() => void logout()} style={{ padding: 8, minWidth: sizes.touchTarget, minHeight: sizes.touchTarget, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="log-out-outline" size={22} color={theme.textMuted} />
-        </Pressable>
-      </Row>
-      <Spacer size={22} />
-
-      {/* الصورة */}
-      <View style={{ alignSelf: 'center', marginBottom: 22 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('profile.changeAvatar')} onPress={pickAvatar}>
-          <View style={{
-            width: 104, height: 104, borderRadius: 52, overflow: 'hidden',
-            backgroundColor: theme.fill,
-            alignItems: 'center', justifyContent: 'center',
-            borderWidth: 2, borderColor: theme.brand,
-          }}>
-            {uploading ? (
-              <ActivityIndicator color={theme.brand} />
-            ) : avatar ? (
-              <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <Icon name="person" size={44} color={theme.brand} />
-            )}
-          </View>
-          <View style={{
-            position: 'absolute', bottom: 0, end: 0,
-            width: 32, height: 32, borderRadius: 16, backgroundColor: theme.brand,
-            alignItems: 'center', justifyContent: 'center',
-            borderWidth: 2, borderColor: theme.bg,
-          }}>
-            <Icon name="camera" size={16} color="#fff" />
-          </View>
-        </Pressable>
-      </View>
-
-      {/* الإيميل من جوجل — للعرض فقط */}
-      <GlassCard>
-        <Row center gap={12}>
-          <Icon name="mail" size={18} color={theme.brand} />
-          <View style={{ flex: 1 }}>
-            <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
-            <Txt variant="bodyMed">{identity?.email ?? user?.email ?? '—'}</Txt>
-          </View>
-          <Icon name="lock-closed" size={16} color={theme.textMuted} />
+    <Screen label={t('complete.title')} style={{ flex: 1, backgroundColor: theme.bg }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ width: '100%', maxWidth: 680, alignSelf: 'center', padding: spacing.s6, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Row between center>
+          <Txt variant="display" heading="h1">{t('complete.title')}</Txt>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('profile.logout')} hitSlop={10} onPress={() => void logout()} style={{ padding: 8, minWidth: sizes.touchTarget, minHeight: sizes.touchTarget, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="log-out-outline" size={22} color={theme.textMuted} />
+          </Pressable>
         </Row>
-      </GlassCard>
-      <Spacer size={16} />
+        <Spacer size={22} />
 
-      <Input label={t('complete.fullName')} value={name} onChange={setName} placeholder={t('complete.fullNamePlaceholder')} icon="person" />
-      <Spacer size={16} />
-      <Input
-        label={t('common.phone')}
-        value={phone}
-        onChange={(v) => { setPhone(v.replace(/[^\d]/g, '')); setError(''); }}
-        placeholder={t('auth.phonePlaceholder')}
-        keyboardType="phone-pad"
-        icon="call"
-        maxLength={11}
-      />
-      <Spacer size={16} />
+        {/* الصورة */}
+        <View style={{ alignSelf: 'center', marginBottom: 22 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('profile.changeAvatar')} onPress={pickAvatar}>
+            <View style={{
+              width: 104, height: 104, borderRadius: 52, overflow: 'hidden',
+              backgroundColor: theme.fill,
+              alignItems: 'center', justifyContent: 'center',
+              borderWidth: 2, borderColor: theme.brand,
+            }}>
+              {uploading ? (
+                <ActivityIndicator color={theme.brand} />
+              ) : avatar ? (
+                <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Icon name="person" size={44} color={theme.brand} />
+              )}
+            </View>
+            <View style={{
+              position: 'absolute', bottom: 0, end: 0,
+              width: 32, height: 32, borderRadius: 16, backgroundColor: theme.brand,
+              alignItems: 'center', justifyContent: 'center',
+              borderWidth: 2, borderColor: theme.bg,
+            }}>
+              <Icon name="camera" size={16} color="#fff" />
+            </View>
+          </Pressable>
+        </View>
 
-      <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>{t('common.gender')}</Txt>
-      <Row gap={10}>
-        {(['m', 'f'] as const).map((g) => {
-          const active = gender === g;
-          return (
-            <Pressable key={g} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={t(g === 'm' ? 'common.male' : 'common.female')} onPress={() => setGender(g)} style={{ flex: 1 }}>
-              <GlassCard style={{ backgroundColor: active ? theme.brandSoft : undefined, borderColor: active ? theme.brand : undefined }}>
-                <Row center gap={8} style={{ justifyContent: 'center' }}>
-                  <Icon name={g === 'm' ? 'male' : 'female'} size={18} color={active ? theme.brand : theme.textMuted} />
-                  <Txt variant="bodyMed" color={active ? theme.brand : theme.text}>{t(g === 'm' ? 'common.male' : 'common.female')}</Txt>
-                </Row>
-              </GlassCard>
-            </Pressable>
-          );
-        })}
-      </Row>
-      <Spacer size={18} />
+        {/* الإيميل من جوجل — للعرض فقط */}
+        <GlassCard>
+          <Row center gap={12}>
+            <Icon name="mail" size={18} color={theme.brand} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
+              <Txt variant="bodyMed">{identity?.email ?? user?.email ?? '—'}</Txt>
+            </View>
+            <Icon name="lock-closed" size={16} color={theme.textMuted} />
+          </Row>
+        </GlassCard>
+        <Spacer size={16} />
 
-      <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>{t('complete.chooseBranch')}</Txt>
-      <View style={{ gap: 10 }}>
-        {db.branches.map((b) => {
-          const active = branchId === b.id;
-          return (
-            <Pressable key={b.id} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={b.name} onPress={() => setBranchId(b.id)}>
-              <GlassCard style={{
-                backgroundColor: active ? theme.brandSoft : undefined,
-                borderColor: active ? theme.brand : undefined,
-              }}>
-                <Row center gap={12}>
-                  <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? theme.brand : theme.textMuted} />
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="bodyMed">{b.name}</Txt>
-                    <Txt variant="caption" color={theme.textSecondary}>{b.governorate}</Txt>
-                  </View>
-                </Row>
-              </GlassCard>
-            </Pressable>
-          );
-        })}
-        {db.branches.length === 0 ? (
-          <GlassCard>
-            <Txt variant="caption" color={theme.textSecondary} align="center">{t('complete.noBranches')}</Txt>
-          </GlassCard>
-        ) : null}
-      </View>
+        <Input
+          label={t('complete.fullName')}
+          value={name}
+          onChange={setName}
+          placeholder={t('complete.fullNamePlaceholder')}
+          icon="person"
+          autoComplete="name"
+          textContentType="name"
+        />
+        <Spacer size={16} />
+        <Input
+          label={t('common.phone')}
+          value={phone}
+          onChange={(v) => { setPhone(v.replace(/[^\d]/g, '')); setError(''); }}
+          placeholder={t('auth.phonePlaceholder')}
+          keyboardType="phone-pad"
+          icon="call"
+          maxLength={11}
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          inputMode="tel"
+        />
+        <Spacer size={16} />
 
-      {error ? <Txt variant="caption" color={theme.danger} style={{ marginTop: 12 }}>{error}</Txt> : null}
-      <Spacer size={24} />
-      <Btn title={t('complete.finish')} size="lg" full loading={loading} onPress={submit} />
-    </ScrollView>
+        <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>{t('common.gender')}</Txt>
+        <Row gap={10}>
+          {(['m', 'f'] as const).map((g) => {
+            const active = gender === g;
+            return (
+              <Pressable key={g} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={t(g === 'm' ? 'common.male' : 'common.female')} onPress={() => setGender(g)} style={{ flex: 1 }}>
+                <GlassCard style={{ backgroundColor: active ? theme.brandSoft : undefined, borderColor: active ? theme.brand : undefined }}>
+                  <Row center gap={8} style={{ justifyContent: 'center' }}>
+                    <Icon name={g === 'm' ? 'male' : 'female'} size={18} color={active ? theme.brand : theme.textMuted} />
+                    <Txt variant="bodyMed" color={active ? theme.brand : theme.text}>{t(g === 'm' ? 'common.male' : 'common.female')}</Txt>
+                  </Row>
+                </GlassCard>
+              </Pressable>
+            );
+          })}
+        </Row>
+        <Spacer size={18} />
+
+        <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>{t('complete.chooseBranch')}</Txt>
+        <View style={{ gap: 10 }}>
+          {db.branches.map((b) => {
+            const active = branchId === b.id;
+            return (
+              <Pressable key={b.id} accessibilityRole="radio" accessibilityState={{ selected: active }} accessibilityLabel={b.name} onPress={() => setBranchId(b.id)}>
+                <GlassCard style={{
+                  backgroundColor: active ? theme.brandSoft : undefined,
+                  borderColor: active ? theme.brand : undefined,
+                }}>
+                  <Row center gap={12}>
+                    <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? theme.brand : theme.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="bodyMed">{b.name}</Txt>
+                      <Txt variant="caption" color={theme.textSecondary}>{b.governorate}</Txt>
+                    </View>
+                  </Row>
+                </GlassCard>
+              </Pressable>
+            );
+          })}
+          {db.branches.length === 0 ? (
+            <GlassCard>
+              <Txt variant="caption" color={theme.textSecondary} align="center">{t('complete.noBranches')}</Txt>
+            </GlassCard>
+          ) : null}
+        </View>
+
+        {error ? <Txt variant="caption" color={theme.danger} style={{ marginTop: 12 }}>{error}</Txt> : null}
+        <Spacer size={24} />
+        <Btn title={t('complete.finish')} size="lg" full loading={loading} onPress={submit} />
+      </ScrollView>
+    </Screen>
   );
 }

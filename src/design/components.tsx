@@ -25,6 +25,7 @@ import { webInputReset } from './a11y/focus';
 import { announce } from './a11y/announce';
 import { useFocusTrap } from './a11y/useFocusTrap';
 import { rovingTabIndex, useRovingKeys } from './a11y/roving';
+import { navigationRef, safeBack } from '../app/navRef';
 
 // ───────────────────────────── نصوص ─────────────────────────────
 
@@ -483,6 +484,9 @@ export function Input({
   maxLength,
   secure,
   autoCapitalize,
+  autoComplete,
+  textContentType,
+  inputMode,
   onIconPress,
   onSubmitEditing,
   returnKeyType,
@@ -501,6 +505,9 @@ export function Input({
   maxLength?: number;
   secure?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: 'off' | 'name' | 'tel' | 'email' | 'username' | 'current-password' | 'new-password' | 'one-time-code' | 'organization' | 'street-address';
+  textContentType?: 'none' | 'name' | 'telephoneNumber' | 'emailAddress' | 'username' | 'password' | 'newPassword' | 'oneTimeCode' | 'organizationName' | 'fullStreetAddress';
+  inputMode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
   onIconPress?: () => void;
   onSubmitEditing?: () => void;
   returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
@@ -514,6 +521,7 @@ export function Input({
   const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const errorId = React.useId();
 
   const handleIconClick = () => {
     if (onIconPress) {
@@ -600,6 +608,15 @@ export function Input({
           maxLength={maxLength}
           secureTextEntry={secure}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          inputMode={inputMode}
+          {...(Platform.OS === 'web'
+            ? ({
+                'aria-invalid': Boolean(error),
+                ...(error ? { 'aria-errormessage': errorId, 'aria-describedby': errorId } : {}),
+              } as unknown as object)
+            : {})}
           textAlignVertical={multiline ? 'top' : 'center'}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
@@ -635,7 +652,16 @@ export function Input({
           />
         )}
       </View>
-      {error ? <Txt variant="micro" color={theme.danger} style={{ marginTop: 4 }}>{error}</Txt> : null}
+      {error ? (
+        <View
+          nativeID={errorId}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          {...(Platform.OS === 'web' ? ({ id: errorId, role: 'alert' } as unknown as object) : {})}
+        >
+          <Txt variant="micro" color={theme.danger} style={{ marginTop: 4 }}>{error}</Txt>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -925,11 +951,14 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
   const insets = useSafeAreaInsets();
   const titleId = React.useId();
 
-  // A11Y-13: عند تركيب رأس شاشة جديد (انتقال داخل التطبيق) ننقل التركيز إلى
-  // العنوان على الويب ليقرأه قارئ الشاشة فورًا، ونُعلنه صوتيًا على الجوال.
+  // A11Y-13 + WEB-03: عند تركيب رأس شاشة جديد (انتقال داخل التطبيق) ننقل التركيز إلى
+  // العنوان على الويب ليقرأه قارئ الشاشة فورًا، ونضبط document.title، ونُعلنه صوتيًا على الجوال.
   useEffect(() => {
     if (!title) return;
     if (Platform.OS === 'web') {
+      if (typeof document !== 'undefined') {
+        document.title = `${title} — ${t('common.appName')}`;
+      }
       const el = typeof document !== 'undefined' ? document.getElementById(titleId) : null;
       if (el && typeof (el as unknown as HTMLElement).focus === 'function') {
         (el as unknown as HTMLElement).focus({ preventScroll: true });
@@ -937,10 +966,13 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
       return;
     }
     announce(title, 'polite');
-  }, [title, titleId]);
+  }, [title, titleId, t]);
 
   return (
-    <View style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}>
+    <View
+      {...(Platform.OS === 'web' ? ({ role: 'banner' } as unknown as object) : {})}
+      style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}
+    >
       <Row between center>
         <Row center gap={12} style={{ flex: 1 }}>
           {back ? (
@@ -948,7 +980,14 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
               accessibilityRole="button"
               accessibilityLabel={t('common.back')}
               hitSlop={hitSlop.default}
-              onPress={back}
+              onPress={() => {
+                const beforeKey = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.key : undefined;
+                back();
+                const afterKey = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.key : undefined;
+                if (beforeKey && beforeKey === afterKey && navigationRef.isReady() && !navigationRef.canGoBack()) {
+                  safeBack();
+                }
+              }}
               style={({ pressed }) => ({
               width: componentTokens.backButton.size, height: componentTokens.backButton.size,
               borderRadius: componentTokens.backButton.radius,
@@ -1106,7 +1145,7 @@ export function Sheet({ visible, onClose, children, title }: {
 
 // ───────────────────────────── سطر قائمة ─────────────────────────────
 
-export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger }: {
+export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger, grow }: {
   icon?: keyof typeof Ionicons.glyphMap;
   iconBg?: string;
   title: string;
@@ -1114,6 +1153,8 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
   onPress?: () => void;
   right?: React.ReactNode;
   danger?: boolean;
+  /** يملأ ارتفاع عموده في الشبكات (أعمدة متساوية بدل ارتفاعات متناثرة حسب التمرير) */
+  grow?: boolean;
 }) {
   const { theme } = useTheme();
   const { impactLight } = useHaptics();
@@ -1128,6 +1169,7 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger 
           flexDirection: 'row', alignItems: 'center',
           gap: componentTokens.listRow.gap,
           minHeight: componentTokens.listRow.minHeight,
+          ...(grow ? { flex: 1 } : null),
           backgroundColor: theme.glass,
           borderRadius: radii.lg,
           padding: componentTokens.listRow.padding,
@@ -1292,9 +1334,71 @@ export function RarityFrame({ rarity, children }: { rarity: 'common' | 'rare' | 
   );
 }
 
+export function OfflineQueueBanner({
+  online,
+  pendingCount,
+  onSync,
+}: {
+  online: boolean;
+  pendingCount: number;
+  onSync?: () => void;
+}) {
+  const { theme } = useTheme();
+  const { t } = useI18n();
+  if (online && pendingCount <= 0) return null;
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        paddingHorizontal: spacing.s4,
+        paddingVertical: 8,
+        marginHorizontal: spacing.s5,
+        marginTop: spacing.s2,
+        borderRadius: radii.md,
+        backgroundColor: online ? theme.brandSoft : theme.warnSoft,
+        borderWidth: 1,
+        borderColor: online ? theme.brand : theme.warn,
+      }}
+    >
+      <Row center gap={8} style={{ flex: 1 }}>
+        <Icon
+          name={online ? 'cloud-upload-outline' : 'cloud-offline-outline'}
+          size={16}
+          color={online ? theme.brand : theme.warn}
+        />
+        <Txt variant="caption" color={online ? theme.brand : theme.warn} style={{ flex: 1 }}>
+          {pendingCount > 0
+            ? t('offline.pendingBanner', { count: pendingCount })
+            : t('common.offlineBanner')}
+        </Txt>
+      </Row>
+      {online && pendingCount > 0 && onSync ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('offline.syncNow')}
+          onPress={onSync}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: radii.sm,
+            backgroundColor: theme.brand,
+          }}
+        >
+          <Txt variant="micro" color="#FFFFFF">{t('offline.syncNow')}</Txt>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 export { ScrollView };
 export { LiquidGlassCard } from './components/LiquidGlassCard';
-export { Skeleton, TodayCardSkeleton } from './components/SkeletonLoader';
+export { Skeleton, PageSkeleton, TodayCardSkeleton } from './components/SkeletonLoader';
 export { Toast } from './components/Toast';
 export { SegmentedProgressBar } from './components/SegmentedProgressBar';
 export { GlassBtn, IconGlassButton } from './components/GlassBtn';
@@ -1305,3 +1409,4 @@ export { NotificationBell } from './components/NotificationBell';
 export { BorderBeam } from './components/BorderBeam';
 export { AnimatedShinyText } from './components/AnimatedShinyText';
 export { SpotlightCard } from './components/SpotlightCard';
+export { Screen, Section, Landmark, LiveRegion, VisuallyHidden, SkipLink } from './a11y/semantics';

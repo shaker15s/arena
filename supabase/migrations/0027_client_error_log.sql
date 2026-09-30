@@ -110,7 +110,7 @@ BEGIN
   FOR r IN SELECT jobid FROM cron.job WHERE jobname = 'masar-housekeeping' LOOP
     PERFORM cron.unschedule(r.jobid);
   END LOOP;
-EXCEPTION WHEN undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 DO $$
@@ -119,7 +119,7 @@ BEGIN
     'masar-housekeeping', '7 3 * * *',
     'SELECT public.prune_checkin_attempts(); SELECT public.prune_rate_events(); SELECT public.prune_push_outbox(); SELECT public.prune_client_errors();'
   );
-EXCEPTION WHEN undefined_function OR undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_function OR undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 COMMIT;

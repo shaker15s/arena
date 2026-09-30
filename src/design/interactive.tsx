@@ -175,6 +175,9 @@ interface PillGradientSearchInputProps {
   onClear?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
+  autoComplete?: 'off' | 'name' | 'tel' | 'email' | 'username' | 'one-time-code';
+  textContentType?: 'none' | 'name' | 'telephoneNumber' | 'emailAddress' | 'username' | 'oneTimeCode';
+  inputMode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
 }
 
 export function PillGradientSearchInput({
@@ -184,6 +187,9 @@ export function PillGradientSearchInput({
   onClear,
   icon = 'search',
   style,
+  autoComplete,
+  textContentType,
+  inputMode,
 }: PillGradientSearchInputProps) {
   const { t } = useI18n();
   const { theme, isDark } = useTheme();
@@ -243,6 +249,10 @@ export function PillGradientSearchInput({
             onBlur={() => setFocused(false)}
             placeholder={placeholder}
             placeholderTextColor={theme.textMuted}
+            accessibilityLabel={placeholder}
+            autoComplete={autoComplete}
+            textContentType={textContentType}
+            inputMode={inputMode}
             returnKeyType="search"
             style={[
               styles.pillTextInput,

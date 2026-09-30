@@ -21,13 +21,13 @@ import { QR_ROTATION_MS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CountUp, Empty, FadeIn, Header, Input, Row, Sheet,
+  Avatar, Btn, Card, CountUp, Empty, FadeIn, Header, Input, LiveRegion, Row, Screen, Sheet,
   Spacer, Tag, Txt,
 } from '../../design/components';
 import { BorderBeam } from '../../design/components/BorderBeam';
 import { CelebrationModal } from '../../design/celebrations';
 import { radii, spacing } from '../../design/tokens';
-import { formatTime } from '../../shared/format';
+import { bidiIsolate, formatTime } from '../../shared/format';
 import { matchesSearch } from '../../shared/search';
 import { enterFullscreen, exitFullscreen, useWakeLock } from '../../shared/kiosk';
 import { TrainingSession } from '../../data/types';
@@ -155,9 +155,9 @@ export function LiveSessionScreen() {
   // ── الحالة 1: لا توجد جلسة حية ──
   if (!myLive) {
     return (
-      <View style={{ flex: 1 }}>
+      <Screen label={t('live.title')}>
         <Header title={t('live.title')} />
-        <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, alignItems: 'center', paddingBottom: 130 }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, alignItems: 'center', paddingBottom: spacing.s5 }}>
           <Empty emoji="🎬" title={closedSummary ? `${t('live.closedSnack')}` : t('vtoday.noSessionToday')} />
           {closedSummary ? (
             <Card style={{ alignSelf: 'stretch' }}>
@@ -234,7 +234,7 @@ export function LiveSessionScreen() {
           />
         ) : null}
         {renderClosedModal()}
-      </View>
+      </Screen>
     );
   }
 
@@ -266,26 +266,28 @@ export function LiveSessionScreen() {
 
   if (kiosk) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#05070F', alignItems: 'center', justifyContent: 'center', padding: spacing.s5, gap: 18 }}>
+      <Screen label={myLive.title} style={{ flex: 1, backgroundColor: '#05070F', alignItems: 'center', justifyContent: 'center', padding: spacing.s5, gap: 18 }}>
         <StatusBar hidden />
         <Txt variant="h2" color="#F1F5F9" align="center">{myLive.title}</Txt>
         <View style={{ backgroundColor: '#ffffff', padding: 20, borderRadius: 28 }}>
           {token ? <QRCode value={token} size={320} /> : <Icon name="sync" size={96} color={theme.brand} />}
         </View>
-        <Txt variant="display" color="#F8FAFC" bold style={{ letterSpacing: 10, fontSize: 40 }}>{code}</Txt>
-        <Row center gap={10}>
-          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80' }} />
-          <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}: {rows.length} / {students.length}</Txt>
-        </Row>
+        <Txt variant="display" color="#F8FAFC" bold style={{ letterSpacing: 10, fontSize: 40 }}>{bidiIsolate(code)}</Txt>
+        <LiveRegion politeness="polite">
+          <Row center gap={10}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80' }} />
+            <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}: {rows.length} / {students.length}</Txt>
+          </Row>
+        </LiveRegion>
         <Txt variant="micro" color={wakeStatus === 'active' ? '#4ADE80' : theme.warn} align="center">{wakeLabel}</Txt>
         <Btn title={t('kiosk.exit')} variant="secondary" icon="contract" onPress={leaveKiosk} accessibilityHint={t('kiosk.exitHint')} />
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? theme.bg : '#0E1230' }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: 16, paddingBottom: 130 }}>
+    <Screen label={myLive.title} style={{ flex: 1, backgroundColor: isDark ? theme.bg : '#0E1230' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.s3, padding: spacing.s5, gap: spacing.s4, paddingBottom: spacing.s5 }}>
         {/* رأس الجلسة */}
         <FadeIn index={0}>
           <Row between center>
@@ -366,8 +368,8 @@ export function LiveSessionScreen() {
                     {t('live.codeLabel')} (في حال تعذر مسح الكاميرا):
                   </Txt>
                 </Row>
-                <Txt variant="display" color={isDark ? '#F8FAFC' : '#0F172A'} bold style={{ letterSpacing: 8, fontSize: 28 }}>
-                  {code}
+                <Txt variant="numberHero" color={isDark ? '#F8FAFC' : '#0F172A'} style={{ letterSpacing: 8 }}>
+                  {bidiIsolate(code)}
                 </Txt>
               </View>
             </Card>
@@ -376,18 +378,20 @@ export function LiveSessionScreen() {
           {/* العداد الحي + آخر الواصلين */}
           <FadeIn index={2} style={{ flexGrow: 1, minWidth: 280 }}>
             <View style={{ gap: 12 }}>
-              <Card color="rgba(255,255,255,0.06)" style={{ borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', paddingVertical: 20 }}>
-                <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}</Txt>
-                <Row center gap={8} style={{ alignItems: 'flex-end' }}>
-                  <CountUp value={rows.length} variant="display" color="#4ADE80" />
-                  <Txt variant="h2" color="#5B6478" style={{ marginBottom: 4 }}>{t('live.of')} {students.length}</Txt>
-                </Row>
-                <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
-                  <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                    <View style={{ height: 8, width: `${Math.round((rows.length / Math.max(students.length, 1)) * 100)}%`, backgroundColor: '#4ADE80' }} />
+              <LiveRegion politeness="polite">
+                <Card color="rgba(255,255,255,0.06)" style={{ borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', paddingVertical: 20 }}>
+                  <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}</Txt>
+                  <Row center gap={8} style={{ alignItems: 'flex-end' }}>
+                    <CountUp value={rows.length} variant="display" color="#4ADE80" />
+                    <Txt variant="h2" color="#5B6478" style={{ marginBottom: 4 }}>{t('live.of')} {students.length}</Txt>
+                  </Row>
+                  <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
+                    <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                      <View style={{ height: 8, width: `${Math.round((rows.length / Math.max(students.length, 1)) * 100)}%`, backgroundColor: '#4ADE80' }} />
+                    </View>
                   </View>
-                </View>
-              </Card>
+                </Card>
+              </LiveRegion>
 
               <Card color="rgba(255,255,255,0.06)" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                 <Txt variant="caption" color="#A8B0C2" style={{ marginBottom: 8 }}>{t('live.recentArrivals')}</Txt>
@@ -472,7 +476,7 @@ export function LiveSessionScreen() {
       {/* الرصد اليدوي */}
       <ManualMarkSheet visible={manualOpen} onClose={() => setManualOpen(false)} session={myLive} />
       {renderClosedModal()}
-    </View>
+    </Screen>
   );
 
   function renderClosedModal() {

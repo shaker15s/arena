@@ -6,16 +6,17 @@ import { joinBatchByCode } from '../../data/actions';
 import { courseOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, Header, Row, Spacer, Txt } from '../../design/components';
+import { Btn, Card, Header, Row, Screen, Spacer, Txt } from '../../design/components';
 import { JellyButton, PillGradientSearchInput, SuccessWaveAlert } from '../../design/interactive';
 import { spacing } from '../../design/tokens';
 import { Icon } from '../../design/icons';
+import { safeBack } from '../../app/navRef';
 
 export function JoinBatchScreen({ route, navigation }: any) {
   const { db, user, refresh, toast } = useApp();
   const { theme } = useTheme();
   const { t } = useI18n();
-  const [code, setCode] = useState(String(route.params?.code ?? ''));
+  const [code, setCode] = useState(String(route?.params?.code ?? ''));
   const [submitting, setSubmitting] = useState(false);
   const [joined, setJoined] = useState<'active' | 'waitlist' | null>(null);
   const batch = useMemo(
@@ -40,8 +41,8 @@ export function JoinBatchScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <Header title={t('joinCode.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
+    <Screen label={t('joinCode.title')}>
+      <Header title={t('joinCode.title')} back={() => safeBack(navigation)} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Card>
           <Row center gap={10}>
@@ -57,9 +58,19 @@ export function JoinBatchScreen({ route, navigation }: any) {
           </Txt>
           <PillGradientSearchInput
             value={code}
-            onChangeText={(value) => { setCode(value); setJoined(null); }}
+            onChangeText={(value) => {
+              const normalized = value
+                .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+                .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+                .replace(/[\s\-_]+/g, '')
+                .toUpperCase();
+              setCode(normalized);
+              setJoined(null);
+            }}
             placeholder={t('joinCode.code')}
             icon="key"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
           />
         </View>
 
@@ -98,6 +109,6 @@ export function JoinBatchScreen({ route, navigation }: any) {
           />
         )}
       </ScrollView>
-    </View>
+    </Screen>
   );
 }

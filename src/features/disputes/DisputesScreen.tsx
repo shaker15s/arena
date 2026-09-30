@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, Card, Empty, FadeIn, Header, Input, Row, Sheet, Tag, Txt } from '../../design/components';
+import { Btn, Card, Empty, FadeIn, Header, Input, Row, Screen, Sheet, Tag, Txt } from '../../design/components';
 import { Icon } from '../../design/icons';
 import { radii, spacing } from '../../design/tokens';
 import { timePast } from '../../shared/format';
@@ -133,7 +133,7 @@ export function DisputesScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('disputes.title')}>
       <Header title={t('disputes.title')} back={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 90, gap: 12 }}
@@ -282,7 +282,7 @@ export function DisputesScreen({ navigation, route }: any) {
           </Row>
         </View>
       </Sheet>
-    </View>
+    </Screen>
   );
 }
 

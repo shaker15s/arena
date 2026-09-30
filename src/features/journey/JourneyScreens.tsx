@@ -2,7 +2,7 @@
  * features/journey — S14 رحلتي + S15 خريطة الرحلة (التوقيع البصري) + S16 سجل الحضور + S26 تقييم الكورس.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -15,12 +15,15 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
-  Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
+  Screen, Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
 import { DayStatus } from '../../design/components/StreakCalendarGrid';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
+import { buildIcs, icsFilename } from '../../shared/calendar';
+import { saveIcs } from '../../shared/export';
+import { PUBLIC_APP_URL } from '../../shared/links';
 import { Batch, TrainingSession, AttendanceStatus } from '../../data/types';
 import { useTabs } from '../../app/RootNavigator';
 import { Icon } from '../../design/icons';
@@ -43,9 +46,9 @@ export function JourneyScreen({ navigation: propNav }: any) {
   })();
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('journey.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -127,7 +130,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
           )}
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -139,7 +142,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast, syncing } = useApp();
-  const batchId: string = route.params.batchId;
+  const batchId: string = route?.params?.batchId ?? '';
   const batch = batchOf(db, batchId);
   const course = batch ? courseOf(db, batch.courseId) : undefined;
   const sessions = batch ? sessionsOfBatch(db, batchId) : [];
@@ -147,7 +150,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     () => (user && course ? db.ratings.find((r) => r.userId === user.id && r.courseId === course.id) : undefined),
     [db.ratings, user, course]
   );
-  const [rateOpen, setRateOpen] = useState<boolean>(route.params?.rate === true);
+  const [rateOpen, setRateOpen] = useState<boolean>(route?.params?.rate === true);
   const [stars, setStars] = useState(existingRating?.stars ?? 5);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
   const [sending, setSending] = useState(false);
@@ -165,7 +168,14 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const [venueStars, setVenueStars] = useState(5);
   const [issuingCert, setIssuingCert] = useState(false);
 
-  if (!batch || !course || !user) return null;
+  if (!batch || !course || !user) {
+    return (
+      <Screen label={t('journey.map')}>
+        <Header title={t('journey.map')} back={() => navigation.goBack()} />
+        <Empty emoji="🗺️" title={t('common.notFoundTitle')} body={t('common.notFoundBody')} />
+      </Screen>
+    );
+  }
 
   const instructor = profileOf(db, batch.instructorId);
   const streak = courseStreak(db, user.id, batchId);
@@ -241,8 +251,27 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const minCertPct = 75;
   const isEligibleForCert = totalClosed >= sessions.length * 0.75 && attendanceRate >= minCertPct;
 
+  const exportBatchSchedule = async () => {
+    if (sessions.length === 0) return;
+    const ics = buildIcs(
+      sessions.map((s) => ({
+        uid: s.id,
+        title: course.title + ' — ' + s.title,
+        startMs: s.startsAt,
+        durationMinutes: s.durationMin > 0 ? s.durationMin : 90,
+        location: batch.room,
+        description: t('today.icsDesc', { course: course.title }),
+        url: PUBLIC_APP_URL,
+        alarmMinutes: 60,
+      })),
+      course.title,
+    );
+    const ok = await saveIcs(icsFilename(course.title, sessions[0].startsAt), ics);
+    toast(ok ? t('today.icsOk') : t('today.icsFail'), ok ? 'success' : 'error');
+  };
+
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={course.title} style={{ flex: 1 }}>
       <Header
         title={course.title}
         subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`}
@@ -299,6 +328,19 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 </Txt>
                 <Tag label={t('journey.minPct', { x: minCertPct })} color={theme.certGold} bg={theme.warnSoft} />
               </Row>
+              {sessions.length > 0 ? (
+                <>
+                  <Spacer size={10} />
+                  <Btn
+                    title={t('journey.exportSchedule')}
+                    size="sm"
+                    variant="ghost"
+                    icon="calendar-outline"
+                    full
+                    onPress={() => { void exportBatchSchedule(); }}
+                  />
+                </>
+              ) : null}
             </Card>
           </FadeIn>
 
@@ -551,7 +593,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         emoji="🎓"
         points={100}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -589,7 +631,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={t('history.title')} style={{ flex: 1 }}>
       <Header title={t('history.title')} back={() => navigation.goBack()} />
         {/* FUNC-05: مدخل التماس على سجل الحضور */}
         <Btn
@@ -598,7 +640,11 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
           icon="document-text-outline"
           onPress={() => navigation.navigate('Disputes', { mode: 'mine' })}
         />
-      <ScrollView
+      <FlatList
+        data={filtered}
+        keyExtractor={(r) => r.sess.id}
+        initialNumToRender={12}
+        windowSize={5}
         contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
         refreshControl={
           <RefreshControl
@@ -608,97 +654,96 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
             colors={[theme.brand]}
           />
         }
-      >
-        <FadeIn index={0}>
-          <Card style={{ gap: 14 }}>
-            <Row between center>
-              <View>
-                <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
-                <Txt variant="numberHero">{pct}%</Txt>
-              </View>
-              <Row gap={14}>
-                {(['present', 'late', 'excused', 'absent'] as const).map((s) => (
-                  <View key={s} style={{ alignItems: 'center', gap: 2 }}>
-                    <Txt variant="h3" color={statusMeta[s].color}>{rows.filter((r) => r.att.status === s).length}</Txt>
-                    <Txt variant="micro" color={theme.textMuted}>{statusMeta[s].label}</Txt>
+        ListHeaderComponent={
+          <View style={{ gap: 12 }}>
+            <FadeIn index={0}>
+              <Card style={{ gap: 14 }}>
+                <Row between center>
+                  <View>
+                    <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
+                    <Txt variant="numberHero">{pct}%</Txt>
                   </View>
+                  <Row gap={14}>
+                    {(['present', 'late', 'excused', 'absent'] as const).map((s) => (
+                      <View key={s} style={{ alignItems: 'center', gap: 2 }}>
+                        <Txt variant="h3" color={statusMeta[s].color}>{rows.filter((r) => r.att.status === s).length}</Txt>
+                        <Txt variant="micro" color={theme.textMuted}>{statusMeta[s].label}</Txt>
+                      </View>
+                    ))}
+                  </Row>
+                </Row>
+
+                <ProgressBar progress={pct / 100} color={theme.success} />
+
+                {/* شبكة كثافة الالتزام والحضور بنمط Duolingo / GitHub Heatmap */}
+                {rows.length > 0 ? (
+                  <View style={{ paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.line }}>
+                    <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>
+                      سجل كثافة الحضور والستريك
+                    </Txt>
+                    <StreakCalendarGrid
+                      days={rows.slice(0, 14).reverse().map((r, idx) => {
+                        const status: DayStatus =
+                          r.att.status === 'present' ? 'attended'
+                          : r.att.status === 'late' ? 'bonus'
+                          : r.att.status === 'excused' ? 'excused'
+                          : 'absent';
+                        return {
+                          dateKey: String(idx),
+                          status,
+                        };
+                      })}
+                    />
+                  </View>
+                ) : null}
+              </Card>
+            </FadeIn>
+
+            <FadeIn index={1}>
+              <Row gap={8} wrap>
+                {(['all', 'present', 'late', 'excused', 'absent'] as const).map((f) => (
+                  <Chip
+                    key={f}
+                    label={f === 'all' ? t('common.all') : statusMeta[f].label}
+                    active={filter === f}
+                    onPress={() => setFilter(f)}
+                  />
                 ))}
               </Row>
-            </Row>
-
-            <ProgressBar progress={pct / 100} color={theme.success} />
-
-            {/* شبكة كثافة الالتزام والحضور بنمط Duolingo / GitHub Heatmap */}
-            {rows.length > 0 ? (
-              <View style={{ paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.line }}>
-                <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 8 }}>
-                  سجل كثافة الحضور والستريك
-                </Txt>
-                <StreakCalendarGrid
-                  days={rows.slice(0, 14).reverse().map((r, idx) => {
-                    const status: DayStatus =
-                      r.att.status === 'present' ? 'attended'
-                      : r.att.status === 'late' ? 'bonus'
-                      : r.att.status === 'excused' ? 'excused'
-                      : 'absent';
-                    return {
-                      dateKey: String(idx),
-                      status,
-                    };
-                  })}
-                />
-              </View>
-            ) : null}
-          </Card>
-        </FadeIn>
-
-        <FadeIn index={1}>
-          <Row gap={8} wrap>
-            {(['all', 'present', 'late', 'excused', 'absent'] as const).map((f) => (
-              <Chip
-                key={f}
-                label={f === 'all' ? t('common.all') : statusMeta[f].label}
-                active={filter === f}
-                onPress={() => setFilter(f)}
-              />
-            ))}
-          </Row>
-        </FadeIn>
-
-        {filtered.length === 0 ? (
-          <Empty emoji="🗂️" title={t('history.emptyFilter')} />
-        ) : (
-          filtered.map(({ att, sess }, i) => {
-            const batch = batchOf(db, sess.batchId);
-            const course = batch ? courseOf(db, batch.courseId) : undefined;
-            const meta = statusMeta[att.status];
-            const points = att.status === 'present' ? 10 : att.status === 'late' ? 7 : 0;
-            return (
-              <FadeIn key={sess.id} index={Math.min(i, 6)}>
-                <Card>
-                  <Row center gap={12}>
-                    <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={meta.icon} size={22} color={meta.color} />
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Txt variant="bodyMed" numberOfLines={1}>{course?.title ?? ''}</Txt>
-                      <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
-                      <Txt variant="micro" color={theme.textMuted}>
-                        {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
-                        {att.method === 'manual' ? ` · ${t('common.manual')}` : ''}
-                      </Txt>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Tag label={meta.label} color={meta.color} bg={meta.color + '1F'} />
-                      {points > 0 ? <Txt variant="micro" color={theme.success}>+{points}</Txt> : null}
-                    </View>
-                  </Row>
-                </Card>
-              </FadeIn>
-            );
-          })
-        )}
-      </ScrollView>
-    </View>
+            </FadeIn>
+          </View>
+        }
+        ListEmptyComponent={<Empty emoji="🗂️" title={t('history.emptyFilter')} />}
+        renderItem={({ item: { att, sess }, index: i }) => {
+          const batch = batchOf(db, sess.batchId);
+          const course = batch ? courseOf(db, batch.courseId) : undefined;
+          const meta = statusMeta[att.status];
+          const points = att.status === 'present' ? 10 : att.status === 'late' ? 7 : 0;
+          return (
+            <FadeIn index={Math.min(i, 6)}>
+              <Card>
+                <Row center gap={12}>
+                  <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={meta.icon} size={22} color={meta.color} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Txt variant="bodyMed" numberOfLines={1}>{course?.title ?? ''}</Txt>
+                    <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
+                    <Txt variant="micro" color={theme.textMuted}>
+                      {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
+                      {att.method === 'manual' ? ' · ' + t('common.manual') : ''}
+                    </Txt>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Tag label={meta.label} color={meta.color} bg={meta.color + '1F'} />
+                    {points > 0 ? <Txt variant="micro" color={theme.success}>+{points}</Txt> : null}
+                  </View>
+                </Row>
+              </Card>
+            </FadeIn>
+          );
+        }}
+      />
+    </Screen>
   );
 }

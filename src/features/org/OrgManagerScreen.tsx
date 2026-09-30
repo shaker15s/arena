@@ -6,10 +6,10 @@ import { profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, FadeIn, Header, Input, Row, Sheet, Spacer, Tag, Txt,
+  Btn, Card, FadeIn, Header, Input, Row, Screen, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { MasarMascot } from '../../design/mascot';
-import { spacing } from '../../design/tokens';
+import { radii, sizes, spacing } from '../../design/tokens';
 import { createBranch, createCommittee } from '../../data/actions';
 import { Icon } from '../../design/icons';
 
@@ -57,8 +57,8 @@ export function OrgManagerScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: 14, paddingBottom: 130 }}>
+    <Screen label={t('org.branches')} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
         <Header title={t('org.branches')} right={<Btn title={t('org.newBranch')} size="sm" icon="add" onPress={() => setBranchSheet(true)} />} />
         {db.branches.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>
@@ -79,23 +79,23 @@ export function OrgManagerScreen() {
             <FadeIn key={b.id} index={i}>
               <Card>
                 <Row center gap={12}>
-                  <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="business" size={26} color={theme.brand} />
+                  <View style={{ width: sizes.iconMedium, height: sizes.iconMedium, borderRadius: radii.md, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="business" size={24} color={theme.brand} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="h3">{b.name}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>{b.governorate} · {b.address}</Txt>
-                    <Row center gap={6} style={{ marginTop: 4 }}>
+                    <Row center gap={spacing.s2} style={{ marginTop: spacing.s1 }}>
                       <Icon name="person-circle" size={13} color={theme.textMuted} />
                       <Txt variant="micro" color={theme.textMuted}>{supervisor ? supervisor.fullName : t('org.pickSupervisor')}</Txt>
                     </Row>
                   </View>
                   <Tag label={`${activeBatches} ${t('org.activeBatches')}`} color={theme.success} bg={theme.successSoft} icon="pulse" />
                 </Row>
-                <Spacer size={10} />
+                <Spacer size={spacing.s3} />
                 <Txt variant="caption" color={theme.textMuted}>{t('org.committees')}:</Txt>
-                <Spacer size={6} />
-                <Row gap={6} wrap>
+                <Spacer size={spacing.s2} />
+                <Row gap={spacing.s2} wrap>
                   {committees.map((c) => (
                     <Tag key={c.id} label={c.name} color={theme.brand} bg={theme.brandSoft} icon="git-network" />
                   ))}
@@ -122,6 +122,6 @@ export function OrgManagerScreen() {
           <Btn title={t('wizard.addCommittee')} full loading={saving} onPress={saveCommittee} icon="checkmark" disabled={!name.trim()} />
         </View>
       </Sheet>
-    </View>
+    </Screen>
   );
 }

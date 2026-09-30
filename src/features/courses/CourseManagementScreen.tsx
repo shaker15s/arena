@@ -16,7 +16,7 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, Chip, Empty, Header, Input, Row,
+  Btn, Card, Chip, Empty, Header, Input, Row, Screen,
   Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
@@ -193,7 +193,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen label={course.title}>
       <Header
         title={course.title}
         subtitle={t('management.opsSubtitle')}
@@ -516,6 +516,6 @@ export function CourseManagementScreen({ route, navigation }: any) {
           </ScrollView>
         </Sheet>
       ) : null}
-    </View>
+    </Screen>
   );
 }

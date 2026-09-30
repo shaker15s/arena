@@ -11,7 +11,6 @@
  * كتابة السجلات الجديدة بمعرّفاتها كما هي مع الحفاظ على العلاقات بين الجداول.
  */
 import { getSupabase } from './supabase';
-import { deepClone } from '../shared/clone';
 import {
   Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, CourseRole, Db,
   Enrollment, Excuse, GamificationProfile, GamificationRule, KudosQuota, LeagueWeekRow,
@@ -105,14 +104,23 @@ export async function fetchRemoteDb(): Promise<Db> {
   ] = await Promise.all([
     callRows<any>('list_visible_profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
     selectAll<any>('courses'), selectAll<any>('batches'), callRows<any>('get_batch_stats'), selectAll<any>('enrollments'),
-    selectAll<any>('sessions', 'id,batch_id,seq,title,starts_at,duration_min,status,started_at,closed_at,report,created_at'),
-    // DATA-001: الجداول المنزلقة تُقرأ بأحدث الصفوف بدل تفريغ كامل التاريخ في الجهاز.
-    selectRecent<any>('attendance', '*', 8_000), selectRecent<any>('point_events', '*', 4_000),
-    selectAll<any>('streak_weeks'), selectAll<any>('gamification'), selectAll<any>('badges', '*', 'code'),
-    selectAll<any>('user_badges'), selectAll<any>('league_weeks'), selectAll<any>('certificates'),
-    selectAll<any>('excuses'), selectAll<any>('course_ratings'), selectAll<any>('gamification_rules'),
-    selectRecent<any>('audit_log'), selectAll<any>('kudos_quotas'), selectRecent<any>('notifications', '*', 500),
-    selectAll<any>('private_notes'),
+    selectSessionWindow(),
+    // DATA-001 & DATA-13: الجداول المنزلقة والنامية تُقرأ بنافذة محدودة بدل تفريغ كامل التاريخ في الجهاز.
+    selectRecent<any>('attendance', '*', 4_000, 'checked_in_at'),
+    selectRecent<any>('point_events', '*', 2_000, 'created_at'),
+    selectRecent<any>('streak_weeks', '*', 2_000, 'week_start'),
+    selectAll<any>('gamification', '*', 'user_id'),
+    selectAll<any>('badges', '*', 'code'),
+    selectRecent<any>('user_badges', '*', 2_000, 'awarded_at'),
+    selectRecent<any>('league_weeks', '*', 2_000, 'week_start'),
+    selectRecent<any>('certificates', '*', 2_000, 'issued_at'),
+    selectRecent<any>('excuses', '*', 1_000, 'created_at'),
+    selectRecent<any>('course_ratings', '*', 2_000, 'created_at'),
+    selectAll<any>('gamification_rules', '*', 'key'),
+    selectRecent<any>('audit_log', '*', 500, 'created_at'),
+    selectRecent<any>('kudos_quotas', '*', 1_000, 'month'),
+    selectRecent<any>('notifications', '*', 200, 'created_at'),
+    selectRecent<any>('private_notes', '*', 1_000, 'updated_at'),
     selectAll<any>('course_roles').catch(() => []),
   ]);
   const statsByBatch = new Map(batchStats.map((r: any) => [r.batch_id, r]));
@@ -255,12 +263,24 @@ export interface RealtimePatch {
   oldRow?: Record<string, unknown> | null;
 }
 
+export interface SubscribeRealtimeOptions {
+  profileId?: string | null;
+  onReconnect?: () => void;
+}
+
 /**
  * يشترك في تغييرات الجداول المهمة ويمرّر كل حدث للمعالج.
  * المعالج يستلم الpayload (حتى لا نُفرّغ كامل قاعدة البيانات على كل حدث).
  */
-export function subscribeRealtime(onPatch: (p: RealtimePatch) => void): () => void {
+export function subscribeRealtime(
+  onPatch: (p: RealtimePatch) => void,
+  options?: SubscribeRealtimeOptions,
+): () => void {
   const sb = getSupabase();
+  const profileId = options?.profileId ?? null;
+  const userFilter = profileId ? 'user_id=eq.' + profileId : undefined;
+  let hadSubscribed = false;
+  let disconnected = false;
   const handler = (payload: any) =>
     onPatch({
       table: payload.table ?? '',
@@ -276,15 +296,31 @@ export function subscribeRealtime(onPatch: (p: RealtimePatch) => void): () => vo
     event: '*' as const, schema: 'public', table: 'sessions',
     select: ['id', 'batch_id', 'seq', 'title', 'starts_at', 'duration_min', 'status', 'started_at', 'closed_at', 'report'],
   };
+  const notifRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'notifications' };
+  const pointsRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'point_events' };
+  if (userFilter) {
+    notifRealtime.filter = userFilter;
+    pointsRealtime.filter = userFilter;
+  }
   const channel = sb
-    .channel('masar-live')
+    .channel(profileId ? 'masar-live-' + profileId.slice(0, 8) : 'masar-live')
     .on('postgres_changes', sessionsRealtime, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, handler)
+    .on('postgres_changes', notifRealtime as any, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, handler)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'point_events' }, handler)
-    .subscribe();
+    .on('postgres_changes', pointsRealtime as any, handler)
+    .subscribe((status?: string) => {
+      if (status === 'SUBSCRIBED') {
+        if (hadSubscribed && disconnected) {
+          disconnected = false;
+          options?.onReconnect?.();
+        }
+        hadSubscribed = true;
+      } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+        disconnected = true;
+      }
+    });
   return () => { void sb.removeChannel(channel); };
 }
 
@@ -299,7 +335,18 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
   const row = del ? p.oldRow : p.newRow;
   if (!row) return null;
 
-  const next = deepClone(db);
+  // PERF-41: بدل deepClone لقاعدة البيانات كاملة في كل حدث Realtime (كانت
+  // المصدر الأكبر للتعليق: clone كامل + stringify كامل للكاش عند كل دفعة أحداث)،
+  // نسخة سطحية علوية: الجداول غير المتأثرة تحتفظ بمراجعها (أوفر للـ memo)،
+  // ونُرجع مصفوفة جديدة للجدول المتأثر فقط دون تعديل أي مصفوفة قائمة.
+  const next: Db = { ...db };
+  const upsert = <T>(arr: T[], test: (x: T) => boolean, make: () => T): T[] => {
+    const i = arr.findIndex(test);
+    if (i < 0) return [...arr, make()];
+    const copy = arr.slice();
+    copy[i] = make();
+    return copy;
+  };
   const num = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
   const numOr = (v: unknown, fb: number): number => (v == null ? fb : Number(v));
   const tsVal = (v: unknown): number | undefined => (v == null ? undefined : new Date(String(v)).getTime());
@@ -316,8 +363,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         status: (row.status as Course['status']) ?? 'published',
         color: str(row.color ?? '#0A84FF'),
       };
-      const i = next.courses.findIndex((x) => x.id === id);
-      if (i >= 0) next.courses[i] = c; else next.courses.push(c);
+      next.courses = upsert(next.courses, (x) => x.id === id, () => c);
       break;
     }
     case 'batches': {
@@ -333,14 +379,14 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         enrolledCount: next.enrollments.filter((e) => e.batchId === id && e.status === 'active').length,
         waitlistCount: next.enrollments.filter((e) => e.batchId === id && e.status === 'waitlist').length,
       };
-      const i = next.batches.findIndex((x) => x.id === id);
-      if (i >= 0) {
-        b.enrolledCount = next.batches[i].enrolledCount;
-        b.waitlistCount = next.batches[i].waitlistCount;
-        next.batches[i] = b;
-      } else {
-        next.batches.push(b);
-      }
+      const prev = next.batches.find((x) => x.id === id);
+      // عند التحديث نبقي المقاعد آخر قيمة معروفة (مشتقة من get_batch_stats)
+      // ولا نعيد اشتقاقها من enrollments المحلية حتى لا تتراجع عند غياب صفائحها.
+      next.batches = upsert(
+        next.batches,
+        (x) => x.id === id,
+        () => (prev ? { ...b, enrolledCount: prev.enrolledCount, waitlistCount: prev.waitlistCount } : b),
+      );
       break;
     }
     case 'certificates': {
@@ -357,8 +403,11 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         reissuedBy: (row.reissued_by as string) ?? undefined,
         reissueCount: numOr(row.reissued_count ?? row.reissue_count, 0),
       };
-      const i = next.certificates.findIndex((x) => x.id === id);
-      if (i >= 0) next.certificates[i] = cert; else next.certificates.unshift(cert);
+      if (next.certificates.some((x) => x.id === id)) {
+        next.certificates = next.certificates.map((x) => (x.id === id ? cert : x));
+      } else {
+        next.certificates = [cert, ...next.certificates];
+      }
       break;
     }
     case 'user_badges': {
@@ -369,8 +418,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
       const ub: UserBadge = {
         userId, badgeCode, awardedAt: tsVal(row.awarded_at ?? row.unlocked_at) ?? Date.now(),
       };
-      const i = next.userBadges.findIndex(key);
-      if (i >= 0) next.userBadges[i] = ub; else next.userBadges.push(ub);
+      next.userBadges = upsert(next.userBadges, key, () => ub);
       break;
     }
     case 'profiles': {
@@ -384,8 +432,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         avatarColor: str(row.avatar_color ?? '#0A84FF'), gender: (row.gender as any) ?? null,
         joinedAt: tsVal(row.created_at ?? row.joined_at) ?? Date.now(),
       };
-      const i = next.profiles.findIndex((x) => x.id === id);
-      if (i >= 0) next.profiles[i] = prof; else next.profiles.push(prof);
+      next.profiles = upsert(next.profiles, (x) => x.id === id, () => prof);
       break;
     }
     case 'notifications': {
@@ -396,8 +443,11 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         type: row.type as AppNotification['type'], read: Boolean((row.read as any) === true),
         createdAt: tsVal(row.created_at) ?? Date.now(),
       };
-      const i = next.notifications.findIndex((x) => x.id === id);
-      if (i >= 0) next.notifications[i] = n; else next.notifications.unshift(n);
+      if (next.notifications.some((x) => x.id === id)) {
+        next.notifications = next.notifications.map((x) => (x.id === id ? n : x));
+      } else {
+        next.notifications = [n, ...next.notifications];
+      }
       break;
     }
     case 'sessions': {
@@ -412,8 +462,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         // الـ select — بذرة التوكن لا يُسمح بها إلا داخل RPCs الخادمية.
         qrSeed: undefined, report: row.report as any,
       };
-      const i = next.sessions.findIndex((x) => x.id === id);
-      if (i >= 0) next.sessions[i] = s; else next.sessions.push(s);
+      next.sessions = upsert(next.sessions, (x) => x.id === id, () => s);
       break;
     }
     case 'attendance': {
@@ -427,8 +476,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         checkedInAt: tsVal(row.checked_in_at), method: row.method as Attendance['method'] ?? undefined,
         note: (row.note as string) ?? undefined,
       };
-      const i = next.attendance.findIndex(key);
-      if (i >= 0) next.attendance[i] = a; else next.attendance.push(a);
+      next.attendance = upsert(next.attendance, key, () => a);
       break;
     }
     case 'enrollments': {
@@ -440,8 +488,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         userId, batchId, status: row.status === 'waitlist' ? 'waitlist' : 'active',
         joinedAt: tsVal(row.joined_at) ?? Date.now(),
       };
-      const i = next.enrollments.findIndex(key);
-      if (i >= 0) next.enrollments[i] = e; else next.enrollments.push(e);
+      next.enrollments = upsert(next.enrollments, key, () => e);
       break;
     }
     case 'point_events': {
@@ -453,8 +500,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         awardedBy: (row.awarded_by as string) ?? null, idempotencyKey: str(row.idempotency_key),
         createdAt: tsVal(row.created_at) ?? Date.now(),
       };
-      const i = next.pointEvents.findIndex((x) => x.id === id);
-      if (i >= 0) next.pointEvents[i] = pe; else next.pointEvents.push(pe);
+      next.pointEvents = upsert(next.pointEvents, (x) => x.id === id, () => pe);
       break;
     }
     case 'excuses': {
@@ -466,8 +512,7 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         note: row.note as string | undefined, reviewedBy: row.reviewed_by as string | undefined,
         createdAt: tsVal(row.created_at) ?? Date.now(),
       };
-      const i = next.excuses.findIndex((x) => x.id === id);
-      if (i >= 0) next.excuses[i] = ex; else next.excuses.push(ex);
+      next.excuses = upsert(next.excuses, (x) => x.id === id, () => ex);
       break;
     }
     case 'course_roles': {
@@ -477,22 +522,24 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         id, courseId: str(row.course_id), userId: str(row.user_id), role: row.role as CourseRole['role'],
         createdAt: tsVal(row.created_at) ?? Date.now(),
       };
-      const i = next.courseRoles.findIndex((x) => x.id === id);
-      if (i >= 0) next.courseRoles[i] = cr; else next.courseRoles.push(cr);
+      next.courseRoles = upsert(next.courseRoles, (x) => x.id === id, () => cr);
       break;
     }
     default:
       return null; // جدول غير مشترك — المتصل يعمل refresh
   }
 
-  // الـ batchStats مشتقة من enrollments — نُحدّث المقاعد لنفس الـ batch مباشرة.
+  // الـ batchStats مشتقة من enrollments — نُبني نسخة جديدة من نفس الـ batch
+  // دون تعديل الكائن الحالي (يخالف الإيموتابيلتي ويكسر الـ memoization).
   if (p.table === 'enrollments') {
     const batchId = str(row.batch_id);
-    const b = next.batches.find((x) => x.id === batchId);
-    if (b) {
-      b.enrolledCount = next.enrollments.filter((e) => e.batchId === batchId && e.status === 'active').length;
-      b.waitlistCount = next.enrollments.filter((e) => e.batchId === batchId && e.status === 'waitlist').length;
-    }
+    next.batches = next.batches.map((x) => x.id === batchId
+      ? {
+        ...x,
+        enrolledCount: next.enrollments.filter((e) => e.batchId === batchId && e.status === 'active').length,
+        waitlistCount: next.enrollments.filter((e) => e.batchId === batchId && e.status === 'waitlist').length,
+      }
+      : x);
   }
   return next;
 }

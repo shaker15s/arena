@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "3.2.0",
+  "budget": {
+    "maxSingleAssetBytes": 204800,
+    "preferredFormat": ["svg", "webp", "png"],
+    "rtlMirrorable": true
+  },
+  "licenses": {
+    "brandAssets": "Proprietary — Masar Training OS",
+    "icons": "MIT (@expo/vector-icons / Ionicons)",
+    "fonts": "OFL-1.1 (IBM Plex Sans Arabic, Cairo, JetBrains Mono)"
+  },
+  "assets": [
+    {
+      "id": "app-icon",
+      "path": "assets/icon.png",
+      "category": "brand",
+      "dimensions": "1024x1024",
+      "maxBytes": 204800,
+      "rtlMirror": false
+    },
+    {
+      "id": "adaptive-icon",
+      "path": "assets/adaptive-icon.png",
+      "category": "brand",
+      "dimensions": "1024x1024",
+      "maxBytes": 204800,
+      "rtlMirror": false
+    },
+    {
+      "id": "splash-icon",
+      "path": "assets/splash-icon.png",
+      "category": "brand",
+      "dimensions": "1024x1024",
+      "maxBytes": 204800,
+      "rtlMirror": false
+    },
+    {
+      "id": "pwa-icon-192",
+      "path": "public/icon-192.png",
+      "category": "pwa",
+      "dimensions": "192x192",
+      "maxBytes": 65536,
+      "rtlMirror": false
+    },
+    {
+      "id": "pwa-icon-512",
+      "path": "public/icon-512.png",
+      "category": "pwa",
+      "dimensions": "512x512",
+      "maxBytes": 131072,
+      "rtlMirror": false
+    },
+    {
+      "id": "pwa-icon-maskable-512",
+      "path": "public/icon-maskable-512.png",
+      "category": "pwa",
+      "dimensions": "512x512",
+      "maxBytes": 131072,
+      "rtlMirror": false
+    },
+    {
+      "id": "apple-touch-icon",
+      "path": "public/apple-touch-icon.png",
+      "category": "pwa",
+      "dimensions": "180x180",
+      "maxBytes": 65536,
+      "rtlMirror": false
+    },
+    {
+      "id": "og-cover",
+      "path": "public/og-cover.png",
+      "category": "social",
+      "dimensions": "1200x630",
+      "maxBytes": 204800,
+      "rtlMirror": false
+    },
+    {
+      "id": "mascot-faten-svg",
+      "path": "src/design/mascot/FatenFalconSvg.tsx",
+      "category": "mascot",
+      "states": [
+        "idle",
+        "ready",
+        "attention",
+        "working",
+        "success",
+        "achievement",
+        "streak_fire",
+        "alert",
+        "recovery",
+        "offline",
+        "quiet",
+        "welcome"
+      ],
+      "maxBytes": 65536,
+      "rtlMirror": false
+    },
+    {
+      "id": "empty-illustrations",
+      "path": "src/design/illustrations/svgStrings.ts",
+      "category": "illustrations",
+      "lazyLoaded": true,
+      "maxBytes": 65536,
+      "rtlMirror": false
+    }
+  ]
+}
