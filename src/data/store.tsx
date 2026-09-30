@@ -305,14 +305,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     cacheOwner = authUser.id;
-    setIdentity(identityOf(authUser));
     setAuthError(null);
     setLoading(true);
     try {
       const sb = getSupabase();
-      const { data } = await sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle();
+      const [{ data }] = await Promise.all([
+        sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle(),
+        refresh(),
+      ]);
       setProfileId(data?.id ?? null);
-      await refresh();
+      setIdentity(identityOf(authUser));
       await syncPendingQueueCount();
     } finally {
       setLoading(false);
@@ -346,7 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // TOKEN_REFRESHED يصدر كل ساعة ولا يغيّر الهوية — كان يسبّب
           // إعادة تحميل كاملة لقاعدة البيانات بلا داعٍ في كل مرة.
           const nextId = s?.user?.id ?? null;
-          if (event === 'TOKEN_REFRESHED' && nextId === lastAuthUserId) return;
+          if ((event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && nextId === lastAuthUserId) return;
           lastAuthUserId = nextId;
           void applySession(s);
         });
@@ -355,7 +357,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
           const { data: { session } } = await sb.auth.getSession();
           if (isMounted) {
-            await applySession(session);
+            const nextId = session?.user?.id ?? null;
+            if (nextId !== lastAuthUserId) {
+              lastAuthUserId = nextId;
+              await applySession(session);
+            }
             // ويب: رجعنا من جوجل بلا جلسة؟ نظّف بارامترات الرجوع من الـ URL
             // وأظهر سبب الفشل — بدل إعادة المستخدم للأونبوردينج بصمت.
             if (Platform.OS === 'web') {
@@ -606,7 +612,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [db.profiles, profileId],
   );
 
-  const needsProfile = Boolean(identity) && (!user || (user.status !== 'disabled' && !user.phone));
+  const needsProfile = !loading && Boolean(identity) && (!user || (user.status !== 'disabled' && !user.phone));
 
   const value = useMemo<AppCtx>(() => ({
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, authError, loading, syncing,

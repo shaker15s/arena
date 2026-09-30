@@ -51,6 +51,7 @@ import { spacing, radii, sizes } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { Icon } from '../../design/icons';
 import { Screen, VisuallyHidden } from '../../design/a11y/semantics';
+import { safeBack } from '../../app/navRef';
 
 async function haptic(kind: 'success' | 'error' | 'warning') {
   if (Platform.OS === 'web') return;
@@ -321,7 +322,7 @@ export function ScannerScreen({ navigation }: any) {
         <Row between center style={styles.headerRow}>
           <IconGlassButton
             icon={<Icon name="close" size={22} color="#FFF" />}
-            onPress={() => navigation.goBack()}
+            onPress={() => safeBack(navigation)}
             accessibilityLabel={t('common.close')}
           />
 
@@ -540,7 +541,7 @@ export function ScannerScreen({ navigation }: any) {
         visible={success != null}
         onClose={() => {
           setSuccess(null);
-          navigation.goBack();
+          safeBack(navigation);
         }}
         points={success?.points ?? 10}
         status={success?.status ?? 'present'}

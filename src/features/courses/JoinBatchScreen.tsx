@@ -10,12 +10,13 @@ import { Btn, Card, Header, Row, Screen, Spacer, Txt } from '../../design/compon
 import { JellyButton, PillGradientSearchInput, SuccessWaveAlert } from '../../design/interactive';
 import { spacing } from '../../design/tokens';
 import { Icon } from '../../design/icons';
+import { safeBack } from '../../app/navRef';
 
 export function JoinBatchScreen({ route, navigation }: any) {
   const { db, user, refresh, toast } = useApp();
   const { theme } = useTheme();
   const { t } = useI18n();
-  const [code, setCode] = useState(String(route.params?.code ?? ''));
+  const [code, setCode] = useState(String(route?.params?.code ?? ''));
   const [submitting, setSubmitting] = useState(false);
   const [joined, setJoined] = useState<'active' | 'waitlist' | null>(null);
   const batch = useMemo(
@@ -41,7 +42,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
 
   return (
     <Screen label={t('joinCode.title')}>
-      <Header title={t('joinCode.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
+      <Header title={t('joinCode.title')} back={() => safeBack(navigation)} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
         <Card>
           <Row center gap={10}>

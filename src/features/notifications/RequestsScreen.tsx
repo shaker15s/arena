@@ -144,7 +144,7 @@ export function RequestsScreen({ navigation }: any) {
         ) : null}
 
         {isManager ? (
-          <Card glass>
+          <Card>
             <Txt variant="bodyMed">{t('support.lookupRef')}</Txt>
             <Spacer size={8} />
             <Row gap={8} center>

@@ -825,7 +825,7 @@ export interface Database {
   /** 0031_functional_completeness.sql */
   get_error_by_ref: { Args: { p_ref: string }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
-  get_leaderboard: { Args: { p_branch_id?: string | null; p_week?: string | null; p_limit?: number | null }; Returns: Json };
+  get_leaderboard: { Args: { p_branch_id?: string | null; p_week?: string | null; p_limit?: number | null; p_tier?: string | null }; Returns: Json };
   /** 0028_get_today.sql */
   get_my_courses: { Args: Record<string, never>; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
@@ -861,7 +861,7 @@ export interface Database {
   /** 0031_functional_completeness.sql */
   list_attendance_disputes: { Args: { p_scope?: string | null; p_limit?: number | null }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
-  list_notifications: { Args: { p_cursor?: string | null; p_limit?: number | null }; Returns: Json };
+  list_notifications: { Args: { p_cursor?: string | null; p_limit?: number | null; p_unread_only?: boolean | null }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
   list_pending_actions: { Args: { p_limit?: number | null }; Returns: Json };
   /** 0005_production_hardening.sql */

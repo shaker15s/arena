@@ -429,7 +429,7 @@ export function SupportScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
         {isManager ? (
           <FadeIn index={0}>
-            <Card glass>
+            <Card>
               <Txt variant="bodyMed">{t('support.lookupRef')}</Txt>
               <Spacer size={8} />
               <Row gap={8} center>

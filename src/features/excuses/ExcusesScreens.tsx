@@ -195,7 +195,7 @@ export function ExcusesScreen({ navigation }: any) {
 
 // ───────────────────────────── S35 صندوق الأعذار (المدرب) ─────────────────────────────
 
-export function ExcusesInboxScreen() {
+export function ExcusesInboxScreen({ navigation }: any = {}) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast } = useApp();
@@ -206,7 +206,8 @@ export function ExcusesInboxScreen() {
   const [selectedReportSession, setSelectedReportSession] = useState<TrainingSession | null>(null);
   if (!user) return null;
 
-  const myBatchIds = db.batches.filter((b) => b.instructorId === user.id).map((b) => b.id);
+  const isManager = user.role === 'admin' || user.role === 'supervisor';
+  const myBatchIds = db.batches.filter((b) => isManager || b.instructorId === user.id).map((b) => b.id);
   const myPending = db.excuses
     .filter((e) => {
       const s = db.sessions.find((x) => x.id === e.sessionId);
@@ -246,7 +247,7 @@ export function ExcusesInboxScreen() {
   return (
     <Screen label={t('inbox.title')}>
       <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
-        <Header title={t('inbox.title')} />
+        <Header title={t('inbox.title')} back={navigation ? () => navigation.goBack() : undefined} />
         <Segmented
           value={tab}
           onChange={setTab}

@@ -142,7 +142,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast, syncing } = useApp();
-  const batchId: string = route.params.batchId;
+  const batchId: string = route?.params?.batchId ?? '';
   const batch = batchOf(db, batchId);
   const course = batch ? courseOf(db, batch.courseId) : undefined;
   const sessions = batch ? sessionsOfBatch(db, batchId) : [];
@@ -150,7 +150,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
     () => (user && course ? db.ratings.find((r) => r.userId === user.id && r.courseId === course.id) : undefined),
     [db.ratings, user, course]
   );
-  const [rateOpen, setRateOpen] = useState<boolean>(route.params?.rate === true);
+  const [rateOpen, setRateOpen] = useState<boolean>(route?.params?.rate === true);
   const [stars, setStars] = useState(existingRating?.stars ?? 5);
   const [comment, setComment] = useState(existingRating?.comment ?? '');
   const [sending, setSending] = useState(false);
@@ -168,7 +168,14 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
   const [venueStars, setVenueStars] = useState(5);
   const [issuingCert, setIssuingCert] = useState(false);
 
-  if (!batch || !course || !user) return null;
+  if (!batch || !course || !user) {
+    return (
+      <Screen label={t('journey.map')}>
+        <Header title={t('journey.map')} back={() => navigation.goBack()} />
+        <Empty emoji="🗺️" title={t('common.notFoundTitle')} body={t('common.notFoundBody')} />
+      </Screen>
+    );
+  }
 
   const instructor = profileOf(db, batch.instructorId);
   const streak = courseStreak(db, user.id, batchId);

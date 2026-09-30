@@ -354,12 +354,19 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, toast, user } = useApp();
-  const batch = batchOf(db, route.params.batchId);
+  const batch = batchOf(db, route?.params?.batchId ?? '');
   const [report, setReport] = useState<SessionReportData | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [notifying, setNotifying] = useState(false);
-  if (!batch || !user) return null;
-  const course = courseOf(db, batch.courseId)!;
+  const course = batch ? courseOf(db, batch.courseId) : undefined;
+  if (!batch || !course || !user) {
+    return (
+      <Screen label={t('sess.title')}>
+        <Header title={t('sess.title')} back={() => navigation.goBack()} />
+        <Empty emoji="📋" title={t('common.notFoundTitle')} body={t('common.notFoundBody')} />
+      </Screen>
+    );
+  }
   const sessions = sessionsOfBatch(db, batch.id);
   const students = batchStudents(db, batch.id);
 
@@ -579,17 +586,24 @@ export function StudentRecordScreen({ route, navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast } = useApp();
-  const student = db.profiles.find((p) => p.id === route.params.userId);
-  const batch = batchOf(db, route.params.batchId);
+  const student = db.profiles.find((p) => p.id === route?.params?.userId);
+  const batch = batchOf(db, route?.params?.batchId ?? '');
   const [note, setNote] = useState('');
   const [kudosOpen, setKudosOpen] = useState(false);
   const [kudosPts, setKudosPts] = useState('10');
   const [kudosReason, setKudosReason] = useState('');
   const [kudosRequestId, setKudosRequestId] = useState(() => uid());
   const [sending, setSending] = useState(false);
+  const course = batch ? courseOf(db, batch.courseId) : undefined;
 
-  if (!student || !batch || !user) return null;
-  const course = courseOf(db, batch.courseId)!;
+  if (!student || !batch || !course || !user) {
+    return (
+      <Screen label={t('student.title')}>
+        <Header title={t('student.title')} back={() => navigation.goBack()} />
+        <Empty emoji="👤" title={t('common.notFoundTitle')} body={t('common.notFoundBody')} />
+      </Screen>
+    );
+  }
   const sess = sessionsOfBatch(db, batch.id);
   const { pct, honored, total } = attendancePct(db, student.id, batch.id);
 

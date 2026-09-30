@@ -387,8 +387,8 @@ BEGIN
     FROM public.sessions s JOIN public.batches b ON b.id = s.batch_id
    WHERE s.id = p_session_id AND b.instructor_id IS NOT NULL;
 
-  INSERT INTO public.audit_log(actor_id, action, entity_type, entity_id, details)
-  VALUES (v_user, 'attendance_dispute_submitted', 'attendance_dispute', v_id,
+  INSERT INTO public.audit_log(actor_id, action, target, payload)
+  VALUES (v_user, 'attendance_dispute_submitted', v_id::text,
           jsonb_build_object('session_id', p_session_id));
 
   RETURN jsonb_build_object('ok', TRUE, 'id', v_id, 'status', 'open');
@@ -481,11 +481,11 @@ BEGIN
     'dispute_resolved:' || p_dispute_id::text
   ) ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
 
-  INSERT INTO public.audit_log(actor_id, action, entity_type, entity_id, details)
+  INSERT INTO public.audit_log(actor_id, action, target, payload)
   VALUES (v_actor,
           CASE WHEN COALESCE(p_accept, FALSE) THEN 'attendance_dispute_accepted'
                ELSE 'attendance_dispute_rejected' END,
-          'attendance_dispute', p_dispute_id,
+          p_dispute_id::text,
           jsonb_build_object(
             'student_id', v_dispute.user_id,
             'session_id', v_dispute.session_id,
@@ -1046,14 +1046,14 @@ DECLARE
   v_body JSONB;
   v_canonical TEXT;
 BEGIN
-  SELECT c.id, c.serial, c.user_id, c.course_id, c.batch_id, c.issued_at, c.status,
+  SELECT c.id, c.serial, c.user_id, b.course_id, c.batch_id, c.issued_at, c.status,
          co.title AS course_title, co.field AS course_field,
          p.full_name AS student_name, b.room, br.name AS branch_name
     INTO v_cert
     FROM public.certificates c
-    LEFT JOIN public.courses co ON co.id = c.course_id
-    LEFT JOIN public.profiles p ON p.id = c.user_id
     LEFT JOIN public.batches b ON b.id = c.batch_id
+    LEFT JOIN public.courses co ON co.id = b.course_id
+    LEFT JOIN public.profiles p ON p.id = c.user_id
     LEFT JOIN public.branches br ON br.id = b.branch_id
    WHERE c.serial = v_serial;
 
@@ -1208,7 +1208,7 @@ BEGIN
   FOR r IN SELECT jobid FROM cron.job WHERE jobname IN ('masar-housekeeping', 'masar-weekly-report') LOOP
     PERFORM cron.unschedule(r.jobid);
   END LOOP;
-EXCEPTION WHEN undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 DO $$
@@ -1219,7 +1219,7 @@ BEGIN
     'SELECT public.prune_push_outbox(); SELECT public.prune_client_errors(); '
     'SELECT public.prune_dead_push_tokens(); SELECT public.prune_checkin_risk_signals();'
   );
-EXCEPTION WHEN undefined_function OR undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_function OR undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 -- Weekly report every Sunday at 07:00 Cairo time (the plan's acceptance criteria
@@ -1230,7 +1230,7 @@ BEGIN
     'masar-weekly-report', '0 4 * * 0',
     'SELECT public.enqueue_weekly_reports();'
   );
-EXCEPTION WHEN undefined_function OR undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_function OR undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 -- Anomaly sweep every 30 minutes keeps the anti-cheat table current without a
@@ -1241,7 +1241,7 @@ BEGIN
     'masar-anticheat-sweep', '*/30 * * * *',
     'SELECT public.detect_checkin_anomalies(now() - interval ''6 hours'');'
   );
-EXCEPTION WHEN undefined_function OR undefined_table OR undefined_schema THEN NULL;
+EXCEPTION WHEN undefined_function OR undefined_table OR invalid_schema_name THEN NULL;
 END $$;
 
 -- Enqueues one in-app notification per active subscription whose local send

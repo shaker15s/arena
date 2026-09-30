@@ -13,6 +13,7 @@ import { Avatar, Btn, Card, FadeIn, Header, Input, Row, Screen, Spacer, Txt } fr
 import { spacing, radii } from '../../design/tokens';
 import { bidiIsolate, formatDate } from '../../shared/format';
 import { Icon } from '../../design/icons';
+import { safeBack } from '../../app/navRef';
 
 export function VerifyScreen({ navigation, route }: any) {
   const { t, lang } = useI18n();
@@ -53,7 +54,7 @@ export function VerifyScreen({ navigation, route }: any) {
 
   return (
     <Screen label={t('verify.title')} style={{ flex: 1, backgroundColor: theme.bg }}>
-      <Header title={t('verify.title')} back={navigation.canGoBack?.() ? () => navigation.goBack() : undefined} />
+      <Header title={t('verify.title')} back={() => safeBack(navigation)} />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.s5,

@@ -440,11 +440,12 @@ $$;
 REVOKE ALL ON FUNCTION public.get_my_wallet(TIMESTAMPTZ, INTEGER) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_wallet(TIMESTAMPTZ, INTEGER) TO authenticated;
 
--- 3.3) get_leaderboard(p_branch_id, p_week, p_limit) — Screen S17 (League Leaderboard)
+-- 3.3) get_leaderboard(p_branch_id, p_week, p_limit, p_tier) — Screen S17 (League Leaderboard)
 CREATE OR REPLACE FUNCTION public.get_leaderboard(
   p_branch_id UUID DEFAULT NULL,
   p_week DATE DEFAULT NULL,
-  p_limit INTEGER DEFAULT 50
+  p_limit INTEGER DEFAULT 50,
+  p_tier TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp
@@ -473,6 +474,7 @@ BEGIN
     WHERE lw.week_start = v_week
       AND p.status = 'active'
       AND (p_branch_id IS NULL OR p.branch_id = p_branch_id)
+      AND (p_tier IS NULL OR lw.tier = p_tier)
   )
   SELECT
     COALESCE((SELECT jsonb_agg(row_to_json(r)) FROM (SELECT * FROM ranked ORDER BY xp_week DESC LIMIT v_cap) r), '[]'::jsonb),
@@ -482,18 +484,20 @@ BEGIN
   RETURN jsonb_build_object(
     'week_start', v_week,
     'branch_id', p_branch_id,
+    'tier', p_tier,
     'entries', v_rows,
     'me', v_my_rank
   );
 END;
 $$;
-REVOKE ALL ON FUNCTION public.get_leaderboard(UUID, DATE, INTEGER) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.get_leaderboard(UUID, DATE, INTEGER) TO authenticated;
+REVOKE ALL ON FUNCTION public.get_leaderboard(UUID, DATE, INTEGER, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_leaderboard(UUID, DATE, INTEGER, TEXT) TO authenticated;
 
--- 3.4) list_notifications(p_cursor, p_limit) — Screen S23 (Paginated Notifications)
+-- 3.4) list_notifications(p_cursor, p_limit, p_unread_only) — Screen S23 (Paginated Notifications)
 CREATE OR REPLACE FUNCTION public.list_notifications(
   p_cursor TIMESTAMPTZ DEFAULT NULL,
-  p_limit INTEGER DEFAULT 30
+  p_limit INTEGER DEFAULT 30,
+  p_unread_only BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp
@@ -516,6 +520,7 @@ BEGIN
     FROM public.notifications
     WHERE user_id = v_user
       AND (p_cursor IS NULL OR created_at < p_cursor)
+      AND (NOT COALESCE(p_unread_only, FALSE) OR NOT read)
     ORDER BY created_at DESC, id DESC
     LIMIT v_cap
   )
@@ -532,8 +537,8 @@ BEGIN
   );
 END;
 $$;
-REVOKE ALL ON FUNCTION public.list_notifications(TIMESTAMPTZ, INTEGER) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.list_notifications(TIMESTAMPTZ, INTEGER) TO authenticated;
+REVOKE ALL ON FUNCTION public.list_notifications(TIMESTAMPTZ, INTEGER, BOOLEAN) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_notifications(TIMESTAMPTZ, INTEGER, BOOLEAN) TO authenticated;
 
 -- 3.5) get_admin_overview(p_branch_id) — Screen S40 (Admin Dashboard KPIs)
 CREATE OR REPLACE FUNCTION public.get_admin_overview(p_branch_id UUID DEFAULT NULL)
@@ -868,7 +873,7 @@ SELECT
   coalesce(b.id, '00000000-0000-0000-0000-000000000000'::uuid) AS branch_key,
   b.id AS branch_id,
   (SELECT count(*)::int FROM public.profiles p WHERE p.role = 'student' AND p.status = 'active' AND (b.id IS NULL OR p.branch_id = b.id)) AS active_students,
-  (SELECT count(*)::int FROM public.profiles p WHERE p.role = 'instructor' AND p.status = 'active' AND (b.id IS NULL OR p.branch_id = b.id)) AS active_instructors,
+  (SELECT count(*)::int FROM public.profiles p WHERE p.role = 'volunteer' AND p.status = 'active' AND (b.id IS NULL OR p.branch_id = b.id)) AS active_instructors,
   (SELECT count(*)::int FROM public.batches bt WHERE bt.status = 'active' AND (b.id IS NULL OR bt.branch_id = b.id)) AS active_batches,
   now() AS refreshed_at
 FROM (SELECT NULL::uuid AS id UNION ALL SELECT id FROM public.branches) b;
@@ -990,8 +995,8 @@ BEGIN
   )
   VALUES (
     (SELECT count(*)::int FROM public.sessions WHERE status = 'live'),
-    (SELECT count(*)::int FROM public.notification_outbox WHERE status = 'pending'),
-    (SELECT count(*)::int FROM public.client_errors WHERE created_at >= now() - INTERVAL '24 hours'),
+    (SELECT count(*)::int FROM public.push_outbox WHERE status = 'pending'),
+    (SELECT count(*)::int FROM public.client_errors WHERE last_seen_at >= now() - INTERVAL '24 hours'),
     (SELECT count(*)::int FROM public.attendance WHERE checked_in_at >= now() - INTERVAL '24 hours'),
     (SELECT count(*)::int FROM public.attendance_disputes WHERE status = 'open'),
     (SELECT count(*)::int FROM public.excuses WHERE status = 'pending'),

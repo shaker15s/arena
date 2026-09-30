@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, BackHandler, I18nManager, Keyboard, Platform, Pressable, ToastAndroid, View } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme, getStateFromPath as defaultGetStateFromPath } from '@react-navigation/native';
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,7 @@ import { isReducedMotion } from '../design/motion';
 import { navBar, radii, spacing } from '../design/tokens';
 import { useHaptics } from '../shared/hooks';
 import { PUBLIC_APP_URL } from '../shared/links';
-import { navigationRef } from './navRef';
+import { navigationRef, safeBack } from './navRef';
 import { hasSeenOnboarding } from '../shared/onboarding';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { SkipLink, Screen as SemanticScreen } from '../design/a11y/semantics';
@@ -110,26 +110,17 @@ const screenOpts = {
   presentation: 'card' as const,
   contentStyle: { backgroundColor: 'transparent' },
 };
+const TAB_SLUGS = new Set([
+  'today', 'journey', 'explore', 'gamification', 'profile',
+  'dash', 'org', 'users', 'hub', 'batches', 'live', 'inbox', 'history',
+]);
+
 const linking = {
   prefixes: [Linking.createURL('/'), ...(PUBLIC_APP_URL ? [PUBLIC_APP_URL] : [])],
   config: {
+    initialRouteName: 'Tabs' as const,
     screens: {
-      Tabs: {
-        path: '',
-        screens: {
-          today: 'today',
-          journey: 'journey',
-          explore: 'explore',
-          gamification: 'gamification',
-          profile: 'profile',
-          dash: 'dash',
-          org: 'org',
-          users: 'users',
-          hub: 'hub',
-          batches: 'batches',
-          history: 'history',
-        },
-      },
+      Tabs: '',
       Notifications: 'notifications',
       Requests: 'requests',
       CourseDetails: 'course/:courseId',
@@ -143,6 +134,7 @@ const linking = {
       Certificates: 'certificates',
       CertificateViewer: 'certificate/:certId',
       Excuses: 'excuses',
+      ExcusesInbox: 'admin/excuses',
       RulesGuide: 'rules',
       Support: 'support',
       Settings: 'settings',
@@ -160,6 +152,15 @@ const linking = {
       CompleteProfile: 'complete-profile',
       NotFound: '*',
     },
+  },
+  getStateFromPath(path: string, options: any) {
+    const clean = path.replace(/^\/+|\/+$/g, '').split('?')[0];
+    if (clean && TAB_SLUGS.has(clean)) {
+      return {
+        routes: [{ name: 'Tabs', params: { tab: clean === 'history' ? 'journey' : clean } }],
+      };
+    }
+    return defaultGetStateFromPath(path, options);
   },
 };
 
@@ -435,6 +436,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
   }, [requestedTab, renders, visitedTabs]);
 
   const handleSelectTab = (newTab: string) => {
+    handledRequest.current = newTab;
     visitedTabs.add(newTab);
     setTab(newTab);
     // A11Y-13: تغيير التبويب إجراء تنقّل لا انتقال كامل — نُعلن اسم التبويب.
@@ -605,10 +607,12 @@ function VolunteerStack() {
       <Stack.Screen name="Tabs" component={VolunteerTabs} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
-      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} />
+      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
       <Stack.Screen name="SessionsHistory" component={SessionsHistoryScreen} />
       <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
+      <Stack.Screen name="ExcusesInbox" component={ExcusesInboxScreen} />
+      <Stack.Screen name="CertificateViewer" component={CertificateViewerScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
@@ -630,8 +634,12 @@ function AdminStack() {
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="BatchesAdmin" component={BatchesAdminScreen} />
       <Stack.Screen name="CourseManagement" component={CourseManagementScreen} />
+      <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="StudentRecord" component={StudentRecordScreen} />
+      <Stack.Screen name="SessionsHistory" component={SessionsHistoryScreen} />
+      <Stack.Screen name="ExcusesInbox" component={ExcusesInboxScreen} />
       <Stack.Screen name="IssueCertificates" component={IssueCertificatesScreen} />
+      <Stack.Screen name="CertificateViewer" component={CertificateViewerScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />
       <Stack.Screen name="RulesGuide" component={RulesGuideScreen} />
@@ -647,7 +655,17 @@ function AdminStack() {
 
 function AuthStack() {
   const { authError } = useApp();
-  const [initial, setInitial] = useState<'Onboarding' | 'SignIn' | null>(null);
+  const [initial, setInitial] = useState<'Onboarding' | 'SignIn' | null>(() => {
+    if (authError) return 'SignIn';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        return window.localStorage.getItem('masar.onboarding.seen.v1') === '1' ? 'SignIn' : 'Onboarding';
+      } catch {
+        return 'SignIn';
+      }
+    }
+    return null;
+  });
 
   // الأونبوردينج يظهر مرة واحدة فقط: من رآه (أو حاول الدخول للتو وفشل)
   // يبدأ من شاشة الدخول مباشرة بدل إعادته للشريحة الأولى كل مرة.
@@ -705,13 +723,7 @@ function NotFoundScreen({ navigation }: any) {
               full
               size="lg"
               icon="home"
-              onPress={() => {
-                if (navigation.canGoBack?.()) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate?.(user ? 'Tabs' : 'SignIn');
-                }
-              }}
+              onPress={() => safeBack(navigation, user ? 'Tabs' : 'SignIn')}
             />
           </Card>
         </FadeIn>
@@ -769,6 +781,7 @@ const ROUTE_TITLE_KEYS: Record<string, string> = {
   Certificates: 'certs.title',
   CertificateViewer: 'certs.title',
   Excuses: 'excuses.title',
+  ExcusesInbox: 'inbox.title',
   Notifications: 'profile.notifications',
   Requests: 'requests.title',
   RulesGuide: 'rules.title',
@@ -779,8 +792,8 @@ const ROUTE_TITLE_KEYS: Record<string, string> = {
   Courses: 'org.courses',
   BatchesAdmin: 'org.batches',
   CourseManagement: 'org.courses',
-  StudentRecord: 'volunteer.studentRecord',
-  SessionsHistory: 'volunteer.sessionsHistory',
+  StudentRecord: 'student.title',
+  SessionsHistory: 'sess.title',
   IssueCertificates: 'certs.issueTitle',
   Wizard: 'wizard.title',
   NotFound: 'common.notFoundTitle',

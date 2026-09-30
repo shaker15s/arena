@@ -253,11 +253,11 @@ const styles = StyleSheet.create({
   },
   singleTapBar: {
     position: 'absolute',
-    top: spacing.xs,
-    insetInlineEnd: spacing.xs,
+    top: spacing.s1,
+    insetInlineEnd: spacing.s1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.s1,
   },
   singleTapBtn: {
     minWidth: sizes.iconButton,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.s2,
   },
   moreBtn: {
     minWidth: sizes.minTarget,
