@@ -187,6 +187,53 @@ export const navBar = {
   fabPoke: 27,
 } as const;
 
+/**
+ * توكنز التخطيط المتجاوب (LAYOUT-01) — مصدر واحد للمقاسات.
+ *
+ * المشكلة التي عولجت: كل شاشة كانت تخمّن عدد الأعمدة بنفسها (صفوف `Row` فيها
+ * 4 بطاقات `flex:1`)، فعند عرض 320–360pt ينكمش العمود إلى ~62px بينما الحد
+ * الأدنى لمحتواه (أيقونة 46 + حشوة 32) = 78px ⇒ يتجاوز العمودُ عرضه، فتتكدّس
+ * البطاقات ويقصّ النص وتخرج العناصر عن الشاشة.
+ * القاعدة الجديدة: **أي مجموعة بطاقات متجاورة توضع في `AutoGrid`** وتعلن أدنى
+ * عرض عمود لها؛ والمكوّن يقيس عرضه الحقيقي (`onLayout`) ويختار عدد الأعمدة.
+ */
+export const layout = {
+  /** نقاط التوقف المرجعية (pt) — للقراءة والتوثيق والقرارات داخل الشاشات */
+  breakpoints: { narrow: 360, compact: 430, tablet: 768, desktop: 1024 },
+  /** المسافة الجانبية للمحتوى حسب ضيق الشاشة */
+  gutters: { narrow: 14, base: 20, roomy: 24, wide: 32 },
+  /**
+   * أدنى عرض عمود مقبول لكل نوع بطاقة = الحد الأدنى لمحتواها (أيقونة/نص + حشوة).
+   * أقل من هذا الرقم يبدأ القصّ والالتفاف القبيح، لذا تنزل الشبكة لعمود أقل.
+   */
+  minColumn: { stat: 74, action: 78, wide: 140 },
+} as const;
+
+/**
+ * عدد الأعمدة الذي يتّسع فعلًا لعرض معطى (LAYOUT-01).
+ *
+ * دالة نقية (بلا React Native) حتى تختبرها `scripts/layout.test.ts` مباشرة:
+ *   • لا تختار أبدًا عدد أعمدة يجعل أي عمود أضيق من `minColumnWidth`.
+ *   • تختار أكبر عدد ممكن (لا تترك مساحة ميتة).
+ *   • لا تتجاوز عدد العناصر (عمود فارغ = ثقب في التصميم).
+ *   • تتجنب «اليتيم»: 4 عناصر في 3 أعمدة تترك عنصرًا وحيدًا في الصف الثاني،
+ *     فتنزل إلى عمودين (2×2 متوازنة) — أثبتت تجارب أبل أن الشبكة المتوازنة
+ *     تُقرأ أسرع من صف ناقص.
+ */
+export function columnsFor(
+  width: number,
+  count: number,
+  minColumnWidth: number,
+  gap: number,
+): number {
+  if (!Number.isFinite(width) || width <= 0 || count <= 0) return 1;
+  const total = Math.floor(count);
+  const fit = Math.floor((width + gap) / (minColumnWidth + gap));
+  const base = Math.max(1, Math.min(total, fit));
+  if (base > 1 && total % base === 1) return base - 1;
+  return base;
+}
+
 /** درجات الزجاج القياسية (DESIGN 1.3) */
 export const glassLevels = {
   thin: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },

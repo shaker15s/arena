@@ -361,6 +361,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                   {/* خط الربط بين العقد */}
                   {i < sessions.length - 1 ? (
                     <View
+                      pointerEvents="none"
                       style={{
                         position: 'absolute',
                         top: 56,

@@ -16,14 +16,14 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Screen, Spacer, StatRing, Tag, Txt,
+  AutoGrid, Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Screen, Spacer, StatRing, Tag, Txt,
   BorderBeam, AnimatedShinyText,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
 import { MasarMascot, FatenBehaviorState, getRandomMascotQuote } from '../../design/mascot';
 import { ShimmerProgressBar } from '../../design/animations';
-import { spacing, radii, leagueTierColors } from '../../design/tokens';
+import { layout, spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, getFirstName, sameDay } from '../../shared/format';
 import { buildIcs, icsFilename } from '../../shared/calendar';
 import { saveIcs } from '../../shared/export';
@@ -196,8 +196,8 @@ export function TodayScreen() {
 
   return (
     <Screen label={t('tabs.today')}>
-      {/* Background gradient orb */}
-      <View style={{
+      {/* Background gradient orb — زخرفة خالصة: بلا pointerEvents كانت تبتلع اللمس */}
+      <View pointerEvents="none" style={{
         position: 'absolute', top: -80, right: -60,
         width: 300, height: 300, borderRadius: 150,
         backgroundColor: theme.orbPrimary,
@@ -675,12 +675,12 @@ export function TodayScreen() {
           {/* ── وصول سريع ── */}
           <FadeIn index={6}>
             <Txt variant="h3" style={{ marginTop: 6, marginBottom: 10 }}>{t('today.quickActions')}</Txt>
-            <Row gap={10}>
+            <AutoGrid gap={10} minColumnWidth={layout.minColumn.action}>
               <QuickAction icon="shield-half" label={t('excuses.title')} color={theme.info} onPress={() => navigation.navigate('Excuses')} />
               <QuickAction icon="ribbon" label={t('certs.title')} color={theme.certGold} onPress={() => navigation.navigate('Certificates')} />
               <QuickAction icon="wallet" label={t('wallet.title')} color={theme.success} onPress={() => navigation.navigate('Wallet')} />
               <QuickAction icon="trophy" label={t('league.title')} color={theme.warn} onPress={() => navigation.navigate('League')} />
-            </Row>
+            </AutoGrid>
           </FadeIn>
         </View>
 

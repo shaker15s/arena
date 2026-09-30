@@ -213,6 +213,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
 
           {/* الحافة العاكسة العلوية للزجاج */}
           <View
+            pointerEvents="none"
             style={{
               position: 'absolute',
               top: 0,

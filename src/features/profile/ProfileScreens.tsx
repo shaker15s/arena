@@ -11,10 +11,10 @@ import { balanceOf, levelOf, gamifGet } from '../../data/engine';
 import { ThemePref, useTheme } from '../../design/theme';
 import { Lang, useI18n } from '../../i18n';
 import {
-  Avatar, BackIcon, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
+  AutoGrid, Avatar, BackIcon, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
   Screen, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
-import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
+import { layout, spacing, radii, levels, leagueTierColors } from '../../design/tokens';
 import { bidiIsolate, formatDate, formatTime } from '../../shared/format';
 import { getErrorByRef } from '../../data/actions';
 import { MasarMascot } from '../../design/mascot';
@@ -62,7 +62,7 @@ export function ProfileScreen() {
   return (
     <Screen label={t('profile.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
       >
         <Header title={t('profile.title')} />
@@ -82,11 +82,11 @@ export function ProfileScreen() {
               <Tag label={roleLabel[user.role]} color={theme.brand} bg={theme.brandSoft} icon="person" />
               <Tag label={`${t('profile.level')} ${level} · ${t(`level.${level}` as any)}`} color={levelMeta.color} bg={levelMeta.color + '1F'} icon="shield-half" />
             </Row>
-            <Row gap={6} style={{ marginTop: 8, width: '100%' }}>
+            <AutoGrid gap={6} minColumnWidth={layout.minColumn.wide - 30} style={{ marginTop: 8, width: '100%' }}>
               <MiniStat label={t('today.pointsLabel')} value={points.toLocaleString()} icon="star" color={theme.certGold} />
               <MiniStat label={t('profile.longestStreak')} value={`${gam.longestStreakWeeks} ${t('common.weeks')}`} icon="flame" color={theme.warn} />
               <MiniStat label={t('profile.memberSince')} value={formatDate(user.joinedAt, lang)} icon="calendar" color={theme.brand} />
-            </Row>
+            </AutoGrid>
           </Card>
         </FadeIn>
 
@@ -302,7 +302,8 @@ function MiniStat({ label, value, icon, color }: { label: string; value: string;
     <View style={{ flex: 1, alignItems: 'center', gap: 3, minWidth: 0 }}>
       <Row center gap={4}>
         <Icon name={icon} size={13} color={color} />
-        <Txt variant="h3" numberOfLines={1} style={{ fontSize: 15 }}>{value}</Txt>
+        {/* سطران لا سطر واحد: التاريخ الكامل («١٢ سبتمبر ٢٠٢٥») كان يُصغَّر حتى يُقصّ */}
+        <Txt variant="h3" numberOfLines={2} align="center" style={{ fontSize: 15 }}>{value}</Txt>
       </Row>
       <Txt variant="micro" color={theme.textMuted}>{label}</Txt>
     </View>

@@ -16,11 +16,11 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, Chip, Empty, Header, Input, Row, Screen,
+  AutoGrid, Btn, Card, Chip, Empty, Header, Input, Row, Screen,
   Segmented, Sheet, Spacer, Tag, Txt,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
-import { spacing } from '../../design/tokens';
+import { layout, spacing } from '../../design/tokens';
 import { formatDate } from '../../shared/format';
 import { publicJoinUrl } from '../../shared/links';
 import type { CourseRole, TrainingSession } from '../../data/types';
@@ -271,12 +271,12 @@ export function CourseManagementScreen({ route, navigation }: any) {
         </Card>
 
         {/* مؤشرات الأداء السريعة */}
-        <Row gap={8}>
+        <AutoGrid gap={8} minColumnWidth={layout.minColumn.stat}>
           <Metric value={String(allowedBatches.length)} label={t('management.groups')} color={theme.brand} />
           <Metric value={String(allCounts)} label={t('management.registrants')} color={theme.success} />
           <Metric value={String(active)} label={t('common.active')} color={theme.warn} />
           <Metric value={String(completed)} label={t('management.completed')} color={theme.teal} />
-        </Row>
+        </AutoGrid>
 
         {allowedBatches.length === 0 ? (
           <Card style={{ paddingVertical: 24 }}>

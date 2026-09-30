@@ -246,7 +246,7 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
 
   return (
     <Screen label={t('inbox.title')}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}>
         <Header title={t('inbox.title')} back={navigation ? () => navigation.goBack() : undefined} />
         <Segmented
           value={tab}

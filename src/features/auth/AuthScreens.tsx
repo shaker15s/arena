@@ -584,12 +584,12 @@ export function SignInScreen({ navigation }: any) {
 
   return (
     <Screen label={t('auth.welcomeTitle')} style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{
+      <View pointerEvents="none" style={{
         position: 'absolute', top: -60, right: -80,
         width: 320, height: 320, borderRadius: 160,
         backgroundColor: theme.orbPrimary,
       }} />
-      <View style={{
+      <View pointerEvents="none" style={{
         position: 'absolute', bottom: -40, left: -70,
         width: 280, height: 280, borderRadius: 140,
         backgroundColor: theme.orbSecondary,

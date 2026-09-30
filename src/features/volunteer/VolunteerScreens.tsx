@@ -19,10 +19,10 @@ import { saveCsv, toCsv } from '../../shared/export';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, NotificationBell, ProgressBar,
+  AutoGrid, Avatar, Btn, Card, Chip, Empty, FadeIn, Header, Input, ListRow, NotificationBell, ProgressBar,
   Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
-import { spacing, radii, sizes, attendanceColors } from '../../design/tokens';
+import { layout, spacing, radii, sizes, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
 import { BatchFormSheet } from '../org/AdminScreens';
@@ -62,7 +62,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('vtoday.title')}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -141,11 +141,11 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         <FadeIn index={2}>
           <Txt variant="h3">{t('vtoday.quickStats')}</Txt>
           <Spacer size={8} />
-          <Row gap={spacing.s2}>
+          <AutoGrid gap={spacing.s2} minColumnWidth={layout.minColumn.stat}>
             <StatCard icon="people" color={theme.brand} value={String(batches.length)} label={t('vtoday.activeBatches')} />
             <StatCard icon="checkmark-done" color={theme.success} value={`${monthAttendance}%`} label={t('vtoday.monthAttendance')} />
             <StatCard icon="shield" color={theme.warn} value={String(pendingExcuses)} label={t('vtoday.pendingExcuses')} onPress={() => tabs.setTab('inbox')} />
-          </Row>
+          </AutoGrid>
         </FadeIn>
 
         {/* أدوات المنظم السريعة */}
@@ -241,7 +241,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('batches.title')}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -538,12 +538,12 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
           <SkeletonList count={2} height={72} />
         ) : report ? (
           <View style={{ gap: 10 }}>
-            <Row gap={10}>
+            <AutoGrid gap={10} minColumnWidth={layout.minColumn.stat}>
               <ReportStat label={t('history.present')} value={report.present} color={attendanceColors.present} bg={attendanceColors.present + '1A'} />
               <ReportStat label={t('history.late')} value={report.late} color={attendanceColors.late} bg={attendanceColors.late + '1A'} />
               <ReportStat label={t('history.excused')} value={report.excused} color={attendanceColors.excused} bg={attendanceColors.excused + '1A'} />
               <ReportStat label={t('history.absent')} value={report.absent} color={attendanceColors.absent} bg={attendanceColors.absent + '1A'} />
-            </Row>
+            </AutoGrid>
             <Card>
               <Row between center>
                 <Row center gap={6}>

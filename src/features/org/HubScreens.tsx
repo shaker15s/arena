@@ -14,11 +14,11 @@ import { RULE_DEFS } from '../../data/rules';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Avatar, Btn, Card, Chip, CustomSwitch, Empty, FadeIn, Header, Input,
+  AutoGrid, Avatar, Btn, Card, Chip, CustomSwitch, Empty, FadeIn, Header, Input,
   ListRow, Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
-import { spacing, radii } from '../../design/tokens';
+import { layout, spacing, radii } from '../../design/tokens';
 import { timePast, formatDate } from '../../shared/format';
 import { Certificate } from '../../data/types';
 import {
@@ -39,7 +39,7 @@ export function HubScreen() {
 
   return (
     <Screen label={t('tabs.hub')} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}>
         <Header title={t('tabs.hub')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
           {[
@@ -137,11 +137,11 @@ function AnalyticsPanel() {
         <Card color={theme.dangerSoft}><Txt variant="caption" color={theme.danger}>{error}</Txt></Card>
       ) : data ? (
         <>
-          <Row gap={10}>
+          <AutoGrid gap={10} minColumnWidth={layout.minColumn.stat}>
             <AnalyticsCard label={t('analytics.sessions')} value={data.sessions} color={theme.brand} icon="calendar" />
             <AnalyticsCard label={t('analytics.enrollments')} value={data.enrollments} color={theme.success} icon="people" />
             <AnalyticsCard label={t('analytics.attendance')} value={data.attendance} color={theme.teal} icon="checkmark-done" />
-          </Row>
+          </AutoGrid>
           <Card>
             <Row between center>
               <Row center gap={6}>
