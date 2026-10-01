@@ -37,7 +37,7 @@ function initialPreference(): ThemePref {
   try {
     if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw === 'light' || raw === 'dark' || raw === 'oled' || raw === 'system') return raw;
+      if (raw === 'light' || raw === 'dark' || raw === 'oled' || raw === 'liquid' || raw === 'system') return raw;
     }
   } catch {
     /* تجاهل */
@@ -56,7 +56,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     void (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw === 'light' || raw === 'dark' || raw === 'oled' || raw === 'system') setPreference(raw);
+        if (raw === 'light' || raw === 'dark' || raw === 'oled' || raw === 'liquid' || raw === 'system') setPreference(raw);
       } catch {
         /* تجاهل */
       }
@@ -88,6 +88,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.colorScheme = themeName === 'light' ? 'light' : 'dark';
     document.documentElement.style.backgroundColor = themes[themeName].bg;
     document.documentElement.style.setProperty('--masar-surface-solid', themes[themeName].card);
+    document.documentElement.setAttribute('data-theme', themeName);
     document.body.style.backgroundColor = themes[themeName].bg;
   }, [themeName]);
 

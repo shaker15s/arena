@@ -10,7 +10,7 @@ import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Btn, Card, FadeIn, OfflineQueueBanner, PageSkeleton, Spacer, Txt } from '../design/components';
+import { Btn, Card, FadeIn, OfflineQueueBanner, Spacer, Txt } from '../design/components';
 import { AppBackground, ContentFrame, GlassSurface } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
 import { navBar, radii, spacing } from '../design/tokens';
@@ -24,77 +24,31 @@ import { announce } from '../design/a11y/announce';
 
 import { Icon } from '../design/icons';
 
-// ─── مغلّف التحميل الكسول (Code Splitting) ───
-function lazyScreen(importer: () => Promise<any>, name: string) {
-  const LazyComponent = React.lazy(async () => {
-    const mod = await importer();
-    return { default: mod[name] || mod.default };
-  });
-
-  return function LazyScreenWrapper(props: any) {
-    const { theme } = useTheme();
-    return (
-      <React.Suspense
-        // PERF-UX: هيكل رمادي مطابق لشكل الصفحة (نمط التطبيقات الكبيرة)
-        // بدل دائرة التحميل المجردة — المستخدم يرى هيكل المحتوى أثناء تحميل الكود.
-        fallback={
-          <View style={{ flex: 1, backgroundColor: theme.bg }}>
-            <PageSkeleton />
-          </View>
-        }
-      >
-        <LazyComponent {...props} />
-      </React.Suspense>
-    );
-  };
-}
-
-// شاشات التطبيق مُحمّلة كسولاً عند الطلب لتقليص حزمة الويب الأولية (PERF-01→06)
-const OnboardingScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'OnboardingScreen');
-const SignInScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'SignInScreen');
-const CompleteProfileScreen = lazyScreen(() => import('../features/auth/AuthScreens'), 'CompleteProfileScreen');
-const TodayScreen = lazyScreen(() => import('../features/today/TodayScreen'), 'TodayScreen');
-const ExploreScreen = lazyScreen(() => import('../features/explore/ExploreScreens'), 'ExploreScreen');
-const JourneyScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'JourneyScreen');
-const ProfileScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'ProfileScreen');
-const VerifyScreen = lazyScreen(() => import('../features/verify/VerifyScreen'), 'VerifyScreen');
-const CourseDetailsScreen = lazyScreen(() => import('../features/explore/ExploreScreens'), 'CourseDetailsScreen');
-const JourneyMapScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'JourneyMapScreen');
-const AttendanceHistoryScreen = lazyScreen(() => import('../features/journey/JourneyScreens'), 'AttendanceHistoryScreen');
-const ScannerScreen = lazyScreen(() => import('../features/attendance/ScannerScreen'), 'ScannerScreen');
-const WalletScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'WalletScreen');
-const CertificatesScreen = lazyScreen(() => import('../features/certificates/CertificatesScreens'), 'CertificatesScreen');
-const ExcusesScreen = lazyScreen(() => import('../features/excuses/ExcusesScreens'), 'ExcusesScreen');
-const ExcusesInboxScreen = lazyScreen(() => import('../features/excuses/ExcusesScreens'), 'ExcusesInboxScreen');
-const NotificationsScreen = lazyScreen(() => import('../features/notifications/NotificationsScreen'), 'NotificationsScreen');
-const RequestsScreen = lazyScreen(() => import('../features/notifications/RequestsScreen'), 'RequestsScreen');
-const VolunteerTodayScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'VolunteerTodayScreen');
-const MyBatchesScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'MyBatchesScreen');
-const LiveSessionScreen = lazyScreen(() => import('../features/volunteer/LiveSessionScreen'), 'LiveSessionScreen');
-const JoinBatchScreen = lazyScreen(() => import('../features/courses/JoinBatchScreen'), 'JoinBatchScreen');
-const CourseManagementScreen = lazyScreen(() => import('../features/courses/CourseManagementScreen'), 'CourseManagementScreen');
-const OrgWizardScreen = lazyScreen(() => import('../features/org/WizardScreen'), 'OrgWizardScreen');
-const DashboardScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'DashboardScreen');
-const OrgManagerScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'OrgManagerScreen');
-const CoursesScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'CoursesScreen');
-const BatchesAdminScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'BatchesAdminScreen');
-const UsersScreen = lazyScreen(() => import('../features/org/AdminScreens'), 'UsersScreen');
-const HubScreen = lazyScreen(() => import('../features/org/HubScreens'), 'HubScreen');
-const IssueCertificatesScreen = lazyScreen(() => import('../features/org/HubScreens'), 'IssueCertificatesScreen');
-const LeagueScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'LeagueScreen');
-const AchievementsScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'AchievementsScreen');
-const RulesGuideScreen = lazyScreen(() => import('../features/gamification/GamificationScreens'), 'RulesGuideScreen');
-const CertificateViewerScreen = lazyScreen(() => import('../features/certificates/CertificatesScreens'), 'CertificateViewerScreen');
-const StudentRecordScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'StudentRecordScreen');
-const SessionsHistoryScreen = lazyScreen(() => import('../features/volunteer/VolunteerScreens'), 'SessionsHistoryScreen');
-const SupportScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'SupportScreen');
-const SettingsScreen = lazyScreen(() => import('../features/settings/SettingsScreen'), 'SettingsScreen');
-const DisputesScreen = lazyScreen(() => import('../features/disputes/DisputesScreen'), 'DisputesScreen');
-// خطة الإصلاح 2026-10-01 — D4/D5/D6: التغذية الراجعة، التقارير، الإحصائيات
-const LectureFeedbackScreen = lazyScreen(() => import('../features/feedback/FeedbackScreens'), 'LectureFeedbackScreen');
-const LectureReportScreen = lazyScreen(() => import('../features/reports/ReportsScreens'), 'LectureReportScreen');
-const CourseReportScreen = lazyScreen(() => import('../features/reports/ReportsScreens'), 'CourseReportScreen');
-const StatsCenterScreen = lazyScreen(() => import('../features/org/StatsCenterScreen'), 'StatsCenterScreen');
+// ─── استيراد شاشات التطبيق مباشرة لتحميل فوري بلا تعليق السكيليتون ───
+import { OnboardingScreen, SignInScreen, CompleteProfileScreen } from '../features/auth/AuthScreens';
+import { TodayScreen } from '../features/today/TodayScreen';
+import { ExploreScreen, CourseDetailsScreen } from '../features/explore/ExploreScreens';
+import { JourneyScreen, JourneyMapScreen, AttendanceHistoryScreen } from '../features/journey/JourneyScreens';
+import { ProfileScreen, SupportScreen } from '../features/profile/ProfileScreens';
+import { VerifyScreen } from '../features/verify/VerifyScreen';
+import { ScannerScreen } from '../features/attendance/ScannerScreen';
+import { WalletScreen, LeagueScreen, AchievementsScreen, RulesGuideScreen } from '../features/gamification/GamificationScreens';
+import { CertificatesScreen, CertificateViewerScreen } from '../features/certificates/CertificatesScreens';
+import { ExcusesScreen, ExcusesInboxScreen } from '../features/excuses/ExcusesScreens';
+import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
+import { RequestsScreen } from '../features/notifications/RequestsScreen';
+import { VolunteerTodayScreen, MyBatchesScreen, StudentRecordScreen, SessionsHistoryScreen } from '../features/volunteer/VolunteerScreens';
+import { LiveSessionScreen } from '../features/volunteer/LiveSessionScreen';
+import { JoinBatchScreen } from '../features/courses/JoinBatchScreen';
+import { CourseManagementScreen } from '../features/courses/CourseManagementScreen';
+import { OrgWizardScreen } from '../features/org/WizardScreen';
+import { DashboardScreen, OrgManagerScreen, CoursesScreen, BatchesAdminScreen, UsersScreen } from '../features/org/AdminScreens';
+import { HubScreen, IssueCertificatesScreen } from '../features/org/HubScreens';
+import { SettingsScreen } from '../features/settings/SettingsScreen';
+import { DisputesScreen } from '../features/disputes/DisputesScreen';
+import { LectureFeedbackScreen } from '../features/feedback/FeedbackScreens';
+import { LectureReportScreen, CourseReportScreen } from '../features/reports/ReportsScreens';
+import { StatsCenterScreen } from '../features/org/StatsCenterScreen';
 
 // ─── سياق التبويبات الداخلية ───
 interface TabsCtx {
@@ -394,7 +348,7 @@ function TabScene({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, requestedTab }: {
+function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 1440, requestedTab }: {
   tabs: TabDef[];
   renders: Record<string, () => React.ReactNode>;
   initial: string;
@@ -508,7 +462,7 @@ function StudentTabs({ navigation, route }: any) {
     <TabsScaffold
       initial="today"
       requestedTab={route?.params?.tab}
-      maxWidth={780}
+      maxWidth={1360}
       tabs={[
         { key: 'today', label: t('tabs.today'), icon: 'home-outline', iconActive: 'home' },
         { key: 'explore', label: t('tabs.explore'), icon: 'compass-outline', iconActive: 'compass' },
@@ -537,7 +491,7 @@ function VolunteerTabs({ route }: any) {
     <TabsScaffold
       initial="today"
       requestedTab={route?.params?.tab}
-      maxWidth={940}
+      maxWidth={1400}
       tabs={[
         { key: 'today', label: t('tabs.today'), icon: 'sunny-outline', iconActive: 'sunny' },
         { key: 'batches', label: t('tabs.batches'), icon: 'people-outline', iconActive: 'people' },
@@ -564,7 +518,7 @@ function AdminTabs({ route }: any) {
     <TabsScaffold
       initial="dash"
       requestedTab={route?.params?.tab}
-      maxWidth={1120}
+      maxWidth={1440}
       tabs={[
         { key: 'dash', label: t('tabs.dashboard'), icon: 'grid-outline', iconActive: 'grid' },
         { key: 'org', label: t('tabs.org'), icon: 'business-outline', iconActive: 'business' },
@@ -826,19 +780,7 @@ export function RootNavigator() {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
 
-  // PERF: تحميل مسبق لقطع تبويبات الشاشة التالية بعد استقرار الإقلاع —
-  // نفس مُستدعي import الأكواد الكسولة ⇒ تُوحَّد الحزمة ولا تتكرر، ويختفي
-  // الهيكل الرمادي عند أول تنقّل بدل ظهوره في كل ضغطة أولى.
-  useEffect(() => {
-    const id = setTimeout(() => {
-      void import('../features/today/TodayScreen');
-      void import('../features/explore/ExploreScreens');
-      void import('../features/journey/JourneyScreens');
-      void import('../features/profile/ProfileScreens');
-      void import('../features/notifications/NotificationsScreen');
-    }, 1500);
-    return () => clearTimeout(id);
-  }, []);
+
 
   const resolveRouteTitle = useCallback(
     (routeName?: string) => {
@@ -873,7 +815,7 @@ export function RootNavigator() {
       <SemanticScreen
         id={MAIN_LANDMARK_ID}
         label={t('a11y.mainContent')}
-        style={{ width: '100%', maxWidth: 1180, alignSelf: 'center' }}
+        style={{ width: '100%', maxWidth: 1440, alignSelf: 'center' }}
       >
         <NavigationContainer
           ref={navigationRef}

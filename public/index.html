@@ -34,8 +34,8 @@
           var pref = null;
           try { pref = window.localStorage.getItem('masar.theme.v1'); } catch (e) {}
           var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var dark = pref === 'dark' || pref === 'oled' || ((pref === null || pref === 'system') && sysDark);
-          var bg = dark ? '#000000' : '#F5F5FA';
+          var dark = pref === 'dark' || pref === 'oled' || pref === 'liquid' || ((pref === null || pref === 'system') && sysDark);
+          var bg = pref === 'liquid' ? '#050914' : dark ? '#000000' : '#F5F5FA';
           document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
           var st = document.createElement('style');
           st.id = 'masar-theme-boot';
@@ -145,6 +145,32 @@
         -webkit-backdrop-filter: none !important;
         background-color: var(--masar-surface-solid, #FFFFFF) !important;
       }
+
+      /* أنماط أبل للزجاج السائل (Apple Liquid Glass Theme) */
+      [data-theme="liquid"] [data-masar-glass-surface] {
+        backdrop-filter: blur(28px) saturate(210%) brightness(105%) !important;
+        -webkit-backdrop-filter: blur(28px) saturate(210%) brightness(105%) !important;
+        box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.28) !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
+      }
+      [data-theme="liquid"] ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      [data-theme="liquid"] ::-webkit-scrollbar-track {
+        background: rgba(5, 9, 20, 0.5);
+      }
+      [data-theme="liquid"] ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      [data-theme="liquid"] ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.32);
+        background-clip: padding-box;
+      }
+
       /* حجم النص المُختار داخل التطبيق (يُطبّقه design/preferences.tsx) —
          الجذر يتكبّر أيضًا حتى تتناسب المسافات المبنية على الوحدات النسبية. */
       html[data-masar-text-scale="1.15"] { font-size: 115%; }

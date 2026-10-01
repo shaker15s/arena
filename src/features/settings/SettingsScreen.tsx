@@ -133,6 +133,7 @@ export function SettingsScreen({ navigation }: any) {
 
   const themeOptions: Array<{ value: ThemePref; label: string }> = [
     { value: 'system', label: t('settings.themeSystem') },
+    { value: 'liquid', label: t('settings.themeLiquid') },
     { value: 'light', label: t('settings.themeLight') },
     { value: 'dark', label: t('settings.themeDark') },
     { value: 'oled', label: t('settings.themeOled') },
