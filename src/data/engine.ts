@@ -1112,29 +1112,52 @@ export function checkInstructorConflict(db: Db, instructorId: string, days: numb
 }
 
 export function dashboardStats(db: Db, branchId?: string) {
-  const branches = db.branches.filter((b) => !branchId || b.id === branchId);
-  const branchIds = branches.map((b) => b.id);
-  const batches = db.batches.filter((b) => !branchId || branchIds.includes(b.branchId));
+  const branches = branchId ? db.branches.filter((b) => b.id === branchId) : db.branches;
+  const branchIdSet = new Set(branches.map((b) => b.id));
+  const batchMap = new Map(db.batches.map((b) => [b.id, b]));
+  const sessionMap = new Map(db.sessions.map((s) => [s.id, s]));
+
+  const batches = branchId
+    ? db.batches.filter((b) => branchIdSet.has(b.branchId))
+    : db.batches;
   const activeBatches = batches.filter((b) => b.status === 'active' || b.status === 'scheduled');
-  const students = db.profiles.filter((p) => p.role === 'student' && (!branchId || branchIds.includes(p.branchId ?? '')));
-  const att = db.attendance.filter((a) => {
-    const s = db.sessions.find((x) => x.id === a.sessionId);
-    return s && (!branchId || branchIds.includes(batchOf(db, s.batchId)?.branchId ?? ''));
-  });
-  const honored = att.filter((a) => a.status !== 'absent').length;
+  const students = db.profiles.filter(
+    (p) => p.role === 'student' && (!branchId || branchIdSet.has(p.branchId ?? '')),
+  );
+
+  const att: Array<{ status: Attendance['status']; startsAt: number }> = [];
+  let honored = 0;
+
+  for (const a of db.attendance) {
+    const s = sessionMap.get(a.sessionId);
+    if (!s) continue;
+    if (branchId) {
+      const b = batchMap.get(s.batchId);
+      if (!b || !branchIdSet.has(b.branchId)) continue;
+    }
+    att.push({ status: a.status, startsAt: s.startsAt });
+    if (a.status !== 'absent') honored++;
+  }
+
   const month = monthKeyOf(Date.now());
   const certsMonth = db.certificates.filter((c) => monthKeyOf(c.issuedAt) === month).length;
+
   // اتجاه 6 أسابيع
   const trend: number[] = [];
+  const now = Date.now();
   for (let w = 5; w >= 0; w--) {
-    const wk = weekStartOf(Date.now() - w * 7 * 86_400_000);
-    const rows = att.filter((a) => {
-      const s = db.sessions.find((x) => x.id === a.sessionId);
-      return s && weekStartOf(s.startsAt) === wk;
-    });
-    const hon = rows.filter((a) => a.status !== 'absent').length;
-    trend.push(rows.length === 0 ? 0 : Math.round((hon / rows.length) * 100));
+    const wk = weekStartOf(now - w * 7 * 86_400_000);
+    let rowsCount = 0;
+    let honCount = 0;
+    for (const a of att) {
+      if (weekStartOf(a.startsAt) === wk) {
+        rowsCount++;
+        if (a.status !== 'absent') honCount++;
+      }
+    }
+    trend.push(rowsCount === 0 ? 0 : Math.round((honCount / rowsCount) * 100));
   }
+
   return {
     branchesCount: branches.length,
     activeBatches: activeBatches.length,

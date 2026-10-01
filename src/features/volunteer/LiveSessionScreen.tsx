@@ -59,28 +59,26 @@ export function LiveSessionScreen() {
   const [kiosk, setKiosk] = useState(false);
   const wakeStatus = useWakeLock(kiosk);
 
-  // نبضة ساعة للتدوير (كل 500ms)
-  useEffect(() => {
-    const iv = setInterval(() => setTick((x) => x + 1), 500);
-    return () => clearInterval(iv);
-  }, []);
+  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
+  const myBatches = user ? instructorBatches(db, user.id) : [];
+  const effectiveBatches = isManager ? (myBatches.length > 0 ? myBatches : db.batches.filter((b) => b.status !== 'archived')) : myBatches;
+  const myLive = db.sessions.find((s) => s.status === 'live' && effectiveBatches.some((b) => b.id === s.batchId)) ?? (isManager ? db.sessions.find((s) => s.status === 'live') : undefined);
+  const batchesWithScheduled = effectiveBatches.filter((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
 
   // شاشة البروجكتور يجب ألا تنطفئ في منتصف الحضور — KeepAwake طوال وجود جلسة حية.
-  const hasLive = Boolean(
-    user && db.sessions.some((s) => s.status === 'live'
-      && db.batches.some((b) => b.id === s.batchId && b.instructorId === user.id)),
-  );
+  const hasLive = Boolean(myLive);
   useEffect(() => {
     if (Platform.OS === 'web' || !hasLive) return;
     void activateKeepAwakeAsync('masar-live-session').catch(() => {});
     return () => { void deactivateKeepAwake('masar-live-session').catch(() => {}); };
   }, [hasLive]);
 
-  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
-  const myBatches = user ? instructorBatches(db, user.id) : [];
-  const effectiveBatches = isManager ? (myBatches.length > 0 ? myBatches : db.batches.filter((b) => b.status !== 'archived')) : myBatches;
-  const myLive = db.sessions.find((s) => s.status === 'live' && effectiveBatches.some((b) => b.id === s.batchId)) ?? (isManager ? db.sessions.find((s) => s.status === 'live') : undefined);
-  const batchesWithScheduled = effectiveBatches.filter((b) => db.sessions.some((s) => s.batchId === b.id && s.status === 'scheduled'));
+  // نبضة ساعة للتدوير (تقتصد: 1000ms فقط عند وجود جلسة حية)
+  useEffect(() => {
+    if (!myLive) return;
+    const iv = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(iv);
+  }, [myLive]);
 
   // الخادم وحده يولّد التوقيع والكود الاحتياطي؛ لا تصل بذرة QR للعميل.
   useEffect(() => {

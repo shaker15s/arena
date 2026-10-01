@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -70,9 +70,12 @@ export function DashboardScreen({ navigation: propNav }: any) {
     }
   };
 
-  if (!user) return null;
+  const stats = useMemo(
+    () => dashboardStats(db, branchFilter === 'all' ? undefined : branchFilter),
+    [db, branchFilter],
+  );
 
-  const stats = dashboardStats(db, branchFilter === 'all' ? undefined : branchFilter);
+  if (!user) return null;
 
   const handleExportOrgCsv = async () => {
     try {

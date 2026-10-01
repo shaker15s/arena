@@ -423,14 +423,11 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
           <OfflineQueueBanner online={online} pendingCount={pendingQueueCount} onSync={() => { void flushOfflineQueue(); }} />
           {tabs.map((t) => {
             const isSelected = t.key === tab;
-            if (!visitedTabs.has(t.key) && !isSelected) return null;
+            if (!isSelected) return null;
             return (
               <View
                 key={t.key}
-                style={{
-                  flex: 1,
-                  display: isSelected ? 'flex' : 'none',
-                }}
+                style={{ flex: 1 }}
               >
                 <TabScene>{renders[t.key]?.()}</TabScene>
               </View>

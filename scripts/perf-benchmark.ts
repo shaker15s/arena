@@ -8,6 +8,7 @@
 import { buildSeedDb } from './fixtures/seed';
 import { Db, Profile, Attendance, PointEvent } from '../src/data/types';
 import { matchesSearch } from '../src/shared/search';
+import { dashboardStats } from '../src/data/engine';
 
 console.log('═══════════════════════════════════════════════════════');
 console.log('  مسار 3.2 — فحص الأداء وقياس الأحمال (Performance Benchmark)');
@@ -112,6 +113,20 @@ const tList = performance.now() - tList0;
 console.log(`   الزمن المقاس: ${tList.toFixed(2)}ms (الحد الأقصى المسموح: 300ms) — النتائج: ${searchMatches.length}`);
 if (tList < 300) {
   console.log('   ✅ PASS — الفرز والبحث العربي فائق السرعة.');
+} else {
+  console.log('   ❌ FAIL — تجاوز الحد!');
+  allPassed = false;
+}
+
+// 5. فحص حساب إحصائيات لوحة القيادة dashboardStats (< 50ms)
+console.log('\n4) قياس حساب إحصائيات لوحة القيادة dashboardStats على 5000+ سجل...');
+const tDash0 = performance.now();
+const dStats = dashboardStats(db);
+const tDash = performance.now() - tDash0;
+
+console.log(`   الزمن المقاس: ${tDash.toFixed(2)}ms (الحد الأقصى المسموح: 50ms) — الفروع: ${dStats.branchesCount}، متوسط الحضور: ${dStats.avgAttendance}%`);
+if (tDash < 50) {
+  console.log('   ✅ PASS — خوارزمية dashboardStats المبنية على الفهارس فائقة السرعة.');
 } else {
   console.log('   ❌ FAIL — تجاوز الحد!');
   allPassed = false;
