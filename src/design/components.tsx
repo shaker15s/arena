@@ -98,6 +98,8 @@ export function Txt({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               wordBreak: 'keep-all',
+              minWidth: 0,
+              flexShrink: 1,
             } as unknown as TextStyle)
           : null,
         style,
