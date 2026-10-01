@@ -88,7 +88,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         ListHeaderComponent={
           <View>
             <Header title={t('explore.title')} />
-            <View style={{ paddingHorizontal: spacing.s5, gap: 12 }}>
+            <View style={{ paddingHorizontal: spacing.s5, gap: spacing.s3 }}>
               <FadeIn index={0}>
                 <PillGradientSearchInput
                   value={query}
@@ -102,18 +102,17 @@ export function ExploreScreen({ navigation: propNav }: any) {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   accessibilityRole="tablist"
-                  contentContainerStyle={{ gap: 8 }}
+                  contentContainerStyle={{ gap: spacing.s2 }}
                 >
                   {fields.map((f) => (
                     <Chip key={f} label={f === 'all' ? t('common.all') : f} active={f === field} onPress={() => setField(f)} />
                   ))}
                 </ScrollView>
-                <Spacer size={8} />
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   accessibilityRole="tablist"
-                  contentContainerStyle={{ gap: 8 }}
+                  contentContainerStyle={{ gap: spacing.s2 }}
                 >
                   <Chip label={t('common.all')} active={branchId === 'all'} onPress={() => setBranchId('all')} icon="business" />
                   {db.branches.map((b) => (
@@ -229,7 +228,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 5,
+                gap: spacing.s1,
                 backgroundColor: 'rgba(0, 0, 0, 0.24)',
                 paddingHorizontal: 9,
                 paddingVertical: 4,
@@ -247,7 +246,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: spacing.s2,
                   backgroundColor: 'rgba(0, 0, 0, 0.3)',
                   paddingHorizontal: 8,
                   paddingVertical: 3.5,
@@ -265,7 +264,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: spacing.s1,
                   backgroundColor: 'rgba(20, 184, 166, 0.75)',
                   paddingHorizontal: 8,
                   paddingVertical: 3.5,
@@ -295,8 +294,8 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
             />
           </Row>
 
-          <Row center gap={10} wrap>
-            <Row center gap={4}>
+          <Row center gap={spacing.s3} wrap>
+            <Row center gap={spacing.s1}>
               <Icon name="calendar-outline" size={13} color={theme.textMuted} />
               <Txt variant="caption" color={theme.textSecondary}>
                 {t('explore.sessionsCount', { x: course.sessionsCount })}
@@ -304,7 +303,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
             </Row>
 
             {stats.count > 0 ? (
-              <Row center gap={4}>
+              <Row center gap={spacing.s1}>
                 <Icon name="star" size={13} color={theme.certGold} />
                 <Txt variant="caption" bold color={theme.text}>
                   {stats.avg} <Txt variant="micro" color={theme.textMuted}>({stats.count})</Txt>
@@ -324,7 +323,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
           </Row>
 
           {openBatch && !joined && seatsLeft > 0 && (seats?.taken ?? 0) > 0 ? (
-            <View style={{ gap: 4, marginTop: 2 }}>
+            <View style={{ gap: spacing.s1, marginTop: 2 }}>
               <Row between center>
                 <Txt variant="micro" color={theme.textMuted}>{t('common.seats')}</Txt>
                 <Txt variant="micro" color={theme.textMuted}>{seats?.taken ?? 0}/{openBatch.capacity}</Txt>
@@ -457,16 +456,16 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             />
           </Row>
           <Tag label={course.field} color="#fff" bg="rgba(255,255,255,0.22)" icon="bookmark" />
-          <Spacer size={10} />
+          <Spacer size={spacing.s3} />
           <Txt variant="h1" color="#fff" heading="h1">{course.title}</Txt>
-          <Spacer size={8} />
-          <Row center gap={12}>
-            <Row center gap={4}>
+          <Spacer size={spacing.s2} />
+          <Row center gap={spacing.s3}>
+            <Row center gap={spacing.s1}>
               <Icon name="calendar" size={14} color="rgba(255,255,255,0.85)" />
               <Txt variant="caption" color="rgba(255,255,255,0.85)">{t('explore.sessionsCount', { x: course.sessionsCount })}</Txt>
             </Row>
             {stats.count > 0 ? (
-              <Row center gap={4}>
+              <Row center gap={spacing.s1}>
                 <Icon name="star" size={14} color={theme.certGold} />
                 <Txt variant="caption" color="rgba(255,255,255,0.9)">{stats.avg}</Txt>
                 <Txt variant="micro" color="rgba(255,255,255,0.7)">({stats.count} {t('course.ratingCount')})</Txt>
@@ -481,7 +480,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             <FadeIn index={0}>
               {isTakenByOtherVolunteer ? (
                 <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55', marginBottom: spacing.s2 }}>
-                  <Row center gap={10}>
+                  <Row center gap={spacing.s3}>
                     <Icon name="lock-closed" size={24} color={theme.warn} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.warn}>{t('explore.organizedNow')}</Txt>
@@ -493,7 +492,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 </Card>
               ) : isMyOrganizedCourse ? (
                 <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: spacing.s2 }}>
-                  <Row center gap={10}>
+                  <Row center gap={spacing.s3}>
                     <Icon name="shield-checkmark" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.brand}>{t('explore.youAreOrganizer')}</Txt>
@@ -502,8 +501,8 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                       </Txt>
                     </View>
                   </Row>
-                  <Spacer size={10} />
-                  <Row gap={8}>
+                  <Spacer size={spacing.s3} />
+                  <Row gap={spacing.s2}>
                     <View style={{ flex: 1 }}>
                       <Btn
                         title={t('explore.manageCourse')}
@@ -534,7 +533,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                       </View>
                     )}
                   </Row>
-                  <Spacer size={8} />
+                  <Spacer size={spacing.s2} />
                   <Btn
                     title={t('explore.newBatch')}
                     variant="ghost"
@@ -546,7 +545,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 </Card>
               ) : (
                 <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', marginBottom: spacing.s2 }}>
-                  <Row center gap={10}>
+                  <Row center gap={spacing.s3}>
                     <Icon name="sparkles" size={24} color={theme.brand} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.brand}>{t('explore.availableToOrganize')}</Txt>
@@ -555,7 +554,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                       </Txt>
                     </View>
                   </Row>
-                  <Spacer size={10} />
+                  <Spacer size={spacing.s3} />
                   <Btn
                     title={t('explore.organizeCta')}
                     variant="primary"
@@ -583,14 +582,14 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
             <FadeIn>
               {myEnrollment ? (
                 <Card color={theme.successSoft} style={{ borderColor: theme.success + '44', marginBottom: 12 }}>
-                  <Row center gap={10}>
+                  <Row center gap={spacing.s3}>
                     <Icon name="checkmark-circle" size={24} color={theme.success} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed" color={theme.success}>{t('joinCode.joined')}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>{batchOf(db, myEnrollment.batchId)?.room} · {batchOf(db, myEnrollment.batchId)?.schedule.time}</Txt>
                     </View>
                   </Row>
-                  <Spacer size={10} />
+                  <Spacer size={spacing.s3} />
                   <Btn title={t('course.goToJourney')} variant="secondary" icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
                 </Card>
               ) : null}
@@ -598,12 +597,9 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               <Card>
                 <Txt variant="body" color={theme.textSecondary}>{course.description}</Txt>
               </Card>
-              <Spacer size={12} />
-              <Txt variant="h3">{t('course.topics')}</Txt>
-              <Spacer size={8} />
-              {course.topics.map((topic, i) => (
+              <Txt variant="h3">{t('course.topics')}</Txt>              {course.topics.map((topic, i) => (
                 <FadeIn key={i} index={i}>
-                  <Row center gap={10} style={{ paddingVertical: 8, borderBottomWidth: i < course.topics.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
+                  <Row center gap={spacing.s3} style={{ paddingVertical: 8, borderBottomWidth: i < course.topics.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
                       <Txt variant="micro" color={course.color}>{i + 1}</Txt>
                     </View>
@@ -625,7 +621,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                     const left = b.capacity - seats.taken;
                     return (
                       <Card key={b.id}>
-                        <Row center gap={12}>
+                        <Row center gap={spacing.s3}>
                           {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={42} /> : null}
                           <View style={{ flex: 1 }}>
                             <Txt variant="bodyMed">{instructor?.fullName ?? ''}</Txt>
@@ -640,7 +636,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                             bg={left === 0 ? theme.dangerSoft : left <= 6 ? theme.warnSoft : theme.teal + '1F'}
                           />
                         </Row>
-                        <Spacer size={10} />
+                        <Spacer size={spacing.s3} />
                         <Btn
                           title={left === 0 ? t('explore.waitlist') : t('course.join')}
                           full
@@ -670,27 +666,27 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 return (
                   <FadeIn key={b.id} index={i}>
                     <Card>
-                      <Row center gap={12}>
+                      <Row center gap={spacing.s3}>
                         {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={46} /> : null}
-                        <View style={{ flex: 1, gap: 3 }}>
+                        <View style={{ flex: 1, gap: spacing.s1 }}>
                           <Txt variant="bodyMed">{instructor?.fullName ?? ''}</Txt>
-                          <Row center gap={6} wrap>
-                            <Row center gap={3}>
+                          <Row center gap={spacing.s2} wrap>
+                            <Row center gap={spacing.s1}>
                               <Icon name="repeat" size={12} color={theme.textMuted} />
                               <Txt variant="micro" color={theme.textMuted}>
                                 {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time}
                               </Txt>
                             </Row>
                           </Row>
-                          <Row center gap={6} wrap>
-                            <Row center gap={3}>
+                          <Row center gap={spacing.s2} wrap>
+                            <Row center gap={spacing.s1}>
                               <Icon name="location" size={12} color={theme.textMuted} />
                               <Txt variant="micro" color={theme.textMuted}>{b.room} — {branch?.governorate}</Txt>
                             </Row>
                           </Row>
                         </View>
                       </Row>
-                      <Spacer size={10} />
+                      <Spacer size={spacing.s3} />
                       <Row between center>
                         <Txt variant="micro" color={left === 0 ? theme.danger : left <= 6 ? theme.warn : theme.teal}>
                           {left === 0 ? t('common.full') : t('explore.seatsLeft', { x: left })}
@@ -699,16 +695,16 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                           {t('journey.sessionXofY', { x: sessionsOfBatch(db, b.id).filter((s) => s.status !== 'scheduled').length, y: course.sessionsCount })}
                         </Txt>
                       </Row>
-                      <Spacer size={6} />
+                      <Spacer size={spacing.s2} />
                       <ProgressBar progress={seats.taken / b.capacity} height={6} color={left === 0 ? theme.danger : left <= 6 ? theme.warn : theme.teal} />
-                      <Spacer size={12} />
+                      <Spacer size={spacing.s3} />
                       {mine ? (
                         mine.status === 'waitlist' ? (
                           <Btn title={t('explore.onWaitlist')} variant="secondary" full disabled icon="time" />
                         ) : (
                           <>
                             <Btn title={t('course.goToJourney')} variant="secondary" full icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
-                            <Spacer size={6} />
+                            <Spacer size={spacing.s2} />
                             <Btn
                               title={t('course.leaveBatch')}
                               variant="ghost" full icon="exit"
@@ -751,7 +747,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                 return (
                   <FadeIn key={`${r.userId}-${i}`} index={i}>
                     <Card>
-                      <Row center gap={10}>
+                      <Row center gap={spacing.s3}>
                         {reviewer ? <Avatar name={reviewer.fullName} color={reviewer.avatarColor} size={38} /> : null}
                         <View style={{ flex: 1 }}>
                           <Txt variant="bodyMed">{reviewer?.fullName ?? ''}</Txt>
@@ -781,15 +777,15 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
       {/* ورقة تأكيد الانضمام — S13 */}
       <Sheet visible={joinBatch != null} onClose={() => setJoinBatch(null)} title={t('join.title')}>
         {joinBatch ? (
-          <View style={{ gap: 12, paddingBottom: 20 }}>
+          <View style={{ gap: spacing.s3, paddingBottom: 20 }}>
             <Card>
               <Txt variant="h3">{course.title}</Txt>
-              <Spacer size={4} />
+              <Spacer size={spacing.s1} />
               <Txt variant="caption" color={theme.textSecondary}>
                 {profileOf(db, joinBatch.instructorId)?.fullName} · {joinBatch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} {joinBatch.schedule.time} · {joinBatch.room}
               </Txt>
-              <Spacer size={8} />
-              <Row center gap={6}>
+              <Spacer size={spacing.s2} />
+              <Row center gap={spacing.s2}>
                 <Icon name="flag" size={14} color={theme.success} />
                 <Txt variant="caption" color={theme.success}>
                   {t('join.firstSession')}: {(() => {
@@ -813,22 +809,22 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
       {/* نافذة تأكيد التسجيل التفاعلية والانتقال المباشر */}
       <Sheet visible={joinedBatchData != null} onClose={() => setJoinedBatchData(null)} title={joinedBatchData?.waitlist ? t('explore.joinedWaitlist') : t('explore.joinConfirmed')}>
         {joinedBatchData ? (
-          <View style={{ gap: 14, paddingBottom: 20 }}>
+          <View style={{ gap: spacing.s4, paddingBottom: 20 }}>
             <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44', padding: 14 }}>
               <Txt variant="h2" color={theme.brand}>{course.title}</Txt>
-              <Spacer size={4} />
+              <Spacer size={spacing.s1} />
               <Txt variant="caption" color={theme.textSecondary}>
                 {t('explore.trainer', { name: profileOf(db, joinedBatchData.batch.instructorId)?.fullName ?? '' })} · {joinedBatchData.batch.room}
               </Txt>
-              <Spacer size={6} />
-              <Row center gap={6}>
+              <Spacer size={spacing.s2} />
+              <Row center gap={spacing.s2}>
                 <Icon name="time" size={15} color={theme.brand} />
                 <Txt variant="caption" color={theme.textSecondary}>
                   {t('explore.schedule', { days: joinedBatchData.batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + '), time: joinedBatchData.batch.schedule.time })}
                 </Txt>
               </Row>
-              <Spacer size={4} />
-              <Row center gap={6}>
+              <Spacer size={spacing.s1} />
+              <Row center gap={spacing.s2}>
                 <Icon name="flag" size={15} color={theme.success} />
                 <Txt variant="bodyMed" color={theme.success}>
                   أول محاضرة: {(() => {
@@ -839,7 +835,7 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
               </Row>
             </Card>
 
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: spacing.s2 }}>
               <Btn
                 title={t('explore.goJourney')}
                 variant="primary"

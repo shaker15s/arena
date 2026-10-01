@@ -24,7 +24,7 @@ export function BatchesAdminScreen({ navigation }: any) {
   return (
     <Screen label={t('batchAdm.title')} style={{ flex: 1 }}>
       <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s8 }}>
         {db.batches.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>
             <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
@@ -32,7 +32,7 @@ export function BatchesAdminScreen({ navigation }: any) {
             <Txt variant="body" color={theme.textSecondary} align="center">
               {t('batchAdm.title')}
             </Txt>
-            <Spacer size={16} />
+            <Spacer size={spacing.s4} />
             <Btn title={t('batchAdm.new')} onPress={() => setCreating(true)} />
           </View>
         ) : null}
@@ -48,7 +48,7 @@ export function BatchesAdminScreen({ navigation }: any) {
           return (
             <FadeIn key={b.id} index={i}>
               <Card onPress={() => navigation.navigate('CourseManagement', { batchId: b.id })}>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: sizes.iconButton, height: sizes.iconButton, borderRadius: radii.md, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="people" size={20} color={course.color} />
                   </View>

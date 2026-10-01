@@ -58,14 +58,14 @@ export function VerifyScreen({ navigation, route }: any) {
       <ScrollView
         contentContainerStyle={{
           padding: spacing.s5,
-          gap: 16,
+          gap: spacing.s4,
           maxWidth: 680,
           width: '100%',
           alignSelf: 'center',
         }}
       >
         <FadeIn index={0}>
-          <View style={{ gap: 6, paddingVertical: 4 }}>
+          <View style={{ gap: spacing.s2, paddingVertical: 4 }}>
             <Txt variant="body" color={theme.textSecondary}>
               {t('verify.subtitle')}
             </Txt>
@@ -108,7 +108,7 @@ export function VerifyScreen({ navigation, route }: any) {
         {result === 'not-found' ? (
           <FadeIn index={0}>
             <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55', borderWidth: 1 }}>
-              <Row center gap={12}>
+              <Row center gap={spacing.s3}>
                 <Icon name="alert-circle" size={32} color={theme.danger} />
                 <Txt variant="bodyMed" color={theme.danger} style={{ flex: 1, lineHeight: 22 }}>
                   {t('verify.notFound')}
@@ -137,7 +137,7 @@ export function VerifyScreen({ navigation, route }: any) {
         {result === 'error' ? (
           <FadeIn index={0}>
             <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55', borderWidth: 1 }}>
-              <Row center gap={12}>
+              <Row center gap={spacing.s3}>
                 <Icon name="cloud-offline" size={32} color={theme.warn} />
                 <Txt variant="bodyMed" color={theme.warn} style={{ flex: 1, lineHeight: 22 }}>
                   {t('common.errorTitle')}
@@ -166,19 +166,19 @@ export function VerifyScreen({ navigation, route }: any) {
         {found ? (
           <FadeIn index={0}>
             <Card style={{ borderColor: theme.success + '66', borderWidth: 2 }}>
-              <View style={{ alignItems: 'center', gap: 12, paddingVertical: 8 }}>
+              <View style={{ alignItems: 'center', gap: spacing.s3, paddingVertical: 8 }}>
                 <View style={{ backgroundColor: theme.successSoft, borderRadius: radii.full, paddingHorizontal: 16, paddingVertical: 6 }}>
-                  <Row center gap={6}>
+                  <Row center gap={spacing.s2}>
                     <Icon name="checkmark-circle" size={18} color={theme.success} />
                     <Txt variant="h3" color={theme.success}>{t('verify.verified')}</Txt>
                   </Row>
                 </View>
                 <Avatar name={found.student_name} color={theme.brand} size={72} />
-                <View style={{ alignItems: 'center', gap: 2 }}>
+                <View style={{ alignItems: 'center', gap: spacing.s1 }}>
                   <Txt variant="h2" align="center">{found.student_name}</Txt>
                   <Txt variant="body" color={theme.textSecondary} align="center">{found.course_title}</Txt>
                 </View>
-                <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 6 }}>
+                <View style={{ alignSelf: 'stretch', gap: spacing.s2, marginTop: 6 }}>
                   <InfoRow label={t('verify.course')} value={found.course_title} icon="book" />
                   <InfoRow label={t('common.branch')} value={found.branch_name} icon="business" />
                   <InfoRow label={t('verify.issuedAt')} value={formatDate(new Date(found.issued_at).getTime(), lang)} icon="calendar" />
@@ -196,7 +196,7 @@ export function VerifyScreen({ navigation, route }: any) {
 function InfoRow({ label, value, icon }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap }) {
   const { theme } = useTheme();
   return (
-    <Row center gap={10} style={{ backgroundColor: theme.bg, borderRadius: 12, padding: 12 }}>
+    <Row center gap={spacing.s3} style={{ backgroundColor: theme.bg, borderRadius: 12, padding: 12 }}>
       <Icon name={icon} size={16} color={theme.textMuted} />
       <Txt variant="caption" color={theme.textMuted} style={{ width: 90 }}>{label}</Txt>
       <Txt variant="bodyMed" style={{ flex: 1 }}>{value}</Txt>

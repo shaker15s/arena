@@ -58,7 +58,7 @@ const NotificationCard = React.memo(function NotificationCard({
         marginBottom: 8,
       }}
     >
-      <Row center gap={12}>
+      <Row center gap={spacing.s3}>
         <View
           style={{
             width: 42,
@@ -71,7 +71,7 @@ const NotificationCard = React.memo(function NotificationCard({
         >
           <Icon name={meta.icon} size={19} color={meta.color} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: spacing.s1 }}>
           <Txt variant="bodyMed">{item.title}</Txt>
           <Txt variant="caption" color={theme.textSecondary}>
             {item.body}
@@ -146,7 +146,7 @@ function TimeField({ value, onChange, label }: { value: string; onChange: (v: st
     { key: 'm', text: mm ?? '00', max: 59 },
   ];
   return (
-    <Row center gap={4}>
+    <Row center gap={spacing.s1}>
       {parts.map((p, idx) => (
         <React.Fragment key={p.key}>
           {idx === 1 ? <Txt variant="bodyMed" color={theme.textMuted}>:</Txt> : null}
@@ -284,7 +284,7 @@ export function NotificationsScreen({ navigation }: any) {
         title={t('notif.title')}
         back={() => navigation.goBack()}
         right={
-          <Row gap={8} center>
+          <Row gap={spacing.s2} center>
             {hasUnread ? (
               <Btn
                 title={t('notif.markAllRead')}
@@ -309,7 +309,7 @@ export function NotificationsScreen({ navigation }: any) {
         keyExtractor={(s) => s.key}
         initialNumToRender={10}
         windowSize={5}
-        contentContainerStyle={{ padding: spacing.s5, gap: 10, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: 60 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -336,8 +336,8 @@ export function NotificationsScreen({ navigation }: any) {
         <View style={{ height: 12 }} />
         {PREF_ROWS.map((row) => (
           <Card key={row.key} style={{ marginBottom: 8 }}>
-            <Row between center gap={12}>
-              <Row center gap={10} style={{ flex: 1 }}>
+            <Row between center gap={spacing.s3}>
+              <Row center gap={spacing.s3} style={{ flex: 1 }}>
                 <Icon name={row.icon} size={19} color={theme.brand} />
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{row.label}</Txt>
               </Row>
@@ -350,7 +350,7 @@ export function NotificationsScreen({ navigation }: any) {
             <Txt variant="micro" color={theme.textSecondary} style={{ marginBottom: 8 }}>
               {t('notif.quietHint')}
             </Txt>
-            <Row center gap={10} wrap>
+            <Row center gap={spacing.s3} wrap>
               <Txt variant="caption" color={theme.textSecondary}>{t('notif.quietFrom')}</Txt>
               <TimeField value={prefs.quiet_from} onChange={(v) => setQuietWindow('quiet_from', v)} label={t('notif.quietFrom')} />
               <Txt variant="caption" color={theme.textSecondary}>{t('notif.quietTo')}</Txt>

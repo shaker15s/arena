@@ -12,6 +12,7 @@ import { Metric, Info } from './CourseManagementSheets';
 import type { Batch, Course, CourseRole, Db, Profile, TrainingSession } from '../../../data/types';
 import type { DetailedCourseAnalytics } from '../../../data/actions';
 import { Icon } from '../../../design/icons';
+import { spacing } from '../../../design/tokens';
 
 export function CourseOverviewTab({
   db,
@@ -46,7 +47,7 @@ export function CourseOverviewTab({
   const { t, lang } = useI18n();
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: spacing.s3 }}>
       <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '33' }}>
         <Row center between>
           <View>
@@ -61,7 +62,7 @@ export function CourseOverviewTab({
             bg="#fff"
           />
         </Row>
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <ProgressBar
           progress={sessions.length > 0 ? sessions.filter((s) => s.status === 'closed').length / sessions.length : 0}
           color={theme.brand}
@@ -70,7 +71,7 @@ export function CourseOverviewTab({
       </Card>
 
       <Card>
-        <Row center gap={10}>
+        <Row center gap={spacing.s3}>
           {instructor ? <Avatar name={instructor.fullName} color={instructor.avatarColor} size={44} /> : null}
           <View style={{ flex: 1 }}>
             <Txt variant="micro" color={theme.textMuted}>{t('management.instructor')}</Txt>
@@ -81,7 +82,7 @@ export function CourseOverviewTab({
           </View>
           <Tag label={statusMeta(batch.status, batch.id).label} color={statusMeta(batch.status, batch.id).color} bg={statusMeta(batch.status, batch.id).color + '1F'} />
         </Row>
-        <Spacer size={10} />
+        <Spacer size={spacing.s3} />
         <Info icon="business" label={t('common.branch')} value={branch?.name ?? '—'} />
         <Info icon="location" label={t('common.room')} value={batch.room || '—'} />
         <Info icon="calendar" label={t('management.startDate')} value={formatDate(batch.startDate, lang)} />
@@ -92,14 +93,14 @@ export function CourseOverviewTab({
       {/* كود ورابط الانضمام */}
       <Card color={theme.brandSoft} style={{ borderColor: theme.brand + '44' }}>
         <Row center between>
-          <Row center gap={8}>
+          <Row center gap={spacing.s2}>
             <Icon name="qr-code" size={20} color={theme.brand} />
             <Txt variant="bodyMed" color={theme.brand}>{t('joinCode.title')}</Txt>
           </Row>
           <Tag label={batch.joinCode} color={theme.brand} bg="#fff" />
         </Row>
-        <Spacer size={10} />
-        <Row gap={8}>
+        <Spacer size={spacing.s3} />
+        <Row gap={spacing.s2}>
           <View style={{ flex: 1 }}>
             <Btn title={t('management.showQr')} size="sm" variant="primary" icon="qr-code" onPress={onShowQr} full />
           </View>
@@ -107,7 +108,7 @@ export function CourseOverviewTab({
             <Btn title={t('management.shareLink')} size="sm" variant="secondary" icon="copy" onPress={onShareLink} full />
           </View>
         </Row>
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <Btn
           title={t('management.broadcastStudents')}
           size="sm"
@@ -135,7 +136,7 @@ export function CourseOverviewTab({
           <Txt variant="bodyMed">{t('batchAdm.occupancy')}</Txt>
           <Txt variant="caption" color={theme.textSecondary}>{counts.taken}/{batch.capacity} · {t('management.waitlist')} {counts.waitlist}</Txt>
         </Row>
-        <Spacer size={7} />
+        <Spacer size={spacing.s2} />
         <ProgressBar progress={counts.taken / Math.max(batch.capacity, 1)} color={counts.taken >= batch.capacity ? theme.danger : theme.success} />
       </Card>
 
@@ -143,9 +144,9 @@ export function CourseOverviewTab({
       {course.topics.length > 0 ? (
         <Card>
           <Txt variant="h3">{t('management.topics')}</Txt>
-          <Spacer size={8} />
+          <Spacer size={spacing.s2} />
           {course.topics.map((topic, index) => (
-            <Row key={`${topic}-${index}`} center gap={8} style={{ marginBottom: 7 }}>
+            <Row key={`${topic}-${index}`} center gap={spacing.s2} style={{ marginBottom: 7 }}>
               <Tag label={String(index + 1)} color={course.color} bg={course.color + '1F'} />
               <Txt variant="caption" style={{ flex: 1 }}>{topic}</Txt>
             </Row>
@@ -193,7 +194,7 @@ export function CourseSessionsTab({
         const honored = attendance.filter((item) => item.status !== 'absent').length;
         return (
           <Card key={session.id} onPress={() => onSelectSession(session)}>
-            <Row center gap={10}>
+            <Row center gap={spacing.s3}>
               <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: course.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
                 <Txt variant="bodyMed" color={course.color}>{session.seq}</Txt>
               </View>
@@ -209,7 +210,7 @@ export function CourseSessionsTab({
               />
             </Row>
             {session.status === 'scheduled' ? (
-              <Row gap={8} style={{ marginTop: 10 }}>
+              <Row gap={spacing.s2} style={{ marginTop: 10 }}>
                 <View style={{ flex: 2 }}>
                   <Btn
                     title={t('management.startLive')}
@@ -281,7 +282,7 @@ export function CourseStudentsTab({
         return (
           <FadeIn key={student.id} index={Math.min(index, 8)}>
             <Card onPress={() => onStudentPress(student.id, batchId)}>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <Avatar name={student.fullName} color={student.avatarColor} size={42} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyMed">{student.fullName}</Txt>
@@ -318,7 +319,7 @@ export function CourseStaffTab({
   const { t } = useI18n();
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: spacing.s3 }}>
       {isCourseManager && (
         <Btn
           title={t('management.assignStaff')}
@@ -329,7 +330,7 @@ export function CourseStaffTab({
       )}
       {owner ? (
         <Card>
-          <Row center gap={10}>
+          <Row center gap={spacing.s3}>
             <Avatar name={owner.fullName} color={owner.avatarColor} size={42} />
             <View style={{ flex: 1 }}>
               <Txt variant="bodyMed">{owner.fullName}</Txt>
@@ -346,7 +347,7 @@ export function CourseStaffTab({
           const prof = profileOf(db, cr.userId);
           return (
             <Card key={cr.id}>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <Avatar name={prof?.fullName ?? t('management.member')} color={prof?.avatarColor ?? theme.brand} size={42} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyMed">{prof?.fullName ?? t('management.delegated')}</Txt>
@@ -386,7 +387,7 @@ export function CourseAnalyticsTab({
   const { t } = useI18n();
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.s3 }}>
       {loadingAnalytics ? (
         <Card style={{ padding: 20, alignItems: 'center' }}>
           <Txt variant="caption" color={theme.textMuted}>{t('management.analyticsLoading')}</Txt>
@@ -395,14 +396,14 @@ export function CourseAnalyticsTab({
         <>
           <Card>
             <Txt variant="h3">{t('management.funnelTitle')}</Txt>
-            <Spacer size={12} />
-            <Row gap={8}>
+            <Spacer size={spacing.s3} />
+            <Row gap={spacing.s2}>
               <Metric value={String(analytics.funnel.totalEnrollments)} label={t('management.totalEnrolled')} color={theme.brand} />
               <Metric value={String(analytics.funnel.activeStudents)} label={t('management.activeStudents')} color={theme.success} />
               <Metric value={String(analytics.funnel.certifiedStudents)} label={t('management.certified')} color={theme.teal} />
             </Row>
-            <Spacer size={10} />
-            <Row gap={8}>
+            <Spacer size={spacing.s3} />
+            <Row gap={spacing.s2}>
               <Metric value={`${analytics.funnel.avgAttendancePct}%`} label={t('management.avgAttendance')} color={theme.success} />
               <Metric value={String(analytics.funnel.avgRating)} label={t('management.avgRating')} color={theme.certGold} />
               <Metric value={String(analytics.funnel.ratedCount)} label={t('management.raterCount')} color={theme.brand} />
@@ -411,7 +412,7 @@ export function CourseAnalyticsTab({
 
           <Card>
             <Txt variant="h3">{t('management.batchStats')}</Txt>
-            <Spacer size={8} />
+            <Spacer size={spacing.s2} />
             <Info icon="layers" label={t('management.totalBatches')} value={String(analytics.totalBatches)} />
             <Info icon="play-circle" label={t('management.activeBatches')} value={String(analytics.activeBatches)} />
             <Info icon="checkmark-done" label={t('management.completedBatches')} value={String(analytics.completedBatches)} />
@@ -440,12 +441,12 @@ export function CourseReviewsTab({
   }
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: spacing.s3 }}>
       <Card>
         <Row center between>
           <View>
             <Txt variant="caption" color={theme.textSecondary}>{t('management.avgStudentRating')}</Txt>
-            <Row center gap={6}>
+            <Row center gap={spacing.s2}>
               <Txt variant="h1" color={theme.certGold}>{avgStars}</Txt>
               <Stars value={parseFloat(avgStars || '5')} size={20} />
             </Row>
@@ -458,7 +459,7 @@ export function CourseReviewsTab({
         return (
           <Card key={`${rev.userId}-${rev.createdAt}`}>
             <Row center between style={{ marginBottom: 6 }}>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <Avatar name={reviewer?.fullName ?? t('management.studentFallback')} color={reviewer?.avatarColor ?? theme.brand} size={32} />
                 <View>
                   <Txt variant="bodyMed">{reviewer?.fullName ?? t('management.studentFallback')}</Txt>

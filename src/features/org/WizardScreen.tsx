@@ -128,16 +128,16 @@ export function OrgWizardScreen({ navigation }: any) {
           <Txt variant="h2" heading="h1">{t('wizard.title')} 🚀</Txt>
           <Btn title={t('common.close')} size="sm" variant="ghost" onPress={() => safeBack(navigation)} />
         </Row>
-        <Spacer size={10} />
+        <Spacer size={spacing.s3} />
         {/* شريط تقدم المعالج */}
-        <Row center gap={8}>
+        <Row center gap={spacing.s2}>
           <Txt variant="caption" color={theme.brand}>{t('wizard.step', { x: step })}</Txt>
           <View style={{ flex: 1 }}>
             <ProgressBar progress={step / 6} />
           </View>
         </Row>
-        <Spacer size={8} />
-        <Row center gap={6} style={{ justifyContent: 'center' }}>
+        <Spacer size={spacing.s2} />
+        <Row center gap={spacing.s2} style={{ justifyContent: 'center' }}>
           {stepIcons.map((icon, i) => {
             const active = i + 1 <= step;
             return (
@@ -154,16 +154,16 @@ export function OrgWizardScreen({ navigation }: any) {
         </Row>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4, paddingBottom: 140 }}>
         <FadeIn>
           <Txt variant="h1" heading="h2">{t(`wizard.s${step}Title` as any)}</Txt>
           <Txt variant="body" color={theme.textSecondary}>{t(`wizard.s${step}Body` as any)}</Txt>
         </FadeIn>
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
 
         {step === 1 ? (
           <FadeIn index={1}>
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: spacing.s3 }}>
               <Input label={t('common.name')} value={branchName} onChange={setBranchName} icon="business" />
               <Input label={t('wizard.governorate')} value={branchGovernorate} onChange={setBranchGovernorate} icon="map" />
               <Input label={t('wizard.address')} value={branchAddress} onChange={setBranchAddress} icon="location" />
@@ -173,10 +173,10 @@ export function OrgWizardScreen({ navigation }: any) {
 
         {step === 2 ? (
           <FadeIn index={1}>
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: spacing.s3 }}>
               {committeeNames.map((name) => (
                 <Card key={name}>
-                  <Row center gap={10}>
+                  <Row center gap={spacing.s3}>
                     <Icon name="git-network" size={18} color={theme.brand} />
                     <Txt variant="bodyMed">{name}</Txt>
                     <View style={{ flex: 1 }} />
@@ -184,7 +184,7 @@ export function OrgWizardScreen({ navigation }: any) {
                   </Row>
                 </Card>
               ))}
-              <Row gap={8}>
+              <Row gap={spacing.s2}>
                 <View style={{ flex: 1 }}>
                   <Input value={newCommittee} onChange={setNewCommittee} placeholder={t('wizard.committeeName')} icon="add" />
                 </View>
@@ -200,9 +200,9 @@ export function OrgWizardScreen({ navigation }: any) {
 
         {step === 3 ? (
           <FadeIn index={1}>
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: spacing.s3 }}>
               <Input label={t('wizard.courseName')} value={courseTitle} onChange={setCourseTitle} placeholder={t('wizard.courseExample')} icon="book" />
-              <Row gap={10}>
+              <Row gap={spacing.s3}>
                 <View style={{ flex: 1 }}>
                   <Input label={t('wizard.courseField')} value={courseField} onChange={setCourseField} icon="bookmark" />
                 </View>
@@ -218,12 +218,12 @@ export function OrgWizardScreen({ navigation }: any) {
 
         {step === 4 ? (
           <FadeIn index={1}>
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: spacing.s3 }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('common.instructor')}</Txt>
-              <Row gap={8} wrap>
+              <Row gap={spacing.s2} wrap>
                 {instructors.map((v) => (
                   <Card key={v.id} onPress={() => setInstructorId(v.id)} color={instructorId === v.id ? theme.brandSoft : undefined} style={{ borderColor: instructorId === v.id ? theme.brand : theme.line, padding: 10 }}>
-                    <Row center gap={8}>
+                    <Row center gap={spacing.s2}>
                       <Avatar name={v.fullName} color={v.avatarColor} size={32} />
                       <Txt variant="caption">{v.fullName}</Txt>
                       {instructorId === v.id ? <Icon name="checkmark-circle" size={16} color={theme.brand} /> : null}
@@ -231,7 +231,7 @@ export function OrgWizardScreen({ navigation }: any) {
                   </Card>
                 ))}
               </Row>
-              <Row gap={10}>
+              <Row gap={spacing.s3}>
                 <View style={{ flex: 1 }}>
                   <Input label={t('common.capacity')} value={capacity} onChange={setCapacity} keyboardType="numeric" icon="people" />
                 </View>
@@ -240,7 +240,7 @@ export function OrgWizardScreen({ navigation }: any) {
                 </View>
               </Row>
               <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.days')}</Txt>
-              <Row gap={6} wrap>
+              <Row gap={spacing.s2} wrap>
                 {[0, 1, 2, 3, 4, 5, 6].map((d) => (
                   <Chip key={d} label={t(`dayShort.${d}` as any)} active={days.includes(d)} onPress={() => setDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort())} />
                 ))}
@@ -249,7 +249,7 @@ export function OrgWizardScreen({ navigation }: any) {
               {preview.length > 0 ? (
                 <Card>
                   <Txt variant="caption" color={theme.brand} style={{ marginBottom: 6 }}>👁️ {t('batchAdm.preview')}</Txt>
-                  <Row wrap gap={6}>
+                  <Row wrap gap={spacing.s2}>
                     {preview.slice(0, 12).map((p) => (
                       <Tag key={p.seq} label={`${p.seq}: ${formatDate(p.startsAt, lang)}`} color={theme.textSecondary} bg={theme.bg} />
                     ))}
@@ -262,7 +262,7 @@ export function OrgWizardScreen({ navigation }: any) {
 
         {step === 5 ? (
           <FadeIn index={1}>
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: spacing.s3 }}>
               {RULE_DEFS.slice(0, 8).map((def) => {
                 const rule = db.rules.find((r) => r.key === def.key);
                 const value = rule?.value ?? def.def;
@@ -282,8 +282,8 @@ export function OrgWizardScreen({ navigation }: any) {
 
         {step === 6 ? (
           <FadeIn index={1}>
-            <View style={{ gap: 14, alignItems: 'center' }}>
-              <Card style={{ alignItems: 'center', paddingVertical: 20, gap: 12, alignSelf: 'stretch' }}>
+            <View style={{ gap: spacing.s4, alignItems: 'center' }}>
+              <Card style={{ alignItems: 'center', paddingVertical: 20, gap: spacing.s3, alignSelf: 'stretch' }}>
                 {createdJoinCode ? (
                   <>
                     <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 16 }}>
@@ -304,7 +304,7 @@ export function OrgWizardScreen({ navigation }: any) {
 
       {/* أزرار التنقل */}
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s5, paddingBottom: insets.bottom + 16, backgroundColor: theme.glass, borderTopWidth: 1, borderTopColor: theme.line }}>
-        <Row gap={10}>
+        <Row gap={spacing.s3}>
           {step > 1 && !createdJoinCode ? <Btn title={t('common.back')} variant="ghost" onPress={() => setStep(step - 1)} /> : null}
           <View style={{ flex: 1 }}>
             <Btn

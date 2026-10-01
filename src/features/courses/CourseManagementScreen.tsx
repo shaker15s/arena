@@ -199,7 +199,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
         subtitle={t('management.opsSubtitle')}
         back={() => navigation.goBack()}
         right={
-          <Row gap={6}>
+          <Row gap={spacing.s2}>
             {isCourseManager ? (
               <Btn
                 title={t('management.editCurriculum')}
@@ -221,12 +221,12 @@ export function CourseManagementScreen({ route, navigation }: any) {
         }
       />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
       >
         {/* بطاقة ملخص الكورس والمالك */}
         <Card color={course.color + '14'} style={{ borderColor: course.color + '44' }}>
-          <Row center gap={12}>
+          <Row center gap={spacing.s3}>
             <View style={{ width: 54, height: 54, borderRadius: 17, backgroundColor: course.color, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="book" size={25} color="#fff" />
             </View>
@@ -240,8 +240,8 @@ export function CourseManagementScreen({ route, navigation }: any) {
             <Tag label={course.status === 'published' ? t('common.published') : course.status === 'running' ? t('management.running') : course.status} color={course.color} bg={course.color + '1F'} />
           </Row>
           {course.description ? <Txt variant="body" color={theme.textSecondary} style={{ marginTop: 10 }}>{course.description}</Txt> : null}
-          <Spacer size={10} />
-          <Row gap={8}>
+          <Spacer size={spacing.s3} />
+          <Row gap={spacing.s2}>
             {isCourseManager ? (
               <View style={{ flex: 1 }}>
                 <Btn
@@ -271,7 +271,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
         </Card>
 
         {/* مؤشرات الأداء السريعة */}
-        <AutoGrid gap={8} minColumnWidth={layout.minColumn.stat}>
+        <AutoGrid gap={spacing.s2} minColumnWidth={layout.minColumn.stat}>
           <Metric value={String(allowedBatches.length)} label={t('management.groups')} color={theme.brand} />
           <Metric value={String(allCounts)} label={t('management.registrants')} color={theme.success} />
           <Metric value={String(active)} label={t('common.active')} color={theme.warn} />
@@ -292,7 +292,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
           <>
             {/* اختيار الدفعة */}
             <Txt variant="caption" color={theme.textSecondary}>{t('management.pickGroup')}</Txt>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.s2 }}>
               {allowedBatches.map((item, index) => {
                 const meta = statusMeta(item.status, item.id);
                 return (
@@ -403,14 +403,14 @@ export function CourseManagementScreen({ route, navigation }: any) {
       {/* نافذة QR الانضمام للمجموعة */}
       {batch ? (
         <Sheet visible={joinQrOpen} onClose={() => setJoinQrOpen(false)} title={`${t('joinCode.title')} — ${batch.joinCode}`}>
-          <View style={{ alignItems: 'center', gap: 14, paddingVertical: 10 }}>
+          <View style={{ alignItems: 'center', gap: spacing.s4, paddingVertical: 10 }}>
             <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: theme.line }}>
               <QRCode value={joinUrl} size={180} color="#0A0E1A" backgroundColor="#fff" />
             </View>
             <Txt variant="h2" color={theme.brand}>{batch.joinCode}</Txt>
             <Txt variant="caption" color={theme.textSecondary} align="center">{course.title} · {batch.room}</Txt>
             <Txt variant="micro" color={theme.textMuted} align="center">{joinUrl}</Txt>
-            <Spacer size={6} />
+            <Spacer size={spacing.s2} />
             <Btn title={t('management.shareLink')} icon="copy" full onPress={copyJoinLink} />
           </View>
         </Sheet>
@@ -479,9 +479,9 @@ export function CourseManagementScreen({ route, navigation }: any) {
       {/* إرسال إشعار للمجموعة */}
       {batch ? (
         <Sheet visible={broadcastOpen} onClose={() => setBroadcastOpen(false)} title={t('management.broadcastStudents')}>
-          <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: spacing.s3 }}>
             <Card>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <Icon name="people" size={18} color={theme.brand} />
                 <Txt variant="bodyMed" color={theme.brand}>
                   {t('management.broadcastReach', { x: students.length })}
@@ -502,7 +502,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
               placeholder={t('management.messagePlaceholder')}
               multiline
             />
-            <Spacer size={8} />
+            <Spacer size={spacing.s2} />
             <Btn
               title={t('management.sendAlert')}
               size="lg"

@@ -69,7 +69,7 @@ export function ProfileScreen() {
 
         {/* بطاقة الهوية */}
         <FadeIn index={0}>
-          <Card style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
+          <Card style={{ alignItems: 'center', paddingVertical: 22, gap: spacing.s2 }}>
             <View style={{ borderWidth: 3, borderColor: levelMeta.color, borderRadius: 44, padding: 3 }}>
               {user.avatarUrl ? (
                 <Image source={{ uri: user.avatarUrl }} style={{ width: 76, height: 76, borderRadius: 38 }} />
@@ -78,11 +78,11 @@ export function ProfileScreen() {
               )}
             </View>
             <Txt variant="h2" align="center">{user.fullName}</Txt>
-            <Row center gap={8}>
+            <Row center gap={spacing.s2}>
               <Tag label={roleLabel[user.role]} color={theme.brand} bg={theme.brandSoft} icon="person" />
               <Tag label={`${t('profile.level')} ${level} · ${t(`level.${level}` as any)}`} color={levelMeta.color} bg={levelMeta.color + '1F'} icon="shield-half" />
             </Row>
-            <AutoGrid gap={6} minColumnWidth={layout.minColumn.wide - 30} style={{ marginTop: 8, width: '100%' }}>
+            <AutoGrid gap={spacing.s2} minColumnWidth={layout.minColumn.wide - 30} style={{ marginTop: 8, width: '100%' }}>
               <MiniStat label={t('today.pointsLabel')} value={points.toLocaleString()} icon="star" color={theme.certGold} />
               <MiniStat label={t('profile.longestStreak')} value={`${gam.longestStreakWeeks} ${t('common.weeks')}`} icon="flame" color={theme.warn} />
               <MiniStat label={t('profile.memberSince')} value={formatDate(user.joinedAt, lang)} icon="calendar" color={theme.brand} />
@@ -129,7 +129,7 @@ export function ProfileScreen() {
             title={t('profile.notifications')}
             right={
               unreadCount > 0 ? (
-                <Row center gap={6}>
+                <Row center gap={spacing.s2}>
                   <View
                     style={{
                       minWidth: 22,
@@ -163,7 +163,7 @@ export function ProfileScreen() {
         <FadeIn index={9}>
           <Card>
             <Row between center>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <Icon
                   name={!online ? 'cloud-offline' : syncing ? 'sync' : 'cloud-done'}
                   size={18}
@@ -197,7 +197,7 @@ export function ProfileScreen() {
           <FadeIn>
             <Card style={{ marginTop: 4, padding: 12, backgroundColor: theme.card, borderColor: theme.brand, borderWidth: 1 }}>
               <Txt variant="h3" color={theme.brand} align="center">Developer Mode</Txt>
-              <Spacer size={8} />
+              <Spacer size={spacing.s2} />
               <Txt variant="caption" color={theme.textSecondary}>User ID: {user.id}</Txt>
               <Txt variant="caption" color={theme.textSecondary}>Role: {user.role}</Txt>
               <Txt variant="caption" color={theme.textSecondary}>Connection: {online ? 'Online' : 'Offline'} ({syncing ? 'Syncing' : 'Idle'})</Txt>
@@ -209,7 +209,7 @@ export function ProfileScreen() {
 
       {/* اللغة */}
       <Sheet visible={langSheet} onClose={() => setLangSheet(false)} title={t('common.language')}>
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.s3 }}>
           {(['ar', 'en'] as Lang[]).map((l) => (
             <ListRow
               key={l}
@@ -224,7 +224,7 @@ export function ProfileScreen() {
 
       {/* الثيم */}
       <Sheet visible={themeSheet} onClose={() => setThemeSheet(false)} title={t('common.theme')}>
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.s3 }}>
           {(['system', 'light', 'dark', 'oled'] as ThemePref[]).map((th) => (
             <ListRow
               key={th}
@@ -238,9 +238,9 @@ export function ProfileScreen() {
       </Sheet>
 
       <Sheet visible={logoutOpen} onClose={() => setLogoutOpen(false)} title={t('profile.logoutConfirm')}>
-        <View style={{ gap: 14 }}>
+        <View style={{ gap: spacing.s4 }}>
           <Txt variant="body" color={theme.textSecondary}>{t('profile.logoutBody')}</Txt>
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <View style={{ flex: 1 }}><Btn title={t('common.cancel')} variant="ghost" full onPress={() => setLogoutOpen(false)} /></View>
             <View style={{ flex: 1 }}><Btn title={t('common.logout')} variant="danger" full icon="log-out" onPress={() => { setLogoutOpen(false); void logout(); }} /></View>
           </Row>
@@ -248,12 +248,12 @@ export function ProfileScreen() {
       </Sheet>
 
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title={t('profile.deleteAccount')}>
-        <View style={{ gap: 14 }}>
+        <View style={{ gap: spacing.s4 }}>
           <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <MasarMascot size={90} mode="encouraging" interactive={false} hideFloatingBubble />
           </View>
           <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55' }}>
-            <Row center gap={10}>
+            <Row center gap={spacing.s3}>
               <Icon name="warning" size={26} color={theme.danger} />
               <Txt variant="body" color={theme.danger} style={{ flex: 1 }}>{t('profile.deleteBody')}</Txt>
             </Row>
@@ -270,7 +270,7 @@ export function ProfileScreen() {
           {deleteConfirm.trim() !== 'حذف' && deleteConfirm.trim().toUpperCase() !== 'DELETE' ? (
             <Txt variant="micro" color={theme.textMuted}>{t('profile.deleteHint')}</Txt>
           ) : null}
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <View style={{ flex: 1 }}><Btn title={t('common.cancel')} variant="ghost" full onPress={() => setDeleteOpen(false)} /></View>
             <View style={{ flex: 1 }}>
               <Btn
@@ -299,8 +299,8 @@ export function ProfileScreen() {
 function MiniStat({ label, value, icon, color }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; color: string }) {
   const { theme } = useTheme();
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 3, minWidth: 0 }}>
-      <Row center gap={4}>
+    <View style={{ flex: 1, alignItems: 'center', gap: spacing.s1, minWidth: 0 }}>
+      <Row center gap={spacing.s1}>
         <Icon name={icon} size={13} color={color} />
         {/* سطران لا سطر واحد: التاريخ الكامل («١٢ سبتمبر ٢٠٢٥») كان يُصغَّر حتى يُقصّ */}
         <Txt variant="h3" numberOfLines={2} align="center" style={{ fontSize: 15 }}>{value}</Txt>
@@ -357,7 +357,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('profile.edit')}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: 14 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: spacing.s4 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('profile.changeAvatar')} onPress={pick} style={{ alignSelf: 'center' }}>
           <View style={{
             width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
@@ -372,7 +372,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
         </Pressable>
 
         <Card>
-          <Row center gap={10}>
+          <Row center gap={spacing.s3}>
             <Icon name="mail" size={16} color={theme.brand} />
             <View style={{ flex: 1 }}>
               <Txt variant="micro" color={theme.textMuted}>{t('common.email')}</Txt>
@@ -427,13 +427,13 @@ export function SupportScreen({ navigation }: any) {
   return (
     <Screen label={t('profile.support')} style={{ flex: 1 }}>
       <Header title={t('profile.support')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3 }}>
         {isManager ? (
           <FadeIn index={0}>
             <Card>
               <Txt variant="bodyMed">{t('support.lookupRef')}</Txt>
-              <Spacer size={8} />
-              <Row gap={8} center>
+              <Spacer size={spacing.s2} />
+              <Row gap={spacing.s2} center>
                 <View style={{ flex: 1 }}>
                   <Input
                     value={lookupCode}
@@ -446,7 +446,7 @@ export function SupportScreen({ navigation }: any) {
                 <Btn title={t('support.lookupBtn')} icon="search" loading={lookupLoading} onPress={() => { void doLookup(); }} />
               </Row>
               {lookupResult ? (
-                <View style={{ marginTop: 10, gap: 4 }}>
+                <View style={{ marginTop: 10, gap: spacing.s1 }}>
                   <Txt variant="caption" color={theme.brand}>{bidiIsolate(String(lookupResult.ref_code ?? lookupCode))}</Txt>
                   <Txt variant="bodyMed">{String(lookupResult.message ?? '')}</Txt>
                   <Txt variant="micro" color={theme.textMuted}>
@@ -465,11 +465,11 @@ export function SupportScreen({ navigation }: any) {
         ].map((f, i) => (
           <FadeIn key={i} index={i + 1}>
             <Card>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <Icon name="help-circle" size={18} color={theme.brand} />
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{f.q}</Txt>
               </Row>
-              <Spacer size={6} />
+              <Spacer size={spacing.s2} />
               <Txt variant="caption" color={theme.textSecondary}>{f.a}</Txt>
             </Card>
           </FadeIn>

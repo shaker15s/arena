@@ -29,6 +29,7 @@ import { useHaptics } from '../shared/hooks';
 import { BadgeModal } from '../design/celebrations';
 import type { Badge } from '../data/types';
 import { Icon } from '../design/icons';
+import { spacing } from '../design/tokens';
 
 /** S01 — Apple-style Splash: اللوجو يتجمع مع توهج ثم fade */
 function BootSplash() {
@@ -113,7 +114,7 @@ function BootSplash() {
           opacity: textOpacity,
           transform: [{ translateY: textTranslate }],
           alignItems: 'center',
-          gap: 6,
+          gap: spacing.s2,
         }}>
           <Txt variant="h1" color={theme.text}>مسار</Txt>
           <Txt variant="caption" color={theme.textMuted}>منظومة تنظيم مراكز التدريب</Txt>
@@ -228,7 +229,7 @@ function ToastItem({
           elevation: 14,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s3, paddingHorizontal: 16, paddingVertical: 12 }}>
           <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}1F`, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name={icon} size={18} color={color} />
           </View>
@@ -263,7 +264,7 @@ function ToastHost() {
     <View
       pointerEvents="box-none"
       accessibilityLiveRegion="polite"
-      style={{ position: 'absolute', top: Platform.OS === 'web' ? 18 : 54, left: 16, right: 16, alignItems: 'center', gap: 8, zIndex: 999 }}
+      style={{ position: 'absolute', top: Platform.OS === 'web' ? 18 : 54, left: 16, right: 16, alignItems: 'center', gap: spacing.s2, zIndex: 999 }}
     >
       {toasts.slice(-3).map((toast) => (
         <ToastItem
@@ -286,7 +287,7 @@ function SetupRequired() {
     <AppBackground>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <GlassSurface intensity={70} radius={32} style={{ width: '100%', maxWidth: 520 }}>
-          <View style={{ alignItems: 'center', padding: 30, gap: 14 }}>
+          <View style={{ alignItems: 'center', padding: 30, gap: spacing.s4 }}>
             <LinearGradient
               colors={[theme.warn, theme.danger]}
               style={{ width: 82, height: 82, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }}

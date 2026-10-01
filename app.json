@@ -20,7 +20,6 @@
     },
     "newArchEnabled": true,
     "plugins": [
-      "expo-apple-authentication",
       [
         "expo-camera",
         {

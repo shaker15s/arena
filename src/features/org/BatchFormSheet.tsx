@@ -14,6 +14,7 @@ import { formatDate } from '../../shared/format';
 import { Batch } from '../../data/types';
 import { createBatchWithSessions } from '../../data/actions';
 import { Icon } from '../../design/icons';
+import { spacing } from '../../design/tokens';
 
 export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible: boolean; onClose: () => void; initialCourseId?: string }) {
   const { t, lang } = useI18n();
@@ -135,7 +136,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('batchAdm.new')}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: spacing.s3 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {errors.general ? (
           <Card color="#EF44441F" style={{ borderColor: '#EF4444', padding: 10 }}>
             <Txt variant="caption" color="#EF4444">{errors.general}</Txt>
@@ -143,7 +144,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         ) : null}
 
         <Txt variant="caption" color={theme.textSecondary}>{t('common.branch')}</Txt>
-        <Row gap={6} wrap>
+        <Row gap={spacing.s2} wrap>
           {db.branches.map((branch) => (
             <Chip key={branch.id} label={branch.name} active={branchId === branch.id} onPress={() => { setBranchId(branch.id); setErrors((e) => ({ ...e, branchId: '' })); }} />
           ))}
@@ -151,7 +152,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         {errors.branchId ? <Txt variant="micro" color={theme.danger}>{errors.branchId}</Txt> : null}
 
         <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickCourse')}</Txt>
-        <Row gap={6} wrap>
+        <Row gap={spacing.s2} wrap>
           {publishedCourses.map((c) => {
             const existingBatch = db.batches.find((b) => b.courseId === c.id && b.status !== 'archived');
             const org = existingBatch?.instructorId ? profileOf(db, existingBatch.instructorId) : null;
@@ -176,7 +177,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
         {isConflictWithOtherOrganizer && (
           <Card color={theme.dangerSoft} style={{ borderColor: theme.danger + '55', padding: 10 }}>
-            <Row center gap={8}>
+            <Row center gap={spacing.s2}>
               <Icon name="alert-circle" size={20} color={theme.danger} />
               <Txt variant="micro" color={theme.danger}>
                 تنبيه: هذا الكورس منظم حالياً بواسطة {currentOrganizer?.fullName}. لا يمكنك تنظيم كورس مسند لمنظم آخر.
@@ -188,7 +189,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         {user?.role === 'admin' ? (
           <>
             <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.pickInstructor')}</Txt>
-            <Row gap={6} wrap>
+            <Row gap={spacing.s2} wrap>
               {volunteers.map((v) => (
                 <Chip key={v.id} label={v.fullName} active={instructorId === v.id} onPress={() => { setInstructorId(v.id); setErrors((e) => ({ ...e, instructorId: '' })); }} />
               ))}
@@ -198,14 +199,14 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         ) : null}
 
         <Txt variant="caption" color={theme.textSecondary}>{t('batchAdm.days')}</Txt>
-        <Row gap={6} wrap>
+        <Row gap={spacing.s2} wrap>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => (
             <Chip key={d} label={t(`dayShort.${d}` as any)} active={days.includes(d)} onPress={() => toggleDay(d)} />
           ))}
         </Row>
         {errors.days ? <Txt variant="micro" color={theme.danger}>{errors.days}</Txt> : null}
 
-        <Row gap={10}>
+        <Row gap={spacing.s3}>
           <View style={{ flex: 1 }}>
             <Input label={t('batchAdm.sessionsCustom')} value={customSessionsCount} onChange={setCustomSessionsCount} placeholder={t('batchAdm.sessionsPh')} keyboardType="numeric" icon="calendar" />
           </View>
@@ -213,7 +214,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
             <Input label={t('batchAdm.capacity')} value={capacity} onChange={(v) => { setCapacity(v); setErrors((e) => ({ ...e, capacity: '' })); }} placeholder="25" keyboardType="numeric" icon="people" error={errors.capacity} />
           </View>
         </Row>
-        <Row gap={10}>
+        <Row gap={spacing.s3}>
           <View style={{ flex: 1 }}>
             <Input label={t('batchAdm.time')} value={time} onChange={setTime} placeholder="18:00 (6:00 م)" icon="time" />
           </View>
@@ -225,7 +226,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
 
         {conflict ? (
           <Card color={theme.warnSoft} style={{ borderColor: theme.warn + '55' }}>
-            <Row center gap={8}>
+            <Row center gap={spacing.s2}>
               <Icon name="warning" size={18} color={theme.warn} />
               <Txt variant="caption" color={theme.warn} style={{ flex: 1 }}>{t('batchAdm.conflict')}</Txt>
             </Row>
@@ -235,7 +236,7 @@ export function BatchFormSheet({ visible, onClose, initialCourseId }: { visible:
         {preview.length > 0 ? (
           <Card>
             <Txt variant="caption" color={theme.brand} style={{ marginBottom: 6 }}>👁️ {t('batchAdm.preview')} ({preview.length})</Txt>
-            <Row wrap gap={6}>
+            <Row wrap gap={spacing.s2}>
               {preview.map((p) => (
                 <Tag key={p.seq} label={`${p.seq}: ${formatDate(p.startsAt, lang)}`} color={theme.textSecondary} bg={theme.bg} />
               ))}

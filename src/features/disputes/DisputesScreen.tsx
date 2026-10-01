@@ -136,13 +136,13 @@ export function DisputesScreen({ navigation, route }: any) {
     <Screen label={t('disputes.title')}>
       <Header title={t('disputes.title')} back={() => navigation.goBack()} />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 90, gap: 12 }}
+        contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 90, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl refreshing={syncing || loading} onRefresh={() => void load()} tintColor={theme.brand} colors={[theme.brand]} />
         }
       >
         {canReview ? (
-          <Row gap={8}>
+          <Row gap={spacing.s2}>
             <Btn
               title={t('disputes.myTab')}
               variant={mode === 'mine' ? 'primary' : 'ghost'}
@@ -178,8 +178,8 @@ export function DisputesScreen({ navigation, route }: any) {
           return (
             <FadeIn key={row.id} index={Math.min(index, 8)}>
               <Card>
-                <Row between center gap={10}>
-                  <View style={{ flex: 1, gap: 4 }}>
+                <Row between center gap={spacing.s3}>
+                  <View style={{ flex: 1, gap: spacing.s1 }}>
                     <Txt variant="bodyMed" numberOfLines={2}>{title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>
                       {row.starts_at ? new Date(row.starts_at).toLocaleDateString() : timePast(new Date(row.created_at).getTime(), lang)}
@@ -188,7 +188,7 @@ export function DisputesScreen({ navigation, route }: any) {
                   <Tag label={meta.label} color={meta.color} bg={meta.color + '22'} />
                 </Row>
                 {row.student_name && mode === 'inbox' ? (
-                  <Row center gap={6} style={{ marginTop: 8 }}>
+                  <Row center gap={spacing.s2} style={{ marginTop: 8 }}>
                     <Icon name="person-circle-outline" size={15} color={theme.textSecondary} />
                     <Txt variant="caption" color={theme.textSecondary}>{row.student_name}</Txt>
                   </Row>
@@ -201,7 +201,7 @@ export function DisputesScreen({ navigation, route }: any) {
                   </View>
                 ) : null}
                 {row.evidence_url ? (
-                  <Row center gap={6} style={{ marginTop: 8 }}>
+                  <Row center gap={spacing.s2} style={{ marginTop: 8 }}>
                     <Icon name="attach" size={14} color={theme.brand} />
                     <Txt variant="micro" color={theme.brand} numberOfLines={1}>{row.evidence_url}</Txt>
                   </Row>
@@ -232,13 +232,13 @@ export function DisputesScreen({ navigation, route }: any) {
 
       {/* تقديم تماس جديد */}
       <Sheet visible={composeOpen} onClose={() => setComposeOpen(false)} title={t('disputes.new')}>
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.s3 }}>
           <Txt variant="caption" color={theme.textSecondary}>{t('disputes.pickSession')}</Txt>
           {appealable.length === 0 ? (
             <Txt variant="caption" color={theme.textMuted}>{t('disputes.noSessions')}</Txt>
           ) : (
             <ScrollView style={{ maxHeight: 210 }}>
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: spacing.s2 }}>
                 {appealable.map((s) => (
                   <Card
                     key={s.id}
@@ -253,7 +253,7 @@ export function DisputesScreen({ navigation, route }: any) {
           )}
           <Input label={t('disputes.claimLabel')} value={claim} onChange={setClaim} multiline maxLength={1000} />
           <Input label={t('disputes.evidenceLabel')} value={evidence} onChange={setEvidence} placeholder={t('disputes.evidenceHint')} />
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <Btn
               title={t('disputes.submit')}
               variant="primary"
@@ -268,15 +268,15 @@ export function DisputesScreen({ navigation, route }: any) {
 
       {/* قرار المدرب */}
       <Sheet visible={Boolean(decideOpen)} onClose={() => setDecideOpen(null)} title={t('disputes.review')}>
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.s3 }}>
           <Txt variant="caption" color={theme.textSecondary}>{decideOpen?.claim}</Txt>
-          <Row gap={8}>
+          <Row gap={spacing.s2}>
             <Btn title={t('disputes.accept')} variant={accept ? 'success' : 'ghost'} size="sm" onPress={() => setAccept(true)} />
             <Btn title={t('disputes.reject')} variant={!accept ? 'danger' : 'ghost'} size="sm" onPress={() => setAccept(false)} />
           </Row>
           <Input label={t('disputes.noteLabel')} value={note} onChange={setNote} multiline maxLength={1000} placeholder={t('disputes.noteHint')} />
           <Txt variant="micro" color={theme.textMuted}>{t('disputes.acceptEffect')}</Txt>
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <Btn title={t('disputes.confirmDecision')} variant="primary" loading={busy} onPress={() => void decide()} />
             <Btn title={t('common.cancel')} variant="ghost" onPress={() => setDecideOpen(null)} />
           </Row>

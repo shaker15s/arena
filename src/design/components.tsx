@@ -366,12 +366,12 @@ export function Btn({
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row',
-              gap: 8,
+              gap: spacing.s2,
               opacity: disabled ? 0.45 : 1,
             }}
           >
             {loading ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.s2 }}>
                 <Spinner color="#fff" />
                 <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
               </View>
@@ -410,7 +410,7 @@ export function Btn({
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'row',
-            gap: 8,
+            gap: spacing.s2,
             opacity: disabled ? 0.45 : 1,
             borderWidth: variant === 'ghost' ? 1 : 0,
             borderColor: variant === 'ghost' ? theme.line : 'transparent',
@@ -418,7 +418,7 @@ export function Btn({
         ]}
       >
         {loading ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.s2 }}>
             <Spinner color={fg} />
             <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
           </View>
@@ -888,6 +888,9 @@ export function FadeIn({ children, index = 0, delay = 0, style }: { children: Re
   return (
     <Animated.View style={[{
       opacity: anim,
+      // إيقاع أقسام موحّد (توكن s3): كل أطفال القسم متباعدون حتى لو كانت
+      // كروتًا مرسومة عبر map — كانت «لازقة» لأن الـgap بكان على الحاوية الأم فقط.
+      gap: spacing.s3,
       transform: [
         { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: isReducedMotion() ? [0, 0] : [12, 0] }) },
         { scale: anim.interpolate({ inputRange: [0, 1], outputRange: isReducedMotion() ? [1, 1] : [0.97, 1] }) }
@@ -923,7 +926,7 @@ export function Empty({ emoji, title, body, cta, onCta }: {
   const { theme } = useTheme();
   return (
     <FadeIn>
-      <View style={{ alignItems: 'center', paddingVertical: spacing.s10, paddingHorizontal: spacing.s6, gap: 12 }}>
+      <View style={{ alignItems: 'center', paddingVertical: spacing.s10, paddingHorizontal: spacing.s6, gap: spacing.s3 }}>
         <View
           accessible={false}
           style={{
@@ -980,15 +983,15 @@ export function Shimmer({ width = '100%', height = 14, radius = 10, style }: {
 
 export function SkeletonCard({ height = 120, style }: { height?: number; style?: ViewStyle }) {
   return (
-    <Card style={[{ gap: 10, padding: spacing.s4, minHeight: height }, style] as any}>
-      <Row center gap={12}>
+    <Card style={[{ gap: spacing.s3, padding: spacing.s4, minHeight: height }, style] as any}>
+      <Row center gap={spacing.s3}>
         <Shimmer width={48} height={48} radius={16} />
-        <View style={{ flex: 1, gap: 6 }}>
+        <View style={{ flex: 1, gap: spacing.s2 }}>
           <Shimmer width="70%" height={16} radius={8} />
           <Shimmer width="45%" height={12} radius={6} />
         </View>
       </Row>
-      <Spacer size={4} />
+      <Spacer size={spacing.s1} />
       <Shimmer width="90%" height={10} radius={6} />
     </Card>
   );
@@ -996,7 +999,7 @@ export function SkeletonCard({ height = 120, style }: { height?: number; style?:
 
 export function SkeletonList({ count = 3, height = 100 }: { count?: number; height?: number }) {
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.s3 }}>
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonCard key={i} height={height} />
       ))}
@@ -1040,7 +1043,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
       style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}
     >
       <Row between center>
-        <Row center gap={12} style={{ flex: 1 }}>
+        <Row center gap={spacing.s3} style={{ flex: 1 }}>
           {back ? (
             <Pressable
               accessibilityRole="button"
@@ -1086,7 +1089,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                   style={({ pressed }) => ({
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 4,
+                    gap: spacing.s1,
                     opacity: pressed ? 0.75 : 1,
                     transform: [{ scale: pressed ? pressScale.subtle : 1 }],
                   })}
@@ -1420,7 +1423,7 @@ export function OfflineQueueBanner({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 10,
+        gap: spacing.s3,
         paddingHorizontal: spacing.s4,
         paddingVertical: 8,
         marginHorizontal: spacing.s5,
@@ -1431,7 +1434,7 @@ export function OfflineQueueBanner({
         borderColor: online ? theme.brand : theme.warn,
       }}
     >
-      <Row center gap={8} style={{ flex: 1 }}>
+      <Row center gap={spacing.s2} style={{ flex: 1 }}>
         <Icon
           name={online ? 'cloud-upload-outline' : 'cloud-offline-outline'}
           size={16}

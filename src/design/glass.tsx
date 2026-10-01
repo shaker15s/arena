@@ -191,7 +191,7 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
         borderRadius: radii.lg,
         padding: spacing.s3,
         alignItems: 'center',
-        gap: 4,
+        gap: spacing.s1,
         borderWidth: borderWidth.thin,
         borderColor: theme.glassBorder,
         shadowColor: theme.glassShadow,

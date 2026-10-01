@@ -337,7 +337,7 @@ export function ScannerScreen({ navigation }: any) {
 
           <View style={styles.sessionStatusTag}>
             {liveSess ? (
-              <Row center gap={6}>
+              <Row center gap={spacing.s2}>
                 <View style={styles.liveIndicatorDot} />
                 <Txt variant="micro" bold color="#10B981">
                   {liveSess.title}
@@ -426,7 +426,7 @@ export function ScannerScreen({ navigation }: any) {
               {loading && (
                 <View style={styles.loadingBackdrop}>
                   <ActivityIndicator size="large" color="#FFF" />
-                  <Spacer size={8} />
+                  <Spacer size={spacing.s2} />
                   <Txt variant="caption" bold color="#FFF">
                     {t('scanner.verifying')}
                   </Txt>
@@ -434,7 +434,7 @@ export function ScannerScreen({ navigation }: any) {
               )}
             </Animated.View>
 
-            <Spacer size={16} />
+            <Spacer size={spacing.s4} />
             <Txt variant="caption" color="#CBD5E1" align="center" style={styles.hintText}>
               وجّه الكاميرا نحو رمز QR المعروض في قاعة التدريب
             </Txt>
@@ -448,15 +448,15 @@ export function ScannerScreen({ navigation }: any) {
               interactive
               speechText="نحتاج إذن الكاميرا لمسح رمز الحضور الذكي 📷"
             />
-            <Spacer size={20} />
+            <Spacer size={spacing.s5} />
             <Txt variant="h2" bold color="#FFFFFF" align="center">
               إذن الكاميرا مطلوب
             </Txt>
-            <Spacer size={8} />
+            <Spacer size={spacing.s2} />
             <Txt variant="bodyMed" color="#E2E8F0" align="center" style={{ lineHeight: 22 }}>
               لتسجيل حضورك الفوري، يحتاج التطبيق للوصول إلى الكاميرا لمسح الرمز بدقة وأمان.
             </Txt>
-            <Spacer size={24} />
+            <Spacer size={spacing.s6} />
             <Btn
               title="منح إذن الكاميرا الآن"
               size="lg"
@@ -532,8 +532,8 @@ export function ScannerScreen({ navigation }: any) {
             />
           </Animated.View>
 
-          <Spacer size={12} />
-          <Row center gap={10}>
+          <Spacer size={spacing.s3} />
+          <Row center gap={spacing.s3}>
             <Btn
               title={t('scanner.submit')}
               onPress={() => doCheck(code)}
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.s2,
     marginVertical: 4,
   },
   otpBox: {

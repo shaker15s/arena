@@ -84,7 +84,7 @@ export function CoursesScreen({ navigation }: any) {
   return (
     <Screen label={t('courses.title')} style={{ flex: 1 }}>
       <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s8 }}>
         {db.courses.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>
             <MasarMascot size={90} mode="greeting" interactive hideFloatingBubble />
@@ -92,7 +92,7 @@ export function CoursesScreen({ navigation }: any) {
             <Txt variant="body" color={theme.textSecondary} align="center">
               {t('courses.title')}
             </Txt>
-            <Spacer size={16} />
+            <Spacer size={spacing.s4} />
             <Btn title={t('courses.new')} onPress={() => setCreating(true)} />
           </View>
         ) : null}
@@ -102,7 +102,7 @@ export function CoursesScreen({ navigation }: any) {
           return (
             <FadeIn key={c.id} index={i}>
               <Card onPress={() => navigation.navigate('CourseManagement', { courseId: c.id })}>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: c.color, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="book" size={22} color="#fff" />
                   </View>
@@ -123,7 +123,7 @@ export function CoursesScreen({ navigation }: any) {
       </ScrollView>
 
       <Sheet visible={creating} onClose={() => setCreating(false)} title={t('courses.new')}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: spacing.s3 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {errors.general ? (
             <Card color="#EF44441F" style={{ borderColor: '#EF4444', padding: 10 }}>
               <Txt variant="caption" color="#EF4444">{errors.general}</Txt>
@@ -133,7 +133,7 @@ export function CoursesScreen({ navigation }: any) {
           {db.committees.length > 0 ? (
             <>
               <Txt variant="caption" color={theme.textSecondary}>{t('org.committees')}</Txt>
-              <Row gap={6} wrap>
+              <Row gap={spacing.s2} wrap>
                 {db.committees.map((committee) => (
                   <Chip key={committee.id} label={committee.name} active={committeeId === committee.id} onPress={() => setCommitteeId(committee.id)} />
                 ))}
@@ -164,7 +164,7 @@ export function CoursesScreen({ navigation }: any) {
             placeholder={t('courses.descPh')}
             multiline
           />
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <View style={{ flex: 1 }}>
               <Input
                 label={t('courses.sessionsLabel')}

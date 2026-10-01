@@ -67,7 +67,7 @@ export function UsersScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.s3 }}>
             <Header title={t('users.title')} />
             <PillGradientSearchInput
               value={query}
@@ -75,7 +75,7 @@ export function UsersScreen() {
               placeholder={t('users.searchHint')}
               onClear={() => setQuery('')}
             />
-            <Row gap={6} wrap>
+            <Row gap={spacing.s2} wrap>
               {roles.map((r) => (
                 <Chip key={r} label={r === 'all' ? t('common.all') : roleLabel[r]} active={roleFilter === r} onPress={() => setRoleFilter(r)} />
               ))}
@@ -96,7 +96,7 @@ export function UsersScreen() {
         }
         renderItem={({ item: p }) => (
           <Card onPress={() => setSelected(p.id)}>
-            <Row center gap={10}>
+            <Row center gap={spacing.s3}>
               <Avatar name={p.fullName} color={p.avatarColor} size={40} />
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed" numberOfLines={2}>{p.fullName}</Txt>
@@ -111,8 +111,8 @@ export function UsersScreen() {
       {/* S48 تفاصيل المستخدم */}
       <Sheet visible={selUser != null} onClose={() => setSelected(null)} title={selUser?.fullName ?? ''}>
         {selUser && user ? (
-          <View style={{ gap: 12 }}>
-            <Row center gap={12}>
+          <View style={{ gap: spacing.s3 }}>
+            <Row center gap={spacing.s3}>
               <Avatar name={selUser.fullName} color={selUser.avatarColor} size={56} />
               <View style={{ flex: 1 }}>
                 <Txt variant="h3">{selUser.fullName}</Txt>
@@ -127,9 +127,9 @@ export function UsersScreen() {
             </Row>
 
             {user.role === 'admin' ? (
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: spacing.s3 }}>
                 <Txt variant="caption" color={theme.textSecondary}>{t('users.changeRole')}</Txt>
-                <Row gap={6} wrap>
+                <Row gap={spacing.s2} wrap>
                   {(['student', 'volunteer', 'supervisor', 'admin'] as Role[]).map((role) => (
                     <Btn
                       key={role}
@@ -141,9 +141,9 @@ export function UsersScreen() {
                   ))}
                 </Row>
 
-                <Spacer size={4} />
+                <Spacer size={spacing.s1} />
                 <Txt variant="caption" color={theme.textSecondary}>🏢 تعيين / تغيير الفرع (إدارة الفرع):</Txt>
-                <Row gap={6} wrap>
+                <Row gap={spacing.s2} wrap>
                   <Chip
                     label={t('users.unassignedBranch')}
                     active={!selUser.branchId}
@@ -160,7 +160,7 @@ export function UsersScreen() {
                 </Row>
 
                 {selUser.id !== user.id ? (
-                  <Row gap={8} style={{ marginTop: 8 }}>
+                  <Row gap={spacing.s2} style={{ marginTop: 8 }}>
                     <Btn
                       title={selUser.status === 'active' ? t('users.deactivate') : t('users.activate')}
                       variant={selUser.status === 'active' ? 'danger' : 'success'}
@@ -175,7 +175,7 @@ export function UsersScreen() {
             ) : null}
 
             <Card>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <Icon name="information-circle" size={15} color={theme.textMuted} />
                 <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>
                   {t('users.sessionsAttended')}: {db.attendance.filter((a) => a.userId === selUser.id && a.status !== 'absent').length}

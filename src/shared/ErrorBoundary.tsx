@@ -9,6 +9,7 @@ import { Pressable, Text, View } from 'react-native';
 import { captureError } from './telemetry';
 import { ar } from '../i18n/ar';
 import { en } from '../i18n/en';
+import { spacing } from '../design/tokens';
 
 /**
  * A11Y-33: الحاجز لا يستهلك الثيم/الـi18n عبر الهوكس (يجب أن يعمل حتى لو انهار
@@ -42,7 +43,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     // لا نستخدم DS/الثيم هنا عمدًا — الحاجز يجب أن يعمل حتى لو انهار الثيم نفسه.
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#0F172A' }}>
-        <View style={{ maxWidth: 420, width: '100%', backgroundColor: '#1E293B', borderRadius: 20, padding: 24, gap: 12 }}>
+        <View style={{ maxWidth: 420, width: '100%', backgroundColor: '#1E293B', borderRadius: 20, padding: 24, gap: spacing.s3 }}>
           <Text style={{ fontSize: 40, textAlign: 'center' }}>⚠️</Text>
           <Text style={{ color: '#F8FAFC', fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
             {titleLabel}{'\n'}{titleLabelEn}

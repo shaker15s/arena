@@ -88,7 +88,7 @@ export function ExcusesScreen({ navigation }: any) {
   return (
     <Screen label={t('excuses.title')}>
       <Header title={t('excuses.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4 }}>
         <Segmented
           value={tab}
           onChange={setTab}
@@ -105,15 +105,14 @@ export function ExcusesScreen({ navigation }: any) {
           ) : (
             <FadeIn>
               <Txt variant="caption" color={theme.textSecondary}>{t('excuses.pickSession')}</Txt>
-              <Spacer size={8} />
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: spacing.s2 }}>
                 {eligible.map((s) => {
                   const batch = batchOf(db, s.batchId);
                   const course = batch ? courseOf(db, batch.courseId) : undefined;
                   const active = sessionId === s.id;
                   return (
                     <Card key={s.id} onPress={() => setSessionId(s.id)} color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line, borderWidth: active ? 2 : 1 }}>
-                      <Row center gap={10}>
+                      <Row center gap={spacing.s3}>
                         <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? theme.brand : theme.textMuted} />
                         <View style={{ flex: 1 }}>
                           <Txt variant="bodyMed">{course?.title ?? ''}</Txt>
@@ -124,15 +123,10 @@ export function ExcusesScreen({ navigation }: any) {
                   );
                 })}
               </View>
-              <Spacer size={12} />
               <Input label={t('excuses.reasonLabel')} value={reason} onChange={setReason} placeholder={t('excuses.reasonPlaceholder')} multiline />
               <Txt variant="micro" color={reason.trim().length < 5 ? theme.danger : theme.textMuted} style={{ textAlign: 'right', marginTop: 4 }}>
                 {reason.trim().length} / 200
-              </Txt>
-              <Spacer size={8} />
-              {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}
-              <Spacer size={10} />
-              <JellyButton
+              </Txt>              {error ? <Txt variant="caption" color={theme.danger}>{error}</Txt> : null}              <JellyButton
                 title={t('excuses.submit')}
                 loading={sending}
                 onPress={submit}
@@ -151,18 +145,18 @@ export function ExcusesScreen({ navigation }: any) {
               <FadeIn key={e.id} index={i}>
                 <Card>
                   <Row between center>
-                    <View style={{ flex: 1, gap: 3 }}>
+                    <View style={{ flex: 1, gap: spacing.s1 }}>
                       <Txt variant="bodyMed">{sess?.title ?? ''}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>{sess ? formatDate(sess.startsAt, lang) : ''} · {timePast(e.createdAt, lang)}</Txt>
                     </View>
                     <Tag label={meta.label} color={meta.color} bg={meta.bg} />
                   </Row>
-                  <Spacer size={8} />
+                  <Spacer size={spacing.s2} />
                   <Txt variant="body" color={theme.textSecondary}>{e.reason}</Txt>
                   {e.status === 'accepted' ? (
                     <>
-                      <Spacer size={8} />
-                      <Row center gap={6}>
+                      <Spacer size={spacing.s2} />
+                      <Row center gap={spacing.s2}>
                         <Icon name="shield" size={13} color={theme.info} />
                         <Txt variant="micro" color={theme.info}>{t('excuses.acceptedNote')}</Txt>
                       </Row>
@@ -170,11 +164,11 @@ export function ExcusesScreen({ navigation }: any) {
                   ) : null}
                   {e.status === 'rejected' && e.note ? (
                     <>
-                      <Spacer size={8} />
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Spacer size={spacing.s2} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s3 }}>
                         <MasarMascot size={48} mode="encouraging" interactive={false} hideFloatingBubble />
                         <Card color={theme.dangerSoft} noPad style={{ padding: 10, flex: 1 }}>
-                          <Row center gap={6}>
+                          <Row center gap={spacing.s2}>
                             <Icon name="chatbox" size={13} color={theme.danger} />
                             <Txt variant="micro" color={theme.danger}>{t('excuses.instructorNote')}: {e.note}</Txt>
                           </Row>
@@ -271,7 +265,7 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
                 return (
                   <FadeIn key={e.id} index={i}>
                     <Card>
-                      <Row center gap={10}>
+                      <Row center gap={spacing.s3}>
                         {student ? <Avatar name={student.fullName} color={student.avatarColor} size={44} /> : null}
                         <View style={{ flex: 1 }}>
                           <Txt variant="bodyMed">{student?.fullName ?? ''}</Txt>
@@ -279,30 +273,30 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
                         </View>
                         <Tag label={t('excuses.pending')} color={theme.warn} bg={theme.warnSoft} />
                       </Row>
-                      <Spacer size={10} />
+                      <Spacer size={spacing.s3} />
                       <Card color={theme.bg} noPad style={{ padding: 12 }}>
-                        <Row gap={8} center>
+                        <Row gap={spacing.s2} center>
                           <Icon name="chatbubble-ellipses" size={15} color={theme.textMuted} />
                           <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{e.reason}</Txt>
                         </Row>
                         {e.attachment ? (
-                          <Row center gap={6} style={{ marginTop: 6 }}>
+                          <Row center gap={spacing.s2} style={{ marginTop: 6 }}>
                             <Icon name="attach" size={13} color={theme.info} />
                             <Txt variant="micro" color={theme.info}>{e.attachment}</Txt>
                           </Row>
                         ) : null}
                       </Card>
-                      <Spacer size={10} />
+                      <Spacer size={spacing.s3} />
                       {isRejecting ? (
-                        <View style={{ gap: 8 }}>
+                        <View style={{ gap: spacing.s2 }}>
                           <Input value={rejectNote} onChange={setRejectNote} placeholder={t('inbox.rejectNote')} multiline />
-                          <Row gap={8}>
+                          <Row gap={spacing.s2}>
                             <Btn title={t('inbox.reject')} variant="danger" onPress={() => review(e.id, 'rejected', rejectNote)} disabled={!rejectNote.trim() || reviewingId === e.id} loading={reviewingId === e.id} />
                             <Btn title={t('common.cancel')} variant="ghost" onPress={() => { setRejectId(null); setRejectNote(''); }} disabled={reviewingId === e.id} />
                           </Row>
                         </View>
                       ) : (
-                        <Row gap={8}>
+                        <Row gap={spacing.s2}>
                           <Btn title={t('inbox.accept')} variant="success" icon="shield-checkmark" onPress={() => review(e.id, 'accepted')} disabled={Boolean(reviewingId)} loading={reviewingId === e.id} />
                           <Btn title={t('inbox.reject')} variant="ghost" icon="close" onPress={() => setRejectId(e.id)} disabled={Boolean(reviewingId)} />
                         </Row>
@@ -321,7 +315,7 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
                   const sess = db.sessions.find((s) => s.id === e.sessionId);
                   return (
                     <Card key={e.id}>
-                      <Row center gap={10}>
+                      <Row center gap={spacing.s3}>
                         {student ? <Avatar name={student.fullName} color={student.avatarColor} size={38} /> : null}
                         <View style={{ flex: 1 }}>
                           <Txt variant="bodyMed">{student?.fullName}</Txt>
@@ -360,14 +354,14 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
                       <Tag label={`${attended}/${total}`} color={theme.brand} bg={theme.brandSoft} icon="people" />
                     </Row>
                     {s.report ? (
-                      <View style={{ marginTop: 8, gap: 6 }}>
+                      <View style={{ marginTop: 8, gap: spacing.s2 }}>
                         {s.report.done ? <ReportLine icon="checkmark-done" color={theme.success} text={s.report.done} /> : null}
                         {s.report.planned ? <ReportLine icon="flag" color={theme.brand} text={s.report.planned} /> : null}
                         {s.report.challenges ? <ReportLine icon="warning" color={theme.warn} text={s.report.challenges} /> : null}
                       </View>
                     ) : null}
-                    <Spacer size={8} />
-                    <Row center gap={4}>
+                    <Spacer size={spacing.s2} />
+                    <Row center gap={spacing.s1}>
                       <Icon name="eye" size={13} color={theme.brand} />
                       <Txt variant="micro" color={theme.brand}>اضغط لعرض تقرير الحضور المفصل وكشف الأسماء</Txt>
                     </Row>
@@ -410,7 +404,7 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
 
 function ReportLine({ icon, color, text }: { icon: keyof typeof Ionicons.glyphMap; color: string; text: string }) {
   return (
-    <Row center gap={8}>
+    <Row center gap={spacing.s2}>
       <Icon name={icon} size={14} color={color} />
       <Txt variant="caption" style={{ flex: 1 }}>{text}</Txt>
     </Row>

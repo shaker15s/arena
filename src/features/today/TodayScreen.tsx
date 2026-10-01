@@ -230,7 +230,7 @@ export function TodayScreen() {
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 12,
+                gap: spacing.s3,
                 opacity: pressed ? 0.78 : 1,
                 transform: [{ scale: pressed ? 0.97 : 1 }],
               })}
@@ -238,7 +238,7 @@ export function TodayScreen() {
               <Avatar name={user.fullName} color={user.avatarColor} size={50} ring={theme.brand} />
               <View>
                 <Txt variant="caption" color={theme.textMuted} heading="h1">{greeting} 👋</Txt>
-                <Row center gap={4}>
+                <Row center gap={spacing.s1}>
                   <Txt variant="h3" numberOfLines={1} style={{ maxWidth: 180 }}>{firstName}</Txt>
                   <Icon name="chevron-forward" size={14} color={theme.textMuted} style={{ opacity: 0.6 }} />
                 </Row>
@@ -248,7 +248,7 @@ export function TodayScreen() {
           </Row>
         </FadeIn>
 
-        <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
+        <View style={{ paddingHorizontal: spacing.s5, gap: spacing.s4 }}>
           {/* ── تميمة مسار التفاعلية («فطن») بلون مميز وتصميم ممتع بصرياً ── */}
           <FadeIn index={1}>
             <View
@@ -308,7 +308,7 @@ export function TodayScreen() {
                   padding: spacing.s4,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 14,
+                  gap: spacing.s4,
                 }}
               >
                 {/* منصة الصقر المضيئة */}
@@ -334,13 +334,13 @@ export function TodayScreen() {
                 </View>
 
                 {/* المحتوى النصي وفقاعة الحوار */}
-                <View style={{ flex: 1, gap: 6 }}>
-                  <Row center gap={6}>
+                <View style={{ flex: 1, gap: spacing.s2 }}>
+                  <Row center gap={spacing.s2}>
                     <View
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: 4,
+                        gap: spacing.s1,
                         backgroundColor: isDark ? 'rgba(245, 158, 11, 0.22)' : 'rgba(245, 158, 11, 0.25)',
                         paddingHorizontal: 8,
                         paddingVertical: 3,
@@ -392,7 +392,7 @@ export function TodayScreen() {
                     >
                       {activeMascotQuote || defaultMascotQuote}
                     </Txt>
-                    <Row center gap={4} style={{ marginTop: 5 }}>
+                    <Row center gap={spacing.s1} style={{ marginTop: 5 }}>
                       <Icon name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
                       <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 11 }}>
                         {t('today.tapQuote')}
@@ -439,8 +439,8 @@ export function TodayScreen() {
                   />
 
                   <Row center>
-                    <View style={{ flex: 1, gap: 8, minWidth: 0 }}>
-                      <Row center gap={8}>
+                    <View style={{ flex: 1, gap: spacing.s2, minWidth: 0 }}>
+                      <Row center gap={spacing.s2}>
                         <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
                         <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: 12, fontWeight: '700' }}>
                           {`⚡ ${t('management.live')}`}
@@ -449,12 +449,12 @@ export function TodayScreen() {
                       <Txt variant="h2" color="#fff" numberOfLines={2}>{liveCourse?.title ?? ''}</Txt>
                       <Txt variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>{liveSess.title}</Txt>
                       <EndsInCountdown endsAt={checkinEndsAt} />
-                      <Spacer size={6} />
+                      <Spacer size={spacing.s2} />
                       <View style={{
                         backgroundColor: 'rgba(255,255,255,0.2)',
                         borderRadius: radii.full,
                         paddingVertical: 10, paddingHorizontal: 16,
-                        flexDirection: 'row', alignItems: 'center', gap: 8,
+                        flexDirection: 'row', alignItems: 'center', gap: spacing.s2,
                         alignSelf: 'flex-start',
                       }}>
                         <Icon name="qr-code" size={18} color="#fff" />
@@ -496,8 +496,8 @@ export function TodayScreen() {
                   borderRadius={radii.xxl}
                 />
                 <Row center between>
-                  <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
-                    <Row center gap={6}>
+                  <View style={{ flex: 1, gap: spacing.s2, minWidth: 0 }}>
+                    <Row center gap={spacing.s2}>
                       <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.success, alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name="checkmark" size={16} color="#FFFFFF" />
                       </View>
@@ -528,7 +528,7 @@ export function TodayScreen() {
 
         {gam ? (
           <FadeIn index={2}>
-            <Row gap={10} style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4, marginTop: spacing.s3 }}>
+            <Row gap={spacing.s3} style={{ paddingHorizontal: spacing.s5, marginBottom: spacing.s4, marginTop: spacing.s3 }}>
               <StatBubble
                 value={gam.streak}
                 label={t('today.streakLabel')}
@@ -555,14 +555,14 @@ export function TodayScreen() {
           </FadeIn>
         ) : null}
 
-        <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
+        <View style={{ paddingHorizontal: spacing.s5, gap: spacing.s4 }}>
           {/* ── المحاضرة القادمة ── */}
           {nextSess && nextCourse ? (
             <FadeIn index={3}>
               <Card>
                 <Row between center>
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <Row center gap={6}>
+                  <View style={{ flex: 1, gap: spacing.s2 }}>
+                    <Row center gap={spacing.s2}>
                       <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name="calendar" size={13} color={theme.brand} />
                       </View>
@@ -570,14 +570,14 @@ export function TodayScreen() {
                     </Row>
                     <Txt variant="h3">{nextCourse.title}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>{nextSess.title}</Txt>
-                    <Row center gap={12} wrap style={{ marginTop: 4 }}>
-                      <Row center gap={4}>
+                    <Row center gap={spacing.s3} wrap style={{ marginTop: 4 }}>
+                      <Row center gap={spacing.s1}>
                         <Icon name="time-outline" size={14} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>
                           {sameDay(nextSess.startsAt, now) ? t('common.today') : formatDate(nextSess.startsAt, lang)} · {formatTime(nextSess.startsAt, lang)}
                         </Txt>
                       </Row>
-                      <Row center gap={4}>
+                      <Row center gap={spacing.s1}>
                         <Icon name="location-outline" size={14} color={theme.textMuted} />
                         <Txt variant="micro" color={theme.textMuted}>{nextBatch?.room}</Txt>
                       </Row>
@@ -607,14 +607,14 @@ export function TodayScreen() {
           {/* ── Bento: التقدم + الأهلية ── */}
           {hasBatches ? (
             <FadeIn index={4}>
-              <Row gap={12}>
-                <Card style={{ flex: 1, alignItems: 'center', gap: 10, paddingVertical: 18 }}>
+              <Row gap={spacing.s3}>
+                <Card style={{ flex: 1, alignItems: 'center', gap: spacing.s3, paddingVertical: 18 }}>
                   <StatRing size={90} stroke={8} progress={combinedPct / 100} color={combinedPct >= certPct ? theme.success : theme.brand}>
                     <Txt variant="h2" color={combinedPct >= certPct ? theme.success : theme.brand}>{combinedPct}%</Txt>
                   </StatRing>
                   <Txt variant="micro" color={theme.textMuted} align="center">{t('today.attendanceRate')}</Txt>
                 </Card>
-                <Card style={{ flex: 1, alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 18 }}>
+                <Card style={{ flex: 1, alignItems: 'center', gap: spacing.s2, justifyContent: 'center', paddingVertical: 18 }}>
                   <View style={{
                     width: 56, height: 56, borderRadius: 28,
                     backgroundColor: combinedPct >= certPct ? theme.successSoft : theme.warnSoft,
@@ -637,7 +637,7 @@ export function TodayScreen() {
           {near ? (
             <FadeIn index={5}>
               <Card onPress={() => navigation.navigate('Achievements')}>
-                <Row center gap={14}>
+                <Row center gap={spacing.s4}>
                   <View style={{
                     width: 56, height: 56, borderRadius: 18,
                     backgroundColor: theme.brandSoft,
@@ -645,7 +645,7 @@ export function TodayScreen() {
                   }}>
                     <Icon name={near.badge.icon as any} size={28} color={theme.brand} />
                   </View>
-                  <View style={{ flex: 1, gap: 6 }}>
+                  <View style={{ flex: 1, gap: spacing.s2 }}>
                     <Row between center>
                       <Txt variant="caption" color={theme.textMuted}>{t('today.nearestBadge')}</Txt>
                       <Txt variant="caption" color={theme.brand}>{Math.round(near.progress * 100)}%</Txt>
@@ -661,10 +661,10 @@ export function TodayScreen() {
           {/* ── حالة فارغة: لا كورسات ── */}
           {myEnrollmentCount === 0 ? (
             <FadeIn index={2}>
-              <Card style={{ alignItems: 'center', paddingVertical: spacing.s8, gap: 12 }}>
+              <Card style={{ alignItems: 'center', paddingVertical: spacing.s8, gap: spacing.s3 }}>
                 <MasarMascot size={110} mode="encouraging" interactive />
                 <Txt variant="h2" align="center">{t('today.emptyTitle')}</Txt>
-                <Spacer size={8} />
+                <Spacer size={spacing.s2} />
                 <Btn title={t('today.exploreCta')} icon="compass" onPress={() => tabs.setTab('explore')} />
               </Card>
             </FadeIn>
@@ -673,7 +673,7 @@ export function TodayScreen() {
           {/* ── وصول سريع ── */}
           <FadeIn index={6}>
             <Txt variant="h3" style={{ marginTop: 6, marginBottom: 10 }}>{t('today.quickActions')}</Txt>
-            <AutoGrid gap={10} minColumnWidth={layout.minColumn.action}>
+            <AutoGrid gap={spacing.s3} minColumnWidth={layout.minColumn.action}>
               <QuickAction icon="shield-half" label={t('excuses.title')} color={theme.info} onPress={() => navigation.navigate('Excuses')} />
               <QuickAction icon="ribbon" label={t('certs.title')} color={theme.certGold} onPress={() => navigation.navigate('Certificates')} />
               <QuickAction icon="wallet" label={t('wallet.title')} color={theme.success} onPress={() => navigation.navigate('Wallet')} />
@@ -686,7 +686,7 @@ export function TodayScreen() {
           <FadeIn>
             <Card style={{ alignItems: 'center', padding: 20, marginHorizontal: spacing.s5, marginBottom: spacing.s4, borderColor: theme.certGold, borderWidth: 2 }}>
               <Txt variant="h2" align="center">{t('today.secretTitle')}</Txt>
-              <Spacer size={8} />
+              <Spacer size={spacing.s2} />
               <Txt variant="body" color={theme.textSecondary} align="center">{t('today.secretBody')}</Txt>
             </Card>
           </FadeIn>
@@ -720,7 +720,7 @@ function QuickAction({ icon, label, color, onPress }: { icon: keyof typeof Ionic
       onPress={onPress}
       style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] })}
     >
-      <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
+      <Card style={{ alignItems: 'center', gap: spacing.s2, paddingVertical: 16 }}>
         <View style={{
           width: 46, height: 46, borderRadius: 14,
           backgroundColor: color + '1A',

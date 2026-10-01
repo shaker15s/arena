@@ -204,7 +204,7 @@ export function SessionCompleteCelebration({
                 <Txt variant="micro" color={theme.textMuted}>
                   {already ? 'النقاط الموثقة' : 'النقاط المكتسبة'}
                 </Txt>
-                <Row center gap={4}>
+                <Row center gap={spacing.s1}>
                   <Txt variant="h3" color={theme.brand} style={{ fontVariant: ['tabular-nums'] }}>
                     {already ? '' : '+'}<CountUp value={points} duration={700} />
                   </Txt>
@@ -232,7 +232,7 @@ export function SessionCompleteCelebration({
                 <Txt variant="micro" color={theme.textMuted}>
                   الستريك الأسبوعي
                 </Txt>
-                <Row center gap={4}>
+                <Row center gap={spacing.s1}>
                   <Txt variant="h3" color={theme.warn} style={{ fontVariant: ['tabular-nums'] }}>
                     {streakWeeks}
                   </Txt>
@@ -252,7 +252,7 @@ export function SessionCompleteCelebration({
             </Txt>
           </View>
 
-          <Spacer size={8} />
+          <Spacer size={spacing.s2} />
 
           {/* أزرار الإجراء */}
           <View style={styles.actions}>
@@ -296,16 +296,16 @@ const styles = StyleSheet.create({
     shadowRadius: 36,
     shadowOffset: { width: 0, height: 16 },
     elevation: 20,
-    gap: 14,
+    gap: spacing.s4,
   },
   titleSection: {
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.s1,
   },
   rewardsBox: {
     width: '100%',
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing.s3,
   },
   rewardItem: {
     flex: 1,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     padding: spacing.s3,
     borderRadius: radii.lg,
     borderWidth: 1,
-    gap: 10,
+    gap: spacing.s3,
   },
   rewardIconCircle: {
     width: 36,
@@ -330,10 +330,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s4,
     paddingVertical: spacing.s3,
     borderRadius: radii.lg,
-    gap: 10,
+    gap: spacing.s3,
   },
   actions: {
     width: '100%',
-    gap: 10,
+    gap: spacing.s3,
   },
 });

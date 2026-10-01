@@ -59,7 +59,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
         }
       >
         <Header title={t('journey.title')} />
-        <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
+        <View style={{ paddingHorizontal: spacing.s5, gap: spacing.s4 }}>
           {myEnrollments.length === 0 ? (
             <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => tabs.setTab('explore')} />
           ) : (
@@ -77,27 +77,27 @@ export function JourneyScreen({ navigation: propNav }: any) {
                 <FadeIn key={batch.id} index={i}>
                   <Card>
                     <Pressable accessibilityRole="button" accessibilityLabel={course.title} accessibilityHint={t('journey.openMapHint')} onPress={() => navigation.navigate('JourneyMap', { batchId: batch.id })}>
-                      <Row center gap={14}>
+                      <Row center gap={spacing.s4}>
                         <StatRing size={74} stroke={7} progress={pct / 100} color={pct >= certPct ? theme.success : course.color}>
                           <Txt variant="h3">{pct}%</Txt>
                         </StatRing>
-                        <View style={{ flex: 1, gap: 4 }}>
+                        <View style={{ flex: 1, gap: spacing.s1 }}>
                           <Txt variant="h3">{course.title}</Txt>
-                          <Row center gap={8} wrap>
+                          <Row center gap={spacing.s2} wrap>
                             <Tag
                               label={t('journey.sessionXofY', { x: Math.min(closed, course.sessionsCount), y: course.sessionsCount })}
                               color={theme.brand} bg={theme.brandSoft} icon="calendar"
                             />
                             {completed ? <Tag label={t('journey.courseComplete')} color={theme.certGold} bg={theme.warnSoft} icon="trophy" /> : null}
                           </Row>
-                          <Row center gap={6}>
+                          <Row center gap={spacing.s2}>
                             {pct >= certPct ? (
                               <Tag label={t('today.eligible')} color={theme.success} bg={theme.successSoft} icon="checkmark-circle" />
                             ) : (
                               <Txt variant="micro" color={theme.warn}>{t('today.needMore', { x: Math.max(1, Math.ceil((certPct / 100) * course.sessionsCount) - (db.attendance.filter((a) => a.userId === user.id && a.status !== 'absent' && sess.some((s) => s.id === a.sessionId && s.status === 'closed')).length)) })}</Txt>
                             )}
                             {streak >= 2 ? (
-                              <Row center gap={3}>
+                              <Row center gap={spacing.s1}>
                                 <Flame size={13} />
                                 <Txt variant="micro" color={theme.warn}>{t('map.courseStreak', { x: streak })}</Txt>
                               </Row>
@@ -107,13 +107,13 @@ export function JourneyScreen({ navigation: propNav }: any) {
                         <DisclosureIcon color={theme.textMuted} />
                       </Row>
                     </Pressable>
-                    <Spacer size={10} />
+                    <Spacer size={spacing.s3} />
                     <View
                       style={{
                         flexDirection: 'row',
                         flexWrap: 'wrap',
                         alignItems: 'center',
-                        gap: 6,
+                        gap: spacing.s2,
                         paddingVertical: 2,
                       }}
                     >
@@ -277,7 +277,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         subtitle={`${instructor?.fullName ?? ''} · ${batch.room}`}
         back={() => navigation.goBack()}
         right={
-          <Row center gap={6}>
+          <Row center gap={spacing.s2}>
             <Btn
               title={t('journey.rateShort')}
               size="sm"
@@ -286,7 +286,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
               onPress={() => setRateOpen(true)}
             />
             {streak >= 1 ? (
-              <Row center gap={4} style={{ backgroundColor: theme.warnSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+              <Row center gap={spacing.s1} style={{ backgroundColor: theme.warnSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
                 <Flame size={16} />
                 <Txt variant="h3" color={theme.warn}>{streak}</Txt>
               </Row>
@@ -305,23 +305,23 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
           />
         }
       >
-        <View style={{ width: '100%', maxWidth: 660, gap: 14 }}>
+        <View style={{ width: '100%', maxWidth: 660, gap: spacing.s4 }}>
           {/* Bento الملخص */}
           <FadeIn index={0}>
             <Card style={{ padding: 16 }}>
               <Row between center>
-                <View style={{ gap: 3 }}>
+                <View style={{ gap: spacing.s1 }}>
                   <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
                   <Txt variant="h2" color={attendanceRate >= 75 ? theme.success : theme.brand}>{attendanceRate}%</Txt>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                <View style={{ alignItems: 'flex-end', gap: spacing.s1 }}>
                   <Txt variant="caption" color={theme.textMuted}>{t('common.sessions')}</Txt>
                   <Txt variant="h3">{attendedCount + excusedCount} / {sessions.length}</Txt>
                 </View>
               </Row>
-              <Spacer size={10} />
+              <Spacer size={spacing.s3} />
               <ProgressBar progress={sessions.length === 0 ? 0 : (attendedCount + excusedCount) / sessions.length} color={attendanceRate >= 75 ? theme.success : theme.brand} height={8} />
-              <Spacer size={8} />
+              <Spacer size={spacing.s2} />
               <Row between center>
                 <Txt variant="micro" color={theme.textMuted}>
                   {batch.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {batch.schedule.time}
@@ -330,7 +330,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
               </Row>
               {sessions.length > 0 ? (
                 <>
-                  <Spacer size={10} />
+                  <Spacer size={spacing.s3} />
                   <Btn
                     title={t('journey.exportSchedule')}
                     size="sm"
@@ -344,7 +344,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
             </Card>
           </FadeIn>
 
-          <Spacer size={8} />
+          <Spacer size={spacing.s2} />
           <Txt variant="h3" style={{ marginHorizontal: 4 }}>{t('journey.map')}</Txt>
 
           {/* المسار التفاعلي للمحاضرات */}
@@ -383,7 +383,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                       backgroundColor: isLiveNow ? theme.brandSoft + '44' : theme.card,
                     }}
                   >
-                    <Row center gap={12}>
+                    <Row center gap={spacing.s3}>
                       <View
                         style={{
                           width: 48,
@@ -420,7 +420,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                             />
                           </View>
                         ) : st === 'absent' ? (
-                          <Row center gap={8} style={{ marginTop: 6 }}>
+                          <Row center gap={spacing.s2} style={{ marginTop: 6 }}>
                             <Txt variant="micro" color={theme.danger}>{t('history.absent')}</Txt>
                             <Btn
                               title={t('excuses.title')}
@@ -431,7 +431,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                             />
                           </Row>
                         ) : st === 'done' || st === 'late' ? (
-                          <Row center gap={6} style={{ marginTop: 4 }}>
+                          <Row center gap={spacing.s2} style={{ marginTop: 4 }}>
                             <Icon name="checkmark-circle" size={14} color={theme.success} />
                             <Txt variant="micro" color={theme.success}>
                               {st === 'done' ? `+10 ${t('common.points')}` : `+7 ${t('common.points')} (${t('history.late')})`}
@@ -455,7 +455,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 borderColor: (myCert || isEligibleForCert) ? theme.certGold : theme.line,
                 padding: 20,
                 alignItems: 'center',
-                gap: 12,
+                gap: spacing.s3,
               }}
             >
               <View
@@ -477,7 +477,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 <Icon name="trophy" size={38} color={theme.certGold} />
               </View>
 
-              <View style={{ alignItems: 'center', gap: 4 }}>
+              <View style={{ alignItems: 'center', gap: spacing.s1 }}>
                 <Txt variant="h2" color={theme.certGold}>{t('map.certNode')}</Txt>
                 {myCert ? (
                   <>
@@ -493,7 +493,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
                 )}
               </View>
 
-              <Row gap={10} style={{ width: '100%', justifyContent: 'center' }} wrap>
+              <Row gap={spacing.s3} style={{ width: '100%', justifyContent: 'center' }} wrap>
                 {myCert ? (
                   <Btn
                     title={t('journey.viewCert')}
@@ -532,13 +532,13 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
       {/* S26 — تقييم الكورس متعدد المحاور */}
       <Sheet visible={rateOpen} onClose={() => setRateOpen(false)} title={t('journey.rateTitle')}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ gap: spacing.s4, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
             {/* بطاقة توضيحية لنقاط التقييم */}
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 10,
+                gap: spacing.s3,
                 padding: 12,
                 borderRadius: radii.md,
                 backgroundColor: existingRating ? theme.fill : theme.warnSoft,
@@ -558,17 +558,17 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
               </Txt>
             </View>
 
-            <Card style={{ gap: 6, alignItems: 'center' }}>
+            <Card style={{ gap: spacing.s2, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateOverall')}</Txt>
               <Stars value={stars} size={32} onRate={setStars} />
             </Card>
 
-            <Card style={{ gap: 6, alignItems: 'center' }}>
+            <Card style={{ gap: spacing.s2, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateInstructor')}</Txt>
               <Stars value={instructorStars} size={28} onRate={setInstructorStars} />
             </Card>
 
-            <Card style={{ gap: 6, alignItems: 'center' }}>
+            <Card style={{ gap: spacing.s2, alignItems: 'center' }}>
               <Txt variant="caption" color={theme.textSecondary}>{t('journey.rateVenue')}</Txt>
               <Stars value={venueStars} size={28} onRate={setVenueStars} />
             </Card>
@@ -646,7 +646,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
         keyExtractor={(r) => r.sess.id}
         initialNumToRender={12}
         windowSize={5}
-        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -656,17 +656,17 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.s3 }}>
             <FadeIn index={0}>
-              <Card style={{ gap: 14 }}>
+              <Card style={{ gap: spacing.s4 }}>
                 <Row between center>
                   <View>
                     <Txt variant="caption" color={theme.textMuted}>{t('history.commitment')}</Txt>
                     <Txt variant="numberHero">{pct}%</Txt>
                   </View>
-                  <Row gap={14}>
+                  <Row gap={spacing.s4}>
                     {(['present', 'late', 'excused', 'absent'] as const).map((s) => (
-                      <View key={s} style={{ alignItems: 'center', gap: 2 }}>
+                      <View key={s} style={{ alignItems: 'center', gap: spacing.s1 }}>
                         <Txt variant="h3" color={statusMeta[s].color}>{rows.filter((r) => r.att.status === s).length}</Txt>
                         <Txt variant="micro" color={theme.textMuted}>{statusMeta[s].label}</Txt>
                       </View>
@@ -701,7 +701,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
             </FadeIn>
 
             <FadeIn index={1}>
-              <Row gap={8} wrap>
+              <Row gap={spacing.s2} wrap>
                 {(['all', 'present', 'late', 'excused', 'absent'] as const).map((f) => (
                   <Chip
                     key={f}
@@ -723,11 +723,11 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
           return (
             <FadeIn index={Math.min(i, 6)}>
               <Card>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={meta.icon} size={22} color={meta.color} />
                   </View>
-                  <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flex: 1, gap: spacing.s1 }}>
                     <Txt variant="bodyMed" numberOfLines={1}>{course?.title ?? ''}</Txt>
                     <Txt variant="caption" color={theme.textSecondary} numberOfLines={1}>{sess.title}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>
@@ -735,7 +735,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
                       {att.method === 'manual' ? ' · ' + t('common.manual') : ''}
                     </Txt>
                   </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <View style={{ alignItems: 'flex-end', gap: spacing.s1 }}>
                     <Tag label={meta.label} color={meta.color} bg={meta.color + '1F'} />
                     {points > 0 ? <Txt variant="micro" color={theme.success}>+{points}</Txt> : null}
                   </View>

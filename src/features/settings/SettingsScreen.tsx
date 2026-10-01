@@ -139,12 +139,12 @@ export function SettingsScreen({ navigation }: any) {
     <Screen label={t('settings.title')} style={{ flex: 1 }}>
       <Header title={t('settings.title')} back={() => navigation.goBack()} />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 100, gap: 12 }}
+        contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 100, gap: spacing.s3 }}
       >
         {/* ── المنطقة واللغة ── */}
         <FadeIn index={0}>
           <Card>
-            <Row center gap={8} style={{ marginBottom: 10 }}>
+            <Row center gap={spacing.s2} style={{ marginBottom: 10 }}>
               <Icon name="globe-outline" size={18} color={theme.brand} />
               <Txt variant="bodyMed" style={{ flex: 1 }}>{t('settings.regionSection')}</Txt>
             </Row>
@@ -174,7 +174,7 @@ export function SettingsScreen({ navigation }: any) {
         {/* ── المظهر ── */}
         <FadeIn index={1}>
           <Card>
-            <Row center gap={8} style={{ marginBottom: 10 }}>
+            <Row center gap={spacing.s2} style={{ marginBottom: 10 }}>
               <Icon name="color-palette-outline" size={18} color={theme.brand} />
               <Txt variant="bodyMed" style={{ flex: 1 }}>{t('settings.appearanceSection')}</Txt>
             </Row>
@@ -185,7 +185,7 @@ export function SettingsScreen({ navigation }: any) {
         {/* ── الإتاحة ── */}
         <FadeIn index={2}>
           <Card>
-            <Row center gap={8} style={{ marginBottom: 10 }}>
+            <Row center gap={spacing.s2} style={{ marginBottom: 10 }}>
               <Icon name="accessibility-outline" size={18} color={theme.brand} />
               <Txt variant="bodyMed" style={{ flex: 1 }}>{t('settings.a11ySection')}</Txt>
             </Row>
@@ -203,7 +203,7 @@ export function SettingsScreen({ navigation }: any) {
             </Txt>
 
             <View style={{ height: 12 }} />
-            <Row between center gap={12}>
+            <Row between center gap={spacing.s3}>
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed">{t('settings.reduceMotion')}</Txt>
                 <Txt variant="micro" color={theme.textMuted}>{t('settings.reduceMotionHint')}</Txt>
@@ -212,7 +212,7 @@ export function SettingsScreen({ navigation }: any) {
             </Row>
 
             <View style={{ height: 12 }} />
-            <Row between center gap={12}>
+            <Row between center gap={spacing.s3}>
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed">{t('settings.highContrast')}</Txt>
                 <Txt variant="micro" color={theme.textMuted}>{t('settings.highContrastHint')}</Txt>
@@ -228,14 +228,14 @@ export function SettingsScreen({ navigation }: any) {
         {/* ── إدارة البيانات (FUNC-14) ── */}
         <FadeIn index={3}>
           <Card>
-            <Row center gap={8} style={{ marginBottom: 10 }}>
+            <Row center gap={spacing.s2} style={{ marginBottom: 10 }}>
               <Icon name="folder-open-outline" size={18} color={theme.brand} />
               <Txt variant="bodyMed" style={{ flex: 1 }}>{t('settings.dataSection')}</Txt>
             </Row>
             <Txt variant="caption" color={theme.textSecondary} style={{ marginBottom: 10 }}>
               {t('settings.dataHint')}
             </Txt>
-            <Row gap={10} wrap>
+            <Row gap={spacing.s3} wrap>
               <Btn
                 title={t('settings.exportData')}
                 variant="secondary"
@@ -270,14 +270,14 @@ export function SettingsScreen({ navigation }: any) {
 
       {/* اختيار المنطقة الزمنية */}
       <Sheet visible={tzOpen} onClose={() => setTzOpen(false)} title={t('settings.timezone')}>
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: spacing.s2 }}>
           {TIMEZONES.map((zone) => (
             <Card
               key={zone.value}
               onPress={() => void saveTimezone(zone.value)}
               style={{ borderColor: zone.value === tz ? theme.brand : theme.line, borderWidth: zone.value === tz ? 2 : 1 }}
             >
-              <Row between center gap={10}>
+              <Row between center gap={spacing.s3}>
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{t(zone.key)}</Txt>
                 {zone.value === tz ? <Icon name="checkmark-circle" size={20} color={theme.brand} /> : null}
               </Row>
@@ -288,8 +288,8 @@ export function SettingsScreen({ navigation }: any) {
 
       {/* تأكيد الحذف — كلمة مكتوبة + تنبيه صريح، كما تطلب App Store 5.1.1(v) */}
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title={t('settings.deleteAccount')}>
-        <View style={{ gap: 12 }}>
-          <Row center gap={10}>
+        <View style={{ gap: spacing.s3 }}>
+          <Row center gap={spacing.s3}>
             <Icon name="warning" size={24} color={theme.danger} />
             <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>
               {t('settings.deleteWarning')}
@@ -302,7 +302,7 @@ export function SettingsScreen({ navigation }: any) {
             autoCapitalize="characters"
             accessibilityLabel={t('settings.deleteTypeWord', { word: needWord })}
           />
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <Btn
               title={t('settings.deleteConfirm')}
               variant="danger"

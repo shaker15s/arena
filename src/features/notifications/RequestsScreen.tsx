@@ -129,12 +129,12 @@ export function RequestsScreen({ navigation }: any) {
     <Screen label={t('requests.title')} style={{ flex: 1 }}>
       <Header title={t('requests.title')} back={() => navigation.goBack()} />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 40, gap: 12 }}
+        contentContainerStyle={{ padding: spacing.s5, paddingBottom: insets.bottom + 40, gap: spacing.s3 }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => { void load(); }} tintColor={theme.brand} />}
       >
         {lastRefCode ? (
           <Card color={theme.successSoft}>
-            <Row center gap={8}>
+            <Row center gap={spacing.s2}>
               <Icon name="checkmark-circle" size={18} color={theme.success} />
               <Txt variant="bodyMed" color={theme.success} style={{ flex: 1 }}>
                 {t('support.refSaved', { ref: bidiIsolate(lastRefCode) })}
@@ -146,8 +146,8 @@ export function RequestsScreen({ navigation }: any) {
         {isManager ? (
           <Card>
             <Txt variant="bodyMed">{t('support.lookupRef')}</Txt>
-            <Spacer size={8} />
-            <Row gap={8} center>
+            <Spacer size={spacing.s2} />
+            <Row gap={spacing.s2} center>
               <View style={{ flex: 1 }}>
                 <Input
                   value={lookupCode}
@@ -159,7 +159,7 @@ export function RequestsScreen({ navigation }: any) {
               <Btn title={t('support.lookupBtn')} icon="search" loading={lookupLoading} onPress={() => { void doLookup(); }} />
             </Row>
             {lookupResult ? (
-              <View style={{ marginTop: 10, gap: 4 }}>
+              <View style={{ marginTop: 10, gap: spacing.s1 }}>
                 <Txt variant="caption" color={theme.brand}>{bidiIsolate(String(lookupResult.ref_code ?? lookupCode))}</Txt>
                 <Txt variant="bodyMed">{String(lookupResult.message ?? '')}</Txt>
                 <Txt variant="micro" color={theme.textMuted}>
@@ -183,22 +183,22 @@ export function RequestsScreen({ navigation }: any) {
 
         <AnimatedTabContent tabKey={tab}>
         {tab === 'new' && isStudent ? (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.s3 }}>
             <Card>
               <Txt variant="h3">{t('requests.officialTitle')}</Txt>
               <Txt variant="caption" color={theme.textSecondary}>
                 {t('requests.officialBody')}
               </Txt>
             </Card>
-            <Row gap={8} wrap>
+            <Row gap={spacing.s2} wrap>
               <Chip label={t('requests.course')} active={kind === 'course_request'} onPress={() => setKind('course_request')} icon="book" />
               <Chip label={t('requests.role')} active={kind === 'role_request'} onPress={() => setKind('role_request')} icon="trending-up" />
             </Row>
             {kind === 'course_request' ? (
               <Card>
                 <Txt variant="caption" color={theme.textSecondary}>{t('requests.pickVolunteer')}</Txt>
-                <Spacer size={8} />
-                <Row gap={7} wrap>
+                <Spacer size={spacing.s2} />
+                <Row gap={spacing.s2} wrap>
                   {volunteers.map((volunteer) => (
                     <Chip
                       key={volunteer.id}
@@ -227,13 +227,13 @@ export function RequestsScreen({ navigation }: any) {
             const statusColor = request.status === 'resolved' ? theme.success : request.status === 'rejected' ? theme.danger : request.status === 'in_review' ? theme.warn : theme.brand;
             return (
               <Card key={request.id} onPress={() => { setSelected(request); setResponse(request.response ?? ''); }}>
-                <Row center gap={10}>
+                <Row center gap={spacing.s3}>
                   {sender ? <Avatar name={sender.fullName} color={sender.avatarColor} size={40} /> : (
                     <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="mail" size={18} color={theme.brand} />
                     </View>
                   )}
-                  <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flex: 1, gap: spacing.s1 }}>
                     <Txt variant="bodyMed">{request.subject}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>
                       {sender?.fullName ?? t('requests.user')} · {request.kind === 'role_request' ? t('requests.role') : request.kind === 'course_request' ? t('requests.course') : t('requests.support')} · {timePast(new Date(request.created_at).getTime(), lang)}
@@ -241,7 +241,7 @@ export function RequestsScreen({ navigation }: any) {
                   </View>
                   <Tag label={t(STATUS_KEY[request.status] as any)} color={statusColor} bg={statusColor + '1F'} />
                 </Row>
-                <Spacer size={7} />
+                <Spacer size={spacing.s2} />
                 <Txt variant="caption" color={theme.textSecondary} numberOfLines={2}>{request.body}</Txt>
                 {request.response ? (
                   <Txt variant="caption" color={theme.success} style={{ marginTop: 7 }}>{t('requests.response')}: {request.response}</Txt>
@@ -256,13 +256,13 @@ export function RequestsScreen({ navigation }: any) {
       <Sheet visible={selected != null} onClose={() => setSelected(null)} title={selected?.subject ?? ''}>
         {selected ? (
           <ScrollView>
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: spacing.s3 }}>
               <Card><Txt variant="body" color={theme.textSecondary}>{selected.body}</Txt></Card>
               {selected.response ? <Card color={theme.successSoft}><Txt variant="caption" color={theme.success}>{selected.response}</Txt></Card> : null}
               {!isStudent && selected.status !== 'resolved' && selected.status !== 'rejected' ? (
                 <>
                   <Input label={t('requests.response')} value={response} onChange={setResponse} multiline maxLength={2000} />
-                  <Row gap={8} wrap>
+                  <Row gap={spacing.s2} wrap>
                     <Btn title={t('requests.inReview')} variant="secondary" loading={sending} onPress={() => { void review('in_review'); }} />
                     <Btn title={t('requests.resolved')} variant="success" loading={sending} onPress={() => { void review('resolved'); }} />
                     <Btn title={t('requests.rejected')} variant="danger" loading={sending} onPress={() => { void review('rejected'); }} />

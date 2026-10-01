@@ -8,7 +8,7 @@ import {
   AutoGrid, Avatar, Btn, Card, Input, ProgressBar, Row,
   Segmented, Sheet, Spacer, Stars, Tag, Txt,
 } from '../../../design/components';
-import { layout } from '../../../design/tokens';
+import { layout, spacing} from '../../../design/tokens';
 import { formatDate, formatTime } from '../../../shared/format';
 import { batchStudents, profileOf, sessionsOfBatch } from '../../../data/engine';
 import {
@@ -57,11 +57,11 @@ export function RescheduleSessionSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('management.rescheduleTitle')}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: spacing.s3 }}>
         <Input label={t('management.newDate')} value={dateStr} onChange={setDateStr} icon="calendar" />
         <Input label={t('management.newTime')} value={timeStr} onChange={setTimeStr} icon="time" placeholder="18:00" />
         <Input label={t('management.rescheduleReason')} value={reason} onChange={setReason} multiline />
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <Btn title={t('management.saveSchedule')} size="lg" loading={saving} onPress={save} icon="checkmark-circle" full />
       </ScrollView>
     </Sheet>
@@ -101,12 +101,12 @@ export function CancelSessionSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={`${t('destroy.confirmSession')} — ${session.title}`}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: spacing.s3 }}>
         <Card color="#EF444415" style={{ borderColor: '#EF4444' }}>
           <Txt variant="caption" color="#EF4444">{t('destroy.sessionBody')}</Txt>
         </Card>
         <Input label={t('destroy.reason')} value={reason} onChange={setReason} multiline />
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <Btn title={t('destroy.confirmSession')} size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="close-circle" full />
       </ScrollView>
     </Sheet>
@@ -148,14 +148,14 @@ export function CancelBatchSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('destroy.batchTitle')}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: spacing.s3 }}>
         <Card color="#EF444415" style={{ borderColor: '#EF4444' }}>
           <Txt variant="caption" color="#EF4444">
             {t('destroy.batchBody', { sessions, students })}
           </Txt>
         </Card>
         <Input label={t('destroy.reason')} value={reason} onChange={setReason} multiline />
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <Btn title={t('destroy.confirmBatch')} size="lg" variant="danger" loading={saving} onPress={handleCancel} icon="trash" full />
       </ScrollView>
     </Sheet>
@@ -204,7 +204,7 @@ export function AssignCourseRoleSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('management.assignTitle')}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: spacing.s3 }}>
         <Txt variant="caption" color={theme.textSecondary}>{t('management.pickRole')}</Txt>
         <Segmented
           value={selectedRole}
@@ -215,7 +215,7 @@ export function AssignCourseRoleSheet({
             { value: 'instructor_delegate', label: t('management.roleDelegate') },
           ]}
         />
-        <Spacer size={6} />
+        <Spacer size={spacing.s2} />
         <Txt variant="caption" color={theme.textSecondary}>{t('management.pickStaff')}</Txt>
         {candidates.map((cand) => (
           <Card
@@ -224,7 +224,7 @@ export function AssignCourseRoleSheet({
             style={{ borderColor: selectedUserId === cand.id ? theme.brand : theme.line }}
             onPress={() => setSelectedUserId(cand.id)}
           >
-            <Row center gap={10}>
+            <Row center gap={spacing.s3}>
               <Avatar name={cand.fullName} color={cand.avatarColor} size={36} />
               <View style={{ flex: 1 }}>
                 <Txt variant="bodyMed">{cand.fullName}</Txt>
@@ -236,7 +236,7 @@ export function AssignCourseRoleSheet({
             </Row>
           </Card>
         ))}
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <Btn
           title={t('management.confirmAssign')}
           size="lg"
@@ -326,7 +326,7 @@ export function EditCourseSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('management.editCourse')}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: spacing.s3 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {errors.general ? (
           <Card color="#EF44441F" style={{ borderColor: '#EF4444', padding: 10 }}>
             <Txt variant="caption" color="#EF4444">{errors.general}</Txt>
@@ -442,8 +442,8 @@ export function SessionDetailSheet({
 
   return (
     <Sheet visible={true} onClose={onClose} title={`${session.title} — #${session.seq}`}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: 12 }} showsVerticalScrollIndicator={false}>
-        <View style={{ gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, gap: spacing.s3 }} showsVerticalScrollIndicator={false}>
+        <View style={{ gap: spacing.s3 }}>
           {session.status === 'scheduled' && onStartLive ? (
             <Btn
               title={t('management.startThisLive')}
@@ -458,7 +458,7 @@ export function SessionDetailSheet({
             />
           ) : null}
           {/* إحصاءات الجلسة */}
-          <AutoGrid gap={8} minColumnWidth={layout.minColumn.stat}>
+          <AutoGrid gap={spacing.s2} minColumnWidth={layout.minColumn.stat}>
             <Metric value={String(present)} label={t('history.present')} color={theme.success} />
             <Metric value={String(late)} label={t('history.late')} color={theme.warn} />
             <Metric value={String(excused)} label={t('history.excused')} color={theme.info} />
@@ -470,13 +470,13 @@ export function SessionDetailSheet({
               <Txt variant="caption" color={theme.textSecondary}>{t('sess.attendancePct')}</Txt>
               <Txt variant="h3" color={pct >= 75 ? theme.success : theme.warn}>{pct}% ({honored}/{total})</Txt>
             </Row>
-            <Spacer size={6} />
+            <Spacer size={spacing.s2} />
             <ProgressBar progress={total > 0 ? honored / total : 0} color={pct >= 75 ? theme.success : theme.warn} height={6} />
           </Card>
 
           {/* تقرير المحاضرة */}
           {session.report && (session.report.done || session.report.planned || session.report.challenges) ? (
-            <Card style={{ gap: 8 }}>
+            <Card style={{ gap: spacing.s2 }}>
               <Txt variant="h3">{t('sess.report')}</Txt>
               {session.report.done ? (
                 <View>
@@ -513,7 +513,7 @@ export function SessionDetailSheet({
                 const att = attRows.find((a) => a.userId === st.id);
                 const meta = attendanceMeta(att?.status);
                 return (
-                  <Row key={st.id} center gap={10} style={{ padding: 12, borderBottomWidth: i < students.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
+                  <Row key={st.id} center gap={spacing.s3} style={{ padding: 12, borderBottomWidth: i < students.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
                     <Avatar name={st.fullName} color={st.avatarColor} size={36} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed">{st.fullName}</Txt>
@@ -551,7 +551,7 @@ export function Metric({ value, label, color }: { value: string; label: string; 
 export function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
   const { theme } = useTheme();
   return (
-    <Row center gap={8} style={{ marginTop: 8 }}>
+    <Row center gap={spacing.s2} style={{ marginTop: 8 }}>
       <Icon name={icon} size={15} color={theme.brand} />
       <Txt variant="micro" color={theme.textMuted}>{label}</Txt>
       <Txt variant="caption" style={{ flex: 1 }}>{value}</Txt>

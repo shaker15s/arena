@@ -85,7 +85,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         {pendingExcuses > 0 ? (
           <FadeIn index={0}>
             <Card onPress={() => tabs.setTab('inbox')}>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <Icon name="shield" size={22} color={theme.warn} />
                 <Txt variant="bodyMed" style={{ flex: 1 }}>{t('dash.pendingExcuses', { x: pendingExcuses })}</Txt>
               </Row>
@@ -96,21 +96,21 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         {liveSession ? (
           <FadeIn index={0}>
             <Card color={theme.brand} style={{ borderColor: 'transparent' }}>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#4ADE80' }} />
                 <Txt variant="h3" color="#fff">{t('common.liveStatus')}</Txt>
               </Row>
-              <Spacer size={8} />
+              <Spacer size={spacing.s2} />
               <Txt variant="h2" color="#fff">{liveSession.title}</Txt>
               <Txt variant="caption" color="rgba(255,255,255,0.85)">{courseOf(db, batchOf(db, liveSession.batchId)!.courseId)?.title}</Txt>
-              <Spacer size={12} />
+              <Spacer size={spacing.s3} />
               <Btn title={t('vtoday.resumeSession')} variant="gold" icon="play" onPress={() => tabs.setTab('live')} />
             </Card>
           </FadeIn>
         ) : nextSession ? (
           <FadeIn index={0}>
             <Card>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <View style={{ width: sizes.iconMedium, height: sizes.iconMedium, borderRadius: radii.md, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="calendar" size={24} color={theme.brand} />
                 </View>
@@ -122,14 +122,14 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
                   </Txt>
                 </View>
               </Row>
-              <Spacer size={12} />
+              <Spacer size={spacing.s3} />
               <Btn title={t('vtoday.startSession')} icon="play" onPress={() => tabs.setTab('live')} />
             </Card>
           </FadeIn>
         ) : (
           <FadeIn index={0}>
             <Card>
-              <Row center gap={10}>
+              <Row center gap={spacing.s3}>
                 <Icon name="cafe" size={26} color={theme.teal} />
                 <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('vtoday.noSessionToday')}</Txt>
               </Row>
@@ -140,7 +140,6 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         {/* إحصاءات سريعة */}
         <FadeIn index={2}>
           <Txt variant="h3">{t('vtoday.quickStats')}</Txt>
-          <Spacer size={8} />
           <AutoGrid gap={spacing.s2} minColumnWidth={layout.minColumn.stat}>
             <StatCard icon="people" color={theme.brand} value={String(batches.length)} label={t('vtoday.activeBatches')} />
             <StatCard icon="checkmark-done" color={theme.success} value={`${monthAttendance}%`} label={t('vtoday.monthAttendance')} />
@@ -151,8 +150,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         {/* أدوات المنظم السريعة */}
         <FadeIn index={3}>
           <Txt variant="h3">{t('vtoday.orgTools')}</Txt>
-          <Spacer size={8} />
-          <Row gap={8}>
+          <Row gap={spacing.s2}>
             <View style={{ flex: 1 }}>
               <ListRow
                 icon="add-circle"
@@ -179,14 +177,12 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
           <Row between center>
             <Txt variant="h3">{t('batches.title')}</Txt>
             <Btn title={t('common.seeAll')} size="sm" variant="ghost" onPress={() => tabs.setTab('batches')} />
-          </Row>
-          <Spacer size={8} />
-          {batches.slice(0, 3).map((b) => {
+          </Row>          {batches.slice(0, 3).map((b) => {
             const course = courseOf(db, b.courseId)!;
             const closed = sessionsOfBatch(db, b.id).filter((s) => s.status === 'closed').length;
             return (
               <Card key={b.id}>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: sizes.iconButton, height: sizes.iconButton, borderRadius: radii.md, backgroundColor: course.color + '22', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="book" size={20} color={course.color} />
                   </View>
@@ -263,7 +259,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
           }
         />
 
-        <Row gap={8}>
+        <Row gap={spacing.s2}>
           <Chip label={t('batches.mineChip', { x: myBatches.length })} active={filter === 'my'} onPress={() => setFilter('my')} />
           <Chip label={t('batches.allChip', { x: allBatches.length })} active={filter === 'all'} onPress={() => setFilter('all')} />
         </Row>
@@ -277,7 +273,6 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
               cta={t('batches.emptyCta')}
               onCta={() => setCreating(true)}
             />
-            <Spacer size={12} />
             <Btn
               title={t('batches.browseCatalog')}
               variant="secondary"
@@ -297,30 +292,30 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
             return (
               <FadeIn key={b.id} index={i}>
                 <Card>
-                  <Row center gap={12}>
+                  <Row center gap={spacing.s3}>
                     <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: course ? course.color + '22' : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="book" size={24} color={course ? course.color : theme.brand} />
                     </View>
-                    <View style={{ flex: 1, gap: 3 }}>
+                    <View style={{ flex: 1, gap: spacing.s1 }}>
                       <Txt variant="h3">{course?.title ?? t('batches.courseFallback')}</Txt>
                       <Txt variant="micro" color={theme.textMuted}>
                         {b.schedule.days.map((d) => t(`dayShort.${d}` as any)).join(' + ')} · {b.schedule.time} · {b.room}
                       </Txt>
-                      <Row center gap={8}>
+                      <Row center gap={spacing.s2}>
                         <Tag label={t('batches.ofStudents', { x: students.length })} color={theme.brand} bg={theme.brandSoft} icon="people" />
                         <Tag label={`${t('batches.avgAttendance')} ${avg}%`} color={avg >= 75 ? theme.success : theme.warn} bg={avg >= 75 ? theme.successSoft : theme.warnSoft} icon="pulse" />
                       </Row>
                     </View>
                   </Row>
-                  <Spacer size={10} />
+                  <Spacer size={spacing.s3} />
                   <Row between>
                     <Txt variant="micro" color={theme.textMuted}>{t('journey.sessionXofY', { x: closed, y: course?.sessionsCount ?? sess.length })}</Txt>
                     <Txt variant="micro" color={theme.brand}>{course?.sessionsCount ? Math.round((closed / course.sessionsCount) * 100) : 0}%</Txt>
                   </Row>
-                  <Spacer size={5} />
+                  <Spacer size={spacing.s1} />
                   <ProgressBar progress={course?.sessionsCount ? closed / course.sessionsCount : 0} color={course?.color ?? theme.brand} height={6} />
-                  <Spacer size={10} />
-                  <Row gap={8} wrap>
+                  <Spacer size={spacing.s3} />
+                  <Row gap={spacing.s2} wrap>
                     <Btn
                       title={t('management.detailsTitle')}
                       size="sm"
@@ -465,22 +460,21 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
   return (
     <Screen label={`${course.title} — ${t('sess.title')}`}>
       <Header title={`${course.title} — ${t('sess.title')}`} back={() => navigation.goBack()} right={
-        <Row gap={6}>
+        <Row gap={spacing.s2}>
           <Btn title={t('sess.exportCsv')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
           <Btn title={t('sess.exportPdf')} size="sm" variant="ghost" icon="document-text" onPress={exportPdf} />
         </Row>
       } />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: 40 }}>
         {/* الطلاب */}
         <FadeIn index={0}>
           <Txt variant="h3">{t('common.students')} ({students.length})</Txt>
-          <Spacer size={8} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s2 }}>
             {students.map((st) => {
               const { pct } = attendancePct(db, st.id, batch.id);
               return (
                 <Card key={st.id} onPress={() => navigation.navigate('StudentRecord', { userId: st.id, batchId: batch.id })} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
-                  <Row center gap={8}>
+                  <Row center gap={spacing.s2}>
                     <Avatar name={st.fullName} color={st.avatarColor} size={30} />
                     <View>
                       <Txt variant="caption">{st.fullName}</Txt>
@@ -493,17 +487,15 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
           </View>
         </FadeIn>
 
-        <Spacer size={8} />
+        <Spacer size={spacing.s2} />
         <FadeIn index={1}>
-          <Txt variant="h3">{t('common.sessions')}</Txt>
-          <Spacer size={8} />
-          {sessions.map((s) => {
+          <Txt variant="h3">{t('common.sessions')}</Txt>          {sessions.map((s) => {
             const rows = db.attendance.filter((a) => a.sessionId === s.id);
             const presentCount = rows.filter((a) => a.status !== 'absent').length;
             const statusColor = s.status === 'closed' ? theme.success : s.status === 'live' ? theme.brand : theme.textMuted;
             return (
               <Card key={s.id} style={{ marginBottom: 8 }}>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: statusColor + '1F', alignItems: 'center', justifyContent: 'center' }}>
                     <Txt variant="micro" color={statusColor}>{s.seq}</Txt>
                   </View>
@@ -518,7 +510,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
                   )}
                 </Row>
                 {s.report?.done ? (
-                  <Row center gap={6} style={{ marginTop: 6 }}>
+                  <Row center gap={spacing.s2} style={{ marginTop: 6 }}>
                     <Icon name="document-text" size={12} color={theme.success} />
                     <Txt variant="micro" color={theme.textSecondary} numberOfLines={1}>{s.report.done}</Txt>
                   </Row>
@@ -537,8 +529,8 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
         {reportLoading ? (
           <SkeletonList count={2} height={72} />
         ) : report ? (
-          <View style={{ gap: 10 }}>
-            <AutoGrid gap={10} minColumnWidth={layout.minColumn.stat}>
+          <View style={{ gap: spacing.s3 }}>
+            <AutoGrid gap={spacing.s3} minColumnWidth={layout.minColumn.stat}>
               <ReportStat label={t('history.present')} value={report.present} color={attendanceColors.present} bg={attendanceColors.present + '1A'} />
               <ReportStat label={t('history.late')} value={report.late} color={attendanceColors.late} bg={attendanceColors.late + '1A'} />
               <ReportStat label={t('history.excused')} value={report.excused} color={attendanceColors.excused} bg={attendanceColors.excused + '1A'} />
@@ -546,13 +538,13 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
             </AutoGrid>
             <Card>
               <Row between center>
-                <Row center gap={6}>
+                <Row center gap={spacing.s2}>
                   <Icon name="people" size={14} color={theme.brand} />
                   <Txt variant="caption" color={theme.textSecondary}>{t('sess.expected')}</Txt>
                 </Row>
                 <Txt variant="h3">{report.expected}</Txt>
               </Row>
-              <Spacer size={8} />
+              <Spacer size={spacing.s2} />
               <Row between center>
                 <Txt variant="caption" color={theme.textSecondary}>{t('sess.attendancePct')}</Txt>
                 <Txt variant="h3" color={report.total === 0 ? theme.textMuted : (report.total - report.absent - report.excused >= report.total * 0.75 ? theme.success : theme.warn)}>
@@ -573,7 +565,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
 function ReportStat({ label, value, color, bg }: { label: string; value: number; color: string; bg?: string }) {
   const { theme } = useTheme();
   return (
-    <Card style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 12, backgroundColor: bg }}>
+    <Card style={{ flex: 1, alignItems: 'center', gap: spacing.s1, paddingVertical: 12, backgroundColor: bg }}>
       <Txt variant="h3" color={color}>{value}</Txt>
       <Txt variant="micro" color={theme.textMuted} align="center">{label}</Txt>
     </Card>
@@ -659,16 +651,16 @@ export function StudentRecordScreen({ route, navigation }: any) {
   return (
     <Screen label={t('student.title')}>
       <Header title={t('student.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4, paddingBottom: 60 }}>
         <FadeIn index={0}>
-          <Card style={{ alignItems: 'center', paddingVertical: 18, gap: 8 }}>
+          <Card style={{ alignItems: 'center', paddingVertical: 18, gap: spacing.s2 }}>
             <Avatar name={student.fullName} color={student.avatarColor} size={72} />
             <Txt variant="h2">{student.fullName}</Txt>
             <Txt variant="caption" color={theme.textSecondary}>{course.title} · {student.phone || t('common.noPhone')}</Txt>
             {student.email ? (
               <Txt variant="caption" color={theme.brand}>✉️ {student.email}</Txt>
             ) : null}
-            <Row gap={16} style={{ marginTop: 4 }}>
+            <Row gap={spacing.s4} style={{ marginTop: 4 }}>
               <View style={{ alignItems: 'center' }}>
                 <Txt variant="h3" color={pct >= 75 ? theme.success : theme.warn}>{pct}%</Txt>
                 <Txt variant="micro" color={theme.textMuted}>{t('issue.attendancePct')}</Txt>
@@ -684,13 +676,12 @@ export function StudentRecordScreen({ route, navigation }: any) {
         {/* سجل المحاضرات */}
         <FadeIn index={1}>
           <Txt variant="h3">{t('common.sessions')}</Txt>
-          <Spacer size={8} />
           <Card noPad>
             {sess.filter((s) => s.status === 'closed').map((s, i, arr) => {
               const att = db.attendance.find((a) => a.sessionId === s.id && a.userId === student.id);
               const meta = attendanceMeta(att?.status);
               return (
-                <Row key={s.id} center gap={10} style={{ padding: 12, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.line, backgroundColor: meta.bg, borderRadius: radii.md }}>
+                <Row key={s.id} center gap={spacing.s3} style={{ padding: 12, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: theme.line, backgroundColor: meta.bg, borderRadius: radii.md }}>
                   <Icon name={meta.icon as any} size={20} color={meta.color} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="caption">{s.title}</Txt>
@@ -707,13 +698,13 @@ export function StudentRecordScreen({ route, navigation }: any) {
         <FadeIn index={2}>
           <Card>
             <Row between center>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <Icon name="heart" size={19} color={theme.danger} />
                 <Txt variant="bodyMed">{t('student.kudos')}</Txt>
               </Row>
               <Tag label={t('student.kudosLeft', { x: left })} color={left > 0 ? theme.brand : theme.danger} bg={left > 0 ? theme.brandSoft : theme.dangerSoft} />
             </Row>
-            <Spacer size={10} />
+            <Spacer size={spacing.s3} />
             <Btn title={t('student.award')} icon="add" full disabled={left <= 0} onPress={() => setKudosOpen(true)} />
           </Card>
         </FadeIn>
@@ -721,12 +712,12 @@ export function StudentRecordScreen({ route, navigation }: any) {
         {/* ملاحظات خاصة */}
         <FadeIn index={3}>
           <Card>
-            <Row center gap={8} style={{ marginBottom: 8 }}>
+            <Row center gap={spacing.s2} style={{ marginBottom: 8 }}>
               <Icon name="lock-closed" size={15} color={theme.textMuted} />
               <Txt variant="caption" color={theme.textMuted}>{t('student.notes')}</Txt>
             </Row>
             <Input value={note || noteRow?.note || ''} onChange={setNote} placeholder={t('student.notesPlaceholder')} multiline />
-            <Spacer size={8} />
+            <Spacer size={spacing.s2} />
             <Btn title={t('common.save')} size="sm" variant="secondary" onPress={saveNote} disabled={!note.trim()} />
           </Card>
         </FadeIn>
@@ -734,8 +725,8 @@ export function StudentRecordScreen({ route, navigation }: any) {
 
       {/* نافذة التقدير */}
       <Sheet visible={kudosOpen} onClose={() => setKudosOpen(false)} title={t('student.kudos')}>
-        <View style={{ gap: 12 }}>
-          <Row gap={8} wrap>
+        <View style={{ gap: spacing.s3 }}>
+          <Row gap={spacing.s2} wrap>
             {[5, 10, 15, 20, 25].map((p) => (
               <Btn key={p} title={`+${p}`} variant={kudosPts === String(p) ? 'primary' : 'ghost'} size="sm" onPress={() => setKudosPts(String(p))} />
             ))}

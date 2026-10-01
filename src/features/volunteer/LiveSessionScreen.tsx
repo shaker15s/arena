@@ -154,7 +154,7 @@ export function LiveSessionScreen() {
           <Empty emoji="🎬" title={closedSummary ? `${t('live.closedSnack')}` : t('vtoday.noSessionToday')} />
           {closedSummary ? (
             <Card style={{ alignSelf: 'stretch' }}>
-              <Row center gap={12} wrap style={{ justifyContent: 'center' }}>
+              <Row center gap={spacing.s3} wrap style={{ justifyContent: 'center' }}>
                 <View style={{ alignItems: 'center' }}>
                   <Txt variant="display" color={theme.success}>{closedSummary.present}</Txt>
                   <Txt variant="caption" color={theme.textMuted}>{t('history.present')}</Txt>
@@ -183,7 +183,7 @@ export function LiveSessionScreen() {
             </Card>
           ) : null}
           {batchesWithScheduled.length > 0 ? (
-            <View style={{ alignSelf: 'stretch', gap: 12 }}>
+            <View style={{ alignSelf: 'stretch', gap: spacing.s3 }}>
               <Txt variant="h3">{t('live.readyBatches')}</Txt>
               {batchesWithScheduled.map((b) => {
                 const course = courseOf(db, b.courseId);
@@ -191,7 +191,7 @@ export function LiveSessionScreen() {
                 if (!nextSess) return null;
                 return (
                   <Card key={b.id} style={{ alignSelf: 'stretch' }}>
-                    <Row center gap={10}>
+                    <Row center gap={spacing.s3}>
                       <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: course ? course.color + '22' : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name="play" size={22} color={course ? course.color : theme.brand} />
                       </View>
@@ -202,7 +202,7 @@ export function LiveSessionScreen() {
                         </Txt>
                       </View>
                     </Row>
-                    <Spacer size={12} />
+                    <Spacer size={spacing.s3} />
                     <Btn
                       title={t('live.startSessionN', { x: nextSess.seq })}
                       size="md"
@@ -257,7 +257,7 @@ export function LiveSessionScreen() {
 
   if (kiosk) {
     return (
-      <Screen label={myLive.title} style={{ flex: 1, backgroundColor: '#05070F', alignItems: 'center', justifyContent: 'center', padding: spacing.s5, gap: 18 }}>
+      <Screen label={myLive.title} style={{ flex: 1, backgroundColor: '#05070F', alignItems: 'center', justifyContent: 'center', padding: spacing.s5, gap: spacing.s5 }}>
         <StatusBar hidden />
         <Txt variant="h2" color="#F1F5F9" align="center">{myLive.title}</Txt>
         <View style={{ backgroundColor: '#ffffff', padding: 20, borderRadius: 28 }}>
@@ -265,7 +265,7 @@ export function LiveSessionScreen() {
         </View>
         <Txt variant="display" color="#F8FAFC" bold style={{ letterSpacing: 10, fontSize: 40 }}>{bidiIsolate(code)}</Txt>
         <LiveRegion politeness="polite">
-          <Row center gap={10}>
+          <Row center gap={spacing.s3}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80' }} />
             <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}: {rows.length} / {students.length}</Txt>
           </Row>
@@ -283,7 +283,7 @@ export function LiveSessionScreen() {
         <FadeIn index={0}>
           <Row between center>
             <View style={{ flex: 1 }}>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80' }} />
                 <Txt variant="caption" color="#4ADE80">{t('common.liveStatus')}</Txt>
               </Row>
@@ -293,7 +293,7 @@ export function LiveSessionScreen() {
           </Row>
         </FadeIn>
 
-        <Row gap={14} style={{ alignItems: 'stretch' }} wrap>
+        <Row gap={spacing.s4} style={{ alignItems: 'stretch' }} wrap>
           {/* QR العملاق بتصميم Liquid Glass وفخامة شاشات العرض */}
           <FadeIn index={1} style={{ flexGrow: 1, minWidth: 290 }}>
             <Card
@@ -302,7 +302,7 @@ export function LiveSessionScreen() {
                 borderColor: isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(56, 189, 248, 0.45)',
                 alignItems: 'center',
                 paddingVertical: 26,
-                gap: 16,
+                gap: spacing.s4,
                 position: 'relative',
                 overflow: 'hidden',
                 shadowColor: '#38BDF8',
@@ -347,13 +347,13 @@ export function LiveSessionScreen() {
                   paddingHorizontal: 16,
                   paddingVertical: 8,
                   alignItems: 'center',
-                  gap: 4,
+                  gap: spacing.s1,
                   shadowColor: '#000',
                   shadowOpacity: 0.1,
                   shadowRadius: 6,
                 }}
               >
-                <Row center gap={6}>
+                <Row center gap={spacing.s2}>
                   <Icon name="keypad" size={16} color={isDark ? '#38BDF8' : theme.brand} />
                   <Txt variant="micro" color={isDark ? '#94A3B8' : theme.textSecondary} bold>
                     {t('live.codeLabel')} (في حال تعذر مسح الكاميرا):
@@ -368,11 +368,11 @@ export function LiveSessionScreen() {
 
           {/* العداد الحي + آخر الواصلين */}
           <FadeIn index={2} style={{ flexGrow: 1, minWidth: 280 }}>
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: spacing.s3 }}>
               <LiveRegion politeness="polite">
                 <Card color="rgba(255,255,255,0.06)" style={{ borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', paddingVertical: 20 }}>
                   <Txt variant="caption" color="#A8B0C2">{t('live.attendanceNow')}</Txt>
-                  <Row center gap={8} style={{ alignItems: 'flex-end' }}>
+                  <Row center gap={spacing.s2} style={{ alignItems: 'flex-end' }}>
                     <CountUp value={rows.length} variant="display" color="#4ADE80" />
                     <Txt variant="h2" color="#5B6478" style={{ marginBottom: 4 }}>{t('live.of')} {students.length}</Txt>
                   </Row>
@@ -389,12 +389,12 @@ export function LiveSessionScreen() {
                 {recent.length === 0 ? (
                   <Txt variant="caption" color="#5B6478">{t('live.waiting')}</Txt>
                 ) : (
-                  <View style={{ gap: 8 }}>
+                  <View style={{ gap: spacing.s2 }}>
                     {recent.map((r) => {
                       const st = profileOf(db, r.userId);
                       if (!st) return null;
                       return (
-                        <Row key={r.userId} center gap={8}>
+                        <Row key={r.userId} center gap={spacing.s2}>
                           <Avatar name={st.fullName} color={st.avatarColor} size={32} />
                           <View style={{ flex: 1 }}>
                             <Txt variant="caption" color="#F1F5F9">{st.fullName}</Txt>
@@ -417,7 +417,7 @@ export function LiveSessionScreen() {
 
         {/* أزرار التحكم */}
         <FadeIn index={3}>
-          <Row gap={10} wrap>
+          <Row gap={spacing.s3} wrap>
             <Btn title={t('live.manualMark')} variant="secondary" icon="hand-left" onPress={() => setManualOpen(true)} />
             <Btn
               title={t('kiosk.enter')}
@@ -434,12 +434,12 @@ export function LiveSessionScreen() {
 
       {/* تأكيد الإنهاء */}
       <Sheet visible={endConfirm && !reportStep} onClose={() => setEndConfirm(false)} title={t('live.endSession')}>
-        <View style={{ gap: 12 }}>
-          <Row center gap={10}>
+        <View style={{ gap: spacing.s3 }}>
+          <Row center gap={spacing.s3}>
             <Icon name="warning" size={26} color={theme.warn} />
             <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('live.endConfirm')}</Txt>
           </Row>
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <Btn title={t('common.confirm')} variant="danger" onPress={() => setReportStep(true)} />
             <Btn title={t('common.cancel')} variant="ghost" onPress={() => setEndConfirm(false)} />
           </Row>
@@ -449,9 +449,9 @@ export function LiveSessionScreen() {
       {/* تقرير الجلسة — 3 حقول فقط */}
       <Sheet visible={reportStep && !closedSessionReport} onClose={() => {}} title={`${t('report.title')} — ${myLive.title}`}>
         <ScrollView>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.s3 }}>
             <Card>
-              <Row center gap={8}>
+              <Row center gap={spacing.s2}>
                 <Icon name="people" size={16} color={theme.brand} />
                 <Txt variant="bodyMed">{t('report.summary', { x: rows.length, y: students.length })}</Txt>
               </Row>
@@ -512,15 +512,15 @@ export function DetailedSessionReportSheet({
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('live.reportTitle', { title: data.session.title })}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 12 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: spacing.s3 }} showsVerticalScrollIndicator={false}>
         {/* معلومات المحاضرة */}
         <Card>
           <Txt variant="h2">{course?.title ?? t('batches.courseFallback')}</Txt>
           <Txt variant="caption" color={theme.textSecondary}>
             {t('live.sessionMeta', { seq: data.session.seq, room: batch?.room ?? t('common.room'), min: durationMin })}
           </Txt>
-          <Spacer size={8} />
-          <Row center gap={12}>
+          <Spacer size={spacing.s2} />
+          <Row center gap={spacing.s3}>
             <Txt variant="micro" color={theme.textMuted}>
               {t('live.startedAt', { time: data.session.startedAt ? formatTime(data.session.startedAt, lang) : '—' })}
             </Txt>
@@ -531,7 +531,7 @@ export function DetailedSessionReportSheet({
         </Card>
 
         {/* إحصائيات الحضور */}
-        <AutoGrid gap={8} minColumnWidth={layout.minColumn.stat}>
+        <AutoGrid gap={spacing.s2} minColumnWidth={layout.minColumn.stat}>
           <Card style={{ flex: 1, alignItems: 'center', padding: 10 }}>
             <Txt variant="h2" color={theme.success}>{data.summary.present + data.summary.late}</Txt>
             <Txt variant="micro" color={theme.textMuted}>{t('history.present')}</Txt>
@@ -548,7 +548,7 @@ export function DetailedSessionReportSheet({
 
         {/* التقرير التدريبي الثلاثي */}
         {(data.report.done || data.report.planned || data.report.challenges) ? (
-          <Card style={{ gap: 8 }}>
+          <Card style={{ gap: spacing.s2 }}>
             <Txt variant="h3">{t('live.trainerReport')}</Txt>
             {data.report.done ? (
               <View>
@@ -584,7 +584,7 @@ export function DetailedSessionReportSheet({
             attRows.map((att, i) => {
               const st = profileOf(db, att.userId);
               return (
-                <Row key={att.userId} center gap={10} style={{ padding: 12, borderBottomWidth: i < attRows.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
+                <Row key={att.userId} center gap={spacing.s3} style={{ padding: 12, borderBottomWidth: i < attRows.length - 1 ? 1 : 0, borderBottomColor: theme.line }}>
                   <Avatar name={st?.fullName ?? t('management.studentFallback')} color={st?.avatarColor ?? theme.brand} size={36} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{st?.fullName ?? t('management.studentFallback')}</Txt>
@@ -749,7 +749,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('manual.title')}>
-      <View style={{ gap: 12 }}>
+      <View style={{ gap: spacing.s3 }}>
         <Input value={query} onChange={setQuery} placeholder={t('users.searchPlaceholder')} icon="search" />
         <View style={{ maxHeight: 240 }}>
           {loadingRoster && sourceStudents.length === 0 ? (
@@ -758,7 +758,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
             </View>
           ) : (
             <ScrollView>
-              <View style={{ gap: 6 }}>
+              <View style={{ gap: spacing.s2 }}>
                 {students.length === 0 ? (
                   <View style={{ padding: 20, alignItems: 'center' }}>
                     <Txt color={theme.textMuted}>
@@ -770,7 +770,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
                     const active = selected === st.id;
                     return (
                       <Card key={st.id} onPress={() => setSelected(st.id)} color={active ? theme.brandSoft : undefined} style={{ borderColor: active ? theme.brand : theme.line, padding: 10 }}>
-                        <Row center gap={8}>
+                        <Row center gap={spacing.s2}>
                           <Avatar name={st.fullName} color={st.avatarColor} size={34} />
                           <View style={{ flex: 1 }}>
                             <Txt variant="bodyMed">{st.fullName}</Txt>
@@ -786,7 +786,7 @@ function ManualMarkSheet({ visible, onClose, session }: { visible: boolean; onCl
             </ScrollView>
           )}
         </View>
-        <Row gap={8}>
+        <Row gap={spacing.s2}>
           <Btn title={t('manual.markPresent')} variant={status === 'present' ? 'success' : 'ghost'} icon="checkmark" onPress={() => setStatus('present')} />
           <Btn title={t('manual.markLate')} variant={status === 'late' ? 'secondary' : 'ghost'} icon="time" onPress={() => setStatus('late')} />
         </Row>
