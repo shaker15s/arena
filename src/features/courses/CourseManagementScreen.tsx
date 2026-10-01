@@ -206,6 +206,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
                 size="sm"
                 variant="secondary"
                 icon="create-outline"
+                responsive
                 onPress={() => setEditCourseOpen(true)}
               />
             ) : null}
@@ -214,6 +215,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
                 title={t('batchAdm.new')}
                 size="sm"
                 icon="add"
+                responsive
                 onPress={() => setNewBatchOpen(true)}
               />
             ) : null}

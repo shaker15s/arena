@@ -23,7 +23,7 @@ export function BatchesAdminScreen({ navigation }: any) {
 
   return (
     <Screen label={t('batchAdm.title')} style={{ flex: 1 }}>
-      <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
+      <Header title={t('batchAdm.title')} back={() => navigation.goBack()} right={<Btn title={t('batchAdm.new')} size="sm" icon="add" responsive onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s8 }}>
         {db.batches.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>

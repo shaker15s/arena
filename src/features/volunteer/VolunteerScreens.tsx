@@ -150,26 +150,21 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
         {/* أدوات المنظم السريعة */}
         <FadeIn index={3}>
           <Txt variant="h3">{t('vtoday.orgTools')}</Txt>
-          <Row gap={spacing.s2}>
-            <View style={{ flex: 1 }}>
-              <ListRow
-                icon="add-circle"
-                title={t('vtoday.createGroup')}
-                subtitle={t('vtoday.createGroupSub')}
-                onPress={() => setCreating(true)}
-                grow
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <ListRow
-                icon="albums"
-                title={t('vtoday.courses')}
-                subtitle={t('vtoday.coursesSub')}
-                onPress={() => navigation.navigate('Courses')}
-                grow
-              />
-            </View>
-          </Row>
+          <Spacer size={8} />
+          <View style={{ gap: 8 }}>
+            <ListRow
+              icon="add-circle"
+              title={t('vtoday.createGroup')}
+              subtitle={t('vtoday.createGroupSub')}
+              onPress={() => setCreating(true)}
+            />
+            <ListRow
+              icon="albums"
+              title={t('vtoday.courses')}
+              subtitle={t('vtoday.coursesSub')}
+              onPress={() => navigation.navigate('Courses')}
+            />
+          </View>
         </FadeIn>
 
         {/* جلساتي القادمة */}
@@ -254,6 +249,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
               title={t('batchAdm.new')}
               size="sm"
               icon="add"
+              responsive
               onPress={() => setCreating(true)}
             />
           }
@@ -461,8 +457,8 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
     <Screen label={`${course.title} — ${t('sess.title')}`}>
       <Header title={`${course.title} — ${t('sess.title')}`} back={() => navigation.goBack()} right={
         <Row gap={spacing.s2}>
-          <Btn title={t('sess.exportCsv')} size="sm" variant="ghost" icon="download" onPress={exportCsv} />
-          <Btn title={t('sess.exportPdf')} size="sm" variant="ghost" icon="document-text" onPress={exportPdf} />
+          <Btn title={t('sess.exportCsv')} size="sm" variant="ghost" icon="download" responsive onPress={exportCsv} />
+          <Btn title={t('sess.exportPdf')} size="sm" variant="ghost" icon="document-text" responsive onPress={exportPdf} />
         </Row>
       } />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: 40 }}>

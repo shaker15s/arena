@@ -8,22 +8,11 @@
 import React from 'react';
 import { Animated, Platform, Pressable, View, ViewStyle, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
 import { useA11yPrefsOptional } from './preferences';
 import { blurIntensity, borderWidth, orbs, radii, shadows, sizes, spacing, typography } from './tokens';
 import { isReducedMotion, pressScale } from './motion';
-
-function canUseNativeLiquidGlass(): boolean {
-  if (Platform.OS !== 'ios') return false;
-  try {
-    return isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
-  } catch {
-    // Expo Go أو بناء أصلي لا يضم الوحدة يجب أن يتراجع بأمان إلى التعبئة العادية.
-    return false;
-  }
-}
 
 /**
  * سطح زجاجي تكيفي — محصور في التنقل والأدوات العائمة.
@@ -51,7 +40,6 @@ export function GlassSurface({
   // High contrast uses the same opaque material as Reduce Transparency so that
   // blur never lowers legibility; the stronger border remains a clear affordance.
   const reduceTransparency = Boolean(preferences?.effectiveReduceTransparency || highContrast);
-  const useNativeGlass = !reduceTransparency && canUseNativeLiquidGlass();
   const webBlur = isLiquid
     ? `blur(28px) saturate(210%) brightness(104%)`
     : `blur(${blurIntensity.webSurface}px) saturate(150%)`;
@@ -92,15 +80,7 @@ export function GlassSurface({
           : null,
       ]}
     >
-      {useNativeGlass ? (
-        <GlassView
-          pointerEvents="none"
-          glassEffectStyle={isLiquid ? 'clear' : 'regular'}
-          colorScheme={isDark ? 'dark' : 'light'}
-          tintColor={tintColor}
-          style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
-        />
-      ) : !reduceTransparency && Platform.OS === 'ios' ? (
+      {!reduceTransparency && Platform.OS === 'ios' ? (
         <BlurView
           pointerEvents="none"
           intensity={isLiquid ? 55 : intensity}

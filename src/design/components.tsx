@@ -16,7 +16,7 @@ import { useA11yPrefsOptional } from './preferences';
 import { GlassSurface } from './glass';
 import {
   borderWidth, blurIntensity, columnsFor, componentTokens, fonts, hitSlop, layout, radii,
-  scaleType, shadows, spacing, springs, typography,
+  scaleType, shadows, sizes, spacing, springs, typography,
 } from './tokens';
 import { isReducedMotion, pressScale, staggerDelay } from './motion';
 import { useI18n } from '../i18n';
@@ -71,6 +71,7 @@ export function Txt({
               'aria-level': heading === 'h1' ? 1 : heading === 'h2' ? 2 : 3,
               // A11Y-13: يُسمح بنقل التركيز إلى عنوان الشاشة عند الانتقال (نمط SPA).
               tabIndex: -1,
+              style: { outline: 'none' },
             } as unknown as object)
           : {}),
       }
@@ -100,6 +101,16 @@ export function Txt({
         { lineHeight: calibratedLineHeight },
         // DS-04: كان يستخدم h3 (SemiBold 600) — أي أن `bold` لم يكن Bold أصلًا.
         bold ? { fontFamily: fonts.bold } : null,
+        Platform.OS === 'web' && (numberOfLines === 1 || shrink)
+          ? ({
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              wordBreak: 'keep-all',
+              minWidth: 0,
+              flexShrink: 1,
+            } as unknown as TextStyle)
+          : null,
         style,
       ]}
     >
@@ -295,9 +306,11 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
 
 // ───────────────────────────── أزرار ─────────────────────────────
 
+export const HeaderActionContext = React.createContext<{ inHeader?: boolean }>({});
+
 export function Btn({
   title, onPress, variant = 'primary', size = 'md', icon, disabled, loading, style, full,
-  accessibilityHint,
+  accessibilityHint, responsive, compact,
 }: {
   title: string;
   onPress?: () => void;
@@ -309,10 +322,15 @@ export function Btn({
   style?: ViewStyle;
   full?: boolean;
   accessibilityHint?: string;
+  responsive?: boolean;
+  compact?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme, windowWidth } = useTheme();
+  const inHeader = React.useContext(HeaderActionContext).inHeader;
   const { impactLight, impactMedium } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
+
+  const isIconOnly = Boolean(icon && (compact || (responsive && windowWidth < 500) || (inHeader && windowWidth < 600)));
 
   const handlePress = () => {
     if (!onPress || disabled || loading) return;
@@ -338,8 +356,9 @@ export function Btn({
     : variant === 'gold' ? '#3D2B00'
     : theme.textSecondary;
   const padV = size === 'lg' ? 14 : size === 'md' ? 11 : 8;
-  const padH = size === 'lg' ? 22 : size === 'md' ? 16 : 11;
-  const minBtnHeight = size === 'lg' ? 52 : size === 'md' ? 44 : 38;
+  const padH = isIconOnly ? (size === 'lg' ? 14 : size === 'md' ? 11 : 8) : (size === 'lg' ? 22 : size === 'md' ? 16 : 11);
+  const minBtnHeight = size === 'lg' ? sizes.ctaButton : sizes.touchTarget;
+  const minBtnWidth = sizes.touchTarget;
 
   const press = (v: number) =>
     Animated.spring(scale, { toValue: v, useNativeDriver: true, ...springs.default }).start();
@@ -364,6 +383,7 @@ export function Btn({
           onPressIn={() => press(pressScale.default)}
           onPressOut={() => press(1)}
           style={webPointer}
+          {...(Platform.OS === 'web' && isIconOnly ? ({ title } as any) : {})}
         >
           <LinearGradient
             colors={[theme.actionPrimary, theme.actionPrimaryTo]}
@@ -374,24 +394,29 @@ export function Btn({
               paddingVertical: padV,
               paddingHorizontal: padH,
               minHeight: minBtnHeight,
+              minWidth: minBtnWidth,
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row',
-              gap: spacing.s2,
+              gap: isIconOnly ? 0 : spacing.s2,
               opacity: disabled ? 0.45 : 1,
             }}
           >
             {loading ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.s2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: isIconOnly ? 0 : spacing.s2 }}>
                 <Spinner color="#fff" />
-                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+                {!isIconOnly ? (
+                  <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+                ) : null}
               </View>
             ) : (
               <>
                 {icon ? (
                   <Icon name={icon} size={18} color="#fff" decorative />
                 ) : null}
-                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
+                {!isIconOnly ? (
+                  <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
+                ) : null}
               </>
             )}
           </LinearGradient>
@@ -410,6 +435,7 @@ export function Btn({
         onPress={loading || disabled ? undefined : handlePress}
         onPressIn={() => press(pressScale.default)}
         onPressOut={() => press(1)}
+        {...(Platform.OS === 'web' && isIconOnly ? ({ title } as any) : {})}
         style={[
           webPointer,
           {
@@ -418,10 +444,11 @@ export function Btn({
             paddingVertical: padV,
             paddingHorizontal: padH,
             minHeight: minBtnHeight,
+            minWidth: minBtnWidth,
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'row',
-            gap: spacing.s2,
+            gap: isIconOnly ? 0 : spacing.s2,
             opacity: disabled ? 0.45 : 1,
             borderWidth: variant === 'ghost' ? 1 : 0,
             borderColor: variant === 'ghost' ? theme.line : 'transparent',
@@ -429,16 +456,20 @@ export function Btn({
         ]}
       >
         {loading ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.s2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: isIconOnly ? 0 : spacing.s2 }}>
             <Spinner color={fg} />
-            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+            {!isIconOnly ? (
+              <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+            ) : null}
           </View>
         ) : (
           <>
             {icon ? (
               <Icon name={icon} size={18} color={fg} decorative />
             ) : null}
-            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
+            {!isIconOnly ? (
+              <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
+            ) : null}
           </>
         )}
       </Pressable>
@@ -501,13 +532,15 @@ export function Tag({ label, color, bg, icon }: { label: string; color: string; 
   );
 }
 
-export function Segmented<T extends string>({ options, value, onChange }: {
+export function Segmented<T extends string>({ options, value, onChange, scrollable }: {
   options: Array<{ value: T; label: string; icon?: keyof typeof Ionicons.glyphMap }>;
   value: T;
   onChange: (v: T) => void;
+  scrollable?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme, windowWidth } = useTheme();
   const { impactLight } = useHaptics();
+  const isScrollable = scrollable ?? (options.length > 3 || (windowWidth < 480 && options.length > 2));
   // A11Y-14: ←/→ (مع انعكاس RTL) + Home/End تنقل بين التبويبات وتُحدّث القيمة.
   const activeIndex = Math.max(0, options.findIndex((o) => o.value === value));
   const rovingRefs = useRovingKeys({
@@ -517,6 +550,79 @@ export function Segmented<T extends string>({ options, value, onChange }: {
       if (opt && opt.value !== value) { impactLight(); onChange(opt.value); }
     },
   });
+
+  if (isScrollable) {
+    return (
+      <View style={{ backgroundColor: theme.fill, borderRadius: radii.full, padding: 3 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          accessibilityRole="tablist"
+          contentContainerStyle={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 2,
+          }}
+          style={Platform.OS === 'web' ? ({ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as any) : undefined}
+        >
+          {options.map((opt, index) => {
+            const active = opt.value === value;
+            return (
+              <Pressable
+                key={opt.value}
+                ref={(el: any) => { rovingRefs.current[index] = el as HTMLElement | null; }}
+                {...rovingTabIndex(index, activeIndex)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={opt.label}
+                hitSlop={hitSlop.small}
+                onPress={() => { impactLight(); onChange(opt.value); }}
+                style={({ pressed }) => ([
+                  webPointer,
+                  {
+                    flexShrink: 0,
+                    flexDirection: 'row',
+                    gap: 6,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: active ? theme.card : 'transparent',
+                    borderRadius: radii.full,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                    minHeight: 38,
+                    borderWidth: active ? borderWidth.hairline : 0,
+                    borderColor: active ? theme.glassBorder : 'transparent',
+                    shadowColor: theme.glassShadow,
+                    ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ])}
+              >
+                {opt.icon ? (
+                  <Icon
+                    name={opt.icon}
+                    size={componentTokens.segmented.iconSize}
+                    color={active ? theme.brand : theme.textMuted}
+                  />
+                ) : null}
+                <Txt
+                  variant="caption"
+                  bold={active}
+                  color={active ? theme.text : theme.textMuted}
+                  numberOfLines={1}
+                  shrink
+                >
+                  {opt.label}
+                </Txt>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: theme.fill, borderRadius: radii.full, padding: componentTokens.segmented.padding }}>
       {options.map((opt, index) => {
@@ -530,16 +636,22 @@ export function Segmented<T extends string>({ options, value, onChange }: {
             accessibilityState={{ selected: active }}
             accessibilityLabel={opt.label}
             onPress={() => { impactLight(); onChange(opt.value); }}
-            style={{
-              flex: 1, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: active ? theme.card : 'transparent',
-              borderRadius: radii.full, paddingVertical: componentTokens.segmented.paddingVertical,
-              shadowColor: theme.glassShadow,
-              ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
-            }}
+            style={({ pressed }) => ([
+              webPointer,
+              {
+                flex: 1, minWidth: 0, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
+                backgroundColor: active ? theme.card : 'transparent',
+                borderRadius: radii.full, paddingVertical: componentTokens.segmented.paddingVertical,
+                paddingHorizontal: 8,
+                minHeight: 38,
+                shadowColor: theme.glassShadow,
+                ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
+                opacity: pressed ? 0.75 : 1,
+              },
+            ])}
           >
             {opt.icon ? <Icon name={opt.icon} size={componentTokens.segmented.iconSize} color={active ? theme.brand : theme.textMuted} /> : null}
-            <Txt variant="caption" color={active ? theme.text : theme.textMuted}>{opt.label}</Txt>
+            <Txt variant="caption" color={active ? theme.text : theme.textMuted} numberOfLines={1} shrink>{opt.label}</Txt>
           </Pressable>
         );
       })}
@@ -1026,7 +1138,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
   title: string; subtitle?: string; back?: () => void; right?: React.ReactNode;
   onSubtitlePress?: () => void; onTitlePress?: () => void;
 }) {
-  const { theme } = useTheme();
+  const { theme, windowWidth } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const titleId = React.useId();
@@ -1053,8 +1165,8 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
       {...(Platform.OS === 'web' ? ({ role: 'banner' } as unknown as object) : {})}
       style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}
     >
-      <Row between center>
-        <Row center gap={spacing.s3} style={{ flex: 1 }}>
+      <Row between center style={{ minHeight: 44, gap: spacing.s3 }}>
+        <Row center gap={12} style={{ flex: 1, minWidth: 0 }}>
           {back ? (
             <Pressable
               accessibilityRole="button"
@@ -1069,16 +1181,17 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                 }
               }}
               style={({ pressed }) => ({
-              width: componentTokens.backButton.size, height: componentTokens.backButton.size,
-              borderRadius: componentTokens.backButton.radius,
-              backgroundColor: theme.fill,
-              alignItems: 'center', justifyContent: 'center',
-              opacity: pressed ? 0.7 : 1,
-            })}>
+                width: componentTokens.backButton.size, height: componentTokens.backButton.size,
+                borderRadius: componentTokens.backButton.radius,
+                backgroundColor: theme.fill,
+                alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                opacity: pressed ? 0.7 : 1,
+              })}>
               <BackIcon color={theme.text} />
             </Pressable>
           ) : null}
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
             {onTitlePress ? (
               <Pressable
                 accessibilityRole="button"
@@ -1086,10 +1199,10 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                 onPress={onTitlePress}
                 style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
               >
-                <Txt variant="h1" numberOfLines={1} heading="h1" id={titleId}>{title}</Txt>
+                <Txt variant="h1" numberOfLines={1} shrink heading="h1" id={titleId}>{title}</Txt>
               </Pressable>
             ) : (
-              <Txt variant="h1" numberOfLines={1} heading="h1" id={titleId}>{title}</Txt>
+              <Txt variant="h1" numberOfLines={1} shrink heading="h1" id={titleId}>{title}</Txt>
             )}
             {subtitle ? (
               onSubtitlePress ? (
@@ -1100,21 +1213,27 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                   style={({ pressed }) => ({
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: spacing.s1,
+                    gap: 4,
                     opacity: pressed ? 0.75 : 1,
                     transform: [{ scale: pressed ? pressScale.subtle : 1 }],
                   })}
                 >
-                  <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
-                  <Icon name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7 }} />
+                  <Txt variant="caption" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt>
+                  <Icon name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7, flexShrink: 0 }} />
                 </Pressable>
               ) : (
-                <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
+                <Txt variant="caption" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt>
               )
             ) : null}
           </View>
         </Row>
-        {right}
+        {right ? (
+          <View style={{ flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: windowWidth < 500 ? '48%' : undefined }}>
+            <HeaderActionContext.Provider value={{ inHeader: true }}>
+              {right}
+            </HeaderActionContext.Provider>
+          </View>
+        ) : null}
       </Row>
     </View>
   );
@@ -1263,15 +1382,16 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger,
           width: componentTokens.listRow.iconBox, height: componentTokens.listRow.iconBox,
           borderRadius: radii.md, backgroundColor: iconBg ?? theme.brandSoft,
           alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
         }}>
           <Icon name={icon} size={componentTokens.listRow.iconSize} color={danger ? theme.danger : theme.brand} />
         </View>
       ) : null}
-      <View style={{ flex: 1 }}>
-        <Txt variant="bodyMed" color={danger ? theme.danger : undefined}>{title}</Txt>
-        {subtitle ? <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt> : null}
+      <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+        <Txt variant="bodyMed" color={danger ? theme.danger : undefined} numberOfLines={1} shrink>{title}</Txt>
+        {subtitle ? <Txt variant="caption" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt> : null}
       </View>
-      {right ?? (onPress ? <BackIcon color={theme.textMuted} /> : null)}
+      {right ? <View style={{ flexShrink: 0 }}>{right}</View> : (onPress ? <BackIcon color={theme.textMuted} /> : null)}
     </Pressable>
   );
 }
