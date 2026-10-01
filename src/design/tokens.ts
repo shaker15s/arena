@@ -42,8 +42,8 @@ export const sizes = {
   iconButton: 44, // معيار أزرار الأيقونات 44×44pt
   ctaButton: 52, // معيار Apple HIG للأزرار التفاعلية الأساسية
   timeField: 64, // حقل ساعة/دقيقة (4 أرقام + مسافة) — يبقى فوق 44px لمسًا
-  /** أقصى عرض لإطار المحتوى على الويب/التابلت (ContentFrame) */
-  contentMaxWidth: 1120,
+  /** أقصى عرض لإطار المحتوى على الويب/التابلت (ContentFrame) ممدد لراحة العرض */
+  contentMaxWidth: 1440,
 } as const;
 
 /**
@@ -259,7 +259,7 @@ export const springs = {
   snappy: { damping: 26, stiffness: 320, mass: 0.8 }, // Fast transitions
 } as const;
 
-export type ThemeName = 'light' | 'dark' | 'oled';
+export type ThemeName = 'light' | 'dark' | 'oled' | 'liquid';
 
 export interface ThemeColors {
   brand: string;
@@ -487,10 +487,77 @@ export const oledTheme: ThemeColors = {
   fillBorder: 'rgba(84, 84, 88, 0.2)',
 };
 
+/** ثيم زجاج أبل السائل (Apple Liquid Glass) — انكسار ضوء مائي، شفافية مشبعة، وعمق ليلي */
+export const liquidTheme: ThemeColors = {
+  ...darkTheme,
+  brand: '#0A84FF',
+  brandDark: '#0066CC',
+  brandSoft: '#0E2A54',
+  brandGradientFrom: '#0A84FF',
+  brandGradientTo: '#6366F1',
+  brandGradientMid: '#38BDF8',
+  accent: '#FBBF24',
+  accentDark: '#F59E0B',
+  accentSoft: '#451A03',
+  accentGradientFrom: '#FBBF24',
+  accentGradientTo: '#EA580C',
+  onBrand: '#FFFFFF',
+  onSuccess: '#FFFFFF',
+  onDark: '#FFFFFF',
+  teal: '#2DD4BF',
+  success: '#34D399',
+  successSoft: '#0D2818',
+  warn: '#FBBF24',
+  warnSoft: '#2D1F00',
+  danger: '#FF453A',
+  dangerSoft: '#2D0A08',
+  info: '#38BDF8',
+  infoSoft: '#0A1E2E',
+  flameFrom: '#FB923C',
+  flameTo: '#EF4444',
+  certGold: '#FBBF24',
+  certSoft: 'rgba(251, 191, 36, 0.16)',
+  bg: '#050914',
+  bgGradientFrom: '#0A1329',
+  bgGradientTo: '#03060D',
+  card: '#0D172E',
+  glass: 'rgba(255, 255, 255, 0.09)',
+  glassHeavy: 'rgba(13, 23, 46, 0.85)',
+  glassBorder: 'rgba(255, 255, 255, 0.18)',
+  glassShadow: '#000000',
+  text: '#FFFFFF',
+  textSecondary: '#E2E8F0',
+  textMuted: '#94A3B8',
+  textSuccess: '#34D399',
+  textWarn: '#FBBF24',
+  textDanger: '#FF453A',
+  textAccent: '#FBBF24',
+  brandText: '#6FB3FF',
+  actionPrimary: '#0070E0',
+  actionPrimaryTo: '#6366F1',
+  actionSuccess: '#108930',
+  actionDanger: '#D92D20',
+  focusRing: '#38BDF8',
+  line: 'rgba(255, 255, 255, 0.12)',
+  overlay: 'rgba(3, 6, 13, 0.72)',
+  rarityCommon: '#94A3B8',
+  rarityRare: '#38BDF8',
+  rarityEpic: '#C084FC',
+  rarityLegendary: '#FBBF24',
+  separator: 'rgba(255, 255, 255, 0.12)',
+  fill: 'rgba(255, 255, 255, 0.08)',
+  fillStrong: 'rgba(255, 255, 255, 0.16)',
+  fillBorder: 'rgba(255, 255, 255, 0.18)',
+  orbPrimary: 'rgba(14, 165, 233, 0.32)',
+  orbSecondary: 'rgba(99, 102, 241, 0.26)',
+  orbTertiary: 'rgba(45, 212, 191, 0.18)',
+};
+
 export const themes: Record<ThemeName, ThemeColors> = {
   light: lightTheme,
   dark: darkTheme,
   oled: oledTheme,
+  liquid: liquidTheme,
 };
 
 /** ورق الشهادة — ألوان ثابتة عبر الثيمات (تطابق قالب PDF المُصدَّر) */

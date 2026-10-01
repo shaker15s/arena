@@ -217,9 +217,10 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
   accessibilityLabel?: string;
   accessibilityHint?: string;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, themeName } = useTheme();
   const preferences = useA11yPrefsOptional();
   const highContrast = preferences?.highContrast ?? false;
+  const isLiquid = themeName === 'liquid';
   const { impactLight } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
   const useGlass = Boolean(glass) && !solid && !color;
@@ -238,7 +239,7 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
   const shell: ViewStyle = {
     borderRadius: radii.xl,
     borderWidth: useGlass ? 0 : highContrast ? borderWidth.medium : borderWidth.thin,
-    borderColor: highContrast ? theme.textMuted : theme.fillBorder,
+    borderColor: highContrast ? theme.textMuted : isLiquid ? 'rgba(255, 255, 255, 0.16)' : theme.fillBorder,
     padding: noPad ? 0 : spacing.s4,
     shadowColor: theme.glassShadow,
     ...(isDark ? shadows.card.dark : shadows.card.light),
@@ -246,7 +247,7 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
   };
 
   const content = (
-    <Animated.View style={[shell, { backgroundColor: useGlass ? 'transparent' : color ?? theme.card, transform: [{ scale }] }, style]}>
+    <Animated.View style={[shell, { backgroundColor: useGlass ? 'transparent' : color ?? (isLiquid ? 'rgba(13, 23, 46, 0.72)' : theme.card), transform: [{ scale }] }, style]}>
       {useGlass ? (
         <GlassSurface
           radius={radii.xl}
@@ -256,12 +257,15 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      {useGlass ? (
+      {useGlass || isLiquid ? (
         <LinearGradient
-          colors={[
-            isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.5)',
-            'transparent',
-          ]}
+          colors={
+            isLiquid
+              ? ['rgba(255, 255, 255, 0.32)', 'rgba(255, 255, 255, 0.05)', 'transparent']
+              : isDark
+              ? ['rgba(255, 255, 255, 0.16)', 'transparent']
+              : ['rgba(255, 255, 255, 0.5)', 'transparent']
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1.5 }}

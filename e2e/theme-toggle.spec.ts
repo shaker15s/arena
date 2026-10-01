@@ -5,6 +5,7 @@ import {
   lightTheme,
   darkTheme,
   oledTheme,
+  liquidTheme,
   ThemeName,
   sizes,
 } from '../src/design/tokens';
@@ -12,14 +13,15 @@ import {
 export async function testThemeToggleFlow(assert: (ok: boolean, msg: string) => void) {
   console.log('\n--- [SCENARIO] فحص نظام المظهر والتباين اللوني (Theme & Contrast Flow) ---');
 
-  // 1. التحقق من توفر جميع السمات (Light, Dark, OLED)
+  // 1. التحقق من توفر جميع السمات (Light, Dark, OLED, Liquid)
   const themes: Record<ThemeName, typeof lightTheme> = {
     light: lightTheme,
     dark: darkTheme,
     oled: oledTheme,
+    liquid: liquidTheme,
   };
 
-  assert(Boolean(themes.light && themes.dark && themes.oled), 'توفر السمات الثلاث: الفاتح، الداكن، وOLED الأسود الفاحم');
+  assert(Boolean(themes.light && themes.dark && themes.oled && themes.liquid), 'توفر السمات الأربع: الفاتح، الداكن، وOLED والزجاج السائل');
 
   // 2. التحقق من تكامل لون التمايز الثانوي Amber في كافة المظاهر (D2)
   for (const [name, theme] of Object.entries(themes)) {

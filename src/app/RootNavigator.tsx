@@ -348,7 +348,7 @@ function TabScene({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, requestedTab }: {
+function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 1440, requestedTab }: {
   tabs: TabDef[];
   renders: Record<string, () => React.ReactNode>;
   initial: string;
@@ -462,7 +462,7 @@ function StudentTabs({ navigation, route }: any) {
     <TabsScaffold
       initial="today"
       requestedTab={route?.params?.tab}
-      maxWidth={780}
+      maxWidth={1360}
       tabs={[
         { key: 'today', label: t('tabs.today'), icon: 'home-outline', iconActive: 'home' },
         { key: 'explore', label: t('tabs.explore'), icon: 'compass-outline', iconActive: 'compass' },
@@ -491,7 +491,7 @@ function VolunteerTabs({ route }: any) {
     <TabsScaffold
       initial="today"
       requestedTab={route?.params?.tab}
-      maxWidth={940}
+      maxWidth={1400}
       tabs={[
         { key: 'today', label: t('tabs.today'), icon: 'sunny-outline', iconActive: 'sunny' },
         { key: 'batches', label: t('tabs.batches'), icon: 'people-outline', iconActive: 'people' },
@@ -518,7 +518,7 @@ function AdminTabs({ route }: any) {
     <TabsScaffold
       initial="dash"
       requestedTab={route?.params?.tab}
-      maxWidth={1120}
+      maxWidth={1440}
       tabs={[
         { key: 'dash', label: t('tabs.dashboard'), icon: 'grid-outline', iconActive: 'grid' },
         { key: 'org', label: t('tabs.org'), icon: 'business-outline', iconActive: 'business' },
@@ -815,7 +815,7 @@ export function RootNavigator() {
       <SemanticScreen
         id={MAIN_LANDMARK_ID}
         label={t('a11y.mainContent')}
-        style={{ width: '100%', maxWidth: 1180, alignSelf: 'center' }}
+        style={{ width: '100%', maxWidth: 1440, alignSelf: 'center' }}
       >
         <NavigationContainer
           ref={navigationRef}

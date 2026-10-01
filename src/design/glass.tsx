@@ -44,15 +44,24 @@ export function GlassSurface({
   intensity?: number;
   borderless?: boolean;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, themeName } = useTheme();
   const preferences = useA11yPrefsOptional();
   const highContrast = preferences?.highContrast ?? false;
+  const isLiquid = themeName === 'liquid';
   // High contrast uses the same opaque material as Reduce Transparency so that
   // blur never lowers legibility; the stronger border remains a clear affordance.
   const reduceTransparency = Boolean(preferences?.effectiveReduceTransparency || highContrast);
   const useNativeGlass = !reduceTransparency && canUseNativeLiquidGlass();
-  const webBlur = `blur(${blurIntensity.webSurface}px) saturate(150%)`;
-  const fill = reduceTransparency ? theme.card : (tintColor ?? theme.glassHeavy);
+  const webBlur = isLiquid
+    ? `blur(28px) saturate(210%) brightness(104%)`
+    : `blur(${blurIntensity.webSurface}px) saturate(150%)`;
+  const fill = reduceTransparency
+    ? theme.card
+    : (tintColor ?? (isLiquid ? 'rgba(13, 23, 46, 0.62)' : theme.glassHeavy));
+
+  const liquidBorderColor = isLiquid
+    ? 'rgba(255, 255, 255, 0.22)'
+    : theme.fillBorder;
 
   return (
     <View
@@ -67,22 +76,26 @@ export function GlassSurface({
           overflow: 'hidden',
           backgroundColor: fill,
           borderWidth: borderless ? 0 : highContrast ? borderWidth.medium : borderWidth.thin,
-          borderColor: highContrast ? theme.textMuted : theme.fillBorder,
+          borderColor: highContrast ? theme.textMuted : liquidBorderColor,
         },
         Platform.OS === 'web' && !reduceTransparency
-          ? ({ backdropFilter: webBlur, WebkitBackdropFilter: webBlur } as unknown as ViewStyle)
+          ? ({
+              backdropFilter: webBlur,
+              WebkitBackdropFilter: webBlur,
+              boxShadow: isLiquid ? '0 12px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)' : undefined,
+            } as unknown as ViewStyle)
           : null,
         style,
         // التفضيل يتقدّم على أي تعبئة/Blur يضيفها المستدعي.
         reduceTransparency
-          ? ({ backgroundColor: theme.card, backdropFilter: 'none', WebkitBackdropFilter: 'none' } as unknown as ViewStyle)
+          ? ({ backgroundColor: theme.card, backdropFilter: 'none', WebkitBackdropFilter: 'none', boxShadow: 'none' } as unknown as ViewStyle)
           : null,
       ]}
     >
       {useNativeGlass ? (
         <GlassView
           pointerEvents="none"
-          glassEffectStyle="regular"
+          glassEffectStyle={isLiquid ? 'clear' : 'regular'}
           colorScheme={isDark ? 'dark' : 'light'}
           tintColor={tintColor}
           style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
@@ -90,9 +103,32 @@ export function GlassSurface({
       ) : !reduceTransparency && Platform.OS === 'ios' ? (
         <BlurView
           pointerEvents="none"
-          intensity={intensity}
+          intensity={isLiquid ? 55 : intensity}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {/* Specular top rim highlight لمحاكاة انكسار الضوء السائل على حافة زجاج أبل */}
+      {!reduceTransparency ? (
+        <LinearGradient
+          colors={
+            isLiquid
+              ? ['rgba(255, 255, 255, 0.38)', 'rgba(255, 255, 255, 0.08)', 'transparent']
+              : isDark
+              ? ['rgba(255, 255, 255, 0.18)', 'transparent']
+              : ['rgba(255, 255, 255, 0.55)', 'transparent']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: isLiquid ? 2 : 1.5,
+            zIndex: 1,
+          }}
+          pointerEvents="none"
         />
       ) : null}
       {children}
@@ -132,16 +168,13 @@ export function AmbientOrb({ size = 320, color, style }: {
 }
 
 export function AppBackground({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, themeName } = useTheme();
+  const isLiquid = themeName === 'liquid';
   return (
     <View
       style={[
         { flex: 1, backgroundColor: theme.bg, overflow: 'hidden' },
         style,
-        // CSS `hidden` still creates a programmatically scrollable box. The large
-        // decorative orb can make it 180px taller than the viewport, so focusing
-        // a button scrolls the whole app offscreen. `clip` preserves the visual
-        // crop without introducing a scroll container on the web.
         Platform.OS === 'web' ? ({ overflow: 'clip' } as unknown as ViewStyle) : null,
       ]}
     >
@@ -151,14 +184,17 @@ export function AppBackground({ children, style }: { children: React.ReactNode; 
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* لمسة لونية ساكنة وخفيفة؛ أسطح المحتوى المعتمة تحمي وضوح النصوص فوقها. */}
+      {/* كرات إضاءة مائية محيطية تسبح خلف الزجاج وتشف عبره */}
       <AmbientOrb size={orbs.size.md} color={theme.orbPrimary} style={orbs.position.topRight} />
       <AmbientOrb size={orbs.size.lg} color={theme.orbSecondary} style={orbs.position.bottomLeft} />
       <AmbientOrb size={orbs.size.sm} color={theme.orbTertiary} style={orbs.position.midLeft} />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
-        borderWidth: Platform.OS === 'web' ? 1 : 0,
-        borderColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.2)',
-      }]} />
+      {isLiquid ? (
+        <AmbientOrb
+          size={360}
+          color="rgba(14, 165, 233, 0.22)"
+          style={{ position: 'absolute', top: '18%', right: -80 }}
+        />
+      ) : null}
       {children}
     </View>
   );

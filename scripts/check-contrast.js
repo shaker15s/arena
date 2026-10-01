@@ -35,7 +35,7 @@ function ratio(a, b) {
 // ── قراءة الثيمات من المصدر ────────────────────────────────────────
 const src = fs.readFileSync(TOKENS, 'utf8');
 const themes = {};
-for (const name of ['lightTheme', 'darkTheme', 'oledTheme']) {
+for (const name of ['lightTheme', 'darkTheme', 'oledTheme', 'liquidTheme']) {
   const start = src.indexOf(`export const ${name}`);
   if (start < 0) throw new Error(`لم أجد ${name} في ${TOKENS}`);
   const end = src.indexOf('\n};', start);
