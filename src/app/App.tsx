@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, PanResponder, Platform, Pressable, StatusBar as RNStatusBar, View } from 'react-native';
+import { Animated, Easing, Image, InteractionManager, PanResponder, Platform, Pressable, StatusBar as RNStatusBar, View } from 'react-native';
+import { markBoot, useFidSampler, useLongSessionDiagnostic, enableTelemetry, resolveProjectKey } from '@workspace/boosthis-runtime-rn';
+import boosthisConfig from '../../boosthis.config.json';
+import { fetch as expoFetch } from 'expo/fetch';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -358,6 +361,15 @@ function Shell() {
     IBMPlexSansArabic_700Bold,
   });
 
+  // Boosthis — root instrumentation: FID sampler + long-session diagnostic + boot marks.
+  const { panHandlers } = useFidSampler();
+  useLongSessionDiagnostic();
+  useEffect(() => {
+    markBoot('rootRendered');
+    const h = InteractionManager.runAfterInteractions(() => markBoot('interactive'));
+    return () => h.cancel();
+  }, []);
+
   useEffect(() => observeReducedMotion(), []);
 
   useEffect(() => {
@@ -384,7 +396,9 @@ function Shell() {
   if (!fontsLoaded || !ready) return <BootSplash />;
 
   return (
-    <Animated.View style={{
+    <Animated.View
+      {...panHandlers}
+      style={{
       flex: 1,
       backgroundColor: theme.bg,
       opacity: reveal,
@@ -413,6 +427,17 @@ setTelemetrySink((event) => {
     appVersion: event.appVersion,
     breadcrumbs: event.breadcrumbs,
   });
+});
+
+// Boosthis — registered install: reports only privacy-safe issue signatures.
+// The fixed install id is the same UUID used for the web kit, so mobile + web
+// installs report under one identity.
+enableTelemetry({
+  installId: '113f6746-6357-48c5-b47c-a7d08369033c',
+  inviteKey: resolveProjectKey(boosthisConfig),
+  issuesOnly: true,
+  // ponytail: integrity field not shipped in kit 1.0.0-alpha.246 config.
+  fetchOptions: { fetchImpl: expoFetch }, // kit requirement: avoid iOS XHR socket-drop bug
 });
 
 export default function App() {

@@ -1,0 +1,42 @@
+{
+  "name": "@workspace/boosthis-runtime-rn",
+  "version": "1.0.0-alpha.246",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mcp": "./src/mcp.ts"
+  },
+  "bin": {
+    "boosthis": "./cli/init.js"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=2.0.0",
+    "react": ">=18.2.0",
+    "react-native": ">=0.76.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-native-async-storage/async-storage": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "boosthis-checklist": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "mcp": "tsx src/mcp-stdio.ts",
+    "mcp-config": "tsx src/mcp-config.ts",
+    "build-kit-manifest": "node scripts/build-kit-manifest.mjs"
+  },
+  "devDependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "react-native": "0.81.5",
+    "tsx": "^4.21.0",
+    "vitest": "catalog:"
+  }
+}

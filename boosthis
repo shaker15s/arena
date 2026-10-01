@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Boosthis launcher — single entry point for both runtimes.
+#
+# Usage:
+#   ./boosthis init-rn <path-to-app>     # scaffold RN/Expo integration
+#   ./boosthis doctor-rn <path-to-app>   # verify an RN integration
+#   ./boosthis init-py [path]            # write/refresh the Boosthis block
+#                                       # into <path>/replit.md (or cwd)
+#   ./boosthis help                      # show this help
+#   ./boosthis version                   # print version
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RN_CLI="$HERE/lib/boosthis-runtime-rn/cli/init.js"
+
+usage() {
+  cat <<'USAGE'
+Boosthis — cross-runtime performance toolkit (private)
+
+Usage:
+  ./boosthis init-rn <path> [--project-key <key>]   Scaffold RN/Expo integration
+  ./boosthis doctor-rn <path>   Verify an RN integration
+  ./boosthis init-py [path] [--project-key <key>]   Add Boosthis block to replit.md
+  ./boosthis help               Show this help
+  ./boosthis version            Print version
+
+Examples:
+  ./boosthis init-rn ~/my-expo-app
+  ./boosthis init-rn ~/my-expo-app --project-key bk_xxx
+  ./boosthis doctor-rn ~/my-expo-app
+  ./boosthis init-py ~/my-fastapi-app --project-key bk_xxx
+
+For full documentation see QUICKSTART.md in this directory.
+USAGE
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  init-rn)
+    [ $# -lt 1 ] && { echo "Error: init-rn requires a path"; exit 1; }
+    exec node "$RN_CLI" init "$@"
+    ;;
+  doctor-rn)
+    [ $# -lt 1 ] && { echo "Error: doctor-rn requires a path"; exit 1; }
+    exec node "$RN_CLI" doctor "$@"
+    ;;
+  init-py)
+    # Treat the first arg as a target path ONLY when it isn't a flag. This lets
+    # `init-py --project-key bk_xxx` (no path) work as documented instead of
+    # cd-ing into "--invite-key".
+    if [ $# -ge 1 ] && [ "${1#-}" = "$1" ]; then
+      target="$1"
+      shift
+      (cd "$target" && python3 -m boosthis.cli init "$@")
+    else
+      python3 -m boosthis.cli init "$@"
+    fi
+    ;;
+  version)
+    echo "Boosthis launcher · runtime:"
+    node "$RN_CLI" version 2>/dev/null || echo "(rn cli unavailable)"
+    python3 -m boosthis.cli version 2>/dev/null || echo "(py cli unavailable — pip install -e lib/boosthis-py/)"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $cmd"
+    echo ""
+    usage
+    exit 1
+    ;;
+esac

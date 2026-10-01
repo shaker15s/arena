@@ -1,0 +1,692 @@
+{
+  "version": "1.0.0-alpha.246",
+  "algorithm": "sha256",
+  "manifestHash": "f54d083ab47533d84314fe806810dcd51182fed5f39fcedc8e97fafe16f9c46d",
+  "files": [
+    {
+      "path": "DISCLAIMER.md",
+      "sha256": "7185fba76db525ad2d9a5f0588c4d5f793eb9177125dea210290187dd0314df9",
+      "size": 6566
+    },
+    {
+      "path": "INSTALL.md",
+      "sha256": "1d5f8c221ef737f4085daa6258be0c16f282666608e4a75d80b7381f44540dc0",
+      "size": 31956
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
+    },
+    {
+      "path": "PRIVACY.md",
+      "sha256": "a4f7cc8ade2223b7fbc1b3679b69d840429014a4951d96f17c1fe5ce2afbc191",
+      "size": 829
+    },
+    {
+      "path": "QUICKSTART.md",
+      "sha256": "e30a549a1603589a7a9c07273ad5b10a28e0c53198ed2db203ccb7e7b9b2eafa",
+      "size": 6209
+    },
+    {
+      "path": "SECURITY.md",
+      "sha256": "f155eb969588de6fc7e77952f52e5d00c6466dfd8c2d980a480cbdc522c0d22b",
+      "size": 2545
+    },
+    {
+      "path": "TERMS.md",
+      "sha256": "b2289e08a53bdcfd57a8de6864926b8b83db27c601343a2df36b6b029fc0aad6",
+      "size": 152728
+    },
+    {
+      "path": "boosthis",
+      "sha256": "226d61e85127673926040c5559afbece9b760d2501a569cf982d1b295b9e9209",
+      "size": 2359
+    },
+    {
+      "path": "lib/boosthis-checklist/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
+    },
+    {
+      "path": "lib/boosthis-checklist/README.md",
+      "sha256": "6b13cd8ae9dd210adaa06de94038f9f125a0168cdb81dd8436ab823f4f15403e",
+      "size": 2778
+    },
+    {
+      "path": "lib/boosthis-checklist/dist/index.d.ts",
+      "sha256": "dfd46df9856c0e59153561b6fd84bb5cdd51e11d2c4f89993beccd5b6551f8b7",
+      "size": 2246
+    },
+    {
+      "path": "lib/boosthis-checklist/dist/index.d.ts.map",
+      "sha256": "8f25e063663ac832d2687053c5937c8a54fe1900f05f111e33e17bb669c75439",
+      "size": 724
+    },
+    {
+      "path": "lib/boosthis-checklist/dist/index.js",
+      "sha256": "da876a58d866b209bc25ad7d54bce18f57019ef2e204b6825503cb0379da24a1",
+      "size": 101825
+    },
+    {
+      "path": "lib/boosthis-checklist/package.json",
+      "sha256": "db78fe62319a813cfafde06f68a0a48d86714b6ccb48bf57301e8bc53ddbaf99",
+      "size": 421
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/README.md",
+      "sha256": "ec346afae28c8c886e6ebdad08a2a94953ca96701616a333a4f66f9016151e5c",
+      "size": 34987
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/cli/init.js",
+      "sha256": "094ae30a989da14ed1bec03a3f289841dbd95330d647b55d1b8def1af01605af",
+      "size": 39768
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/package.json",
+      "sha256": "34423d852652614e2563829c6168c6d81be321ccef9cad775a0133aa13a9511b",
+      "size": 1031
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/BoosthisNavigationObserver.tsx",
+      "sha256": "1274ecd5738af70546ccf1151fdbdd584ebab3ebcc176b160989c4be0a7a9e59",
+      "size": 4696
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/BoosthisProfiler.tsx",
+      "sha256": "34c8840a49624c758fa45cabec0e367c3fe978e9058a2eb8605c40607e5876f6",
+      "size": 3308
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/activationNotice.ts",
+      "sha256": "0bbf542d25ff9f485d2991f70fabadf6001a394610cb72584c03982e0213350a",
+      "size": 9952
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/aiCalls.ts",
+      "sha256": "250b05cbb8f1ce2f5f564bb0b769b805f0818a211540cbfb18b183b73cc4656c",
+      "size": 10598
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/aiProviders.ts",
+      "sha256": "49c93f920d981091e5217c627b9a18b8150467952e7a12325cb90d1f4cfc71c4",
+      "size": 5855
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/apiPath.ts",
+      "sha256": "8601ce8afb0cdcc0aadcb2d82e508ec5bb120b75f752266de7e3254a3e462c5f",
+      "size": 3605
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/appVersionFacts.ts",
+      "sha256": "79947b0bc330ecf4ee526bd0830043c40fb51dee08bc93fd4296be599f79bf3d",
+      "size": 4632
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/axisReasons.ts",
+      "sha256": "e77c08884d64ddcc89c171f2356927c314b38a641081912f36dc200128646f27",
+      "size": 1439
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/axisScoring.ts",
+      "sha256": "262a67a9e37a4fdb6235dd3c74c7018f1fc3bdfa1fe90dcb19dbfe4cb3e8f7b7",
+      "size": 5402
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/backgroundSpans.ts",
+      "sha256": "0f090827d181694605b19b413c4a6ae0ba5369118fbf539df64a61b8ffc9be8c",
+      "size": 7739
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/backgroundWork.ts",
+      "sha256": "7dc9e394fc48a6d80a4ab8a1fefdd2a5be0993f969a7ca2f44236ce904e368dc",
+      "size": 6590
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/bridgeTraffic.ts",
+      "sha256": "023f25499c61a7f78f2c5bd46480dbd04fefd28e3079c5a789362baa769226d5",
+      "size": 12561
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/bubbleVisibility.ts",
+      "sha256": "0d16f44e259a7761aaca332c012cd8c20e001b0234e9a9caeff7db47231ba309",
+      "size": 2513
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/buildIdentity.ts",
+      "sha256": "ada82b53d1557f41f97e1d1c531218ebf1bb634fe8076c6b387091163a045967",
+      "size": 6303
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/candidateRules.ts",
+      "sha256": "48566b3ec4e59fbe0e9819a0e6fbe5454903ec004f56ddcb80525b953081fc96",
+      "size": 17595
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/circuitMap.ts",
+      "sha256": "7d2ddc392db5ca368cfbd729b3323c795b23ff858ccf1985ceddaa74c1ba017b",
+      "size": 33536
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/circuitMapLayout.ts",
+      "sha256": "8be619386f37a738e31337ab87c0be80fb3f54fd72a49c6ba0505e7ba42577f0",
+      "size": 17827
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/community.ts",
+      "sha256": "f915e2de988609900f4381e56957b8b655f61018c6bf08fc3cd8adb6db186331",
+      "size": 11491
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/controlCensus.ts",
+      "sha256": "83b8da204585b995ac830f41d1296d3647407efdb6e9767208a73731e4027500",
+      "size": 5949
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/coverageInventory.ts",
+      "sha256": "de44bb10f42e7ba8ab0521d6881fcb79530825930ba8e8732f7762788031ac2c",
+      "size": 9661
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/crashReporter.ts",
+      "sha256": "62ea0bfad68b4c1e146c003bda57b5fb778bc939c70d4bbb1c93ec0c6741e1ce",
+      "size": 28012
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/devPosture.ts",
+      "sha256": "ec95bad32009d53a012baa1f2d44cba0978e7f2eff1a5ccc69a91fe5a9ad7848",
+      "size": 9450
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/deviceFacts.ts",
+      "sha256": "1f7dd8c26d175fe6a9a19167e6be510c7e9332c9d5073138b635bd70c8e8b4ff",
+      "size": 16873
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/deviceTier.ts",
+      "sha256": "2e5c2d23864b47523d5295bc3c0bbbd73fb3da0ef0d3cc140a03d6728899e6f2",
+      "size": 2268
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/fetch.ts",
+      "sha256": "4b748fae77af83325ec18213abb277df9c2db9a860a7781c5c58ad274f36ec5b",
+      "size": 20631
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/globals.d.ts",
+      "sha256": "8325891c63cab429245a4c5e25ebf9bccfc2fbc43f52206671f508dac5802913",
+      "size": 756
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hermesAxes.ts",
+      "sha256": "85ed7c3c69db90cc3ebcc8b560bda985aa7bbaa4a14a6c89cb6d5b74dbda1e1d",
+      "size": 19866
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hooks/useBoosthis.ts",
+      "sha256": "023649727cb18c73f41ad3927b43eb38f05668eb59a721a5b04588ec36163eb2",
+      "size": 9668
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hooks/useEntitlement.ts",
+      "sha256": "b1c3ac72577d5458e851679bba59b53eadb03b88edd599e7a071a306ace28ef4",
+      "size": 3476
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hooks/useFidSampler.ts",
+      "sha256": "aaced63bad340aa781107cb2a1b2970d76c194b87e3f0708ba95d05466a854e3",
+      "size": 14213
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hooks/useLongSessionDiagnostic.ts",
+      "sha256": "c4950c3f03a6713f8ccd4d815229ca509a03d624ecc08f47bc1172fb901276b5",
+      "size": 1122
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hooks/useRenderGuard.ts",
+      "sha256": "d38537e9fdcdb887e92e0e94d93265a10ef0f2edd84f817c130177a2391e0de8",
+      "size": 2519
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/hooks/useScrollHealth.ts",
+      "sha256": "4bb426ea85cb7a8a27e2c0cdf490fe6c9b6c3ca6ad2f857fcb42a7cdffaf17fa",
+      "size": 2841
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/imageWeight.ts",
+      "sha256": "f481f76b6fa74e3441963722bac928ab6ac956e075c5fbfe4296fb342ac2a10c",
+      "size": 23103
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/index.ts",
+      "sha256": "76c4338930b247d3349432cbb7d7d209a6f2bd6e01075cb2f8196987fb7515ce",
+      "size": 23812
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/installIdentity.ts",
+      "sha256": "ceba0f1fc9ed8dd6ddae2761f3787888d73976d35a13f804cded53934e089e0c",
+      "size": 6972
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/integrationKit.ts",
+      "sha256": "7a14ba0b6bf419a5b12bbda597179a76985948808a642c102e96fa0948015576",
+      "size": 3271
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/jobReporter.ts",
+      "sha256": "322a24c4f6b75733592e32d6604cbdb31b63aae82b9406ca589342fc75d8ac74",
+      "size": 23718
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/jsStartup.ts",
+      "sha256": "83e0f7b8e10888584437a92644d31a229bc53fef652ff498c79b49190422743f",
+      "size": 13065
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/killSwitch.ts",
+      "sha256": "58b9e414af5506adf1fa566c7043c8070bbe0b45e05e14dcd6ab6944972d915f",
+      "size": 67760
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/kitOwnedCall.ts",
+      "sha256": "610b2342c3953b46f01417f45bf11e6693535129a5fdea6b54123cf871886193",
+      "size": 2717
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/leakWatch.ts",
+      "sha256": "dafb09ea30331466e7dbb3710d9e44c233259231a68eec9e3046ea81fb5b513e",
+      "size": 18712
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/lifecycleAxes.ts",
+      "sha256": "f25403d1956846577cb2edcc3659f57381ca326990516f8b96f0a52a1da0228f",
+      "size": 35599
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/liveConnections.ts",
+      "sha256": "7a3dbd9b87cd8aa9dd9fd39a8615ff450074693a3cbbfb10aae161372848b3b1",
+      "size": 28741
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/liveData.ts",
+      "sha256": "fdd852ac05b0501a806cddbebe80e997c714dceafcfb9b7f37087894c22ee0b6",
+      "size": 31234
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/mcp-config.ts",
+      "sha256": "50bb159192a8ec4ab7390c5171fb15ecdd73819d9145d7ba2d371ecaf4d8be58",
+      "size": 2300
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/mcp-stdio.ts",
+      "sha256": "b86d2a517edae9703708b7e99674c8c19e9d807afdc89d5747af6d62636fe2aa",
+      "size": 5687
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/mcp.ts",
+      "sha256": "94fb3dc1e450f31beb64277db1d93c6d23e1651e57d47df55b87d183d8c5b9fb",
+      "size": 68926
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/memoryWarnings.ts",
+      "sha256": "a2ff11013c946e8d243eeb9c46a5328773829e2a6118c636c164134a929df149",
+      "size": 10572
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/meterAxes.ts",
+      "sha256": "b9c3592ae6ec7d10eef057629b4976b8d4459a3c9b89ec6ef0a6ec0f0d2fd10d",
+      "size": 100372
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/mountCensus.ts",
+      "sha256": "0c228113edeca8d0be5fe969736aef4bd28b43964fa0a70c142f930fcec9099b",
+      "size": 21761
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/navContainerDetect.ts",
+      "sha256": "019d465b149f3ec1b2aca726e0bc97475b3ac523fef21135d7f4f4318677ea6b",
+      "size": 11135
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/navDeadTime.ts",
+      "sha256": "0f10abe4fb10bb14ba007a170dae45e004f4957b491d0b80e74d985dd5180a71",
+      "size": 19644
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/navObserver.ts",
+      "sha256": "844d21b86b332b8b6a35a0860551f1ff625b27a2f13fedc43634dbca17eb02b4",
+      "size": 13472
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/networkAutoWrap.ts",
+      "sha256": "e348a8d018e82d528c0eec60443d652cf9823ddbccc6a29e91f6497a022055c5",
+      "size": 36572
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/networkSampler.ts",
+      "sha256": "10aafaeace07b15cec09bebacd63cf7e1943fa52d2598f6b214a9362d79afcbd",
+      "size": 17954
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/networkSelfTest.ts",
+      "sha256": "28369db190da01b50d7970f0ead51a44b2bd0183f41d614397975a42ee2940bb",
+      "size": 9275
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/no-pii.ts",
+      "sha256": "6eb137f20aa70e82d6ba3fad6af118698679b65488fd891cb2d166cdd559b7d2",
+      "size": 17602
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/pageMap.ts",
+      "sha256": "9bd13ae4de42235d0fe4ba8ec759c0d597ad0d30c2c4db588d670ea019b5785f",
+      "size": 18946
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/pageMapWire.ts",
+      "sha256": "38501d5b45cef08ea9d0e9a7db8ccc8f4754ce5b54beb0ff194c4b720fa72859",
+      "size": 6900
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/partName.ts",
+      "sha256": "6602737d31ed78b39bab9e3a5b5bf369703ab043b01ee57f8e7c715d5f7d02b9",
+      "size": 4604
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfBoot.ts",
+      "sha256": "db1391148882f4a9329a297eaed23edeb9c3d5d2e9a746b05cf979d823284ae4",
+      "size": 14427
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfDiagnose.ts",
+      "sha256": "8f622d83d0d51eacb590ee70f611e518286f54dcdbd584ce6b97b557383f4eef",
+      "size": 47308
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfMonitor.ts",
+      "sha256": "4d27ddcce1624dd205631fbd32c912e56bb2aedc7387d2d0b2aed5a5f4e4eae0",
+      "size": 57264
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfNovelDetectors.ts",
+      "sha256": "8b32ff04598216f79aeed1a464615ad7c359f35e3ce896df7a15ef98632a33d9",
+      "size": 23065
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfPlatform.ts",
+      "sha256": "2cdfb8fa6966f56e1d27d88eaa7075968033270a2d165bed9070703f16cc7782",
+      "size": 10611
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfProdSampler.ts",
+      "sha256": "7b0626b271178d90838e9446ca1e7e30508ff572cb6dc42557fa32ce3d7da657",
+      "size": 9700
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfSnapshotUpload.ts",
+      "sha256": "d1b04bba95d48b8b2f857a1aeb0a96123ae9ac90d40841a441d8281bf95b5874",
+      "size": 23425
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/perfSnapshots.ts",
+      "sha256": "7ae69f26692b7a22348910eaf16dbb88005809f8bf8d1e897d6d293dbf6e73a2",
+      "size": 15434
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/problemKinds.ts",
+      "sha256": "25877d5f39fbc06e7d0c978ac742b83a1154d84fbc4803bf37eae349e9c49ef0",
+      "size": 3094
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/projectIdentity.ts",
+      "sha256": "febb267b13f127eabc594691730f5fff72535b2c41fb42d97ac054b5f978f283",
+      "size": 3759
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/projectKey.ts",
+      "sha256": "a4e416348afe926959459e928c7d5677e02f30e9a808fdda7c4f9c73fa5a8dee",
+      "size": 9814
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/proposeRule.ts",
+      "sha256": "cdeb2689812500e58c8c21fa8a0e5f042e41b7d1f8de078866f1cea73b272075",
+      "size": 8573
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/rateHonesty.ts",
+      "sha256": "a4b91eb81b37dd07518e086fea3abbeb5f41208447c28a20baf15e766bb68ecd",
+      "size": 7569
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/reRenders.ts",
+      "sha256": "6d9ac02527383996863c2b134515e93f65dc8f3ca6e8eff96dcafda4c6aa4867",
+      "size": 10075
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/reachTag.ts",
+      "sha256": "fb695ad85ad50039ea3fc97708a3c36092727f87b6ca58c46701844645dd5ef0",
+      "size": 3337
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/registration.ts",
+      "sha256": "dbd00c63d94af1502f137887ab58f48a42b04408ee1bac7e85cb6c6b380c090b",
+      "size": 9121
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/rejectionPressure.ts",
+      "sha256": "617ad725b8aa3124feee58e9cce8e6ec4edbd9564f9f2eb1211157f611555075",
+      "size": 1843
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/renderProfiler.ts",
+      "sha256": "4502c203e5d40484f505a53fc40b4d9e7e42c278aa82409aa583086f43928e26",
+      "size": 7709
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/reportingCadence.ts",
+      "sha256": "e253fd1d8b62c9f1a3def929d6c10d8d29360d7e7ebc94258ef69b3529c827f7",
+      "size": 944
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/routeInventory.ts",
+      "sha256": "978db17b2f781ec0ad6e54985e04562bec63dcb73a74d1f115d8449ef1280818",
+      "size": 13457
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/runtimeFlags.ts",
+      "sha256": "54f7a0b3038e205c5addff598d492c4e126fddd7e55cf801619886b52f3f7400",
+      "size": 3079
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/safe.ts",
+      "sha256": "85c44040acd2547917ceb57324b957aa5d2d2f62ef09c33ea9e6e03c325cf402",
+      "size": 2972
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/scheduledJobs.ts",
+      "sha256": "c3b8a16b7da2ba1cccb4a90c17b9353874bdb92ec46c391d4c6d47ccc6b0bfd5",
+      "size": 11172
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/screenAttribution.ts",
+      "sha256": "056081cd6991376bc42b1e597617f8f2b75e26a9ec759b885c495a730ddc9089",
+      "size": 3213
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/screenAutoReading.ts",
+      "sha256": "007ff3ac496bbf6d8066d37d34a11728a537ac868e318559d82d0671349078c3",
+      "size": 12935
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/screenCircuit.ts",
+      "sha256": "d0f64c3f1388871dd1402d739cadf1744979df3f4f3c5cd506cdab62e3d5a6eb",
+      "size": 33221
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/scrollSampler.ts",
+      "sha256": "78a4aa65bff782428886b03cb8e868c92d0de4f2ea7a8f377e60a3e2463628e5",
+      "size": 5343
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/spanEmitter.ts",
+      "sha256": "42a30f032a8f9ed28f1ff98517501104cb49d604fe56a8261efffe689b827b44",
+      "size": 18911
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/spanScope.ts",
+      "sha256": "8fbf927dd4d6dd976ede7d1cdafc7a79616bbc42a4dd46428451dce4e361d042",
+      "size": 9878
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/spanWork.ts",
+      "sha256": "78f8e7ac46044d61aa3775cd0c3a0f38724a25c809689c22797a18b7167e9f43",
+      "size": 2986
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/startAnnounce.ts",
+      "sha256": "c97eb73dcf957a0706e14d0273ca1ad722fcd4f2d6f9b48e56aa284edf4779ad",
+      "size": 11201
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/storageLatency.ts",
+      "sha256": "78861f3302056de8f538f2675f35048456b749afa1f9f2b07649f10daa5a98b8",
+      "size": 12010
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/swallowedErrors.ts",
+      "sha256": "35e7c50ce02a7a802a3f17f2447623f3c2261325ce20ae7a3ca102346ccc8b1c",
+      "size": 14473
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/symptomHints.ts",
+      "sha256": "7fa7be97cba9ebbed9e359e82e9ae82d21097b04d0403e26051c07cf22d13a5d",
+      "size": 5193
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/telemetry.ts",
+      "sha256": "47157d39065684334fe7ff8ac685a19f5b9913728f42946187f46f303eafd123",
+      "size": 157958
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/thresholds.ts",
+      "sha256": "6e444b894079b9fdc8b757d77956b7fdbe36c36b85e1b4e71395658f335040be",
+      "size": 1046
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/timerHealth.ts",
+      "sha256": "7a75d78cf1198d6d0036903210605ac2d0dfae639d477a5a44de57e07a728d84",
+      "size": 27345
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/trace.ts",
+      "sha256": "9741207c6af4bb4cebb0ebdd3d94290db3946859e53e579ec3111be661f55a90",
+      "size": 5753
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/tracePropagation.ts",
+      "sha256": "50ef8b28459082ff9a94917cb5a6f6d546de210dd1d9fac958b9de8211baf365",
+      "size": 12700
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/transmit.ts",
+      "sha256": "b3ea44d47d0097af69cba3093e8b9e02cf62b824a41c6f90d2d5aeb8ed236b5a",
+      "size": 10223
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/transportError.ts",
+      "sha256": "62bffe135038d593ab769c4a8d63412ddecfc439338d0f97f9db5e1565b3da04",
+      "size": 6032
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisAccountCard.tsx",
+      "sha256": "d7fdbf2919e66909f7b208b44c6598fb23826443555214bfe88a22e9280dddc3",
+      "size": 34608
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisDashboard.tsx",
+      "sha256": "1d2c68a8a38eb8b2213c1c541a0de1f606615fb2b17f260f1f3f4a7bcec1711a",
+      "size": 44918
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisEnginePanel.tsx",
+      "sha256": "e9098371c863e8362190bcc407ef195d167d74e3ef5da6ef45989a9d7c358d1c",
+      "size": 134385
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisErrorBoundary.tsx",
+      "sha256": "bbea834be02bbe1c4de30a2bd5f33d3820c09fd847cbfe7ffe9cd7212f558109",
+      "size": 5767
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisFatalFallback.tsx",
+      "sha256": "475b1d6e164656c4c8560dc3b650dc8a2f3a82627e0e64f082b6752fa7195d42",
+      "size": 6866
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisLauncher.tsx",
+      "sha256": "d193d607156e816bfd692f148bcccfe65bb1f4ffe510ad3b6a6c50f3e1b6b9c3",
+      "size": 16749
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisSpinner.tsx",
+      "sha256": "dbe04140dbc30827dde282d90f039cca9dcad6c66675a5a16e043775d6b3beb1",
+      "size": 3274
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/BoosthisTermsGate.tsx",
+      "sha256": "414c269b037fc277183647fdbf0f43800d89b7bd762d137170863c48290c87de",
+      "size": 9875
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/account.ts",
+      "sha256": "fbe14d7274c87c824d25e37b514ae38e7f0dc85d1746c86d876643a4706f484c",
+      "size": 30092
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/brandIcon.ts",
+      "sha256": "083ad1b87d4e0ca402008f71a5004d4bb7a4778eaaa1c1efb25a86acce1ccf89",
+      "size": 44919
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/consent.ts",
+      "sha256": "14de0e279b9bf7f75410687f40510eb09ece33644eec644b6bb89c1892d3a70e",
+      "size": 4081
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/ui/theme.ts",
+      "sha256": "ea9546fad3642bcb7f95ec7ad4fe4fb3ecdd0ed50022514b44bbf0642374d58c",
+      "size": 3394
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/unhandledErrors.ts",
+      "sha256": "423cf59e2c39312bab5d2f17e24f4e45b633240efe80d7e6a152791af997e13c",
+      "size": 18467
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/upstreamCache.ts",
+      "sha256": "ad9815b550d075780c49b7e59f1882d6178f0fd61982992c313542ff0e2669c8",
+      "size": 4547
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/watchHistory.ts",
+      "sha256": "b2daf31251b875e79f7c47bed0a13173bab8476fc2233c89fdd8ef3ef508f849",
+      "size": 20690
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/watchableSurfaces.ts",
+      "sha256": "a329c4732ec2028923e91c9421788bec6ae6d1be59efbf7d58b04b800b75b933",
+      "size": 1236
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/src/wrapperChain.ts",
+      "sha256": "5fcbd7fdbea55135bb3f7887484cdb9172a52b920a3b286b77a71ace37b0a317",
+      "size": 4675
+    },
+    {
+      "path": "lib/boosthis-runtime-rn/tsconfig.json",
+      "sha256": "e670c1eec551620a7963a63e371f92760f9ae017e8a406df709e8ab8eb0ee515",
+      "size": 298
+    }
+  ]
+}

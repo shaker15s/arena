@@ -6,7 +6,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@workspace/boosthis-runtime-rn": ["./lib/boosthis-runtime-rn/src/index.ts"],
+      "boosthis-checklist": ["./lib/boosthis-checklist/dist/index.d.ts"]
+    }
   },
   "include": ["src", "index.js"],
   "exclude": ["node_modules", "dist", ".expo"]

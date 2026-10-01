@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0-alpha.246",
+  "ingest": {
+    "url": "",
+    "token": "",
+    "inviteKey": "bk_8b5410bc33b97b58c5d1731668e027516c144499cd1de461a1dfefeb6f24d771",
+    "projectKeys": {
+      "rn": "bk_8b5410bc33b97b58c5d1731668e027516c144499cd1de461a1dfefeb6f24d771"
+    }
+  },
+  "budgets": {
+    "screenP75Ms": 500,
+    "coldStartP75Ms": 2000,
+    "scoreFloor": 60,
+    "perceptionFloor": 70
+  },
+  "sampling": {
+    "prodSamplePercent": 5,
+    "maxSamplesPerHour": 600
+  }
+}

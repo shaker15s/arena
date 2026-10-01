@@ -15,3 +15,6 @@ metro-cache/
 # scope). The authoritative copy lives in ci/github-actions-ci.yml — copy it to
 # .github/workflows/ci.yml locally to activate CI.
 .github/workflows/
+
+# SDD scratch (progress ledger, task briefs) — local only
+.superpowers/
