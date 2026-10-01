@@ -590,7 +590,11 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
                     </View>
                   </Row>
                   <Spacer size={spacing.s3} />
-                  <Btn title={t('course.goToJourney')} variant="secondary" icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
+                  <Row gap={spacing.s2}>
+                    <Btn title={t('course.goToJourney')} variant="secondary" icon="map" onPress={() => navigation.navigate('Tabs', { tab: 'journey' })} />
+                    {/* خطة الإصلاح D5 — تقرير الكورس التفصيلي للطالب */}
+                    <Btn title={t('report.courseTitle')} variant="secondary" icon="document-text" onPress={() => navigation.navigate('CourseReport', { courseId: course.id })} />
+                  </Row>
                 </Card>
               ) : null}
 

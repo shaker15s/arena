@@ -33,6 +33,7 @@ const REASON_ICONS: Record<PointReason, { icon: keyof typeof Ionicons.glyphMap; 
   'course.complete': { icon: 'trophy', key: 'course.complete' },
   kudos: { icon: 'heart', key: 'kudos' },
   rating: { icon: 'star', key: 'rating' },
+  'session.feedback': { icon: 'chatbubble-ellipses', key: 'session.feedback' },
   'month.bonus': { icon: 'calendar', key: 'month.bonus' },
   'admin.grant': { icon: 'gift', key: 'admin.grant' },
 };

@@ -551,6 +551,9 @@ export const typography = {
   caption: { fontSize: 13, lineHeight: 20, fontFamily: fonts.medium },
   micro: { fontSize: 11, lineHeight: 17, fontFamily: fonts.medium },
   numberHero: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
+  // DS-v2 (خطة الإصلاح 2026-10-01): أرقام بطاقات KPI — أصغر من numberHero
+  // ولها الوزن نفسه — تُستخدم في التقارير ومركز الإحصائيات (tabular-nums).
+  numberCard: { fontSize: 18, lineHeight: 24, fontFamily: fonts.semibold },
 } as const;
 
 /** سلّم التايبوغرافيا القياسي مع ربط lineHeight ≥ 1.45 للعربية (DESIGN 1.4) */

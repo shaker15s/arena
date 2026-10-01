@@ -361,6 +361,148 @@ export async function submitCourseRating(input: { courseId: string; stars: numbe
   });
 }
 
+// ───────── التغذية الراجعة والتقارير (خطة الإصلاح 2026-10-01 — D4/D5/D6) ─────────
+
+export interface SubmitFeedbackInput {
+  sessionId: string;
+  understanding: number;
+  pace: number;
+  clarity: number;
+  sentiment: 'excited' | 'clear' | 'confused' | 'tired';
+  comment?: string;
+  praiseInstructor?: boolean;
+  topicsOk?: string[];
+  topicsHard?: string[];
+}
+
+export interface SubmitFeedbackResult {
+  ok: boolean;
+  already: boolean;
+  points: number;
+  full_day: boolean;
+}
+
+/** تغذية راجعة بعد كل محاضرة — مرة واحدة لكل محاضرة، تعديل خلال 24 ساعة. */
+export async function submitSessionFeedback(input: SubmitFeedbackInput): Promise<SubmitFeedbackResult> {
+  return rpc('submit_session_feedback', {
+    p_session_id: input.sessionId,
+    p_understanding: input.understanding,
+    p_pace: input.pace,
+    p_clarity: input.clarity,
+    p_sentiment: input.sentiment,
+    p_comment: input.comment ?? null,
+    p_praise_instructor: input.praiseInstructor ?? false,
+    p_topics_ok: input.topicsOk ?? [],
+    p_topics_hard: input.topicsHard ?? [],
+  });
+}
+
+export interface LectureReportResult {
+  viewer: 'student' | 'manager';
+  session: {
+    id: string; title: string; seq: number; starts_at: string; duration_min: number;
+    status: string; batch_id: string; course_title: string; course_id: string;
+  };
+  content: { objectives: string[]; topics: string[]; summary: string; resources: unknown[] };
+  student?: {
+    attendance: string; checked_in_at: string | null; points: number;
+    has_feedback: boolean;
+    feedback: {
+      understanding: number; pace: number; clarity: number; sentiment: string;
+      comment: string; created_at: string; editable_until: string;
+    } | null;
+  };
+  report?: { done: string };
+  manager?: {
+    expected: number; present: number; late: number; absent: number; excused: number;
+    feedback_count: number;
+    avg_understanding: number; avg_pace: number; avg_clarity: number;
+    sentiments: Record<string, number>;
+    topics_hard: string[];
+    comments: Array<{ comment: string; sentiment: string; created_at: string }>;
+    praise_count: number;
+    report: unknown;
+  };
+}
+
+/** تقرير المحاضرة: للطالب (حضوري/نقاطي/تغذيتي) وللمنظّم (KPIs + تجميعات مجهولة). */
+export async function getLectureReport(sessionId: string): Promise<LectureReportResult> {
+  return rpc('get_lecture_report', { p_session_id: sessionId });
+}
+
+export interface CourseReportResult {
+  course: { id: string; title: string; field: string; status: string; sessions_count: number };
+  student?: {
+    batches: Array<{ batch_id: string; room: string; status: string }>;
+    sessions_total: number; attended: number; late: number; absent: number; excused: number;
+    feedback_given: number; avg_understanding: number;
+    topics_ok: string[]; topics_hard: string[]; points: number;
+    certificates: Array<{ serial: string; status: string; issued_at: string }>;
+    course_rating: { stars: number; comment: string | null } | null;
+  };
+  manager?: {
+    batches: Array<{
+      batch_id: string; room: string; status: string; enrolled: number;
+      attendance_pct: number; avg_satisfaction: number; sessions: number; missing_reports: number;
+    }>;
+    avg_rating: number; ratings_count: number;
+  };
+}
+
+/** تقرير الكورس التفصيلي: للطالب (إتقان/حضور/نقاط) وللمنظّم (دفعات/رضا/تقارير). */
+export async function getCourseReport(courseId: string, userId?: string | null): Promise<CourseReportResult> {
+  return rpc('get_course_report', { p_course_id: courseId, p_user_id: userId ?? null });
+}
+
+export interface StatsCenterResult {
+  scope: 'org' | 'mine';
+  learning: {
+    sessions_closed: number; feedback_count: number;
+    avg_understanding: number; avg_pace: number; avg_clarity: number;
+    avg_course_rating: number;
+  };
+  attendance: { total_marks: number; present: number; late: number; absent: number; excused: number };
+  ops: {
+    sessions_today: number; sessions_this_week: number; live_now: number;
+    missing_reports: number; needs_attention: number;
+  };
+  categories: Record<string, number>;
+  quality: {
+    open_support: number; client_errors_7d: number; ratings_count: number; avg_rating: number;
+  };
+}
+
+/** مركز الإحصائيات — المنظّمون (نطاقهم) والمشرفون/الأدمن (المؤسسة كاملة). */
+export async function getStatsCenter(): Promise<StatsCenterResult> {
+  return rpc('get_stats_center', {});
+}
+
+/** حفظ محتوى المحاضرة (أهداف/محاور/ملخص/موارد) — للمنظّمين. */
+export async function saveSessionContent(input: {
+  sessionId: string;
+  objectives?: string[];
+  topics?: string[];
+  summary?: string;
+  resources?: Array<{ title: string; url: string; kind?: string }>;
+}): Promise<void> {
+  await rpc('save_session_content', {
+    p_session_id: input.sessionId,
+    p_objectives: input.objectives ?? [],
+    p_topics: input.topics ?? [],
+    p_summary: input.summary ?? '',
+    p_resources: input.resources ?? [],
+  });
+}
+
+/** إنشاء وحدة تعليمية داخل الكورس. */
+export async function createCourseModule(courseId: string, title: string): Promise<string> {
+  const result = await rpc<{ ok: boolean; id: string }>('create_course_module', {
+    p_course_id: courseId,
+    p_title: title,
+  });
+  return result.id;
+}
+
 export async function awardKudos(input: {
   studentId: string;
   batchId: string;

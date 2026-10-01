@@ -32,10 +32,12 @@ import { matchesSearch } from '../../shared/search';
 import { enterFullscreen, exitFullscreen, useWakeLock } from '../../shared/kiosk';
 import { TrainingSession } from '../../data/types';
 import { Icon } from '../../design/icons';
+import { useNavigation } from '@react-navigation/native';
 
 export function LiveSessionScreen() {
   const { t, lang } = useI18n();
   const { theme, isDark } = useTheme();
+  const nav = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
   const [starting, setStarting] = useState(false);
@@ -170,13 +172,21 @@ export function LiveSessionScreen() {
                 </View>
               </Row>
               {closedSessionReport ? (
-                <View style={{ marginTop: 12 }}>
+                <View style={{ marginTop: 12, gap: spacing.s2 }}>
                   <Btn
                     title={t('live.viewReport')}
                     variant="primary"
                     icon="document-text"
                     full
                     onPress={() => setReportStep(true)}
+                  />
+                  {/* خطة الإصلاح D5 — تقرير التغذية الراجعة (تجميعات مجهولة) */}
+                  <Btn
+                    title={t('report.satisfaction')}
+                    variant="secondary"
+                    icon="chatbubble-ellipses"
+                    full
+                    onPress={() => nav.navigate('LectureReport', { sessionId: closedSessionReport.session.id })}
                   />
                 </View>
               ) : null}

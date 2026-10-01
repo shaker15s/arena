@@ -2,9 +2,10 @@
 // npx tsc -p tsconfig.test.json && node .test-build/scripts/engine.test.js
 import {
   attendanceOf, backupCodeOf, balanceOf, currentQrToken, evaluateBadges, evaluateStreakWeek,
-  gamifOf, isBatchComplete, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
+  fullDayCompleted, feedbackOf, gamifOf, isBatchComplete, issuanceTable, lectureReportFor,
+  lookupCertificate, pendingFeedbackFor, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
-  rpcStartSession, rpcSubmitExcuse, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
+  rpcStartSession, rpcSubmitExcuse, rpcSubmitSessionFeedback, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
 } from '../src/data/engine';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
@@ -232,6 +233,61 @@ const MIN = 60_000;
   ok(live0.status === 'closed', 'ذهبي: المدرب يقفل الجلسة');
   ok(i1.issued.length > 0, 'ذهبي: إصدار شهادة للمستحق');
   ok(!!lookupCertificate(db, reis.serial!), 'ذهبي: التحقق العام من الشهادة');
+
+  // ═ 12) التغذية الراجعة بعد كل محاضرة (خطة الإصلاح D4 — مرآة 0035) ═
+  console.log('\n═ 12) التغذية الراجعة بعد كل محاضرة ═');
+  // كريم حضر s_g2_2 (حاضر) وداخل نافذة الـ48 ساعة — بلا تغذيث بعد
+  const pendingK = pendingFeedbackFor(db, 'u_karim');
+  ok(pendingK.some((s) => s.id === 's_g2_2'), 'pendingFeedbackFor: المحاضرة المضافة تنتظر التغذية', pendingK.map((s) => s.id));
+  ok(!feedbackOf(db, 's_g2_2', 'u_karim'), 'لا توجد تغذية قبل الإرسال');
+
+  const balK = balanceOf(db, 'u_karim');
+  const fb1 = rpcSubmitSessionFeedback(db, 'u_karim', {
+    sessionId: 's_g2_2', understanding: 4, pace: 5, clarity: 4,
+    sentiment: 'clear', comment: 'محاضرة واضحة', praiseInstructor: true,
+    topicsOk: ['المتغيرات'], topicsHard: ['الشروط'],
+  });
+  ok(fb1.ok && !fb1.already && fb1.points === 5, 'إرسال التغذية ← نقاط points.feedback', fb1);
+  ok(balanceOf(db, 'u_karim') === balK + 5, 'دفتر النقاط انضاف 5 مرة واحدة');
+  ok(fullDayCompleted(db, 's_g2_2', 'u_karim'), '«اليوم الكامل» = حضور + تغذية راجعة');
+  ok(!pendingFeedbackFor(db, 'u_karim').some((s) => s.id === 's_g2_2'), 'خرجت من قائمة الانتظار');
+
+  const fb2 = rpcSubmitSessionFeedback(db, 'u_karim', {
+    sessionId: 's_g2_2', understanding: 5, pace: 5, clarity: 5, sentiment: 'excited',
+  });
+  ok(fb2.ok && fb2.already && fb2.points === 0, 'تعديل خلال 24 ساعة ← already بلا نقاط', fb2);
+  ok(balanceOf(db, 'u_karim') === balK + 5, 'التعديل لا يمنح نقاطً إضافية');
+
+  const fb3 = rpcSubmitSessionFeedback(db, 'u_nour', {
+    sessionId: 's_g2_2', understanding: 3, pace: 3, clarity: 3, sentiment: 'confused',
+  });
+  ok(!fb3.ok && fb3.error === 'editWindowClosed', 'بعد 24 ساعة ← editWindowClosed', fb3);
+
+  const fb4 = rpcSubmitSessionFeedback(db, 'u_omar', {
+    sessionId: 's_g2_2', understanding: 4, pace: 4, clarity: 4, sentiment: 'clear',
+  });
+  ok(!fb4.ok && fb4.error === 'notEnrolled', 'غير مسجّل في الدفعة ← notEnrolled', fb4);
+
+  const fb5 = rpcSubmitSessionFeedback(db, 'u_karim', {
+    sessionId: 's_g2_3', understanding: 4, pace: 4, clarity: 4, sentiment: 'clear',
+  });
+  ok(!fb5.ok && fb5.error === 'tooEarly', 'قبل بداية المحاضرة ← tooEarly', fb5);
+
+  const fb6 = rpcSubmitSessionFeedback(db, 'u_omar', {
+    sessionId: 's_g1_1', understanding: 4, pace: 4, clarity: 4, sentiment: 'clear',
+  });
+  ok(!fb6.ok && fb6.error === 'windowClosed', 'بعد 48 ساعة من النهاية ← windowClosed', fb6);
+
+  const fb7 = rpcSubmitSessionFeedback(db, 'u_karim', {
+    sessionId: 's_g2_2', understanding: 0, pace: 4, clarity: 4, sentiment: 'clear',
+  });
+  ok(!fb7.ok && fb7.error === 'invalidScores', 'درجات خارج 1–5 ← invalidScores', fb7);
+
+  // تقرير المحاضرة محليًا (مرآة get_lecture_report)
+  const rep = lectureReportFor(db, 's_g2_2', 'u_karim');
+  ok(rep !== null && rep.hasFeedback && rep.attendance === 'present', 'تقرير المحاضرة: حضور + تغذية', rep);
+  ok(rep !== null && rep.fullDay, 'تقرير المحاضرة: اليوم الكامل', rep?.fullDay);
+  ok(rep !== null && rep.topicsHard.includes('الشروط'), 'تقرير المحاضرة: المحاور المحتاجة توضيح', rep?.topicsHard);
 
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);

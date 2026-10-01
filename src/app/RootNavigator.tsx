@@ -91,6 +91,11 @@ const SessionsHistoryScreen = lazyScreen(() => import('../features/volunteer/Vol
 const SupportScreen = lazyScreen(() => import('../features/profile/ProfileScreens'), 'SupportScreen');
 const SettingsScreen = lazyScreen(() => import('../features/settings/SettingsScreen'), 'SettingsScreen');
 const DisputesScreen = lazyScreen(() => import('../features/disputes/DisputesScreen'), 'DisputesScreen');
+// خطة الإصلاح 2026-10-01 — D4/D5/D6: التغذية الراجعة، التقارير، الإحصائيات
+const LectureFeedbackScreen = lazyScreen(() => import('../features/feedback/FeedbackScreens'), 'LectureFeedbackScreen');
+const LectureReportScreen = lazyScreen(() => import('../features/reports/ReportsScreens'), 'LectureReportScreen');
+const CourseReportScreen = lazyScreen(() => import('../features/reports/ReportsScreens'), 'CourseReportScreen');
+const StatsCenterScreen = lazyScreen(() => import('../features/org/StatsCenterScreen'), 'StatsCenterScreen');
 
 // ─── سياق التبويبات الداخلية ───
 interface TabsCtx {
@@ -595,6 +600,9 @@ function StudentStack() {
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Disputes" component={DisputesScreen} />
+      <Stack.Screen name="LectureFeedback" component={LectureFeedbackScreen} />
+      <Stack.Screen name="LectureReport" component={LectureReportScreen} />
+      <Stack.Screen name="CourseReport" component={CourseReportScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
@@ -621,6 +629,10 @@ function VolunteerStack() {
       <Stack.Screen name="Disputes" component={DisputesScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
+      <Stack.Screen name="LectureFeedback" component={LectureFeedbackScreen} />
+      <Stack.Screen name="LectureReport" component={LectureReportScreen} />
+      <Stack.Screen name="CourseReport" component={CourseReportScreen} />
+      <Stack.Screen name="StatsCenter" component={StatsCenterScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
   );
@@ -648,6 +660,10 @@ function AdminStack() {
       <Stack.Screen name="Disputes" component={DisputesScreen} />
       <Stack.Screen name="Verify" component={VerifyScreen} />
       <Stack.Screen name="JoinBatch" component={JoinBatchScreen} />
+      <Stack.Screen name="LectureFeedback" component={LectureFeedbackScreen} />
+      <Stack.Screen name="LectureReport" component={LectureReportScreen} />
+      <Stack.Screen name="CourseReport" component={CourseReportScreen} />
+      <Stack.Screen name="StatsCenter" component={StatsCenterScreen} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} />
     </Stack.Navigator>
   );

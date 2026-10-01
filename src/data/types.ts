@@ -103,6 +103,8 @@ export type SessionStatus = 'scheduled' | 'live' | 'closed' | 'cancelled';
 export interface TrainingSession {
   id: string;
   batchId: string;
+  /** الوحدة التعليمية داخل الكورس (اختياري) — خطة الإصلاح §3 */
+  moduleId?: string | null;
   seq: number;
   title: string;
   startsAt: number;
@@ -151,6 +153,7 @@ export type PointReason =
   | 'course.complete'
   | 'kudos'
   | 'rating'
+  | 'session.feedback'
   | 'month.bonus'
   | 'admin.grant';
 
@@ -250,6 +253,61 @@ export interface CourseRating {
   createdAt: number;
 }
 
+/** وحدة تعليمية داخل الكورس — تجمع المحاضرات بمحاور (كورسيرا-style) */
+export interface CourseModule {
+  id: string;
+  courseId: string;
+  title: string;
+  seq: number;
+  createdAt: number;
+}
+
+/** مورد مرفق بمحتوى المحاضرة */
+export interface SessionResource {
+  title: string;
+  url: string;
+  kind?: 'link' | 'file' | 'video' | 'doc';
+}
+
+/** محتوى المحاضرة: أهداف التعلّم، المحاور، الملخص، الموارد */
+export interface SessionContent {
+  sessionId: string;
+  objectives: string[];
+  topics: string[];
+  summary: string;
+  resources: SessionResource[];
+  updatedAt: number;
+}
+
+export type FeedbackSentiment = 'excited' | 'clear' | 'confused' | 'tired';
+
+/**
+ * التغذية الراجعة بعد كل محاضرة (خطة الإصلاح D4).
+ * صف واحد لكل (طالب، محاضرة) — التعديل مسموح 24 ساعة، والتفاصيل
+ * لا تُكشف للمدرّمين (تجميعات مجهولة عبر get_lecture_report فقط).
+ */
+export interface SessionFeedback {
+  id: string;
+  sessionId: string;
+  userId: string;
+  /** الفهم 1–5 */
+  understanding: number;
+  /** سرعة الشرح 1–5 */
+  pace: number;
+  /** الوضوح 1–5 */
+  clarity: number;
+  sentiment: FeedbackSentiment;
+  comment: string;
+  /** «أعجبني المدرّب» — إطراء مجهول الهوية */
+  praiseInstructor: boolean;
+  /** المحاور المفهومة جيدًا */
+  topicsOk: string[];
+  /** المحاور التي تحتاج توضيحًا */
+  topicsHard: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** قواعد اللعبة — تُظبط من S49 وتسري فورًا */
 export interface GamificationRule {
   key: string;
@@ -311,6 +369,12 @@ export interface Db {
   certificates: Certificate[];
   excuses: Excuse[];
   ratings: CourseRating[];
+  /** وحدات الكورسات (خطة الإصلاح §3) */
+  modules: CourseModule[];
+  /** محتوى المحاضرات (أهداف/محاور/ملخص/موارد) */
+  sessionContent: SessionContent[];
+  /** التغذية الراجعة بعد المحاضرات (صفوف المستخدم الحالي فقط عبر RLS) */
+  sessionFeedback: SessionFeedback[];
   rules: GamificationRule[];
   audit: AuditEntry[];
   kudosQuotas: KudosQuota[];
