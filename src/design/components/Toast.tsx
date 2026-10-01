@@ -1,11 +1,13 @@
 /**
- * design/components/Toast.tsx — نظام التنبيهات العائمة التفاعلي
- * مستوحى من Gluestack v5 Toast في MASAR_ASSETS_RESEARCH.md
- * يدعم 4 حالات (success, error, warning, streak) مع فيزياء ارتدادية واهتزاز لمسي.
+ * design/components/Toast.tsx — نظام التنبيهات العائمة التفاعلي الموحّد (§33)
+ * مكوّن السطح الرسمي (ToastSurface) والمضيف المستقل (Toast).
+ * يدعم الأنواع المعيارية الأربعة (success, error, warn, info) بالإضافة إلى (streak/warning).
  */
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
+  Platform,
+  Pressable,
   StyleProp,
   StyleSheet,
   View,
@@ -13,57 +15,164 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon } from '../icons';
+import { useTheme } from '../theme';
+import { GlassSurface } from '../glass';
 import { Txt } from '../components';
-import { radii, spacing } from '../tokens';
+import { hitSlop, radii, spacing, borderWidth } from '../tokens';
 import { isReducedMotion } from '../motion';
+import { useI18n } from '../../i18n';
 
-export type ToastType = 'success' | 'error' | 'warning' | 'streak';
+export type ToastKind = 'success' | 'error' | 'warn' | 'info';
+export type ToastType = ToastKind | 'warning' | 'streak';
+
+export interface ToastSurfaceProps {
+  kind?: ToastType;
+  type?: ToastType;
+  title?: string;
+  message: string;
+  onDismiss?: () => void;
+  style?: StyleProp<ViewStyle>;
+  action?: { label: string; onPress: () => void };
+}
 
 export interface ToastProps {
   visible: boolean;
+  kind?: ToastType;
   type?: ToastType;
-  title: string;
+  title?: string;
   message?: string;
   durationMs?: number;
   onDismiss?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-const TOAST_THEMES: Record<
-  ToastType,
-  { bg: string; border: string; icon: string; haptic: Haptics.NotificationFeedbackType }
-> = {
-  success: {
-    bg: '#064E3B',
-    border: '#10B981',
-    icon: '✅',
-    haptic: Haptics.NotificationFeedbackType.Success,
-  },
-  error: {
-    bg: '#7F1D1D',
-    border: '#EF4444',
-    icon: '❌',
-    haptic: Haptics.NotificationFeedbackType.Error,
-  },
-  warning: {
-    bg: '#78350F',
-    border: '#F59E0B',
-    icon: '⚠️',
-    haptic: Haptics.NotificationFeedbackType.Warning,
-  },
-  streak: {
-    bg: '#431407',
-    border: '#EA580C',
-    icon: '🔥',
-    haptic: Haptics.NotificationFeedbackType.Success,
-  },
-};
+export function normalizeToastKind(kind?: ToastType): ToastKind {
+  if (!kind) return 'info';
+  if (kind === 'warning') return 'warn';
+  if (kind === 'streak') return 'warn';
+  return kind;
+}
 
-export function Toast({
-  visible,
-  type = 'success',
+/**
+ * ToastSurface — السطح البصري المعتمد للتنبيهات العائمة (§33)
+ * تصميم زجاجي موحّد عالي التباين متوافق مع كافة الثيمات والوصول.
+ */
+export function ToastSurface({
+  kind,
+  type,
   title,
   message,
+  onDismiss,
+  style,
+  action,
+}: ToastSurfaceProps) {
+  const { theme, isDark } = useTheme();
+  const { t } = useI18n();
+
+  const resolvedKind: ToastType = kind ?? type ?? 'info';
+
+  const color = resolvedKind === 'success'
+    ? theme.success
+    : resolvedKind === 'error'
+    ? theme.danger
+    : resolvedKind === 'streak'
+    ? theme.warn
+    : resolvedKind === 'warn' || resolvedKind === 'warning'
+    ? theme.warn
+    : theme.brand;
+
+  const iconName: keyof typeof Ionicons.glyphMap = resolvedKind === 'success'
+    ? 'checkmark-circle'
+    : resolvedKind === 'error'
+    ? 'alert-circle'
+    : resolvedKind === 'streak'
+    ? 'flame'
+    : resolvedKind === 'warn' || resolvedKind === 'warning'
+    ? 'warning'
+    : 'information-circle';
+
+  return (
+    <GlassSurface
+      radius={18}
+      tintColor={isDark ? 'rgba(24,24,28,0.94)' : 'rgba(255,255,255,0.96)'}
+      style={[
+        styles.surfaceContainer,
+        {
+          borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          shadowColor: '#000',
+          shadowOpacity: isDark ? 0.35 : 0.16,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 14,
+        },
+        style,
+      ]}
+    >
+      <View style={styles.contentRow}>
+        <View style={[styles.iconBadge, { backgroundColor: `${color}1F` }]}>
+          <Icon name={iconName} size={18} color={color} />
+        </View>
+        <View style={styles.textContainer}>
+          {title ? (
+            <Txt variant="bodyMed" bold numberOfLines={1} shrink style={{ color: theme.text }}>
+              {title}
+            </Txt>
+          ) : null}
+          <Txt
+            variant={title ? 'caption' : 'bodyMed'}
+            color={theme.text}
+            numberOfLines={2}
+            style={{ fontWeight: title ? '400' : '500' }}
+          >
+            {message}
+          </Txt>
+        </View>
+        {action ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={action.onPress}
+            hitSlop={hitSlop.default}
+            style={({ pressed }) => [styles.actionButton, { opacity: pressed ? 0.7 : 1 }]}
+          >
+            <Txt variant="caption" bold color={color}>
+              {action.label}
+            </Txt>
+          </Pressable>
+        ) : null}
+        {onDismiss ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.toastDismiss') || 'إغلاق التنبيه'}
+            hitSlop={hitSlop.default}
+            onPress={onDismiss}
+            style={({ pressed }) => [
+              styles.dismissButton,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Icon name="close" size={16} color={theme.textSecondary} />
+          </Pressable>
+        ) : null}
+      </View>
+    </GlassSurface>
+  );
+}
+
+/**
+ * Toast — المكوّن المستقل مع حركة الدخول والتوقيت التلقائي والاهتزاز اللمسي (§33)
+ */
+export function Toast({
+  visible,
+  kind,
+  type,
+  title,
+  message = '',
   durationMs = 3500,
   onDismiss,
   style,
@@ -73,24 +182,38 @@ export function Toast({
   const slideAnim = useRef(new Animated.Value(-80)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
+  const resolvedKind = kind ?? type ?? 'info';
+
   useEffect(() => {
     if (visible) {
-      const theme = TOAST_THEMES[type];
-      Haptics.notificationAsync(theme.haptic).catch(() => {});
+      const hapticType = resolvedKind === 'success'
+        ? Haptics.NotificationFeedbackType.Success
+        : resolvedKind === 'error'
+        ? Haptics.NotificationFeedbackType.Error
+        : resolvedKind === 'warn' || resolvedKind === 'warning'
+        ? Haptics.NotificationFeedbackType.Warning
+        : Haptics.NotificationFeedbackType.Success;
 
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 20,
-          friction: 6,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Haptics.notificationAsync(hapticType).catch(() => {});
+
+      if (reduced) {
+        slideAnim.setValue(0);
+        opacityAnim.setValue(1);
+      } else {
+        Animated.parallel([
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            friction: 7,
+            tension: 85,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
 
       const timer = setTimeout(() => {
         handleDismiss();
@@ -101,18 +224,22 @@ export function Toast({
       slideAnim.setValue(-80);
       opacityAnim.setValue(0);
     }
-  }, [visible, type, durationMs]);
+  }, [visible, resolvedKind, durationMs, reduced]);
 
   const handleDismiss = () => {
+    if (reduced) {
+      if (onDismiss) onDismiss();
+      return;
+    }
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: -80,
-        duration: 200,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
-        duration: 180,
+        duration: 160,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -122,67 +249,73 @@ export function Toast({
 
   if (!visible) return null;
 
-  const currentTheme = TOAST_THEMES[type];
-
   return (
     <Animated.View
+      pointerEvents="box-none"
+      accessibilityLiveRegion="polite"
       style={[
-        styles.toastContainer,
+        styles.floatingContainer,
         {
-          top: insets.top + spacing.s3,
-          backgroundColor: currentTheme.bg,
-          borderColor: currentTheme.border,
+          top: Math.max(insets.top, 12) + spacing.s2,
           opacity: opacityAnim,
           transform: [{ translateY: slideAnim }],
         },
         style,
       ]}
     >
-      <View style={styles.iconWrapper}>
-        <Txt variant="body">{currentTheme.icon}</Txt>
-      </View>
-      <View style={styles.textWrapper}>
-        <Txt variant="bodyMed" bold style={styles.titleText}>
-          {title}
-        </Txt>
-        {message ? (
-          <Txt variant="caption" style={styles.messageText}>
-            {message}
-          </Txt>
-        ) : null}
-      </View>
+      <ToastSurface
+        kind={resolvedKind}
+        title={title}
+        message={message}
+        onDismiss={handleDismiss}
+      />
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  toastContainer: {
+  floatingContainer: {
     position: 'absolute',
-    start: spacing.s5,
-    end: spacing.s5,
+    start: spacing.s4,
+    end: spacing.s4,
     zIndex: 9999,
+    alignItems: 'center',
+  },
+  surfaceContainer: {
+    width: '100%',
+    maxWidth: 520,
+    borderWidth: borderWidth.thin,
+    overflow: 'hidden',
+  },
+  contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.s2 + 2,
-    borderRadius: radii.lg,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    gap: spacing.s3,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  iconWrapper: {
-    marginEnd: spacing.s2,
+  iconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  textWrapper: {
+  textContainer: {
     flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
-  titleText: {
-    color: '#F8FAFC',
+  actionButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
   },
-  messageText: {
-    color: '#E2E8F0',
-    marginTop: 2,
+  dismissButton: {
+    padding: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

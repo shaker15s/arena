@@ -32,6 +32,7 @@ import { useHaptics } from '../shared/hooks';
 import { BadgeModal } from '../design/celebrations';
 import type { Badge } from '../data/types';
 import { Icon } from '../design/icons';
+import { ToastSurface, type ToastKind } from '../design/components/Toast';
 
 /** S01 — Apple-style Splash: اللوجو يتجمع مع توهج ثم fade */
 function BootSplash() {
@@ -134,11 +135,9 @@ function ToastItem({
 }: {
   id: number;
   message: string;
-  kind: 'info' | 'success' | 'error' | 'warn';
+  kind: ToastKind;
   onDismiss: (id: number) => void;
 }) {
-  const { t } = useI18n();
-  const { theme, isDark } = useTheme();
   const { notificationError, notificationSuccess, impactLight } = useHaptics();
   const entrance = useRef(new Animated.Value(isReducedMotion() ? 1 : 0)).current;
   const panX = useRef(new Animated.Value(0)).current;
@@ -195,15 +194,6 @@ function ToastItem({
     }).start();
   }, [entrance, kind, notificationError, notificationSuccess]);
 
-  const color = kind === 'success' ? theme.success
-    : kind === 'error' ? theme.danger
-    : kind === 'warn' ? theme.warn
-    : theme.brand;
-  const icon = kind === 'success' ? 'checkmark-circle'
-    : kind === 'error' ? 'alert-circle'
-    : kind === 'warn' ? 'warning'
-    : 'information-circle';
-
   return (
     <Animated.View
       {...panResponder.panHandlers}
@@ -219,41 +209,11 @@ function ToastItem({
         maxWidth: 520,
       }}
     >
-      <GlassSurface
-        intensity={isDark ? 65 : 85}
-        radius={18}
-        tintColor={isDark ? 'rgba(24,24,28,0.94)' : 'rgba(255,255,255,0.96)'}
-        style={{
-          shadowColor: '#000',
-          shadowOpacity: isDark ? 0.35 : 0.16,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 10 },
-          elevation: 14,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}1F`, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={icon} size={18} color={color} />
-          </View>
-          <Txt variant="caption" color={theme.text} style={{ flex: 1, fontWeight: '500' }}>
-            {message}
-          </Txt>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('a11y.toastDismiss')}
-            hitSlop={8}
-            onPress={dismiss}
-            style={({ pressed }) => ({
-              padding: 4,
-              borderRadius: 12,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Icon name="close" size={16} color={theme.textSecondary} />
-          </Pressable>
-        </View>
-      </GlassSurface>
+      <ToastSurface
+        kind={kind}
+        message={message}
+        onDismiss={dismiss}
+      />
     </Animated.View>
   );
 }

@@ -17,7 +17,7 @@ import { useI18n } from '../../i18n';
 import { useHaptics } from '../../shared/hooks';
 import {
   Avatar, BackIcon, Btn, Card, Chip, Empty, ExploreCardSkeleton, FadeIn, Header, Input, LiveRegion, ProgressBar, Row,
-  Screen, Segmented, Sheet, Spacer, Stars, Tag, Txt, VisuallyHidden, useDebounce,
+  Screen, Segmented, Sheet, Spacer, Stars, Tag, Txt, VisuallyHidden, useDebounce, useScrollEdgeChrome, ScrollEdgeFade,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { JellyButton, PillGradientSearchInput, SaveActionButton } from '../../design/interactive';
@@ -43,6 +43,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
   const [query, setQuery] = useState('');
   const [field, setField] = useState<string>('all');
   const [branchId, setBranchId] = useState<string>('all');
+  const { scrolled, onScroll, scrollEventThrottle } = useScrollEdgeChrome();
 
   const published = useMemo(() => db.courses.filter((c) => c.status === 'published' || c.status === 'running'), [db.courses]);
   const fields = useMemo(() => ['all', ...new Set(published.map((c) => c.field))], [published]);
@@ -67,6 +68,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
           <Txt variant="caption" color={theme.warn} align="center">{t('common.offlineBanner')}</Txt>
         </View>
       ) : null}
+      <ScrollEdgeFade visible={scrolled} />
       <LiveRegion>
         <VisuallyHidden>{String(filtered.length)}</VisuallyHidden>
       </LiveRegion>
@@ -75,6 +77,8 @@ export function ExploreScreen({ navigation: propNav }: any) {
         keyExtractor={(course) => course.id}
         initialNumToRender={8}
         windowSize={5}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         contentContainerStyle={{ paddingBottom: spacing.s5, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
@@ -86,7 +90,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         }
         ListHeaderComponent={
           <View>
-            <Header title={t('explore.title')} />
+            <Header title={t('explore.title')} scrolled={scrolled} />
             <View style={{ paddingHorizontal: spacing.s5, gap: 12 }}>
               <FadeIn index={0}>
                 <PillGradientSearchInput

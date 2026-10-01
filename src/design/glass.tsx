@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
 import { blurIntensity, borderWidth, orbs, radii, shadows, sizes, spacing, typography } from './tokens';
 import { isReducedMotion, pressScale } from './motion';
+import { useA11yPrefsOptional } from './preferences';
 
 /**
  * سطح زجاجي حقيقي (Apple Liquid Glass): ضبابية خلفية + طبقة لون شفافة
@@ -86,42 +87,84 @@ export function GlassSurface({
 }
 
 // ═══════════════ Ambient background ═══════════════
-export function AmbientOrb({ size = 320, color, drift = 18, style }: {
-  size?: number; color: string; drift?: number; style?: ViewStyle;
+/** كرة خلفية خافتة للزخرفة؛ أقصى حد حركة مستمرة واحدة لكل تطبيق مع حارس تقليل الحركة (§12) */
+export function AmbientOrb({
+  size = 320,
+  color,
+  drift = 16,
+  animated = true,
+  style,
+}: {
+  size?: number;
+  color: string;
+  drift?: number;
+  animated?: boolean;
+  style?: ViewStyle;
 }) {
   const { isDark, themeName } = useTheme();
+  const preferences = useA11yPrefsOptional();
   const oled = themeName === 'oled';
-  const reduced = isReducedMotion();
+  const reduced = isReducedMotion() || Boolean(preferences?.reduceMotion || preferences?.highContrast);
   const progress = useRef(new Animated.Value(0)).current;
 
+  const shouldAnimate = animated && !reduced;
+
   useEffect(() => {
-    if (reduced) return undefined;
-    // حركة طفو مستمرة وهادئة (Orb Drift)
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(progress, { toValue: 1, duration: 12000, useNativeDriver: true }),
-      Animated.timing(progress, { toValue: 0, duration: 12000, useNativeDriver: true }),
-    ]));
+    if (!shouldAnimate) return undefined;
+    // حركة طفو هادئة واحدة (Single Ambient Drift) مع حارس تقليل الحركة (§12, §18)
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(progress, { toValue: 1, duration: 14000, useNativeDriver: true }),
+        Animated.timing(progress, { toValue: 0, duration: 14000, useNativeDriver: true }),
+      ])
+    );
     loop.start();
     return () => loop.stop();
-  }, [reduced, progress]);
+  }, [shouldAnimate, progress]);
 
-  // A11Y-52: تعطيل الكرات العائمة بالكامل عند تفعيل تقليل الحركة
+  // A11Y-52: تعطيل الكرات العائمة بالكامل عند تفعيل تقليل الحركة أو التباين العالي
   if (reduced) return null;
+
+  const effectiveOpacity = oled ? 0.12 : isDark ? 0.28 : 0.65;
+
+  if (!shouldAnimate) {
+    return (
+      <View
+        pointerEvents="none"
+        accessible={false}
+        aria-hidden={true}
+        style={[
+          {
+            position: 'absolute',
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: color,
+            opacity: effectiveOpacity,
+          },
+          style,
+        ]}
+      />
+    );
+  }
 
   const animatedTransform = [
     { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
-    { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
-    { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
+    { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.5] }) },
+    { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) },
   ];
-
-  const effectiveOpacity = oled ? 0.15 : isDark ? 0.35 : 0.75;
 
   return (
     <Animated.View
       pointerEvents="none"
+      accessible={false}
+      aria-hidden={true}
       style={[
         {
-          position: 'absolute', width: size, height: size, borderRadius: size / 2,
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: size / 2,
           backgroundColor: color,
           opacity: effectiveOpacity,
           transform: animatedTransform,
@@ -142,10 +185,9 @@ export function AppBackground({ children, style }: { children: React.ReactNode; 
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* مقاسات ومواضع الـ Orbs موحّدة من توكنز orbs (GL-02) */}
-      <AmbientOrb size={orbs.size.md} color={theme.orbPrimary} style={orbs.position.topRight} />
-      <AmbientOrb size={orbs.size.lg} color={theme.orbSecondary} drift={-22} style={orbs.position.bottomLeft} />
-      <AmbientOrb size={orbs.size.sm} color={theme.orbTertiary} drift={12} style={orbs.position.midLeft} />
+      {/* كرة هادئة واحدة بحركة طفو خفيفة + توهج خلفي ساكن (Restraint §12: orb واحد متحرك كحد أقصى) */}
+      <AmbientOrb size={orbs.size.lg} color={theme.orbPrimary} drift={14} animated={true} style={orbs.position.topRight} />
+      <AmbientOrb size={orbs.size.md} color={theme.orbSecondary} animated={false} style={orbs.position.bottomLeft} />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
         borderWidth: Platform.OS === 'web' ? 1 : 0,
         borderColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.2)',

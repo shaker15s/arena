@@ -2,7 +2,7 @@
  * design/components.tsx — كتالوج المكونات الموحدة بتصميم Apple Liquid Glass.
  * كل مكون من التوكنز فقط — لا ألوان حرفية. RTL تلقائي.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable,
   StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
@@ -1106,9 +1106,22 @@ export { useDebounce, useHaptics } from '../shared/hooks';
 
 // ───────────────────────────── Header / Screen ─────────────────────────────
 
-export function Header({ title, subtitle, back, right, onSubtitlePress, onTitlePress }: {
-  title: string; subtitle?: string; back?: () => void; right?: React.ReactNode;
-  onSubtitlePress?: () => void; onTitlePress?: () => void;
+export function Header({
+  title,
+  subtitle,
+  back,
+  right,
+  onSubtitlePress,
+  onTitlePress,
+  scrolled = false,
+}: {
+  title: string;
+  subtitle?: string;
+  back?: () => void;
+  right?: React.ReactNode;
+  onSubtitlePress?: () => void;
+  onTitlePress?: () => void;
+  scrolled?: boolean;
 }) {
   const { theme, windowWidth } = useTheme();
   const { t } = useI18n();
@@ -1135,7 +1148,15 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
   return (
     <View
       {...(Platform.OS === 'web' ? ({ role: 'banner' } as unknown as object) : {})}
-      style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}
+      style={[
+        { paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 },
+        scrolled
+          ? {
+              borderBottomWidth: borderWidth.thin,
+              borderBottomColor: theme.fillBorder,
+            }
+          : null,
+      ]}
     >
       <Row between center style={{ minHeight: 44, gap: spacing.s3 }}>
         <Row center gap={12} style={{ flex: 1, minWidth: 0 }}>
@@ -1288,17 +1309,17 @@ export function Sheet({ visible, onClose, children, title }: {
             {title ? (
               <Row between center style={{ marginBottom: 12 }}>
                 <Txt variant="h2" style={{ flex: 1 }}>{title}</Txt>
-                <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('common.close') || 'Close dialog'}
-                    hitSlop={{ top: hitSlop.generous, bottom: hitSlop.generous, left: hitSlop.generous, right: hitSlop.generous }}
-                    onPress={onClose}
-                    style={[webPointer, { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }]}
-                  >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.close') || 'Close dialog'}
+                  hitSlop={hitSlop.default}
+                  onPress={onClose}
+                  style={[webPointer, { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }]}
+                >
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="close" size={18} color={theme.textSecondary} />
-                  </Pressable>
-                </View>
+                  </View>
+                </Pressable>
               </Row>
             ) : null}
 
@@ -1641,11 +1662,62 @@ export function OfflineQueueBanner({
   );
 }
 
+// ───────────────────────────── Scroll Edge Chrome (§40) ─────────────────────────────
+
+/**
+ * useScrollEdgeChrome — هوك خفيف لتتبع التمرير وتفعيل حواف الكروم وظل الهيدر (§40).
+ * استجابة فورية بدون أنيميشن زائد، interruptible ومتوافق مع تقليل الحركة.
+ */
+export function useScrollEdgeChrome(threshold = 12) {
+  const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+
+  const onScroll = useCallback((e: any) => {
+    const y = e?.nativeEvent?.contentOffset?.y ?? 0;
+    setScrollY(y);
+    const isPast = y > threshold;
+    setScrolled((prev) => (prev !== isPast ? isPast : prev));
+  }, [threshold]);
+
+  return { scrolled, scrollY, onScroll, scrollEventThrottle: 16 };
+}
+
+/**
+ * ScrollEdgeFade — تدرج ناعم وخافت تحت الهيدر والكروم لتسهيل قراءة المحتوى المار (§40).
+ */
+export function ScrollEdgeFade({ visible = true, style }: { visible?: boolean; style?: ViewStyle }) {
+  const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  if (!visible) return null;
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={[
+        isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.75)',
+        isDark ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)',
+        'transparent',
+      ]}
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 24,
+          zIndex: 10,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
 export { ScrollView };
 export { LiquidGlassCard } from './components/LiquidGlassCard';
 export { Skeleton, PageSkeleton, TodayCardSkeleton, ExploreCardSkeleton, JourneyCardSkeleton, NotificationSkeleton, KpiCardSkeleton, Spinner } from './components/SkeletonLoader';
 export { EmptyStateIllustration } from './components/EmptyStateIllustration';
-export { Toast } from './components/Toast';
+export { Toast, ToastSurface } from './components/Toast';
+export type { ToastKind, ToastType, ToastProps, ToastSurfaceProps } from './components/Toast';
 export { SegmentedProgressBar } from './components/SegmentedProgressBar';
 export { GlassBtn, IconGlassButton } from './components/GlassBtn';
 export { XPBar } from './components/XPBar';

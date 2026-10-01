@@ -17,13 +17,13 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, CountUp, FadeIn, Flame, NotificationBell, ProgressBar, Row, Screen, Spacer, StatRing, Tag, Txt,
-  BorderBeam, AnimatedShinyText,
+  BorderBeam, AnimatedShinyText, useScrollEdgeChrome, ScrollEdgeFade,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
 import { MasarMascot, FatenBehaviorState, getRandomMascotQuote } from '../../design/mascot';
 import { ShimmerProgressBar } from '../../design/animations';
-import { spacing, radii, leagueTierColors } from '../../design/tokens';
+import { spacing, radii, leagueTierColors, typography } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, getFirstName, sameDay } from '../../shared/format';
 import { buildIcs, icsFilename } from '../../shared/calendar';
 import { saveIcs } from '../../shared/export';
@@ -39,6 +39,7 @@ export function TodayScreen() {
   const navigation = useNavigation<any>();
   const tabs = useTabs();
   const { impactLight } = useHaptics();
+  const { scrolled, onScroll, scrollEventThrottle } = useScrollEdgeChrome();
 
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const [activeMascotQuote, setActiveMascotQuote] = useState<string>(() => getRandomMascotQuote('welcome'));
@@ -206,7 +207,10 @@ export function TodayScreen() {
           <Txt variant="caption" color={theme.warn} align="center">{t('common.offlineBanner')}</Txt>
         </View>
       ) : null}
+      <ScrollEdgeFade visible={scrolled} />
       <ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         contentContainerStyle={{ paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl

@@ -253,6 +253,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
               title={t('batchAdm.new')}
               size="sm"
               icon="add"
+              responsive
               onPress={() => setCreating(true)}
             />
           }
