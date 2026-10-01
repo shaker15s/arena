@@ -3,7 +3,7 @@
  * الزجاج الحقيقي (BlurView) للطبقات العائمة فقط — البطاقات تستخدم surfaceGlass من التوكنز.
  */
 import React, { useEffect, useRef } from 'react';
-import { Animated, Platform, Pressable, View, ViewStyle, StyleSheet } from 'react-native';
+import { AccessibilityRole, Animated, Platform, Pressable, View, ViewStyle, StyleSheet, StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
@@ -15,29 +15,53 @@ import { isReducedMotion, pressScale } from './motion';
  * + حد فاتح علوي. يُستخدم للطبقات العائمة فقط (شاشة الدخول، البوب‌أوف) — لا يُتعشّش داخل بطاقات.
  */
 export function GlassSurface({
-  children, style, radius = radii.xl, tintColor, intensity = blurIntensity.surface, borderless,
+  children,
+  style,
+  radius = radii.xl,
+  tintColor,
+  intensity = blurIntensity.surface,
+  borderless,
+  accessibilityRole,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   children?: React.ReactNode;
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
   radius?: number;
   tintColor?: string;
   intensity?: number;
   borderless?: boolean;
+  accessibilityRole?: AccessibilityRole | 'region';
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const { theme, isDark } = useTheme();
   const isAndroid = Platform.OS === 'android';
-  // GL-01: شدة الضبابية على الويب موحّدة من blurIntensity.webSurface لكل الأسطح.
-  const webBlur = `blur(${blurIntensity.webSurface}px) saturate(180%)`;
+  const hasBlur = intensity > 0;
+  // GL-01: شدة الضبابية على الويب موحّدة من blurIntensity.webSurface للأسطح ذات الضبابية فقط (ممنوع في طبقة المحتوى).
+  const webBlur = hasBlur ? `blur(${blurIntensity.webSurface}px) saturate(180%)` : undefined;
+
   return (
     <View
+      accessibilityRole={accessibilityRole as AccessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      {...(Platform.OS === 'web' && accessibilityRole === 'region' ? ({ role: 'region' } as any) : {})}
       style={[
         { borderRadius: radius, overflow: 'hidden' },
-        Platform.OS === 'web' ? ({ backdropFilter: webBlur, WebkitBackdropFilter: webBlur } as unknown as ViewStyle) : null,
-        isAndroid ? { backgroundColor: tintColor ?? (isDark ? 'rgba(30, 41, 59, 0.94)' : 'rgba(255, 255, 255, 0.94)'), elevation: 4 } : null,
+        Platform.OS === 'web' && hasBlur
+          ? ({ backdropFilter: webBlur, WebkitBackdropFilter: webBlur } as unknown as ViewStyle)
+          : null,
+        isAndroid
+          ? {
+              backgroundColor: tintColor ?? (isDark ? 'rgba(30, 41, 59, 0.94)' : 'rgba(255, 255, 255, 0.94)'),
+              elevation: 4,
+            }
+          : null,
         style,
       ]}
     >
-      {!isAndroid && (
+      {!isAndroid && hasBlur && (
         <BlurView
           intensity={intensity}
           tint={isDark ? 'dark' : 'light'}

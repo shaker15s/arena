@@ -5,7 +5,6 @@
 import React, { useRef } from 'react';
 import {
   Animated,
-  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -13,12 +12,13 @@ import {
   ViewStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { Txt } from '../components';
 import { radii, sizes, spacing } from '../tokens';
 import { isReducedMotion } from '../motion';
+import { FunctionalGlass } from '../surfaces';
+
+export type BtnKind = 'primary' | 'secondary' | 'tertiary' | 'glass';
 
 export interface GlassBtnProps {
   label: string;
@@ -27,7 +27,8 @@ export interface GlassBtnProps {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   size?: 'sm' | 'md' | 'lg';
-  variant?: 'subtle' | 'highlight' | 'danger';
+  variant?: 'subtle' | 'highlight' | 'danger' | BtnKind;
+  kind?: BtnKind;
 }
 
 export function GlassBtn({
@@ -38,16 +39,16 @@ export function GlassBtn({
   style,
   size = 'md',
   variant = 'subtle',
+  kind,
 }: GlassBtnProps) {
-  const { theme, isDark, themeName } = useTheme();
-  const oled = themeName === 'oled';
+  const { theme, isDark } = useTheme();
   const reduced = isReducedMotion();
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pressAnim = useRef(new Animated.Value(0)).current;
 
-  const height =
-    size === 'sm' ? 38 : size === 'lg' ? sizes.ctaButton : 44;
+  // Touch Target: الحد الأدنى 44px لجميع المقاسات بما فيها sm (معيار Apple HIG وWCAG)
+  const height = size === 'lg' ? sizes.ctaButton : sizes.touchTarget;
 
   const handlePressIn = () => {
     if (disabled) return;
@@ -87,28 +88,41 @@ export function GlassBtn({
     }
   };
 
-  const baseBorderColor =
-    variant === 'danger'
-      ? theme.danger
-      : isDark
-      ? 'rgba(255, 255, 255, 0.16)'
-      : 'rgba(0, 122, 255, 0.22)';
+  // تعيين النوع الفعلي: primary | secondary | tertiary | glass
+  const isDanger = variant === 'danger';
+  const effectiveKind: BtnKind = kind ?? (
+    variant === 'highlight' ? 'primary'
+    : variant === 'subtle' ? 'glass'
+    : variant === 'danger' ? 'primary'
+    : (variant as BtnKind) ?? 'glass'
+  );
 
-  const baseBg =
-    variant === 'danger'
-      ? 'rgba(239, 68, 68, 0.12)'
-      : isDark
-      ? oled
-        ? 'rgba(255, 255, 255, 0.08)'
-        : 'rgba(30, 41, 59, 0.65)'
-      : 'rgba(255, 255, 255, 0.65)';
+  let baseBg: string;
+  let baseBorderColor: string;
+  let textColor: string;
 
-  const textColor =
-    variant === 'danger'
-      ? theme.danger
-      : variant === 'highlight'
-      ? theme.brand
-      : theme.text;
+  if (isDanger) {
+    baseBg = 'rgba(239, 68, 68, 0.12)';
+    baseBorderColor = theme.danger;
+    textColor = theme.danger;
+  } else if (effectiveKind === 'primary') {
+    baseBg = theme.actionPrimary;
+    baseBorderColor = theme.actionPrimary;
+    textColor = theme.onBrand;
+  } else if (effectiveKind === 'secondary') {
+    baseBg = theme.fill;
+    baseBorderColor = theme.fillBorder;
+    textColor = theme.brandText;
+  } else if (effectiveKind === 'tertiary') {
+    baseBg = 'transparent';
+    baseBorderColor = 'transparent';
+    textColor = theme.textSecondary;
+  } else {
+    // kind === 'glass'
+    baseBg = theme.surfaceGlass;
+    baseBorderColor = isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 122, 255, 0.22)';
+    textColor = theme.text;
+  }
 
   return (
     <Animated.View
@@ -128,20 +142,16 @@ export function GlassBtn({
           styles.btnBase,
           {
             height,
-            backgroundColor: baseBg,
+            backgroundColor: effectiveKind === 'glass' ? 'transparent' : baseBg,
             borderColor: baseBorderColor,
             borderRadius: radii.lg,
           },
           style,
         ]}
       >
-        {Platform.OS !== 'android' && (
-          <BlurView
-            intensity={isDark ? 28 : 45}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
+        {effectiveKind === 'glass' ? (
+          <FunctionalGlass kind="control" style={StyleSheet.absoluteFill} />
+        ) : null}
 
         <View style={styles.contentRow}>
           {icon ? <View style={styles.iconSlot}>{icon}</View> : null}
@@ -174,7 +184,7 @@ export function IconGlassButton({
   style?: StyleProp<ViewStyle>;
   badge?: number | string;
 }) {
-  const { theme, isDark } = useTheme();
+  const effectiveSize = Math.max(sizes.touchTarget, size);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -207,26 +217,17 @@ export function IconGlassButton({
         style={[
           styles.iconBtnBase,
           {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: isDark
-              ? 'rgba(255, 255, 255, 0.1)'
-              : 'rgba(255, 255, 255, 0.75)',
-            borderColor: isDark
-              ? 'rgba(255, 255, 255, 0.18)'
-              : 'rgba(0, 122, 255, 0.18)',
+            width: effectiveSize,
+            height: effectiveSize,
+            borderRadius: effectiveSize / 2,
           },
           style,
         ]}
       >
-        {Platform.OS !== 'android' && (
-          <BlurView
-            intensity={35}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
+        <FunctionalGlass
+          kind="control"
+          style={[StyleSheet.absoluteFill, { borderRadius: effectiveSize / 2 }]}
+        />
         {icon}
         {badge !== undefined ? (
           <View style={styles.badge}>
@@ -247,12 +248,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.s4,
+    minHeight: sizes.touchTarget,
+    minWidth: sizes.touchTarget,
   },
   iconBtnBase: {
     overflow: 'hidden',
     borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: sizes.touchTarget,
+    minWidth: sizes.touchTarget,
   },
   contentRow: {
     flexDirection: 'row',
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     top: -2,
-    right: -2,
+    end: -2,
     backgroundColor: '#EF4444',
     borderRadius: 8,
     paddingHorizontal: 5,

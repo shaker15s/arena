@@ -156,11 +156,6 @@ export const elevation = {
   2: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   3: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   4: { shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 32, shadowOffset: { width: 0, height: 16 }, elevation: 16 },
-  none: { shadowColor: 'transparent', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
-  sm: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  md: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
-  lg: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
-  modal: { shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 32, shadowOffset: { width: 0, height: 16 }, elevation: 16 },
 } as const;
 
 /** سلّم الطبقات الرأسية الموحّد (DESIGN 1.2) */
@@ -187,14 +182,12 @@ export const navBar = {
   fabPoke: 27,
 } as const;
 
-/** درجات الزجاج القياسية (DESIGN 1.3) */
-export const glassLevels = {
-  thin: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
-  subtle: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
-  regular: { intensity: 40, opacityLight: 0.72, opacityDark: 0.72 },
-  thick: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
-  heavy: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
-  fallback: { intensity: 0, opacityLight: 0.94, opacityDark: 0.94 },
+/** درجات الزجاج القياسية الموحدة (توجيه §10) */
+export const glass = {
+  clear:    { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 }, // = thin/subtle
+  regular:  { intensity: 40, opacityLight: 0.72, opacityDark: 0.72 },
+  floating: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 }, // = thick/heavy
+  sheet:    { intensity: 0,  opacityLight: 0.94, opacityDark: 0.94 }, // = fallback
 } as const;
 
 /** توكنز الحركة الموحّدة (DESIGN-06) */
@@ -594,44 +587,3 @@ export const attendanceColors = {
   absent: '#6E6E73',
 };
 
-// ═══════════════ Apple Glass Utilities ═══════════════
-export const glassEffects = {
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: radii.xl,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 } as const,
-    elevation: 8,
-  },
-  cardDark: {
-    backgroundColor: 'rgba(28, 28, 30, 0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(84, 84, 88, 0.35)',
-    borderRadius: radii.xl,
-  },
-  elevated: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: radii.xl,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 12 } as const,
-    elevation: 12,
-  },
-  tabBar: {
-    backgroundColor: 'rgba(249, 249, 249, 0.94)',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(60, 60, 67, 0.12)',
-  },
-  tabBarDark: {
-    backgroundColor: 'rgba(22, 22, 24, 0.94)',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(84, 84, 88, 0.25)',
-  },
-} as const;

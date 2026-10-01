@@ -4,14 +4,13 @@ import { NavigationContainer, DefaultTheme, DarkTheme, getStateFromPath as defau
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
 import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
-import { Btn, Card, FadeIn, OfflineQueueBanner, PageSkeleton, Spacer, Txt } from '../design/components';
+import { Btn, Card, FadeIn, FunctionalGlass, OfflineQueueBanner, PageSkeleton, Spacer, Txt } from '../design/components';
 import { AppBackground, ContentFrame } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
 import { navBar, radii, spacing } from '../design/tokens';
@@ -306,14 +305,8 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
         shadowColor: '#000', shadowOpacity: isDark ? 0.34 : 0.13,
         shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 16,
       }}>
-        <View style={{ position: 'absolute', inset: 0 as any, borderRadius: 26, overflow: 'hidden' }}>
-          <BlurView intensity={isDark ? 55 : 80} tint={isDark ? 'dark' : 'light'} style={{ flex: 1 }} />
-          <View pointerEvents="none" style={{
-            position: 'absolute', inset: 0 as any,
-            backgroundColor: isDark ? 'rgba(24,24,28,0.72)' : 'rgba(255,255,255,0.76)',
-            borderWidth: 1, borderColor: theme.glassBorder, borderRadius: 26,
-          }} />
-        </View>
+        <FunctionalGlass kind="tabBar" style={{ position: 'absolute', inset: 0 as any, borderRadius: 26 }} />
+
         <View accessibilityRole="tablist" style={{ flexDirection: 'row', alignItems: 'center', minHeight: 68, paddingHorizontal: 4, paddingVertical: 6 }}>
           {tabs.map((tab, index) => {
             const showFabHere = fab && index === Math.floor(tabs.length / 2);

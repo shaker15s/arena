@@ -1,4 +1,4 @@
-﻿/**
+/**
  * design/components/index.ts — المصدر الكتالوجي الموحد لجميع مكونات نظام التصميم مسار.
  * يجمع المكونات الأساسية (Primitives) والمكونات الزجاجية التفاعلية المتقدمة (Compounds).
  */
@@ -21,4 +21,5 @@ export * from './Toast';
 export * from './XPBar';
 
 // المكونات الأساسية والكتالوج الأصلي
+export type { BtnKind } from './GlassBtn';
 export * from '../components';

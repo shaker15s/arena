@@ -19,7 +19,6 @@ import { markOnboardingSeen } from '../../shared/onboarding';
 import { MasarMascot } from '../../design/mascot';
 
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
 import {
   OnboardingSlide1Illustration,
   OnboardingSlide2Illustration,

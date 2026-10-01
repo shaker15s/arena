@@ -7,7 +7,6 @@ import {
   ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable,
   StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,9 +14,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
 import {
   borderWidth, blurIntensity, componentTokens, fonts, hitSlop, radii, scaleType,
-  shadows, spacing, springs, typography,
+  shadows, sizes, spacing, springs, typography,
 } from './tokens';
 import { isReducedMotion, pressScale, staggerDelay } from './motion';
+import { Surface, ElevatedSurface, FunctionalGlass } from './surfaces';
 import { useI18n } from '../i18n';
 import { useHaptics } from '../shared/hooks';
 import { Icon } from './icons';
@@ -168,14 +168,6 @@ export function Card({ children, style, color, noPad, onPress, solid, heavy, acc
 
   const content = (
     <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glass : color ?? theme.card, transform: [{ scale }] }, style]}>
-      {useGlass && heavy ? (
-        <BlurView
-          intensity={isDark ? blurIntensity.heavyCard.dark : blurIntensity.heavyCard.light}
-          tint={isDark ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-      ) : null}
       {useGlass ? (
         <LinearGradient
           colors={[
@@ -218,13 +210,16 @@ export function Card({ children, style, color, noPad, onPress, solid, heavy, acc
 
 // ───────────────────────────── أزرار ─────────────────────────────
 
+export type BtnKind = 'primary' | 'secondary' | 'tertiary' | 'glass';
+
 export function Btn({
-  title, onPress, variant = 'primary', size = 'md', icon, disabled, loading, style, full,
-  accessibilityHint,
+  title, onPress, variant = 'primary', kind, size = 'md', icon, disabled, loading, style, full,
+  accessibilityHint, responsive, compact,
 }: {
   title: string;
   onPress?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'gold';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'gold' | BtnKind;
+  kind?: BtnKind;
   size?: 'sm' | 'md' | 'lg';
   icon?: keyof typeof Ionicons.glyphMap;
   disabled?: boolean;
@@ -232,37 +227,78 @@ export function Btn({
   style?: ViewStyle;
   full?: boolean;
   accessibilityHint?: string;
+  /** يحوّل الزر تلقائيًا إلى زر أيقونة مضغوط على الشاشات الضيقة لمنع تزاحم شريط العنوان */
+  responsive?: boolean;
+  /** زر أيقونة فقط مع حفظ accessibilityLabel */
+  compact?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme, windowWidth } = useTheme();
   const { impactLight, impactMedium } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
 
+  const isIconOnly = Boolean(icon && (compact || (responsive && windowWidth < 500)));
+
   const handlePress = () => {
     if (!onPress || disabled || loading) return;
-    if (variant === 'primary' || variant === 'danger') impactMedium();
+    if (variant === 'primary' || variant === 'danger' || kind === 'primary') impactMedium();
     else impactLight();
     onPress();
   };
 
-  const isGradient = variant === 'primary';
-  const bg =
-    variant === 'primary' ? theme.brand
-    : variant === 'secondary' ? theme.brandSoft
-    : variant === 'danger' ? theme.dangerSoft
-    : variant === 'success' ? theme.successSoft
-    : variant === 'gold' ? theme.certGold
-    : 'transparent';
-  // A11Y-21: نصوص الأزرار تستخدم طبقة النصوص الدلالية (≥ 4.5:1) لا الألوان العلامية.
-  const fg =
-    variant === 'primary' ? theme.onBrand
-    : variant === 'secondary' ? theme.brandText
-    : variant === 'danger' ? theme.textDanger
-    : variant === 'success' ? theme.textSuccess
-    : variant === 'gold' ? '#3D2B00'
-    : theme.textSecondary;
+  const isDanger = variant === 'danger';
+  const isSuccess = variant === 'success';
+  const isGold = variant === 'gold';
+
+  const effectiveKind: BtnKind = kind ?? (
+    variant === 'primary' ? 'primary'
+    : variant === 'secondary' ? 'secondary'
+    : variant === 'ghost' || variant === 'tertiary' ? 'tertiary'
+    : variant === 'glass' ? 'glass'
+    : 'primary'
+  );
+
+  const isGradient = effectiveKind === 'primary' && !isDanger && !isSuccess && !isGold;
+
+  let bg: string;
+  let fg: string;
+  let borderW = 0;
+  let borderC = 'transparent';
+
+  if (isDanger) {
+    bg = theme.dangerSoft;
+    fg = theme.textDanger;
+  } else if (isSuccess) {
+    bg = theme.successSoft;
+    fg = theme.textSuccess;
+  } else if (isGold) {
+    bg = theme.certGold;
+    fg = '#3D2B00';
+  } else if (effectiveKind === 'primary') {
+    bg = theme.actionPrimary;
+    fg = theme.onBrand;
+  } else if (effectiveKind === 'secondary') {
+    bg = theme.fill;
+    fg = theme.brandText;
+    borderW = 1;
+    borderC = theme.fillBorder;
+  } else if (effectiveKind === 'tertiary') {
+    bg = 'transparent';
+    fg = theme.textSecondary;
+    borderW = 1;
+    borderC = theme.line;
+  } else {
+    // kind === 'glass'
+    bg = theme.surfaceGlass;
+    fg = theme.text;
+    borderW = 1;
+    borderC = theme.fillBorder;
+  }
+
   const padV = size === 'lg' ? 14 : size === 'md' ? 11 : 8;
-  const padH = size === 'lg' ? 22 : size === 'md' ? 16 : 11;
-  const minBtnHeight = size === 'lg' ? 52 : size === 'md' ? 44 : 38;
+  const padH = isIconOnly ? (size === 'lg' ? 14 : size === 'md' ? 11 : 8) : (size === 'lg' ? 22 : size === 'md' ? 16 : 12);
+  // Touch Target: الحد الأدنى 44px لجميع المقاسات بما فيها sm (معيار Apple HIG وWCAG)
+  const minBtnHeight = size === 'lg' ? sizes.ctaButton : sizes.touchTarget;
+  const minBtnWidth = sizes.touchTarget;
 
   const press = (v: number) =>
     Animated.spring(scale, { toValue: v, useNativeDriver: true, ...springs.default }).start();
@@ -287,6 +323,7 @@ export function Btn({
           onPressIn={() => press(pressScale.default)}
           onPressOut={() => press(1)}
           style={webPointer}
+          {...(Platform.OS === 'web' && isIconOnly ? ({ title } as any) : {})}
         >
           <LinearGradient
             colors={[theme.actionPrimary, theme.actionPrimaryTo]}
@@ -297,24 +334,29 @@ export function Btn({
               paddingVertical: padV,
               paddingHorizontal: padH,
               minHeight: minBtnHeight,
+              minWidth: minBtnWidth,
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row',
-              gap: 8,
+              gap: isIconOnly ? 0 : 8,
               opacity: disabled ? 0.45 : 1,
             }}
           >
             {loading ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: isIconOnly ? 0 : 8 }}>
                 <Spinner color="#fff" />
-                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+                {!isIconOnly ? (
+                  <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : size === 'sm' ? 13 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+                ) : null}
               </View>
             ) : (
               <>
                 {icon ? (
                   <Icon name={icon} size={18} color="#fff" decorative />
                 ) : null}
-                <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
+                {!isIconOnly ? (
+                  <Text style={{ color: '#fff', fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : size === 'sm' ? 13 : 15, includeFontPadding: false }}>{title}</Text>
+                ) : null}
               </>
             )}
           </LinearGradient>
@@ -333,6 +375,7 @@ export function Btn({
         onPress={loading || disabled ? undefined : handlePress}
         onPressIn={() => press(pressScale.default)}
         onPressOut={() => press(1)}
+        {...(Platform.OS === 'web' && isIconOnly ? ({ title } as any) : {})}
         style={[
           webPointer,
           {
@@ -341,27 +384,32 @@ export function Btn({
             paddingVertical: padV,
             paddingHorizontal: padH,
             minHeight: minBtnHeight,
+            minWidth: minBtnWidth,
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'row',
-            gap: 8,
+            gap: isIconOnly ? 0 : 8,
             opacity: disabled ? 0.45 : 1,
-            borderWidth: variant === 'ghost' ? 1 : 0,
-            borderColor: variant === 'ghost' ? theme.line : 'transparent',
+            borderWidth: borderW,
+            borderColor: borderC,
           },
         ]}
       >
         {loading ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: isIconOnly ? 0 : 8 }}>
             <Spinner color={fg} />
-            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+            {!isIconOnly ? (
+              <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : size === 'sm' ? 13 : 15, includeFontPadding: false, opacity: 0.9 }}>{title}</Text>
+            ) : null}
           </View>
         ) : (
           <>
             {icon ? (
               <Icon name={icon} size={18} color={fg} decorative />
             ) : null}
-            <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : 15, includeFontPadding: false }}>{title}</Text>
+            {!isIconOnly ? (
+              <Text style={{ color: fg, fontFamily: typography.h3.fontFamily, fontSize: size === 'lg' ? 16 : size === 'sm' ? 13 : 15, includeFontPadding: false }}>{title}</Text>
+            ) : null}
           </>
         )}
       </Pressable>
@@ -424,13 +472,16 @@ export function Tag({ label, color, bg, icon }: { label: string; color: string; 
   );
 }
 
-export function Segmented<T extends string>({ options, value, onChange }: {
+export function Segmented<T extends string>({ options, value, onChange, scrollable }: {
   options: Array<{ value: T; label: string; icon?: keyof typeof Ionicons.glyphMap }>;
   value: T;
   onChange: (v: T) => void;
+  /** يُمكّن التمرير الأفقي بدلاً من حشر التبويبات؛ مفعّل تلقائيًا إذا كانت التبويبات أكثر من 3 */
+  scrollable?: boolean;
 }) {
   const { theme } = useTheme();
   const { impactLight } = useHaptics();
+  const isScrollable = scrollable ?? options.length > 3;
   // A11Y-14: ←/→ (مع انعكاس RTL) + Home/End تنقل بين التبويبات وتُحدّث القيمة.
   const activeIndex = Math.max(0, options.findIndex((o) => o.value === value));
   const rovingRefs = useRovingKeys({
@@ -440,6 +491,77 @@ export function Segmented<T extends string>({ options, value, onChange }: {
       if (opt && opt.value !== value) { impactLight(); onChange(opt.value); }
     },
   });
+
+  if (isScrollable) {
+    return (
+      <View style={{ backgroundColor: theme.fill, borderRadius: radii.full, padding: 3 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          accessibilityRole="tablist"
+          contentContainerStyle={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 2,
+          }}
+          style={Platform.OS === 'web' ? ({ overflowX: 'auto', scrollbarWidth: 'none' } as any) : undefined}
+        >
+          {options.map((opt, index) => {
+            const active = opt.value === value;
+            return (
+              <Pressable
+                key={opt.value}
+                ref={(el: any) => { rovingRefs.current[index] = el as HTMLElement | null; }}
+                {...rovingTabIndex(index, activeIndex)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={opt.label}
+                hitSlop={hitSlop.small}
+                onPress={() => { impactLight(); onChange(opt.value); }}
+                style={({ pressed }) => ([
+                  webPointer,
+                  {
+                    flexDirection: 'row',
+                    gap: 6,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: active ? theme.card : 'transparent',
+                    borderRadius: radii.full,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                    minHeight: 38,
+                    borderWidth: active ? borderWidth.hairline : 0,
+                    borderColor: active ? theme.glassBorder : 'transparent',
+                    shadowColor: theme.glassShadow,
+                    ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ])}
+              >
+                {opt.icon ? (
+                  <Icon
+                    name={opt.icon}
+                    size={componentTokens.segmented.iconSize}
+                    color={active ? theme.brand : theme.textMuted}
+                  />
+                ) : null}
+                <Txt
+                  variant="caption"
+                  bold={active}
+                  color={active ? theme.text : theme.textMuted}
+                  numberOfLines={1}
+                >
+                  {opt.label}
+                </Txt>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: theme.fill, borderRadius: radii.full, padding: componentTokens.segmented.padding }}>
       {options.map((opt, index) => {
@@ -452,17 +574,24 @@ export function Segmented<T extends string>({ options, value, onChange }: {
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             accessibilityLabel={opt.label}
+            hitSlop={hitSlop.small}
             onPress={() => { impactLight(); onChange(opt.value); }}
-            style={{
-              flex: 1, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: active ? theme.card : 'transparent',
-              borderRadius: radii.full, paddingVertical: componentTokens.segmented.paddingVertical,
-              shadowColor: theme.glassShadow,
-              ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
-            }}
+            style={({ pressed }) => ([
+              webPointer,
+              {
+                flex: 1, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
+                backgroundColor: active ? theme.card : 'transparent',
+                borderRadius: radii.full, paddingVertical: componentTokens.segmented.paddingVertical,
+                paddingHorizontal: 8,
+                minHeight: 38,
+                shadowColor: theme.glassShadow,
+                ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
+                opacity: pressed ? 0.75 : 1,
+              },
+            ])}
           >
             {opt.icon ? <Icon name={opt.icon} size={componentTokens.segmented.iconSize} color={active ? theme.brand : theme.textMuted} /> : null}
-            <Txt variant="caption" color={active ? theme.text : theme.textMuted}>{opt.label}</Txt>
+            <Txt variant="caption" bold={active} color={active ? theme.text : theme.textMuted} numberOfLines={1} shrink>{opt.label}</Txt>
           </Pressable>
         );
       })}
@@ -973,8 +1102,8 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
       {...(Platform.OS === 'web' ? ({ role: 'banner' } as unknown as object) : {})}
       style={{ paddingHorizontal: spacing.s5, paddingTop: insets.top + spacing.s3, paddingBottom: spacing.s3 }}
     >
-      <Row between center>
-        <Row center gap={12} style={{ flex: 1 }}>
+      <Row between center style={{ minHeight: 44, gap: spacing.s3 }}>
+        <Row center gap={12} style={{ flex: 1, minWidth: 0 }}>
           {back ? (
             <Pressable
               accessibilityRole="button"
@@ -989,16 +1118,17 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                 }
               }}
               style={({ pressed }) => ({
-              width: componentTokens.backButton.size, height: componentTokens.backButton.size,
-              borderRadius: componentTokens.backButton.radius,
-              backgroundColor: theme.fill,
-              alignItems: 'center', justifyContent: 'center',
-              opacity: pressed ? 0.7 : 1,
-            })}>
+                width: componentTokens.backButton.size, height: componentTokens.backButton.size,
+                borderRadius: componentTokens.backButton.radius,
+                backgroundColor: theme.fill,
+                alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                opacity: pressed ? 0.7 : 1,
+              })}>
               <BackIcon color={theme.text} />
             </Pressable>
           ) : null}
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
             {onTitlePress ? (
               <Pressable
                 accessibilityRole="button"
@@ -1006,10 +1136,10 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                 onPress={onTitlePress}
                 style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
               >
-                <Txt variant="h1" numberOfLines={1} heading="h1" id={titleId}>{title}</Txt>
+                <Txt variant="h1" numberOfLines={1} shrink heading="h1" id={titleId}>{title}</Txt>
               </Pressable>
             ) : (
-              <Txt variant="h1" numberOfLines={1} heading="h1" id={titleId}>{title}</Txt>
+              <Txt variant="h1" numberOfLines={1} shrink heading="h1" id={titleId}>{title}</Txt>
             )}
             {subtitle ? (
               onSubtitlePress ? (
@@ -1025,16 +1155,20 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
                     transform: [{ scale: pressed ? pressScale.subtle : 1 }],
                   })}
                 >
-                  <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
-                  <Icon name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7 }} />
+                  <Txt variant="caption" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt>
+                  <Icon name="chevron-forward" size={12} color={theme.textMuted} style={{ opacity: 0.7, flexShrink: 0 }} />
                 </Pressable>
               ) : (
-                <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt>
+                <Txt variant="caption" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt>
               )
             ) : null}
           </View>
         </Row>
-        {right}
+        {right ? (
+          <View style={{ flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {right}
+          </View>
+        ) : null}
       </Row>
     </View>
   );
@@ -1081,7 +1215,7 @@ export function Sheet({ visible, onClose, children, title }: {
             style={StyleSheet.absoluteFill}
             onPress={onClose}
           >
-            <BlurView intensity={isDark ? 20 : 12} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+            <FunctionalGlass kind="sheet" style={StyleSheet.absoluteFill} />
           </Pressable>
 
           <Animated.View
@@ -1185,15 +1319,89 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger,
           width: componentTokens.listRow.iconBox, height: componentTokens.listRow.iconBox,
           borderRadius: radii.md, backgroundColor: iconBg ?? theme.brandSoft,
           alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
         }}>
           <Icon name={icon} size={componentTokens.listRow.iconSize} color={danger ? theme.danger : theme.brand} />
         </View>
       ) : null}
-      <View style={{ flex: 1 }}>
-        <Txt variant="bodyMed" color={danger ? theme.danger : undefined}>{title}</Txt>
-        {subtitle ? <Txt variant="caption" color={theme.textSecondary}>{subtitle}</Txt> : null}
+      <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+        <Txt variant="bodyMed" color={danger ? theme.danger : undefined} numberOfLines={1} shrink>{title}</Txt>
+        {subtitle ? <Txt variant="caption" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt> : null}
       </View>
-      {right ?? (onPress ? <BackIcon color={theme.textMuted} /> : null)}
+      {right ? <View style={{ flexShrink: 0 }}>{right}</View> : (onPress ? <BackIcon color={theme.textMuted} /> : null)}
+    </Pressable>
+  );
+}
+
+// ───────────────────────────── بطاقة إجراءات شبكية ─────────────────────────────
+
+export function ActionTile({
+  icon, iconBg, iconColor, title, subtitle, onPress, badge,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg?: string;
+  iconColor?: string;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  badge?: string;
+}) {
+  const { theme } = useTheme();
+  const { impactLight } = useHaptics();
+  const scale = useRef(new Animated.Value(1)).current;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={subtitle}
+      onPress={() => {
+        impactLight();
+        onPress?.();
+      }}
+      onPressIn={() => Animated.spring(scale, { toValue: pressScale.subtle, useNativeDriver: true, ...springs.default }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, ...springs.default }).start()}
+      style={webPointer}
+    >
+      <Animated.View
+        style={{
+          transform: [{ scale }],
+          backgroundColor: theme.glass,
+          borderRadius: radii.xl,
+          padding: 14,
+          borderWidth: borderWidth.hairline,
+          borderColor: theme.glassBorder,
+          gap: 10,
+          minHeight: 100,
+          justifyContent: 'space-between',
+        }}
+      >
+        <Row between center>
+          <View
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: radii.md,
+              backgroundColor: iconBg ?? theme.brandSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon name={icon} size={19} color={iconColor ?? theme.brand} />
+          </View>
+          {badge ? (
+            <Tag label={badge} color={theme.brand} bg={theme.brandSoft} />
+          ) : (
+            <BackIcon color={theme.textMuted} />
+          )}
+        </Row>
+        <View style={{ gap: 2, minWidth: 0 }}>
+          <Txt variant="bodyMed" bold numberOfLines={1} shrink>{title}</Txt>
+          {subtitle ? (
+            <Txt variant="micro" color={theme.textSecondary} numberOfLines={1} shrink>{subtitle}</Txt>
+          ) : null}
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -1410,3 +1618,5 @@ export { BorderBeam } from './components/BorderBeam';
 export { AnimatedShinyText } from './components/AnimatedShinyText';
 export { SpotlightCard } from './components/SpotlightCard';
 export { Screen, Section, Landmark, LiveRegion, VisuallyHidden, SkipLink } from './a11y/semantics';
+export { Surface, ElevatedSurface, FunctionalGlass } from './surfaces';
+export type { SurfaceProps, ElevatedSurfaceProps, FunctionalGlassProps, FunctionalGlassKind } from './surfaces';
