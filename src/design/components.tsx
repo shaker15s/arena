@@ -69,6 +69,7 @@ export function Txt({
               'aria-level': heading === 'h1' ? 1 : heading === 'h2' ? 2 : 3,
               // A11Y-13: يُسمح بنقل التركيز إلى عنوان الشاشة عند الانتقال (نمط SPA).
               tabIndex: -1,
+              style: { outline: 'none' },
             } as unknown as object)
           : {}),
       }

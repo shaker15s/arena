@@ -420,6 +420,7 @@ export default function App() {
     const { ScannerScreen } = require('../features/attendance/ScannerScreen');
     const { DashboardScreen } = require('../features/org/DashboardScreen');
     const { WalletScreen } = require('../features/gamification/GamificationScreens');
+    const { VolunteerTodayScreen } = require('../features/volunteer/VolunteerScreens');
     const { buildSeedDb, IDS } = require('../../scripts/fixtures/seed');
     const seed = buildSeedDb();
     const nav: any = { navigate: () => {}, goBack: () => {}, replace: () => {} };
@@ -439,6 +440,7 @@ export default function App() {
                           route={{ params: { courseId: seed.courses[0].id, batchId: seed.batches[0].id } }}
                         />
                       )}
+                      {previewScreen === 'today' && <VolunteerTodayScreen navigation={nav} />}
                       {previewScreen === 'scanner' && <ScannerScreen navigation={nav} route={{}} />}
                       {previewScreen === 'dashboard' && <DashboardScreen navigation={nav} />}
                       {previewScreen === 'wallet' && <WalletScreen navigation={nav} />}

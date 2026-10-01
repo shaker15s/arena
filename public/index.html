@@ -91,8 +91,11 @@
         outline: 3px solid var(--masar-focus);
         outline-offset: 2px;
       }
-      /* لا نُظهر الحلقة على عنصر main عند نقل التركيز إليه برمجيًا */
-      [role="main"]:focus { outline: none; }
+      /* لا نُظهر الحلقة على العناوين وعنصر main عند نقل التركيز إليها برمجيًا */
+      [role="main"]:focus,
+      [role="heading"]:focus,
+      h1:focus, h2:focus, h3:focus,
+      [tabindex="-1"]:focus { outline: none !important; }
 
       /*
         A11Y-12 / A11Y-15: الشريط السفلي العائم يُقاس ديناميكيًا عبر onLayout (--masar-tabbar-h)
