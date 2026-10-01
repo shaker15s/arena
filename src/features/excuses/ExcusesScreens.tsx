@@ -90,7 +90,7 @@ export function ExcusesScreen({ navigation }: any) {
   return (
     <Screen label={t('excuses.title')}>
       <Header title={t('excuses.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: insets.bottom + spacing.s6 }}>
         <Segmented
           value={tab}
           onChange={setTab}
@@ -128,7 +128,7 @@ export function ExcusesScreen({ navigation }: any) {
               </View>
               <Spacer size={12} />
               <Input label={t('excuses.reasonLabel')} value={reason} onChange={setReason} placeholder={t('excuses.reasonPlaceholder')} multiline />
-              <Txt variant="micro" color={reason.trim().length < 5 ? theme.danger : theme.textMuted} style={{ textAlign: 'right', marginTop: 4 }}>
+              <Txt variant="micro" color={reason.trim().length < 5 ? theme.danger : theme.textMuted} style={{ textAlign: I18nManager.isRTL ? 'left' : 'right', marginTop: 4 }}>
                 {reason.trim().length} / 200
               </Txt>
               <Spacer size={8} />
@@ -200,6 +200,7 @@ export function ExcusesScreen({ navigation }: any) {
 export function ExcusesInboxScreen({ navigation }: any = {}) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -248,7 +249,7 @@ export function ExcusesInboxScreen({ navigation }: any = {}) {
 
   return (
     <Screen label={t('inbox.title')}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: insets.bottom + spacing.s6 }}>
         <Header title={t('inbox.title')} back={navigation ? () => navigation.goBack() : undefined} />
         <Segmented
           value={tab}
