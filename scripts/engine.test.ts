@@ -4,11 +4,11 @@ import {
   attendanceOf, backupCodeOf, balanceOf, currentQrToken, evaluateBadges, evaluateStreakWeek,
   gamifOf, isBatchComplete, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
-  rpcStartSession, rpcSubmitExcuse, rpcUpdateRule, simulateWeekClose,
+  rpcStartSession, rpcSubmitExcuse, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
 } from '../src/data/engine';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
-import { monthKeyOf, weekStartOf } from '../src/shared/format';
+import { weekStartOf } from '../src/shared/format';
 import { qrSignature } from '../src/shared/sha256';
 
 let passed = 0, failed = 0;
@@ -20,6 +20,12 @@ function ok(cond: boolean, name: string, extra?: unknown) {
 const MIN = 60_000;
 
 (() => {
+  // ساعة مثبّتة: 30 سبتمبر 2026 — 18:00 بتوقيت القاهرة (16:00 UTC). تُثبّت كل مواعيد
+  // البذور داخل شهر واحد وتجعل تسوية «الشهر الماضي» (أكتوبر) حتمية — بلاها كانت
+  // نتيجة البونص تتغيّر حسب يوم تشغيل الاختبار (نجاح 30 سبتمبر → فشل 1 أكتوبر).
+  const realNow = Date.now;
+  Date.now = () => Date.UTC(2026, 8, 30, 16, 0, 0);
+
   // ═ 0) بذور واقعية ═
   console.log('\n═ إعداد ═');
   const db = buildSeedDb();
@@ -98,6 +104,7 @@ const MIN = 60_000;
   rpcManualMark(db, { sessionId: live0.id, userId: 'u_hesham', status: 'late', reason: 'وصل متأخرًا واعتذر', actorId: IDS.sara });
 
   const gOmar0 = { ...gamifOf(db, IDS.omar) };
+  const bonusKeysBeforeClose = db.pointEvents.filter((e) => e.idempotencyKey?.startsWith('month.bonus:')).length;
   const summary = rpcCloseSession(db, live0.id, IDS.sara, {
     done: 'مشروع تطبيقي — الجزء الأول', planned: 'متابعة المشروع', challenges: 'مكيف القاعة', submittedAt: Date.now(),
   });
@@ -106,12 +113,19 @@ const MIN = 60_000;
   ok(summary.absent === 4, 'غير المسجلين الأربعة ← غائب', summary.absent);
   ok(live0.status === 'closed', 'الجلسة أُقفلت');
 
-  // بونص شهر الالتزام الكامل (أغسطس 2026 — كل الجلسات فيه)
-  const mKey = monthKeyOf(live0.startsAt);
+  // بونص الشهر: الإقفال لا يمنحه أبدًا — التسوية الشهرية للشهر الماضي فقط (عقد
+  // settle_previous_month_bonus · cron masar-month-bonus) ثم: عمر/حبيبة (التزام كامل
+  // في سبتمبر) ينعمان، مريم (غياب في محاضرة 6) لا — والإعادة لا تكرّر المنح.
+  ok(db.pointEvents.filter((e) => e.idempotencyKey?.startsWith('month.bonus:')).length === bonusKeysBeforeClose,
+    'الإقفال بلا بونص شهر فوري — التسوية شهرية');
+  const settled1 = settlePreviousMonthBonus(db, Date.UTC(2026, 9, 1, 10, 0)); // 1 أكتوبر 2026 12:00 القاهرة
+  const mKey = '2026-09';
   const bonusOmar = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:${IDS.omar}:${mKey}`);
   const bonusHabiba = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_habiba:${mKey}`);
   const bonusMariam = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_mariam:${mKey}`);
   ok(bonusOmar && bonusHabiba && !bonusMariam, 'بونص الشهر: عمر وحبيبة نعم، مريم (غياب) لا', { bonusOmar, bonusHabiba, bonusMariam });
+  const settled2 = settlePreviousMonthBonus(db, Date.UTC(2026, 9, 1, 12, 0));
+  ok(settled1 >= 2 && settled2 === 0, 'إعادة التسوية لا تكرّر البونص', { settled1, settled2 });
 
   // ═ 3) الستريك: عدّ واحد فقط + لا تدهور ═
   console.log('\n═ 3) الستريك ═');
@@ -221,4 +235,5 @@ const MIN = 60_000;
 
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);
+  Date.now = realNow;
 })();

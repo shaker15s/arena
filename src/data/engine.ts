@@ -357,7 +357,7 @@ export interface CloseSummary {
   newBadges: Array<{ userId: string; badge: Badge }>;
 }
 
-/** غلق الجلسة: محاسبة الغائبين + بونص الشهر + تحديث الاستريك — في معاملة واحدة */
+/** غلق الجلسة: محاسبة الغائبين + تحديث الاستريك + تقييم الشارات — في معاملة واحدة */
 export function rpcCloseSession(db: Db, sessionId: string, actorId: string, report?: SessionReport): CloseSummary {
   const session = db.sessions.find((s) => s.id === sessionId);
   if (!session || session.status !== 'live') {
@@ -374,20 +374,10 @@ export function rpcCloseSession(db: Db, sessionId: string, actorId: string, repo
     }
   });
 
-  // بونص شهر الالتزام الكامل
-  const month = monthKeyOf(session.startsAt);
+  // بونص الشهر لا يُمنح عند الإقفال: عقد السيرفر يسوّي «الشهر الماضي» فقط عبر
+  // settle_previous_month_bonus (cron masar-month-bonus) — الإقفال هنا يقيّم الشارات فحسب.
   const newBadges: Array<{ userId: string; badge: Badge }> = [];
   students.forEach((st) => {
-    const myBatchIds = db.enrollments.filter((e) => e.userId === st.id && e.status === 'active').map((e) => e.batchId);
-    const monthSessions = db.sessions.filter((s) => myBatchIds.includes(s.batchId) && s.status === 'closed' && monthKeyOf(s.startsAt) === month);
-    const rows = monthSessions.map((s) => attendanceOf(db, s.id, st.id));
-    if (monthSessions.length > 0 && rows.every((r) => r && r.status !== 'absent')) {
-      const bonus = ruleValue(db, 'points.month_bonus');
-      grantPoints(db, {
-        userId: st.id, points: bonus, reason: 'month.bonus', refType: 'admin', refId: `month:${month}`,
-        idempotencyKey: `month.bonus:${st.id}:${month}`,
-      });
-    }
     newBadges.push(...evaluateBadges(db, st.id));
   });
 
@@ -409,6 +399,70 @@ export function rpcCloseSession(db: Db, sessionId: string, actorId: string, repo
     streakOutcomes,
     newBadges,
   };
+}
+
+/**
+ * تسوية بونص الشهر الماضي + شارة نجم الشهر — مرآة `settle_previous_month_bonus`
+ * (0006_automation_jobs.sql · cron «masar-month-bonus» — كل ساعتين عند الدقيقة 45).
+ * تُنفَّذ عند بداية الشهر التالي فقط؛ الإقفال وحده لا يمنح البونص أبدًا.
+ * حدود الشهر بتوقيت القاهرة (UTC+2 ثابت منذ 2016) — بلا اعتماد على timezone الجهاز.
+ * تُرجع عدد المستخدمين الذين استلموا البونص في هذه التسوية (0 عند الإعادة).
+ */
+export function settlePreviousMonthBonus(db: Db, now = Date.now()): number {
+  const cairoMonthFloor = (t: number): number => {
+    const d = new Date(t + 2 * 3_600_000);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - 2 * 3_600_000;
+  };
+  const monthEnd = cairoMonthFloor(now);            // أول الشهر الحالي (القاهرة)
+  const monthStart = cairoMonthFloor(monthEnd - 1); // أول الشهر الماضي (القاهرة)
+  const md = new Date(monthStart + 2 * 3_600_000);
+  const monthKey = `${md.getUTCFullYear()}-${String(md.getUTCMonth() + 1).padStart(2, '0')}`;
+  const bonus = ruleValue(db, 'points.month_bonus');
+
+  let granted = 0;
+  for (const userId of new Set(db.enrollments.filter((e) => e.status === 'active').map((e) => e.userId))) {
+    const batchIds = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
+    const monthSessions = db.sessions.filter((s) =>
+      batchIds.includes(s.batchId) && s.status === 'closed' && s.startsAt >= monthStart && s.startsAt < monthEnd);
+    if (monthSessions.length === 0) continue; // الـSQL: من بلا جلسات الشهر لا يظهر أصلًا
+    const honored = monthSessions.every((s) => {
+      const r = attendanceOf(db, s.id, userId);
+      return r && r.status !== 'absent';
+    });
+    if (honored && bonus > 0) {
+      const ev = grantPoints(db, {
+        userId, points: bonus, reason: 'month.bonus', refType: 'admin',
+        idempotencyKey: `month.bonus:${userId}:${monthKey}`, createdAt: now,
+      });
+      if (ev) granted += 1;
+    }
+    // الـSQL: PERFORM evaluate_user_badges لكل مستخدم ضمن نتيجة التسوية
+    evaluateBadges(db, userId);
+  }
+
+  // نجم الشهر: أعلى نقاط الشهر داخل كل فرع — الترتيب نقاطًا تنازليًا ثم المعرّف
+  // (row_number OVER(PARTITION BY branch_id ORDER BY points DESC, user_id)) ثم نقاط > 0.
+  const scores = new Map<string, number>();
+  for (const pe of db.pointEvents) {
+    if (pe.createdAt < monthStart || pe.createdAt >= monthEnd) continue;
+    const p = profileOf(db, pe.userId);
+    if (!p || p.role !== 'student' || p.status !== 'active' || !p.branchId) continue;
+    scores.set(pe.userId, (scores.get(pe.userId) ?? 0) + pe.points);
+  }
+  const topByBranch = new Map<string, { userId: string; points: number }>();
+  for (const [userId, points] of scores) {
+    if (points <= 0) continue;
+    const branchId = profileOf(db, userId)!.branchId!;
+    const cur = topByBranch.get(branchId);
+    if (!cur || points > cur.points || (points === cur.points && userId < cur.userId)) {
+      topByBranch.set(branchId, { userId, points });
+    }
+  }
+  for (const winner of topByBranch.values()) {
+    // awardBadge تمنع التكرر وتُرسل إشعار «شارة جديدة» — مرآة إدراج month_star + إشعاره في الـSQL
+    awardBadge(db, winner.userId, 'month_star');
+  }
+  return granted;
 }
 
 export function rpcManualMark(db: Db, args: {
