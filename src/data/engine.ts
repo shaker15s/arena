@@ -1142,20 +1142,29 @@ export function dashboardStats(db: Db, branchId?: string) {
   const month = monthKeyOf(Date.now());
   const certsMonth = db.certificates.filter((c) => monthKeyOf(c.issuedAt) === month).length;
 
-  // اتجاه 6 أسابيع
+  // اتجاه 6 أسابيع (تجميع بمرور واحد لتقليل إنشاء التواريخ)
+  const weekStats = new Map<number, { total: number; honored: number }>();
+  for (const a of att) {
+    const wk = weekStartOf(a.startsAt);
+    let entry = weekStats.get(wk);
+    if (!entry) {
+      entry = { total: 0, honored: 0 };
+      weekStats.set(wk, entry);
+    }
+    entry.total++;
+    if (a.status !== 'absent') entry.honored++;
+  }
+
   const trend: number[] = [];
   const now = Date.now();
   for (let w = 5; w >= 0; w--) {
     const wk = weekStartOf(now - w * 7 * 86_400_000);
-    let rowsCount = 0;
-    let honCount = 0;
-    for (const a of att) {
-      if (weekStartOf(a.startsAt) === wk) {
-        rowsCount++;
-        if (a.status !== 'absent') honCount++;
-      }
+    const entry = weekStats.get(wk);
+    if (!entry || entry.total === 0) {
+      trend.push(0);
+    } else {
+      trend.push(Math.round((entry.honored / entry.total) * 100));
     }
-    trend.push(rowsCount === 0 ? 0 : Math.round((honCount / rowsCount) * 100));
   }
 
   return {
