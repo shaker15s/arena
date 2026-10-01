@@ -270,7 +270,7 @@ export function LiveSessionScreen() {
         <View style={{ backgroundColor: '#ffffff', padding: 20, borderRadius: 28 }}>
           {token ? <QRCode value={token} size={320} /> : <Icon name="sync" size={96} color={theme.brand} />}
         </View>
-        <Txt variant="display" color="#F8FAFC" bold style={{ letterSpacing: 10, fontSize: 40 }}>{bidiIsolate(code)}</Txt>
+        <Txt variant="display" color="#F8FAFC" bold style={{ letterSpacing: 10 }}>{bidiIsolate(code)}</Txt>
         <LiveRegion politeness="polite">
           <Row center gap={10}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80' }} />
