@@ -1,11 +1,10 @@
 /**
- * design/components/GlassBtn.tsx — زر زجاجي تفاعلي مع نوابض Apple Fluid Interfaces
- * يدعم شفافية أنيقة، حد رفيع لامع، واشتداد في التأثير عند الضغط مع Haptics
+ * design/components/GlassBtn.tsx — عناصر تحكم زجاجية عائمة، فوق محوّل المادة المشترك.
+ * الأسطح الزجاجية محصورة هنا في أدوات التحكم الثانوية؛ الأفعال الأساسية تبقى مصمتة.
  */
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Animated,
-  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -13,9 +12,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
+import { GlassSurface } from '../glass';
 import { Txt } from '../components';
 import { radii, sizes, spacing } from '../tokens';
 import { isReducedMotion } from '../motion';
@@ -39,117 +37,66 @@ export function GlassBtn({
   size = 'md',
   variant = 'subtle',
 }: GlassBtnProps) {
-  const { theme, isDark, themeName } = useTheme();
-  const oled = themeName === 'oled';
+  const { theme } = useTheme();
   const reduced = isReducedMotion();
-
+  const [focused, setFocused] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const pressAnim = useRef(new Animated.Value(0)).current;
 
-  const height =
-    size === 'sm' ? 38 : size === 'lg' ? sizes.ctaButton : 44;
-
-  const handlePressIn = () => {
-    if (disabled) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    if (!reduced) {
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 0.96,
-          useNativeDriver: true,
-          friction: 4,
-          tension: 180,
-        }),
-        Animated.timing(pressAnim, {
-          toValue: 1,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  };
-
-  const handlePressOut = () => {
-    if (!reduced) {
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          friction: 4,
-          tension: 180,
-        }),
-        Animated.timing(pressAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  };
-
-  const baseBorderColor =
-    variant === 'danger'
-      ? theme.danger
-      : isDark
-      ? 'rgba(255, 255, 255, 0.16)'
-      : 'rgba(0, 122, 255, 0.22)';
-
-  const baseBg =
-    variant === 'danger'
-      ? 'rgba(239, 68, 68, 0.12)'
-      : isDark
-      ? oled
-        ? 'rgba(255, 255, 255, 0.08)'
-        : 'rgba(30, 41, 59, 0.65)'
-      : 'rgba(255, 255, 255, 0.65)';
-
-  const textColor =
-    variant === 'danger'
-      ? theme.danger
-      : variant === 'highlight'
-      ? theme.brand
+  const height = size === 'lg' ? sizes.ctaButton : sizes.touchTarget;
+  const textColor = variant === 'danger'
+    ? theme.textDanger
+    : variant === 'highlight'
+      ? theme.brandText
       : theme.text;
+  const borderColor = variant === 'danger'
+    ? theme.danger
+    : variant === 'highlight'
+      ? theme.brand
+      : theme.fillBorder;
+
+  const animateScale = (toValue: number) => {
+    if (reduced || disabled) return;
+    Animated.spring(scaleAnim, {
+      toValue,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 220,
+    }).start();
+  };
 
   return (
-    <Animated.View
-      style={[
-        { transform: [{ scale: scaleAnim }] },
-        disabled && { opacity: 0.4 },
-      ]}
-    >
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, disabled && { opacity: 0.55 }]}>
       <Pressable
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+        onPressIn={() => {
+          if (disabled) return;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          animateScale(0.98);
+        }}
+        onPressOut={() => animateScale(1)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         disabled={disabled}
+        focusable={!disabled}
         accessibilityRole="button"
         accessibilityLabel={label}
-        style={[
+        accessibilityState={{ disabled }}
+        style={({ pressed }) => [
           styles.btnBase,
           {
-            height,
-            backgroundColor: baseBg,
-            borderColor: baseBorderColor,
+            minHeight: height,
+            borderColor: focused ? theme.focusRing : borderColor,
+            borderWidth: focused ? 2 : 1,
             borderRadius: radii.lg,
+            opacity: pressed && !reduced ? 0.9 : 1,
           },
           style,
         ]}
       >
-        {Platform.OS !== 'android' && (
-          <BlurView
-            intensity={isDark ? 28 : 45}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
-
+        <GlassSurface radius={radii.lg} borderless style={StyleSheet.absoluteFill} />
         <View style={styles.contentRow}>
           {icon ? <View style={styles.iconSlot}>{icon}</View> : null}
-          <Txt
-            variant={size === 'sm' ? 'caption' : 'bodyMed'}
-            bold
-            color={textColor}
-          >
+          <Txt variant={size === 'sm' ? 'caption' : 'bodyMed'} bold color={textColor}>
             {label}
           </Txt>
         </View>
@@ -158,14 +105,15 @@ export function GlassBtn({
   );
 }
 
-/** زر دائري زجاجي بقياس 44px (معيار Apple للحجم الأدنى للمس) */
+/** زر أيقونة عائم مع هدف لمس لا يقل عن 44pt. */
 export function IconGlassButton({
   icon,
   onPress,
-  size = 44,
+  size = sizes.iconButton,
   accessibilityLabel,
   style,
   badge,
+  disabled = false,
 }: {
   icon: React.ReactNode;
   onPress: () => void;
@@ -173,66 +121,59 @@ export function IconGlassButton({
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   badge?: number | string;
+  disabled?: boolean;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
+  const [focused, setFocused] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const targetSize = Math.max(size, sizes.iconButton);
+  const reduced = isReducedMotion();
 
-  const handlePressIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  const animateScale = (toValue: number) => {
+    if (reduced || disabled) return;
     Animated.spring(scaleAnim, {
-      toValue: 0.92,
+      toValue,
       useNativeDriver: true,
-      friction: 4,
-      tension: 180,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 4,
-      tension: 180,
+      friction: 5,
+      tension: 220,
     }).start();
   };
 
   return (
-    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, disabled && { opacity: 0.55 }]}>
       <Pressable
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+        onPressIn={() => {
+          if (disabled) return;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          animateScale(0.96);
+        }}
+        onPressOut={() => animateScale(1)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        disabled={disabled}
+        focusable={!disabled}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        style={[
+        accessibilityState={{ disabled }}
+        style={({ pressed }) => [
           styles.iconBtnBase,
           {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: isDark
-              ? 'rgba(255, 255, 255, 0.1)'
-              : 'rgba(255, 255, 255, 0.75)',
-            borderColor: isDark
-              ? 'rgba(255, 255, 255, 0.18)'
-              : 'rgba(0, 122, 255, 0.18)',
+            width: targetSize,
+            height: targetSize,
+            borderRadius: targetSize / 2,
+            borderColor: focused ? theme.focusRing : theme.fillBorder,
+            borderWidth: focused ? 2 : 1,
+            opacity: pressed && !reduced ? 0.88 : 1,
           },
           style,
         ]}
       >
-        {Platform.OS !== 'android' && (
-          <BlurView
-            intensity={35}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
+        <GlassSurface radius={targetSize / 2} borderless style={StyleSheet.absoluteFill} />
         {icon}
         {badge !== undefined ? (
-          <View style={styles.badge}>
-            <Txt variant="micro" bold color="#FFF">
-              {badge}
-            </Txt>
+          <View style={[styles.badge, { backgroundColor: theme.danger, borderColor: theme.card }]}>
+            <Txt variant="micro" bold color="#FFFFFF">{badge}</Txt>
           </View>
         ) : null}
       </Pressable>
@@ -243,16 +184,16 @@ export function IconGlassButton({
 const styles = StyleSheet.create({
   btnBase: {
     overflow: 'hidden',
-    borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.s4,
+    backgroundColor: 'transparent',
   },
   iconBtnBase: {
     overflow: 'hidden',
-    borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   contentRow: {
     flexDirection: 'row',
@@ -266,13 +207,14 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#EF4444',
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    top: 1,
+    end: 1,
+    minWidth: 18,
+    minHeight: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#FFF',
   },
 });

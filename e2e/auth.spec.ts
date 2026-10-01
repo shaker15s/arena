@@ -2,7 +2,7 @@
  * e2e/auth.spec.ts — اختبار تدفق تسجيل الدخول وتوثيق الحساب.
  */
 export async function testAuthFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص مسار الدخول بحساب Google (Auth Flow) ---');
+  console.log('\n--- [SCENARIO] فحص مسار الدخول بحساب Google (Auth Flow) ---');
 
   // 1. محاكاة بدء مسار Google OAuth
   let redirectUrl: string = '';

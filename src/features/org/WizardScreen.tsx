@@ -9,6 +9,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useApp } from '../../data/store';
 import { generateSessionsForBatch, profileOf } from '../../data/engine';
 import { useTheme } from '../../design/theme';
+import { GlassSurface } from '../../design/glass';
 import { useI18n } from '../../i18n';
 import {
   Avatar, Btn, Card, Chip, FadeIn, Input, ProgressBar, Row, Screen, Tag, Txt, Spacer,
@@ -303,7 +304,15 @@ export function OrgWizardScreen({ navigation }: any) {
       </ScrollView>
 
       {/* أزرار التنقل */}
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s5, paddingBottom: insets.bottom + 16, backgroundColor: theme.glass, borderTopWidth: 1, borderTopColor: theme.line }}>
+      <GlassSurface
+        radius={0}
+        borderless
+        style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          padding: spacing.s5, paddingBottom: insets.bottom + 16,
+          borderTopWidth: 1, borderTopColor: theme.line,
+        }}
+      >
         <Row gap={spacing.s3}>
           {step > 1 && !createdJoinCode ? <Btn title={t('common.back')} variant="ghost" onPress={() => setStep(step - 1)} /> : null}
           <View style={{ flex: 1 }}>
@@ -316,7 +325,7 @@ export function OrgWizardScreen({ navigation }: any) {
             />
           </View>
         </Row>
-      </View>
+      </GlassSurface>
 
       <CelebrationModal
         visible={doneOpen}

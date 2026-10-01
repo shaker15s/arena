@@ -20,8 +20,8 @@ import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { installGlobalHandlers, setTelemetrySink } from '../shared/telemetry';
 import { logClientError } from '../data/actions';
 import { RootNavigator } from './RootNavigator';
-import { Txt } from '../design/components';
-import { AppBackground, GlassSurface } from '../design/glass';
+import { Card, Txt } from '../design/components';
+import { AppBackground } from '../design/glass';
 import { observeReducedMotion, isReducedMotion } from '../design/motion';
 import { SUPABASE_ENABLED, exchangeUrlForSession } from '../data/supabase';
 import { useI18n } from '../i18n';
@@ -217,18 +217,17 @@ function ToastItem({
         maxWidth: 520,
       }}
     >
-      <GlassSurface
-        intensity={isDark ? 65 : 85}
-        radius={18}
-        tintColor={isDark ? 'rgba(24,24,28,0.94)' : 'rgba(255,255,255,0.96)'}
-        style={{
-          shadowColor: '#000',
-          shadowOpacity: isDark ? 0.35 : 0.16,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 10 },
-          elevation: 14,
-        }}
-      >
+      <Card solid style={{
+        width: '100%',
+        maxWidth: 520,
+        padding: 0,
+        borderRadius: 18,
+        shadowColor: '#000',
+        shadowOpacity: isDark ? 0.35 : 0.16,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 14,
+      }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s3, paddingHorizontal: 16, paddingVertical: 12 }}>
           <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${color}1F`, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name={icon} size={18} color={color} />
@@ -251,7 +250,7 @@ function ToastItem({
             <Icon name="close" size={16} color={theme.textSecondary} />
           </Pressable>
         </View>
-      </GlassSurface>
+      </Card>
     </Animated.View>
   );
 }
@@ -286,7 +285,7 @@ function SetupRequired() {
   return (
     <AppBackground>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <GlassSurface intensity={70} radius={32} style={{ width: '100%', maxWidth: 520 }}>
+        <Card solid style={{ width: '100%', maxWidth: 520, padding: 0, borderRadius: 32 }}>
           <View style={{ alignItems: 'center', padding: 30, gap: spacing.s4 }}>
             <LinearGradient
               colors={[theme.warn, theme.danger]}
@@ -298,7 +297,7 @@ function SetupRequired() {
             <Txt variant="body" color={theme.textSecondary} align="center">{t('auth.notConfigured')}</Txt>
             <View style={{ width: 46, height: 4, borderRadius: 2, backgroundColor: theme.warn, marginTop: 4 }} />
           </View>
-        </GlassSurface>
+        </Card>
       </View>
     </AppBackground>
   );

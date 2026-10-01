@@ -1,6 +1,6 @@
 /**
- * e2e/runner.ts — مشغّل اختبارات التكامل الشاملة للمسارات الذهبية (Golden Paths E2E Test Suite)
- * ينفذ كافة السيناريوهات لضمان جاهزية النظام 100% قبل الإطلاق
+ * e2e/runner.ts — تشغيل سيناريوهات منطقية للمسارات الأساسية باستخدام بيانات اختبار.
+ * لا يفتح متصفحًا ولا يتصل بخدمة حقيقية؛ يظل المسار هنا لأسباب التوافق التاريخية.
  */
 import { testOnboardingFlow } from './onboarding.spec';
 import { testAuthFlow } from './auth.spec';
@@ -10,9 +10,9 @@ import { testCertificatesFlow } from './certificates.spec';
 import { testThemeToggleFlow } from './theme-toggle.spec';
 import { testRtlFlow } from './rtl.spec';
 
-async function runAllE2ETests() {
+async function runAllScenarioTests() {
   console.log('===============================================================');
-  console.log('   🚀 بدء تنفيذ اختبارات التكامل الشاملة (Masär E2E Suite)   ');
+  console.log('   بدء فحوص السيناريو المنطقية (Masar Scenario Checks)');
   console.log('===============================================================');
 
   let passed = 0;
@@ -42,18 +42,18 @@ async function runAllE2ETests() {
     await testRtlFlow(assert);
   } catch (err: any) {
     failed++;
-    failures.push(`خطأ غير متوقع أثناء تنفيذ الاختبارات: ${err?.message || err}`);
+    failures.push(`خطأ غير متوقع أثناء تنفيذ السيناريوهات: ${err?.message || err}`);
     console.error('💥 حدث استثناء غير متوقع:', err);
   }
 
   const duration = Date.now() - startTime;
 
   console.log('\n===============================================================');
-  console.log(`   📊 ملخص نتائج اختبارات التكامل (E2E Integration Results)    `);
+  console.log('   ملخص اختبارات السيناريو المنطقية');
   console.log('===============================================================');
-  console.log(`  ⏱️  المدة الإجمالية : ${duration}ms`);
-  console.log(`  ✅ الفحوصات الناجحة: ${passed}`);
-  console.log(`  ❌ الفحوصات الفاشلة: ${failed}`);
+  console.log(`  المدة الإجمالية: ${duration}ms`);
+  console.log(`  الناجح: ${passed}`);
+  console.log(`  الفاشل: ${failed}`);
   console.log('===============================================================');
 
   if (failed > 0) {
@@ -61,9 +61,9 @@ async function runAllE2ETests() {
     failures.forEach((f, idx) => console.error(`  ${idx + 1}. ${f}`));
     process.exit(1);
   } else {
-    console.log('\n🎉 اكتملت جميع اختبارات التكامل الشاملة بنجاح بنسبة 100%!');
+    console.log('\nاكتملت جميع اختبارات السيناريو المنطقية بنجاح.');
     process.exit(0);
   }
 }
 
-runAllE2ETests();
+runAllScenarioTests();

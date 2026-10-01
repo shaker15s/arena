@@ -4,7 +4,6 @@ import { NavigationContainer, DefaultTheme, DarkTheme, getStateFromPath as defau
 import { addBreadcrumb } from '../shared/telemetry';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
@@ -12,7 +11,7 @@ import { useApp } from '../data/store';
 import { useTheme } from '../design/theme';
 import { useI18n } from '../i18n';
 import { Btn, Card, FadeIn, OfflineQueueBanner, PageSkeleton, Spacer, Txt } from '../design/components';
-import { AppBackground, ContentFrame } from '../design/glass';
+import { AppBackground, ContentFrame, GlassSurface } from '../design/glass';
 import { isReducedMotion } from '../design/motion';
 import { navBar, radii, spacing } from '../design/tokens';
 import { useHaptics } from '../shared/hooks';
@@ -268,6 +267,18 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
   const insets = useSafeAreaInsets();
   const fabScale = useRef(new Animated.Value(1)).current;
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const animateFabScale = (toValue: number) => {
+    if (isReducedMotion()) {
+      fabScale.setValue(1);
+      return;
+    }
+    Animated.spring(fabScale, {
+      toValue,
+      damping: 20,
+      stiffness: 260,
+      useNativeDriver: true,
+    }).start();
+  };
 
   // A11Y-12 (WCAG 2.4.11): إخفاء الشريط السفلي والـ FAB عند ظهور لوحة المفاتيح على الجوال لمنع حجب الحقل النشط
   useEffect(() => {
@@ -311,59 +322,53 @@ function AppleTabBar({ tabs, active, onSelect, fab, badges }: {
         shadowColor: '#000', shadowOpacity: isDark ? 0.34 : 0.13,
         shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 16,
       }}>
-        <View style={{ position: 'absolute', inset: 0 as any, borderRadius: 26, overflow: 'hidden' }}>
-          <BlurView intensity={isDark ? 55 : 80} tint={isDark ? 'dark' : 'light'} style={{ flex: 1 }} />
-          <View pointerEvents="none" style={{
-            position: 'absolute', inset: 0 as any,
-            backgroundColor: isDark ? 'rgba(24,24,28,0.72)' : 'rgba(255,255,255,0.76)',
-            borderWidth: 1, borderColor: theme.glassBorder, borderRadius: 26,
-          }} />
-        </View>
-        <View accessibilityRole="tablist" style={{ flexDirection: 'row', alignItems: 'center', minHeight: 68, paddingHorizontal: 4, paddingVertical: 6 }}>
-          {tabs.map((tab, index) => {
-            const showFabHere = fab && index === Math.floor(tabs.length / 2);
-            return (
-              <React.Fragment key={tab.key}>
-                {showFabHere ? (
-                  <View style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
-                    <Animated.View style={{ transform: [{ scale: fabScale }], marginTop: -27 }}>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={fab.label}
-                        onPress={() => { impactMedium(); fab.onPress(); }}
-                        onPressIn={() => Animated.spring(fabScale, { toValue: 0.9, damping: 20, stiffness: 280, useNativeDriver: true }).start()}
-                        onPressOut={() => Animated.spring(fabScale, { toValue: 1, damping: 18, stiffness: 240, useNativeDriver: true }).start()}
-                        style={webPointer}
-                      >
-                        <LinearGradient
-                          colors={[theme.brandGradientFrom, theme.brandGradientTo]}
-                          style={{
-                            width: 52, height: 52, borderRadius: 18,
-                            alignItems: 'center', justifyContent: 'center',
-                            borderWidth: 3, borderColor: theme.bg,
-                            shadowColor: theme.brand, shadowOpacity: 0.38,
-                            shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 12,
-                          }}
+        <GlassSurface radius={26} style={{ minHeight: 68 }}>
+          <View accessibilityRole="tablist" style={{ flexDirection: 'row', alignItems: 'center', minHeight: 68, paddingHorizontal: 4, paddingVertical: 6 }}>
+            {tabs.map((tab, index) => {
+              const showFabHere = fab && index === Math.floor(tabs.length / 2);
+              return (
+                <React.Fragment key={tab.key}>
+                  {showFabHere ? (
+                    <View style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
+                      <Animated.View style={{ transform: [{ scale: fabScale }], marginTop: -27 }}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={fab.label}
+                          onPress={() => { impactMedium(); fab.onPress(); }}
+                          onPressIn={() => animateFabScale(0.96)}
+                          onPressOut={() => animateFabScale(1)}
+                          style={webPointer}
                         >
-                          <Icon name={fab.icon} size={23} color="#fff" />
-                        </LinearGradient>
-                      </Pressable>
-                    </Animated.View>
-                    {fab.label ? <Txt variant="micro" color={theme.textMuted} style={{ fontSize: 10, lineHeight: 13 }}>{fab.label}</Txt> : null}
-                  </View>
-                ) : null}
-                <TabButton
-                  tab={tab}
-                  active={tab.key === active}
-                  badge={badges?.[tab.key]}
-                  index={index}
-                  total={tabs.length}
-                  onPress={() => onSelect(tab.key)}
-                />
-              </React.Fragment>
-            );
-          })}
-        </View>
+                          <LinearGradient
+                            colors={[theme.brandGradientFrom, theme.brandGradientTo]}
+                            style={{
+                              width: 52, height: 52, borderRadius: 18,
+                              alignItems: 'center', justifyContent: 'center',
+                              borderWidth: 3, borderColor: theme.bg,
+                              shadowColor: theme.brand, shadowOpacity: 0.38,
+                              shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 12,
+                            }}
+                          >
+                            <Icon name={fab.icon} size={23} color="#fff" />
+                          </LinearGradient>
+                        </Pressable>
+                      </Animated.View>
+                      {fab.label ? <Txt variant="micro" color={theme.textMuted} style={{ fontSize: 10, lineHeight: 13 }}>{fab.label}</Txt> : null}
+                    </View>
+                  ) : null}
+                  <TabButton
+                    tab={tab}
+                    active={tab.key === active}
+                    badge={badges?.[tab.key]}
+                    index={index}
+                    total={tabs.length}
+                    onPress={() => onSelect(tab.key)}
+                  />
+                </React.Fragment>
+              );
+            })}
+          </View>
+        </GlassSurface>
       </View>
     </View>
   );

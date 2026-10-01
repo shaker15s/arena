@@ -2,7 +2,7 @@
  * e2e/onboarding.spec.ts — اختبار مسار شاشات الترحيب والانتقال للشاشة الرئيسية.
  */
 export async function testOnboardingFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص مسار شاشات الترحيب (Onboarding Flow) ---');
+  console.log('\n--- [SCENARIO] فحص مسار شاشات الترحيب (Onboarding Flow) ---');
   
   // 1. التحقق من وجود الشرائح الثلاث مع مكونات الرسوم التوضيحية
   const slidesCount = 3;

@@ -1,21 +1,41 @@
 /**
- * design/glass.tsx — أسطح الزجاج (Liquid Glass) بأسلوب Apple.
- * الزجاج الحقيقي (BlurView) للطبقات العائمة فقط — البطاقات تستخدم surfaceGlass من التوكنز.
+ * design/glass.tsx — محوّل مادة زجاجية واحد للتنقل وأدوات التحكم العائمة.
+ *
+ * iOS 26+ يستخدم مادة النظام الأصلية عند توافرها، وiOS الأقدم يستخدم BlurView
+ * باعتدال، والويب يستخدم backdrop-filter كتطوير تدريجي، وAndroid يأخذ تعبئة ثابتة
+ * عالية العتامة. المحتوى والبطاقات لا تستخدم هذه المادة.
  */
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Animated, Platform, Pressable, View, ViewStyle, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './theme';
+import { useA11yPrefsOptional } from './preferences';
 import { blurIntensity, borderWidth, orbs, radii, shadows, sizes, spacing, typography } from './tokens';
 import { isReducedMotion, pressScale } from './motion';
 
+function canUseNativeLiquidGlass(): boolean {
+  if (Platform.OS !== 'ios') return false;
+  try {
+    return isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+  } catch {
+    // Expo Go أو بناء أصلي لا يضم الوحدة يجب أن يتراجع بأمان إلى التعبئة العادية.
+    return false;
+  }
+}
+
 /**
- * سطح زجاجي حقيقي (Apple Liquid Glass): ضبابية خلفية + طبقة لون شفافة
- * + حد فاتح علوي. يُستخدم للطبقات العائمة فقط (شاشة الدخول، البوب‌أوف) — لا يُتعشّش داخل بطاقات.
+ * سطح زجاجي تكيفي — محصور في التنقل والأدوات العائمة.
+ * لا يغيّر الوظيفة أو التباين عند غياب المؤثر أو تفعيل تقليل الشفافية.
  */
 export function GlassSurface({
-  children, style, radius = radii.xl, tintColor, intensity = blurIntensity.surface, borderless,
+  children,
+  style,
+  radius = radii.xl,
+  tintColor,
+  intensity = blurIntensity.surface,
+  borderless,
 }: {
   children?: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
@@ -25,82 +45,85 @@ export function GlassSurface({
   borderless?: boolean;
 }) {
   const { theme, isDark } = useTheme();
-  const isAndroid = Platform.OS === 'android';
-  // GL-01: شدة الضبابية على الويب موحّدة من blurIntensity.webSurface لكل الأسطح.
-  const webBlur = `blur(${blurIntensity.webSurface}px) saturate(180%)`;
+  const preferences = useA11yPrefsOptional();
+  const highContrast = preferences?.highContrast ?? false;
+  // High contrast uses the same opaque material as Reduce Transparency so that
+  // blur never lowers legibility; the stronger border remains a clear affordance.
+  const reduceTransparency = Boolean(preferences?.effectiveReduceTransparency || highContrast);
+  const useNativeGlass = !reduceTransparency && canUseNativeLiquidGlass();
+  const webBlur = `blur(${blurIntensity.webSurface}px) saturate(150%)`;
+  const fill = reduceTransparency ? theme.card : (tintColor ?? theme.glassHeavy);
+
   return (
     <View
+      // RN Web strips custom className from View; dataSet reliably exposes the CSS hook.
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { masarGlassSurface: 'true' } } as unknown as object)
+        : {})}
       style={[
-        { borderRadius: radius, overflow: 'hidden' },
-        Platform.OS === 'web' ? ({ backdropFilter: webBlur, WebkitBackdropFilter: webBlur } as unknown as ViewStyle) : null,
-        isAndroid ? { backgroundColor: tintColor ?? (isDark ? 'rgba(30, 41, 59, 0.94)' : 'rgba(255, 255, 255, 0.94)'), elevation: 4 } : null,
+        {
+          position: 'relative',
+          borderRadius: radius,
+          overflow: 'hidden',
+          backgroundColor: fill,
+          borderWidth: borderless ? 0 : highContrast ? borderWidth.medium : borderWidth.thin,
+          borderColor: highContrast ? theme.textMuted : theme.fillBorder,
+        },
+        Platform.OS === 'web' && !reduceTransparency
+          ? ({ backdropFilter: webBlur, WebkitBackdropFilter: webBlur } as unknown as ViewStyle)
+          : null,
         style,
+        // التفضيل يتقدّم على أي تعبئة/Blur يضيفها المستدعي.
+        reduceTransparency
+          ? ({ backgroundColor: theme.card, backdropFilter: 'none', WebkitBackdropFilter: 'none' } as unknown as ViewStyle)
+          : null,
       ]}
     >
-      {!isAndroid && (
+      {useNativeGlass ? (
+        <GlassView
+          pointerEvents="none"
+          glassEffectStyle="regular"
+          colorScheme={isDark ? 'dark' : 'light'}
+          tintColor={tintColor}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
+        />
+      ) : !reduceTransparency && Platform.OS === 'ios' ? (
         <BlurView
+          pointerEvents="none"
           intensity={intensity}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
         />
-      )}
-      <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            backgroundColor: isAndroid ? 'transparent' : (tintColor ?? theme.glass),
-            borderRadius: radius,
-            borderWidth: borderless ? 0 : borderWidth.thin,
-            borderColor: theme.glassBorder,
-          },
-        ]}
-      />
+      ) : null}
       {children}
     </View>
   );
 }
 
 // ═══════════════ Ambient background ═══════════════
-export function AmbientOrb({ size = 320, color, drift = 18, style }: {
-  size?: number; color: string; drift?: number; style?: ViewStyle;
+/** كرة ساكنة وخافتة للزخرفة فقط؛ لا حلقات GPU مستمرة في شاشات العمل. */
+export function AmbientOrb({ size = 320, color, style }: {
+  size?: number;
+  color: string;
+  style?: ViewStyle;
 }) {
   const { isDark, themeName } = useTheme();
+  const preferences = useA11yPrefsOptional();
   const oled = themeName === 'oled';
-  const reduced = isReducedMotion();
-  const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (reduced) return undefined;
-    // حركة طفو مستمرة وهادئة (Orb Drift)
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(progress, { toValue: 1, duration: 12000, useNativeDriver: true }),
-      Animated.timing(progress, { toValue: 0, duration: 12000, useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [reduced, progress]);
-
-  // A11Y-52: تعطيل الكرات العائمة بالكامل عند تفعيل تقليل الحركة
-  if (reduced) return null;
-
-  const animatedTransform = [
-    { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, drift] }) },
-    { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -drift * 0.6] }) },
-    { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
-  ];
+  if (preferences?.effectiveReduceTransparency || preferences?.highContrast) return null;
 
   const effectiveOpacity = oled ? 0.15 : isDark ? 0.35 : 0.75;
-
   return (
-    <Animated.View
+    <View
       pointerEvents="none"
       style={[
         {
-          position: 'absolute', width: size, height: size, borderRadius: size / 2,
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: size / 2,
           backgroundColor: color,
           opacity: effectiveOpacity,
-          transform: animatedTransform,
         },
         style,
       ]}
@@ -111,17 +134,27 @@ export function AmbientOrb({ size = 320, color, drift = 18, style }: {
 export function AppBackground({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   const { theme, isDark } = useTheme();
   return (
-    <View style={[{ flex: 1, backgroundColor: theme.bg, overflow: 'hidden' }, style]}>
+    <View
+      style={[
+        { flex: 1, backgroundColor: theme.bg, overflow: 'hidden' },
+        style,
+        // CSS `hidden` still creates a programmatically scrollable box. The large
+        // decorative orb can make it 180px taller than the viewport, so focusing
+        // a button scrolls the whole app offscreen. `clip` preserves the visual
+        // crop without introducing a scroll container on the web.
+        Platform.OS === 'web' ? ({ overflow: 'clip' } as unknown as ViewStyle) : null,
+      ]}
+    >
       <LinearGradient
         colors={[theme.bgGradientFrom, theme.bgGradientTo]}
         start={{ x: 0.15, y: 0 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* مقاسات ومواضع الـ Orbs موحّدة من توكنز orbs (GL-02) */}
+      {/* لمسة لونية ساكنة وخفيفة؛ أسطح المحتوى المعتمة تحمي وضوح النصوص فوقها. */}
       <AmbientOrb size={orbs.size.md} color={theme.orbPrimary} style={orbs.position.topRight} />
-      <AmbientOrb size={orbs.size.lg} color={theme.orbSecondary} drift={-22} style={orbs.position.bottomLeft} />
-      <AmbientOrb size={orbs.size.sm} color={theme.orbTertiary} drift={12} style={orbs.position.midLeft} />
+      <AmbientOrb size={orbs.size.lg} color={theme.orbSecondary} style={orbs.position.bottomLeft} />
+      <AmbientOrb size={orbs.size.sm} color={theme.orbTertiary} style={orbs.position.midLeft} />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
         borderWidth: Platform.OS === 'web' ? 1 : 0,
         borderColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.2)',
@@ -144,20 +177,24 @@ export function ContentFrame({ children, style, maxWidth = sizes.contentMaxWidth
   );
 }
 
-/** بطاقة زجاجية ساكنة (بلا ضبابية) — للطبقة المحتوى. الضبابية للطبقات العائمة فقط. */
+/**
+ * اسم تاريخي للتوافق مع شاشات المصادقة؛ هذا سطح محتوى صلب وليس زجاجًا شفافًا.
+ */
 export function GlassCard({ children, style }: {
   children?: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
 }) {
   const { theme } = useTheme();
+  const preferences = useA11yPrefsOptional();
+  const highContrast = preferences?.highContrast ?? false;
   return (
     <View
       style={[
         {
-          backgroundColor: theme.glass,
+          backgroundColor: theme.card,
           borderRadius: radii.xl,
-          borderWidth: borderWidth.thin,
-          borderColor: theme.glassBorder,
+          borderWidth: highContrast ? borderWidth.medium : borderWidth.thin,
+          borderColor: highContrast ? theme.textMuted : theme.fillBorder,
           padding: spacing.s4,
           overflow: 'hidden',
         },
@@ -169,7 +206,7 @@ export function GlassCard({ children, style }: {
   );
 }
 
-// ═══════════════ Stat Bubble (Glass Metric) ═══════════════
+// ═══════════════ Stat Bubble (solid metric surface) ═══════════════
 export function StatBubble({ value, label, icon, color, onPress, onLongPress }: {
   value: string | number;
   label: string;
@@ -179,6 +216,9 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
   onLongPress?: () => void;
 }) {
   const { theme } = useTheme();
+  const preferences = useA11yPrefsOptional();
+  const highContrast = preferences?.highContrast ?? false;
+  const reduceMotion = isReducedMotion();
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -187,24 +227,19 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
       onLongPress={onLongPress}
       style={({ pressed }) => ({
         flex: 1,
-        backgroundColor: theme.glass,
+        minHeight: 72,
+        backgroundColor: theme.card,
         borderRadius: radii.lg,
         padding: spacing.s3,
         alignItems: 'center',
+        justifyContent: 'center',
         gap: spacing.s1,
-        borderWidth: borderWidth.thin,
-        borderColor: theme.glassBorder,
+        borderWidth: highContrast ? borderWidth.medium : borderWidth.thin,
+        borderColor: highContrast ? theme.textMuted : theme.fillBorder,
         shadowColor: theme.glassShadow,
         ...shadows.bubble,
-        // GL-01: نفس شدة ضبابية GlassSurface على الويب — سطح واحد = قيمة واحدة.
-        ...(Platform.OS === 'web'
-          ? {
-              backdropFilter: `blur(${blurIntensity.webSurface}px) saturate(180%)`,
-              WebkitBackdropFilter: `blur(${blurIntensity.webSurface}px) saturate(180%)`,
-            } as unknown as ViewStyle
-          : {}),
-        opacity: pressed ? 0.85 : 1,
-        transform: [{ scale: pressed ? pressScale.default : 1 }],
+        opacity: pressed ? 0.88 : 1,
+        transform: !reduceMotion && pressed ? [{ scale: pressScale.default }] : undefined,
       })}
     >
       {icon ?? null}
@@ -213,8 +248,6 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
         adjustsFontSizeToFit
         allowFontScaling
         maxFontSizeMultiplier={2}
-        // GL-03: من مقياس التايبوغرافيا مباشرة — كانت 20/26 hardcoded بينما h2 الموحّد 20/29
-        // والفرق يقطع امتدادات الحروف العربية.
         style={{
           color: color ?? theme.text,
           fontSize: typography.h2.fontSize,

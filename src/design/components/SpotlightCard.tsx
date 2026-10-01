@@ -6,7 +6,7 @@
  *
  * الميزات:
  * 1. بقعة ضوء ناعمة تتبع مؤشر الماوس على الويب وإصبع اللمس على الموبايل بانسيابية.
- * 2. الحفاظ التام على ألوان وتصميم Apple Liquid Glass والخطوط والمحاذاة الأصلية.
+ * 2. الحفاظ على أسطح المحتوى الصلبة ونظام ألوان مسار؛ الضوء تأثير زخرفي محدود.
  * 3. إمكانية الوصول الكاملة للوحة المفاتيح (Keyboard Accessible with Focus Ring).
  * 4. احترام تفضيلات تقليل الحركة (prefers-reduced-motion): يتحول تلقائيًا لبطاقة هادئة بدون ضوء متحرك.
  * 5. تمرير الأحداث للروابط والأزرار الداخلية دون أي اعتراض (pointerEvents="none" على طبقة الضوء).
@@ -92,8 +92,8 @@ export function SpotlightCard({
       style={[
         styles.cardShell,
         {
-          backgroundColor: theme.glass,
-          borderColor: isFocused ? theme.brand : theme.glassBorder,
+          backgroundColor: theme.card,
+          borderColor: isFocused ? theme.brand : theme.fillBorder,
           borderWidth: isFocused ? 2 : 1,
         },
         style,

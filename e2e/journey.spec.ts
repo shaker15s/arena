@@ -13,7 +13,7 @@ import {
 import { weekStartOf } from '../src/shared/format';
 
 export async function testJourneyFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص رحلة الطالب وتلعيب المسار (Student Journey Flow) ---');
+  console.log('\n--- [SCENARIO] فحص رحلة الطالب وتلعيب المسار (Student Journey Flow) ---');
   const db = buildSeedDb();
   const studentId = IDS.omar;
   const instructorId = IDS.sara;
