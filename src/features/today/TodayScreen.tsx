@@ -11,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
 import {
   attendancePct, courseOf, batchOf, getMyGamification, liveSessionForStudent,
-  nearestBadge, nextSessionForUser, seatCounts, sessionsOfBatch,
+  nearestBadge, nextSessionForUser, pendingFeedbackFor, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -56,6 +56,8 @@ export function TodayScreen() {
   const now = useNow(60_000);
   const nextSess = useMemo(() => (user ? nextSessionForUser(db, user.id) : undefined), [db, user]);
   const near = useMemo(() => (user ? nearestBadge(db, user.id) : null), [db, user]);
+  // خطة الإصلاح D4 — التغذية الراجعة المعلّقة بعد المحاضرات
+  const pendingFeedback = useMemo(() => (user ? pendingFeedbackFor(db, user.id) : []), [db, user]);
   const myEnrollmentCount = db.enrollments.filter((e) => e.userId === user?.id && e.status === 'active').length;
 
   useEffect(() => {
@@ -598,6 +600,49 @@ export function TodayScreen() {
                     alignItems: 'center', justifyContent: 'center',
                   }}>
                     <Icon name="book" size={32} color={nextCourse.color ?? theme.brand} />
+                  </View>
+                </Row>
+              </Card>
+            </FadeIn>
+          ) : null}
+
+          {/* ── التغذية الراجعة المعلّقة (خطة الإصلاح D4) ── */}
+          {pendingFeedback.length > 0 ? (
+            <FadeIn index={3}>
+              <Card
+                onPress={() => navigation.navigate('LectureFeedback', { sessionId: pendingFeedback[0].id })}
+                accessibilityLabel={t('today.feedbackBanner')}
+                accessibilityHint={t('feedback.submitHint')}
+              >
+                <Row between center>
+                  <View style={{ flex: 1, gap: spacing.s2 }}>
+                    <Row center gap={spacing.s2}>
+                      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name="chatbubble-ellipses" size={13} color={theme.accent} />
+                      </View>
+                      <Txt variant="caption" color={theme.accent}>{t('today.feedbackBanner')}</Txt>
+                    </Row>
+                    <Txt variant="h3">{pendingFeedback[0].title}</Txt>
+                    <Txt variant="caption" color={theme.textSecondary}>
+                      {pendingFeedback.length > 1
+                        ? t('today.feedbackCount', { n: String(pendingFeedback.length) })
+                        : t('today.feedbackBody')}
+                    </Txt>
+                    <Btn
+                      title={t('feedback.submit')}
+                      variant="secondary"
+                      size="sm"
+                      icon="chatbubble-ellipses-outline"
+                      onPress={() => navigation.navigate('LectureFeedback', { sessionId: pendingFeedback[0].id })}
+                      style={{ marginTop: 6, alignSelf: 'flex-start' }}
+                    />
+                  </View>
+                  <View style={{
+                    width: 56, height: 56, borderRadius: 18,
+                    backgroundColor: theme.accentSoft,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name="star" size={26} color={theme.accent} />
                   </View>
                 </Row>
               </Card>

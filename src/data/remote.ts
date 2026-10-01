@@ -12,10 +12,10 @@
  */
 import { getSupabase } from './supabase';
 import {
-  Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, CourseRole, Db,
+  Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, CourseModule, CourseRole, Db,
   Enrollment, Excuse, GamificationProfile, GamificationRule, KudosQuota, LeagueWeekRow,
-  AppNotification, PointEvent, PrivateNote, Profile, CourseRating, StreakWeek,
-  TrainingSession, UserBadge,
+  AppNotification, PointEvent, PrivateNote, Profile, CourseRating, SessionContent, SessionFeedback,
+  StreakWeek, TrainingSession, UserBadge,
 } from './types';
 
 // ───────────────────────── أدوات تحويل ─────────────────────────
@@ -30,6 +30,7 @@ export function emptyDb(): Db {
     profiles: [], branches: [], committees: [], courses: [], batches: [], enrollments: [],
     sessions: [], attendance: [], pointEvents: [], streakWeeks: [], gamification: [],
     badges: [], userBadges: [], leagueWeeks: [], certificates: [], excuses: [], ratings: [],
+    modules: [], sessionContent: [], sessionFeedback: [],
     rules: [], audit: [], kudosQuotas: [], notifications: [], privateNotes: [],
     courseRoles: [], domainEvents: [],
     certSeq: 0, seedVersion: 0,
@@ -100,7 +101,8 @@ export async function fetchRemoteDb(): Promise<Db> {
   const [
     profiles, branches, committees, courses, batches, batchStats, enrollments, sessions, attendance,
     pointEvents, streakWeeks, gamification, badges, userBadges, leagueWeeks, certificates,
-    excuses, ratings, rules, audit, kudosQuotas, notifications, privateNotes, courseRoles,
+    excuses, ratings, modules, sessionContent, sessionFeedback, rules, audit, kudosQuotas,
+    notifications, privateNotes, courseRoles,
   ] = await Promise.all([
     callRows<any>('list_visible_profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
     selectAll<any>('courses'), selectAll<any>('batches'), callRows<any>('get_batch_stats'), selectAll<any>('enrollments'),
@@ -116,6 +118,10 @@ export async function fetchRemoteDb(): Promise<Db> {
     selectRecent<any>('certificates', '*', 2_000, 'issued_at'),
     selectRecent<any>('excuses', '*', 1_000, 'created_at'),
     selectRecent<any>('course_ratings', '*', 2_000, 'created_at'),
+    selectAll<any>('course_modules', '*', 'id').catch(() => []),
+    selectAll<any>('session_content', '*', 'session_id').catch(() => []),
+    // التغذية الراجعة: RLS يُعيد صفوف المستخدم الحالي فقط (خصوصية D4)
+    selectRecent<any>('session_feedback', '*', 2_000, 'created_at').catch(() => []),
     selectAll<any>('gamification_rules', '*', 'key'),
     selectRecent<any>('audit_log', '*', 500, 'created_at'),
     selectRecent<any>('kudos_quotas', '*', 1_000, 'month'),
@@ -168,7 +174,7 @@ export async function fetchRemoteDb(): Promise<Db> {
       joinedAt: tsOr(r.joined_at, Date.now()),
     })),
     sessions: sessions.map((r): TrainingSession => ({
-      id: r.id, batchId: r.batch_id, seq: r.seq, title: r.title ?? '',
+      id: r.id, batchId: r.batch_id, moduleId: r.module_id ?? null, seq: r.seq, title: r.title ?? '',
       startsAt: tsOr(r.starts_at), durationMin: r.duration_min ?? 120, status: r.status,
       startedAt: ts(r.started_at), closedAt: ts(r.closed_at),
       // SEC-QR-01: qr_seed عمود محظور بنطاق الـ SELECT (لا يصل أصلًا)، ونُصفّره
@@ -222,6 +228,27 @@ export async function fetchRemoteDb(): Promise<Db> {
     ratings: ratings.map((r): CourseRating => ({
       userId: r.user_id, courseId: r.course_id, stars: r.stars,
       comment: r.comment ?? undefined, createdAt: tsOr(r.created_at),
+    })),
+    modules: modules.map((r): CourseModule => ({
+      id: r.id, courseId: r.course_id, title: r.title ?? '', seq: r.seq ?? 1,
+      createdAt: tsOr(r.created_at),
+    })),
+    sessionContent: sessionContent.map((r): SessionContent => ({
+      sessionId: r.session_id,
+      objectives: Array.isArray(r.objectives) ? r.objectives : [],
+      topics: Array.isArray(r.topics) ? r.topics : [],
+      summary: r.summary ?? '',
+      resources: Array.isArray(r.resources) ? r.resources : [],
+      updatedAt: tsOr(r.updated_at),
+    })),
+    sessionFeedback: sessionFeedback.map((r): SessionFeedback => ({
+      id: r.id, sessionId: r.session_id, userId: r.user_id,
+      understanding: r.understanding ?? 0, pace: r.pace ?? 0, clarity: r.clarity ?? 0,
+      sentiment: (r.sentiment ?? 'clear') as SessionFeedback['sentiment'],
+      comment: r.comment ?? '', praiseInstructor: Boolean(r.praise_instructor),
+      topicsOk: Array.isArray(r.topics_ok) ? r.topics_ok : [],
+      topicsHard: Array.isArray(r.topics_hard) ? r.topics_hard : [],
+      createdAt: tsOr(r.created_at), updatedAt: tsOr(r.updated_at),
     })),
     rules: rules.map((r): GamificationRule => ({
       key: r.key, value: typeof r.value === 'object' && r.value !== null ? (r.value.value ?? 0) : r.value,
@@ -294,7 +321,7 @@ export function subscribeRealtime(
   // المسموحة فقط فلا يصل qr_seed للعميل أو الكاش (إصلاح السطر التالي يدافع أيضًا).
   const sessionsRealtime = {
     event: '*' as const, schema: 'public', table: 'sessions',
-    select: ['id', 'batch_id', 'seq', 'title', 'starts_at', 'duration_min', 'status', 'started_at', 'closed_at', 'report'],
+    select: ['id', 'batch_id', 'module_id', 'seq', 'title', 'starts_at', 'duration_min', 'status', 'started_at', 'closed_at', 'report'],
   };
   const notifRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'notifications' };
   const pointsRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'point_events' };
@@ -523,6 +550,21 @@ export function applyRealtimePatch(db: Db, p: RealtimePatch): Db | null {
         createdAt: tsVal(row.created_at) ?? Date.now(),
       };
       next.courseRoles = upsert(next.courseRoles, (x) => x.id === id, () => cr);
+      break;
+    }
+    case 'session_feedback': {
+      const id = str(row.id);
+      if (del) { next.sessionFeedback = next.sessionFeedback.filter((x) => x.id !== id); break; }
+      const fb: SessionFeedback = {
+        id, sessionId: str(row.session_id), userId: str(row.user_id),
+        understanding: numOr(row.understanding, 0), pace: numOr(row.pace, 0), clarity: numOr(row.clarity, 0),
+        sentiment: (row.sentiment as SessionFeedback['sentiment']) ?? 'clear',
+        comment: str(row.comment ?? ''), praiseInstructor: Boolean(row.praise_instructor),
+        topicsOk: Array.isArray(row.topics_ok) ? row.topics_ok : [],
+        topicsHard: Array.isArray(row.topics_hard) ? row.topics_hard : [],
+        createdAt: tsVal(row.created_at) ?? Date.now(), updatedAt: tsVal(row.updated_at) ?? Date.now(),
+      };
+      next.sessionFeedback = upsert(next.sessionFeedback, (x) => x.id === id, () => fb);
       break;
     }
     default:

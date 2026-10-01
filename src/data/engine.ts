@@ -811,6 +811,169 @@ export function rpcSubmitExcuse(db: Db, userId: string, sessionId: string, reaso
   return { ok: true };
 }
 
+// ───────────────── التغذية الراجعة بعد كل محاضرة (D4 — مرآة عقد الخادم) ─────────────────
+
+/** نافذة التغذية الراجعة: من بداية المحاضرة حتى 48 ساعة بعد نهايتها (0035). */
+export const FEEDBACK_WINDOW_MIN = 48 * 60;
+/** التعديل مسموح خلال 24 ساعة من الإرسال الأول (0035). */
+export const FEEDBACK_EDIT_MIN = 24 * 60;
+
+export function sessionEndsAt(s: TrainingSession): number {
+  return s.startsAt + s.durationMin * 60_000;
+}
+
+/** تغذية راجعة قائمة لجلسة/مستخدم — undefined = لا يوجد. */
+export function feedbackOf(db: Db, sessionId: string, userId: string) {
+  return db.sessionFeedback.find((f) => f.sessionId === sessionId && f.userId === userId);
+}
+
+/** هل «اليوم الكامل» مكتمل: حضور + تغذية راجعة (قواعد اللعبة D4). */
+export function fullDayCompleted(db: Db, sessionId: string, userId: string): boolean {
+  const att = attendanceOf(db, sessionId, userId);
+  return Boolean(att && (att.status === 'present' || att.status === 'late') && feedbackOf(db, sessionId, userId));
+}
+
+/**
+ * الجلسات التي تنتظر التغذية الراجعة من المستخدم: حضرها، داخل النافذة،
+ * ولم يُرسل تغذيته بعد — تُعرض في بانر «اليوم» (خطة الإصلاح §10).
+ */
+export function pendingFeedbackFor(db: Db, userId: string, now = Date.now()): TrainingSession[] {
+  return db.sessions
+    .filter((s) => {
+      const att = attendanceOf(db, s.id, userId);
+      if (!att || (att.status !== 'present' && att.status !== 'late' && att.status !== 'excused')) return false;
+      if (now < s.startsAt) return false;
+      if (now > sessionEndsAt(s) + FEEDBACK_WINDOW_MIN * 60_000) return false;
+      return !feedbackOf(db, s.id, userId);
+    })
+    .sort((a, b) => b.startsAt - a.startsAt);
+}
+
+export interface FeedbackInput {
+  sessionId: string;
+  understanding: number;
+  pace: number;
+  clarity: number;
+  sentiment: 'excited' | 'clear' | 'confused' | 'tired';
+  comment?: string;
+  praiseInstructor?: boolean;
+  topicsOk?: string[];
+  topicsHard?: string[];
+}
+
+export type FeedbackResult =
+  | { ok: true; already: boolean; points: number; fullDay: boolean }
+  | { ok: false; error: 'sessionNotFound' | 'sessionCancelled' | 'tooEarly' | 'windowClosed'
+      | 'notEnrolled' | 'notAttended' | 'invalidScores' | 'invalidSentiment' | 'editWindowClosed' };
+
+/**
+ * مرآة حتمية لعقد `submit_session_feedback` الخادمي (0035) — للاختبارات والعرض:
+ * نفس التحقق (نافذة 48 ساعة، تعديل 24 ساعة، حضور إلزامي، درجات 1–5)،
+ * ونفس الدفتر: نقاط `points.feedback` مرة واحدة بمفتاح idempotency.
+ */
+export function rpcSubmitSessionFeedback(db: Db, userId: string, input: FeedbackInput, now = Date.now()): FeedbackResult {
+  const { sessionId, understanding, pace, clarity, sentiment } = input;
+  if (understanding < 1 || understanding > 5 || pace < 1 || pace > 5 || clarity < 1 || clarity > 5) {
+    return { ok: false, error: 'invalidScores' };
+  }
+  if (!['excited', 'clear', 'confused', 'tired'].includes(sentiment)) {
+    return { ok: false, error: 'invalidSentiment' };
+  }
+  const session = db.sessions.find((s) => s.id === sessionId);
+  if (!session) return { ok: false, error: 'sessionNotFound' };
+  if (session.status === 'cancelled') return { ok: false, error: 'sessionCancelled' };
+  if (now < session.startsAt) return { ok: false, error: 'tooEarly' };
+  if (now > sessionEndsAt(session) + FEEDBACK_WINDOW_MIN * 60_000) return { ok: false, error: 'windowClosed' };
+
+  const att = attendanceOf(db, sessionId, userId);
+  const enrolled = db.enrollments.some((e) => e.batchId === session.batchId && e.userId === userId && e.status === 'active');
+  const attended = Boolean(att && (att.status === 'present' || att.status === 'late' || att.status === 'excused'));
+  if (!attended && !enrolled) return { ok: false, error: 'notEnrolled' };
+  if (!attended) return { ok: false, error: 'notAttended' };
+
+  const existing = feedbackOf(db, sessionId, userId);
+  const fullDay = Boolean(att && (att.status === 'present' || att.status === 'late'));
+  if (existing) {
+    if (now > existing.createdAt + FEEDBACK_EDIT_MIN * 60_000) return { ok: false, error: 'editWindowClosed' };
+    existing.understanding = understanding;
+    existing.pace = pace;
+    existing.clarity = clarity;
+    existing.sentiment = sentiment;
+    existing.comment = input.comment?.trim() ?? '';
+    existing.praiseInstructor = Boolean(input.praiseInstructor);
+    // التعديل بدون قوائم محاور يُبقي القديم (مرآة COALESCE الخادمية في 0035)
+    existing.topicsOk = input.topicsOk ?? existing.topicsOk;
+    existing.topicsHard = input.topicsHard ?? existing.topicsHard;
+    existing.updatedAt = now;
+    return { ok: true, already: true, points: 0, fullDay };
+  }
+
+  const fb = {
+    id: uid('sf'), sessionId, userId, understanding, pace, clarity, sentiment,
+    comment: input.comment?.trim() ?? '', praiseInstructor: Boolean(input.praiseInstructor),
+    topicsOk: input.topicsOk ?? [], topicsHard: input.topicsHard ?? [],
+    createdAt: now, updatedAt: now,
+  };
+  db.sessionFeedback.push(fb);
+  const pts = Math.round(ruleValue(db, 'points.feedback')) || 5;
+  const ev = grantPoints(db, {
+    userId, points: pts, reason: 'session.feedback', refType: 'session', refId: sessionId,
+    idempotencyKey: `feedback:${sessionId}:${userId}`, createdAt: now,
+  });
+  return { ok: true, already: false, points: ev ? pts : 0, fullDay };
+}
+
+export interface LectureReportView {
+  sessionId: string;
+  title: string;
+  courseTitle: string;
+  seq: number;
+  objectives: string[];
+  topics: string[];
+  summary: string;
+  attendance: Attendance['status'] | 'unmarked';
+  points: number;
+  hasFeedback: boolean;
+  editableUntil: number | null;
+  done: string;
+  /** المحاور التي تحتاج توضيحًا (من تغذيتي) */
+  topicsHard: string[];
+  fullDay: boolean;
+}
+
+/**
+ * تقرير المحاضرة للطالب محسوبًا محليًا (عرض أوفلاين/اختبارات) —
+ * النسخة الخادمية المُصرَّح بها هي `get_lecture_report` (0035).
+ */
+export function lectureReportFor(db: Db, sessionId: string, userId: string): LectureReportView | null {
+  const session = db.sessions.find((s) => s.id === sessionId);
+  if (!session) return null;
+  const batch = batchOf(db, session.batchId);
+  const course = batch ? courseOf(db, batch.courseId) : undefined;
+  const content = db.sessionContent.find((c) => c.sessionId === sessionId);
+  const att = attendanceOf(db, sessionId, userId);
+  const fb = feedbackOf(db, sessionId, userId);
+  const points = db.pointEvents
+    .filter((e) => e.userId === userId && e.refType === 'session' && e.refId === sessionId)
+    .reduce((s, e) => s + e.points, 0);
+  return {
+    sessionId,
+    title: session.title,
+    courseTitle: course?.title ?? '',
+    seq: session.seq,
+    objectives: content?.objectives ?? [],
+    topics: content?.topics ?? [],
+    summary: content?.summary ?? '',
+    attendance: att?.status ?? 'unmarked',
+    points,
+    hasFeedback: Boolean(fb),
+    editableUntil: fb ? fb.createdAt + FEEDBACK_EDIT_MIN * 60_000 : null,
+    done: session.report?.done ?? '',
+    topicsHard: fb?.topicsHard ?? [],
+    fullDay: fullDayCompleted(db, sessionId, userId),
+  };
+}
+
 export function rpcReviewExcuse(db: Db, excuseId: string, actorId: string, decision: 'accepted' | 'rejected', note?: string): { ok: boolean } {
   const ex = db.excuses.find((e) => e.id === excuseId);
   if (!ex || ex.status !== 'pending') return { ok: false };

@@ -794,6 +794,8 @@ export interface Database {
   create_committee: { Args: { p_branch_id: string; p_name: string }; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
   create_course: { Args: { p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
+  /** 0035_lecture_feedback_and_reports.sql */
+  create_course_module: { Args: { p_course_id: string; p_title: string }; Returns: Json };
   /** 0008_account_deletion.sql */
   delete_my_account: { Args: { p_confirm: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -820,12 +822,16 @@ export interface Database {
   get_course_detail: { Args: { p_course_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_course_overview: { Args: { p_course_id: string }; Returns: Json };
+  /** 0035_lecture_feedback_and_reports.sql */
+  get_course_report: { Args: { p_course_id: string; p_user_id?: string | null }; Returns: Json };
   /** 0024_course_operating_system.sql */
   get_detailed_course_analytics: { Args: { p_course_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
   get_error_by_ref: { Args: { p_ref: string }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
   get_leaderboard: { Args: { p_branch_id?: string | null; p_week?: string | null; p_limit?: number | null; p_tier?: string | null }; Returns: Json };
+  /** 0035_lecture_feedback_and_reports.sql */
+  get_lecture_report: { Args: { p_session_id: string }; Returns: Json };
   /** 0028_get_today.sql */
   get_my_courses: { Args: Record<string, never>; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
@@ -840,6 +846,8 @@ export interface Database {
   get_session_report: { Args: { p_session_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_session_roster: { Args: { p_session_id: string }; Returns: Json };
+  /** 0035_lecture_feedback_and_reports.sql */
+  get_stats_center: { Args: Record<string, never>; Returns: Json };
   /** 0028_get_today.sql */
   get_today: { Args: Record<string, never>; Returns: Json };
   /** 0005_production_hardening.sql */
@@ -906,10 +914,12 @@ export interface Database {
   revoke_course_role: { Args: { p_course_id: string; p_user_id: string; p_role: string }; Returns: Json };
   /** 0002_gamification_rpcs.sql */
   rule_num: { Args: { p_key: string }; Returns: Json };
-  /** 0015_command_executor.sql */
+  /** 0035_lecture_feedback_and_reports.sql */
   run_command: { Args: { p_command_id: string; p_command: string; p_payload?: Json | null; p_device_created_at?: string | null }; Returns: Json };
   /** 0019_save_private_note.sql */
   save_private_note: { Args: { p_user_id: string; p_note: string }; Returns: Json };
+  /** 0035_lecture_feedback_and_reports.sql */
+  save_session_content: { Args: { p_session_id: string; p_objectives?: string[] | null; p_topics?: string[] | null; p_summary?: string | null; p_resources?: Json | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   set_badge_active: { Args: { p_code: string; p_active: boolean }; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
@@ -928,6 +938,8 @@ export interface Database {
   submit_course_rating: { Args: { p_course_id: string; p_stars: number; p_comment?: string | null }; Returns: Json };
   /** 0025_rpc_rate_limits.sql */
   submit_excuse: { Args: { p_session_id: string; p_reason: string; p_attachment_url?: string | null }; Returns: Json };
+  /** 0035_lecture_feedback_and_reports.sql */
+  submit_session_feedback: { Args: { p_session_id: string; p_understanding: number; p_pace: number; p_clarity: number; p_sentiment?: string | null; p_comment?: string | null; p_praise_instructor?: boolean | null; p_topics_ok?: string[] | null; p_topics_hard?: string[] | null }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
   submit_support_request: { Args: { p_kind: string; p_subject: string; p_body: string; p_recipient_id?: string | null }; Returns: Json };
   /** 0022_push_tokens.sql */

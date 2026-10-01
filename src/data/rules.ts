@@ -25,6 +25,8 @@ export const RULE_DEFS: RuleDef[] = [
   { key: 'points.month_bonus', def: 50, min: 0, max: 200, unit: 'pts' },
   { key: 'points.course_complete', def: 100, min: 0, max: 500, unit: 'pts' },
   { key: 'points.rating', def: 5, min: 0, max: 20, unit: 'pts' },
+  // خطة الإصلاح D4 — نقاط التغذية الراجعة بعد كل محاضرة (مرة واحدة لكل محاضرة)
+  { key: 'points.feedback', def: 5, min: 0, max: 20, unit: 'pts' },
 ];
 
 export function defaultRules(): GamificationRule[] {

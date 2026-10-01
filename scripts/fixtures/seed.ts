@@ -8,9 +8,9 @@
 import { defaultRules } from '../../src/data/rules';
 import { weekStartOf, monthKeyOf } from '../../src/shared/format';
 import {
-  Attendance, Badge, Batch, Branch, Certificate, Committee, Course, Db,
+  Attendance, Badge, Batch, Branch, Certificate, Committee, Course, CourseModule, Db,
   Enrollment, Excuse, GamificationProfile, PointEvent, Profile,
-  StreakWeek, TrainingSession, AppNotification, CourseRating,
+  SessionContent, SessionFeedback, StreakWeek, TrainingSession, AppNotification, CourseRating,
 } from '../../src/data/types';
 
 export const SEED_VERSION = 3;
@@ -440,6 +440,37 @@ export function buildSeedDb(): Db {
     { id: 'ex_3', userId: 'u_youssef', sessionId: 's_g1_2', reason: 'سفر قصير', status: 'rejected', note: 'السفر المخطط له مسبقًا لا يُقبل كعذر طارئ', reviewedBy: IDS.sara, createdAt: now - 16 * DAY },
   ];
 
+  // ── وحدات الكورس + محتوى المحاضرات + التغذية الراجعة (خطة الإصلاح D4/D5) ──
+  const modules: CourseModule[] = [
+    { id: 'mod_design_1', courseId: 'c_design', title: 'أساسيات الهوية البصرية', seq: 1, createdAt: now - 30 * DAY },
+    { id: 'mod_design_2', courseId: 'c_design', title: 'مشروع الهوية التطبيقية', seq: 2, createdAt: now - 20 * DAY },
+    { id: 'mod_python_1', courseId: 'c_python', title: 'مدخل إلى بايثون', seq: 1, createdAt: now - 12 * DAY },
+  ];
+  const sessionContent: SessionContent[] = [
+    {
+      sessionId: 's_g1_1', objectives: ['فهم مفهوم الهوية البصرية وأهميتها للعلامات'], topics: [c1.topics[0]],
+      summary: 'مقدمة شاملة لمفهوم الهوية البصرية مع أمثلة من علامات عالمية.', resources: [], updatedAt: now - 20 * DAY,
+    },
+    {
+      sessionId: 's_g2_2', objectives: ['إتقان المتغيرات وأنواع البيانات في بايثون'], topics: [c2.topics[1]],
+      summary: 'شرح عملي للمتغيرات والأنواع مع تمارين على المعمل.',
+      resources: [{ title: 'ملف التمارين', url: 'https://example.com/python-vars.pdf', kind: 'doc' }],
+      updatedAt: now - 1 * DAY,
+    },
+  ];
+  // التغذية الراجعة: نور أرسلت تغذيتها على s_g2_2 منذ أكثر من 24 ساعة
+  // (خارج نافذة التعديل — لإثبات editWindowClosed في الاختبارات) —
+  // وكريم ما زال «ينتظر التغذية الراجعة» على نفس المحاضرة (اختبارات D4).
+  const sessionFeedback: SessionFeedback[] = [
+    {
+      id: 'sf_1', sessionId: 's_g2_2', userId: 'u_nour',
+      understanding: 5, pace: 4, clarity: 5, sentiment: 'excited',
+      comment: 'محاضرة رائعة وواضحة', praiseInstructor: true,
+      topicsOk: [c2.topics[1]], topicsHard: [],
+      createdAt: now - 2 * DAY + 7_000_000, updatedAt: now - 2 * DAY + 7_000_000,
+    },
+  ];
+
   // ── الإشعارات ──
   const notifications: AppNotification[] = [
     { id: 'n_1', userId: 'u_omar', title: 'محاضرتك اليوم 💪', body: 'مشروع تطبيقي — الجزء الأول · الساعة 6:00م · قاعة 2', type: 'session', read: false, createdAt: now - 55 * 60_000 },
@@ -453,6 +484,7 @@ export function buildSeedDb(): Db {
     profiles, branches, committees, courses, batches, enrollments,
     sessions, attendance, pointEvents, streakWeeks, gamification,
     badges, userBadges, leagueWeeks, certificates, excuses, ratings,
+    modules, sessionContent, sessionFeedback,
     rules: defaultRules(),
     audit: [
       { id: 'au_1', actorId: IDS.mahmoud, action: 'admin_update_rule', target: 'certificate.min_attendance_pct', payload: { from: 80, to: 75 }, createdAt: now - 5 * DAY },
