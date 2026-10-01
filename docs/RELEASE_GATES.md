@@ -70,11 +70,17 @@
 
 ---
 
-## 5. حالة التشغيل المباشر (Live-Ops Sign-off Status)
+## 5. حالة التشغيل المباشر (Live-Ops Execution & Verification)
 
-- **المهمة T7 (Database Hardening):**
-  - ملفات الـ SQL والهجرة جاهزة ومفحوصة محليًا (`0035_role_update_null_safe.sql`، فهارس FK، وجدولة مهام الصيانة).
-  - الحالة: **موقوفة مؤقتًا وفق بروتوكول Global Constraints** انتظارًا لموافقة صريحة من Shaker قبل تشغيلها على قاعدة البيانات الإنتاجية الحية (`udqgaudt`).
+- **المهمة T7 (Database Hardening & Live-Ops):**
+  - **موافقة Shaker:** تمت الموافقة الصريحة على التنفيذ الإنتاجي المباشر.
+  - **الترحيل 0035 (`0035_role_update_null_safe.sql`):** تم تطبيقه بنجاح على قاعدة البيانات الحية (`udqgaudtclkbaygftndx`). فحص `pg_proc` أكد وجود توقيع واحد وحيد لدالة `admin_update_user_access` بـ 5 وسائط، ومنع ازدواجية PostgREST نهائيًا (`PGRST203`).
+  - **الترحيل 0036 (`0036_missing_fk_indexes.sql`):** تم تطبيقه بنجاح على قاعدة البيانات الحية عبر Supabase MCP. أضاف 7 فهارس مفاتيح أجنبية (FK indexes) مفقودة، أنشأ دالة تفريغ الحفظ المرحلي المقسم على دفعات `prune_retention_tables()` بحد أقصى 5000 صف لكل دفعة، وجدول مهمة `cron.job` برقم #17 (`masar-retention-prune`) يوميًا عند 04:15 UTC.
+  - **التحقق التشغيلي المباشر:**
+    - فحص دالة `public.prune_retention_tables()` بنتيجة `{"ok":true}`.
+    - فحص جدول مهام `cron.job` وتأكيد تشغيل المهمة #17 بنجاح.
+    - فحص مستشاري الأمان والأداء (`get_advisors`) وتأكيد تغطية كافة الفهارس.
+  - **الحالة:** ✅ **مُنجز ومُتحقق منه بالكامل على الإنتاج الحي (Live Confirmed).**
 
 ---
 
