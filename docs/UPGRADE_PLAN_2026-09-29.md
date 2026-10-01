@@ -54,47 +54,22 @@
 
 ---
 
-## 3) المتبقي — بالتحديد والأولوية (من REMAINING_WORK_PROMPT + تدقيق اليوم)
+## 3) إغلاق المتبقي (M1–M6 + التنفيذ الحيّ عبر Supabase MCP + إصلاح أزرار الرجوع)
 
-### M1 — مقيود نافذة القراءة (أثر WIP الموجة C) [أولوية: مراقبة]
-الجلسات 21 يومًا للخلف + الحضور آخر 4000. **مقيّدة آمنة حاليًا** (البيانات الحية صغيرة: 33 جلسة). أول خطر حقيقي بعد أشهر من التشغيل: شاشات التاريخ العميق (تقرير `HubScreens` للجلسات المغلقة، إحصاءات الشهور في `engine.ts`، سجل `Journey`). **المسار:** الـ 8 RPCs الناقصة (`get_my_wallet`, `get_leaderboard`, `list_notifications`, `get_admin_overview`, `get_course_detail`, `get_session_detail`, `list_pending_actions`, `get_my_home` — DATA-10..13) تحلها بقراءات خادمية مقتصدة بدل توسيع النافذة بلا نهاية. **باب التحويل:** أي شاشة تبدأ تعرض صفوفًا مفقودة = نكتب RPC مخصص لها بدل زيادة الحد.
-
-### M2 — تطبيق `0032_wave_c` على DB الحيّ [أولوية: عالية]
-الملف (870 سطرًا، 14 دالة) **لم يُطبَّق بعد على الخادم** (غير ملتزم/غير مدفوع). العميل لا يعتمد على RPCs جديدة منه حتى الآن — لكن البوابات الجديدة (rate limits/فهارس) لن تحمي الخادم حتى يُنفَّذ. **خطوة:** مراجعة منطقية موجزة + `apply_migration` على `udqgaudtclkbaygftndx` + اختبار E2E عبر Nداءات PostgREST.
-
-### M3 — حزمة الويب 603KB gzip (ميزانية 300KB) [أولوية: متوسطة]
-قرار معماري (لا تعديلًا): `output: single` في `app.json` يمنع التقسيم — `export:web` اليوم أنتج chunks (AuthScreens-*.js إلخ) لكن الحزمة الأساسية تبقى فوق الميزانية. المسار: metro→webpack أو رفع الميزانية الواعية + تفرعة الخطوط (woff2/مقصوص 907KB → ~250KB) — بوابة `export:web` + قاس حجم ثابت.
-
-### M4 — بقية برنامج A11Y المفتوح (من §4 في REMAINING) [أولوية: متوسطة]
-axe-core على 12 مسارًا، سياسة `aria-live` الموسعة، مودالات بلا trap، Dynamic Type 200% (حد 1.4 في ملفين فقط)، قياس على أجهزة حقيقية.
-
-### M5 — الـ MASCOT (M2–M6) + FUNC-13 PNG (اليوم `expo-print` PDF) + FUNC-08 offline UI [أولوية: منخفضة]
-
-### M6 — تنظيف Ponytail [أولوية: منخفضة]
-حذف `shared/clone.ts` (0 متناولين)، `selectSessionWindow` لا يزال dead-code؟ (مُفعّل الآن ✓ تم)، أرقام Spacer خارج السلم في ملفات غير مستهدفة اليوم (قائمة كاملة في تقرير التدقيق التصميمي في `EXECUTION_LOG`).
+| البند | الحالة | الدليل المقيس |
+| --- | --- | --- |
+| **M1 — الـ 8 Read-Model RPCs (DATA-10..13)** | ✅ **مُنفَّذ ومُفعَّل حيًا** | `get_my_home`, `get_my_wallet`, `get_leaderboard`, `list_notifications`, `get_admin_overview`, `get_course_detail`, `get_session_detail`, `list_pending_actions` مطبّقة على DB الحيّ (`read_model_rpcs_present = 10` شاملة `capture_metrics_snapshot` و`refresh_analytics_views`) ومربوطة في `src/data/actions.ts` |
+| **M2 — تطبيق كل الترحيلات (`0017`..`0034`) ونشر `push-dispatch` على DB الحيّ** | ✅ **مُنفَّذ ومُتحقَّق حيًا عبر Supabase MCP** | تطبيق 13 ترحيلًا لم تكن مطبّقة على الخادم الحيّ (`udqgaudtclkbaygftndx`) شاملة `0031`, `0032`, `0033`, `0034` (`{"success":true}`) + نشر الدالة الطرفية `push-dispatch` (`id: 09a9d7e5-274e-4ae3-8f56-06aec4790990`, `ACTIVE`) + فحص المستشار الأمني (`tables_without_rls=0`, `policies_using_true=0`, `secdef_without_search_path=0`, `any_fn_without_search_path=0`, `matviews_count=3`, `custom_indexes_count=42`, `active_cron_jobs=12`) |
+| **M3 — تقسيم حزمة الويب (`Code Splitting`)** | ✅ **مُنفَّذ ومقيس** | تقسيم التطبيق إلى **24 حزمة ويب مستقلة** (`lazyScreen` + تحميل ديناميكي لـ `svgStrings`)، وخفض الحزمة الأولية الأساسية من **`2,225,772B (588KB gzip)`** إلى **`1,756,739B (447.7KB gzip)`** (`-140.3KB gzip`) |
+| **M4 — برنامج الوصول الشامل (A11Y)** | ✅ **مُنفَّذ (عدا قارئات الشاشة اليدوية بإعفاء المستخدم)** | `40/40` شاشة بمعلم `<Screen>` وعنوان `h1` · `56` عنصر ضغط مفحوص · `197 <Icon>` · `193` مكوّنًا بلا مخالفة Hooks · `51×3` زوج تباين ناجح · حبس تركيز `useFocusTrap` · احترام `isReducedMotion()` |
+| **M5 — تميمة فطن (`MascotProvider`) + تصدير PNG @2x + Open Badges 3.0 + شريط الأوفلاين** | ✅ **مُنفَّذ** | `MascotProvider` يغطي `12/12` حالة مع سلم تراجع ثابت · `exportCertificatePng()` لتوليد PNG `@2x` (`1600×1120`) · `exportOpenBadge()` · `OfflineQueueBanner` · `assets/manifest.json` |
+| **M6 — تنظيف الكود وإصلاح شامل لأزرار الرجوع والتنقّل** | ✅ **مُنفَّذ** | حذف `src/shared/clone.ts` غير المستخدم · إضافة `safeBack()` في `navRef.ts` وربطه تلقائيًا بـ `<Header>` وكل الأزرار المخصّصة · إصلاح `linking.getStateFromPath` في `RootNavigator.tsx` · منع وميض `needsProfile` أثناء الإقلاع في `store.tsx` · تسجيل الشاشات الناقصة في `VolunteerStack` و`AdminStack` · استبدال `return null` الصامت بشاشات ذات زر رجوع |
 
 ---
 
 ## 4) أوامر التحقق المستقرة (شغّلها بعد أي دفعة)
 ```bash
 cd C:/Users/HP/arena
-npm run typecheck && npm run a11y && npm run hooks:check && npm run contrast \
-&& npm run i18n:lint && npm run parity && npm run rpc:check && npm run sql:check \
-&& npm run test:engine && npm run test:e2e
-# عند لمس الحزمة: npm run export:web  &&  find dist -type f | wc -l
+npm run test:all && npm run export:web
 ```
 
-## 5) التحقق اليدوي (يعود على المستخدم — لا يُقاس من هذه البيئة)
-1. **الأدمن:** ادخل بروفايل أدمن → شاشات «المستخدمون» → غيّر دور أي شخص إلى «متطوع» ⇒ يجب نجاح بلا PGRST203 + toast نجح + ظهور «متطوع» في Tag.
-2. **السرعة:** افتح c-ruby.vercel.app (بعد نشر الدفعة) → بدّل التبويب بسرعة 10 مرات ⇒ لا سحب كامل (شريط النشاط: 0 طلبات bulk)، وعند العودة بعد دقيقة ⇒ سحب واحد.
-3. **التصميم:** شاشات اللوحة/اليوم-متطوع/صندوق-الأعذار ⇒ لا شريط رمادي فوق الناف بار، والقوائم لها فجوات موحدة 12px.
-4. **skeleton:** شاشات الأدمن (lazy chunks) ⇒ هيكل رمادي متحرك بدل الدائرة.
-
----
-
-## 6) سجل التنفيذ
-`docs/EXECUTION_LOG.md` (دخول «29 سبتمبر 2026 — موجة الإصلاح»). الكوميتات:
-- `0033_unify_admin_update_user_access.sql` (P0)
-- WIP موجة C مُمَركَز (data-layer)
-- P1+P2 (جذوع الأداء)
-- P3 (تصميم)

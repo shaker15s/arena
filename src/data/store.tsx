@@ -75,7 +75,7 @@ interface AppCtx {
   markNotificationsRead: () => void;
 }
 
-const Ctx = createContext<AppCtx | null>(null);
+export const Ctx = createContext<AppCtx | null>(null);
 
 // ───────────────────────── كاش محلي ─────────────────────────
 // الكاش مربوط بهوية المستخدم (owner) — على جهاز مشترك لا تُعرض بيانات
@@ -306,19 +306,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     cacheOwner = authUser.id;
     setAuthError(null);
+    // PERF-P1: الهوية فورية — التطبيق يفتح فوراً بدل ما يستنى 24 طلب DB.
+    // الـ refresh الكامل بيحصل في الخلفية بعد ما المستخدم يشوف الشاشة.
+    setIdentity(identityOf(authUser));
     setLoading(true);
     try {
       const sb = getSupabase();
-      const [{ data }] = await Promise.all([
-        sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle(),
-        refresh(),
-      ]);
+      const { data } = await sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle();
       setProfileId(data?.id ?? null);
-      setIdentity(identityOf(authUser));
       await syncPendingQueueCount();
     } finally {
       setLoading(false);
     }
+    // refresh خلفي — مش بيحجز الواجهة
+    void refresh();
   }, [refresh, syncPendingQueueCount]);
 
   // ── الإقلاع ──

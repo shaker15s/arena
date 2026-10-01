@@ -315,5 +315,14 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 **ملاحظة حوكمة:** `origin/main` (967a57a) والفروع محلية متباينة (~±1000 سطر: main بلا wave-c/d، والفروع بلا 0033) — الدمج قرار المستخدم.
 **ملاحظة قياسية:** DB الحيّ صغيرة (audit_log 52 صفًا، sessions 33) — «ثقل القاعدة» كان وهمًا؛ الثقيلة كانت مزامنة العميل (24 طلبًا لكل foreground) وتُعالج في P1/P2.
 
+---
 
+# الموجة F (Wave F) — التنفيذ الحيّ عبر Supabase MCP + إصلاح أزرار الرجوع والتنقّل (30 سبتمبر 2026)
 
+| البند | الوضع | الدليل المقيس |
+| --- | --- | --- |
+| **تطبيق كل الترحيلات المعلّقة على DB الحيّ (`udqgaudtclkbaygftndx`)** | ✅ منجز | تطبيق الترحيلات `0017`, `0019`, `0020`, `0022`, `0025`, `0026`, `0027`, `0028`, `0030`, `0031`, `0032`, `0033`, `0034` عبر أداة MCP `apply_migration` (`{"success":true}` للكل) |
+| **نشر الدالة الطرفية `push-dispatch` حيًا (FUNC-02)** | ✅ منجز | نشر `supabase/functions/push-dispatch/index.ts` عبر أداة MCP `deploy_edge_function` (`id: "09a9d7e5-274e-4ae3-8f56-06aec4790990"`, `status: "ACTIVE"`, `version: 1`) |
+| **تصلب قاعدة البيانات الحية وفحص المستشار الأمني (`get_advisors`)** | ✅ منجز | `0034_live_advisor_hardening.sql`: `tables_without_rls = 0` · `policies_using_true = 0` · `secdef_without_search_path = 0` · `any_fn_without_search_path = 0` · `matviews_count = 3` · `read_model_rpcs_present = 10` · `custom_indexes_count = 42` · `active_cron_jobs = 12` · `EXPLAIN (ANALYZE, BUFFERS)` على `notifications` = `Index Scan` (`0.793 ms`) |
+| **إصلاح جذري لأزرار الرجوع والتنقّل في كل الشاشات (`safeBack` + `linking` + `store.tsx`)** | ✅ منجز | 1) إنشاء `safeBack()` في `src/app/navRef.ts` وربطه تلقائيًا بـ `<Header>` في `src/design/components.tsx` وأزرار الرجوع المخصّصة (`ExploreScreens`, `ScannerScreen`, `WizardScreen`, `JoinBatchScreen`, `VerifyScreen`, `NotFoundScreen`)؛ 2) استبدال `screens` المتداخلة المكسورة داخل `Tabs` في `RootNavigator.tsx` بـ `getStateFromPath` مخصص يمرر `{ tab }`؛ 3) مزامنة `handledRequest.current = newTab` عند التبديل اليدوي للتبويبات؛ 4) تسجيل الشاشات الناقصة (`ExcusesInbox`, `CertificateViewer`, `CourseDetails`, `SessionsHistory`) في `VolunteerStack` و`AdminStack` وإصلاح روابط `DashboardScreen`؛ 5) منع وميض `needsProfile` المزدوج أثناء الإقلاع في `src/data/store.tsx`؛ 6) استبدال `return null` الصامت بحالة فارغة ذات زر رجوع في `CourseDetailsScreen`, `JourneyMapScreen`, `SessionsHistoryScreen`, `StudentRecordScreen`, `CertificateViewerScreen` |
+| **تنظيف M6 وتحديث أنواع RPC والحزمة** | ✅ منجز | حذف `src/shared/clone.ts` غير المستخدم · `rpc:types`: 93 دالة متطابقة · `sql:check`: 33 ملفًا (805 عبارات، 0 مخالفات) · `export:web`: 24 حزمة مقسّمة (الحزمة الأساسية `1,756,739B` خام = **`447.7KB gzip`**، بانخفاض `-140.3KB gzip` عن خط الأساس `588KB gzip`) |

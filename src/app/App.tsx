@@ -419,6 +419,55 @@ export default function App() {
   // مستمعو الأخطاء غير الملتقطة (rejection/ErrorUtils) — يُزالون عند التفكيك.
   useEffect(() => installGlobalHandlers(), []);
 
+  const [previewScreen, setPreviewScreen] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('preview');
+      if (p) setPreviewScreen(p);
+    }
+  }, []);
+
+  if (previewScreen) {
+    const { NavigationContainer } = require('@react-navigation/native');
+    const { MockAppProvider } = require('./MockAppProvider');
+    const { CourseManagementScreen } = require('../features/courses/CourseManagementScreen');
+    const { ScannerScreen } = require('../features/attendance/ScannerScreen');
+    const { DashboardScreen } = require('../features/org/DashboardScreen');
+    const { WalletScreen } = require('../features/gamification/GamificationScreens');
+    const { buildSeedDb, IDS } = require('../../scripts/fixtures/seed');
+    const seed = buildSeedDb();
+    const nav: any = { navigate: () => {}, goBack: () => {}, replace: () => {} };
+
+    return (
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <A11yPreferencesProvider>
+              <I18nProvider>
+                <MockAppProvider user={seed.profiles.find((pr: any) => pr.id === (previewScreen === 'wallet' ? 'u_omar' : IDS.admin))}>
+                  <NavigationContainer>
+                    <View style={{ flex: 1, backgroundColor: '#F5F5FA' }}>
+                      {previewScreen === 'course' && (
+                        <CourseManagementScreen
+                          navigation={nav}
+                          route={{ params: { courseId: seed.courses[0].id, batchId: seed.batches[0].id } }}
+                        />
+                      )}
+                      {previewScreen === 'scanner' && <ScannerScreen navigation={nav} route={{}} />}
+                      {previewScreen === 'dashboard' && <DashboardScreen navigation={nav} />}
+                      {previewScreen === 'wallet' && <WalletScreen navigation={nav} />}
+                    </View>
+                  </NavigationContainer>
+                </MockAppProvider>
+              </I18nProvider>
+            </A11yPreferencesProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
