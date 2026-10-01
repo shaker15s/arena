@@ -418,7 +418,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
       lastBackPress.current = now;
       if (Platform.OS === 'android') {
         try {
-          ToastAndroid.show(t('common.pressBackAgainToExit' as any) || 'اضغط مرة أخرى للخروج', ToastAndroid.SHORT);
+          ToastAndroid.show(t('common.pressBackAgainToExit'), ToastAndroid.SHORT);
         } catch {}
       }
       return true; // handled — لا تخرج (أول ضغطة)

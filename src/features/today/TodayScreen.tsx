@@ -53,7 +53,7 @@ export function TodayScreen() {
 
   const gam = useMemo(() => (user ? getMyGamification(db, user.id) : null), [db, user]);
   const liveSess = useMemo(() => (user ? liveSessionForStudent(db, user.id) : undefined), [db, user]);
-  const now = useNow(liveSess ? 1_000 : 60_000);
+  const now = useNow(60_000);
   const nextSess = useMemo(() => (user ? nextSessionForUser(db, user.id) : undefined), [db, user]);
   const near = useMemo(() => (user ? nearestBadge(db, user.id) : null), [db, user]);
   const myEnrollmentCount = db.enrollments.filter((e) => e.userId === user?.id && e.status === 'active').length;
@@ -181,18 +181,18 @@ export function TodayScreen() {
 
 
   const defaultMascotQuote = !online
-    ? 'أنت في وضع عدم الاتصال.. بياناتك وسجلاتك التدريبية محفوظة محلياً بأمان! 💾'
+    ? t('today.quoteOffline')
     : liveSess && !alreadyChecked
-    ? `محاضرة ${liveCourse?.title ?? 'اليوم'} بدأت الآن! سجّل حضورك وثبّت نقاطك ⚡`
+    ? t('today.quoteLiveNow', { course: liveCourse?.title ?? t('common.today') })
     : liveSess && alreadyChecked
-    ? 'حضورك موثق اليوم بنجاح يا بطل! نقاطك واستمرارك محفوظين 🦅'
+    ? t('today.quoteChecked')
     : streakUrgent
-    ? 'سلسلة التزامك في خطر! سجّل حضورك اليوم للحفاظ على الستريك 🔥'
+    ? t('today.quoteStreakRisk')
     : isUpcomingToday
-    ? `جلستك القادمة اليوم الساعة ${formatTime(nextSess.startsAt, lang)} في ${nextBatch?.room ?? 'القاعة'}.. جهّز نفسك! 🎯`
+    ? t('today.quoteUpcoming', { time: formatTime(nextSess.startsAt, lang), room: nextBatch?.room ?? t('common.room') })
     : needed > 0
-    ? `باقي لك ${needed} جلسات لتحقيق نسبة الـ 75% واستحقاق الشهادة 🎓`
-    : 'التعلّم المستمر يصنع المستحيل! كن فخوراً بمسارك اليوم 🦅';
+    ? t('today.quoteCertGap', { n: needed, pct: certPct })
+    : t('today.quoteGeneric');
 
   return (
     <Screen label={t('tabs.today')}>
@@ -395,7 +395,7 @@ export function TodayScreen() {
                     <Row center gap={4} style={{ marginTop: 5 }}>
                       <Icon name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
                       <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 11 }}>
-                        اضغط على فطن لاقتباس جديد ✨
+                        {t('today.tapQuote')}
                       </Txt>
                     </Row>
                   </View>
@@ -443,14 +443,12 @@ export function TodayScreen() {
                       <Row center gap={8}>
                         <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
                         <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: 12, fontWeight: '700' }}>
-                          ⚡ مباشر الآن
+                          {`⚡ ${t('management.live')}`}
                         </AnimatedShinyText>
                       </Row>
                       <Txt variant="h2" color="#fff" numberOfLines={2}>{liveCourse?.title ?? ''}</Txt>
                       <Txt variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>{liveSess.title}</Txt>
-                      <Txt variant="micro" color="rgba(255,255,255,0.65)">
-                        {t('today.endsIn')}: {formatDuration(checkinEndsAt - now, lang)}
-                      </Txt>
+                      <EndsInCountdown endsAt={checkinEndsAt} />
                       <Spacer size={6} />
                       <View style={{
                         backgroundColor: 'rgba(255,255,255,0.2)',
@@ -695,6 +693,21 @@ export function TodayScreen() {
         )}
       </ScrollView>
     </Screen>
+  );
+}
+
+/**
+ * عدّاد انتهاء التسجيل — نبضة 1 ثانية معزولة هنا بدل الشاشة كاملة:
+ * كانت الشاشة كلها (كارت التميمة + الكوؤك أكشنز + القوائم) تُعاد رسمها كل
+ * ثانية طوال الجلسة الحية لهذا السطر وحده.
+ */
+function EndsInCountdown({ endsAt }: { endsAt: number }) {
+  const { t, lang } = useI18n();
+  const now = useNow(1_000);
+  return (
+    <Txt variant="micro" color="rgba(255,255,255,0.65)">
+      {t('today.endsIn')}: {formatDuration(endsAt - now, lang)}
+    </Txt>
   );
 }
 

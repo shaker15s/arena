@@ -96,6 +96,11 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const [acting, setActing] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const stamp = useRef(new Animated.Value(0)).current;
+  // مؤقّت إخفاء «تم النسخ» — يُنظَّف عند التفكيك (كان setCopied يُستدعى بعد الخروج).
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   useEffect(() => {
     Animated.spring(stamp, { toValue: 1, useNativeDriver: true, damping: isReducedMotion() ? 30 : 10, stiffness: 120 }).start();
@@ -122,7 +127,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
       else await Clipboard.setStringAsync(value);
       setCopied(true);
       toast(t('common.copied'), 'success');
-      setTimeout(() => setCopied(false), 1800);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1800);
     } catch (error) {
       toast((error as Error).message, 'error');
     }

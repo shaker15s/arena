@@ -212,7 +212,7 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
         numberOfLines={1}
         adjustsFontSizeToFit
         allowFontScaling
-        maxFontSizeMultiplier={1.4}
+        maxFontSizeMultiplier={2}
         // GL-03: من مقياس التايبوغرافيا مباشرة — كانت 20/26 hardcoded بينما h2 الموحّد 20/29
         // والفرق يقطع امتدادات الحروف العربية.
         style={{
@@ -227,8 +227,9 @@ export function StatBubble({ value, label, icon, color, onPress, onLongPress }: 
       </Animated.Text>
       <Animated.Text
         numberOfLines={1}
+        adjustsFontSizeToFit
         allowFontScaling
-        maxFontSizeMultiplier={1.4}
+        maxFontSizeMultiplier={2}
         style={{
           color: theme.textMuted,
           fontSize: typography.micro.fontSize,

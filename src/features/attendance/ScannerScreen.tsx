@@ -33,6 +33,7 @@ import { useApp } from '../../data/store';
 import { liveSessionForStudent } from '../../data/engine';
 import { checkInWithToken, type CheckInResponse } from '../../data/actions';
 import { track } from '../../shared/analytics';
+import { classifyError } from '../../shared/errors';
 import { clearPositionCache, getDevicePosition, getLocationPermissionState } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -105,6 +106,11 @@ export function ScannerScreen({ navigation }: any) {
   const flashAnim = useRef(new Animated.Value(0)).current;
   // مرجع حقل كود الطوارئ
   const inputRef = useRef<TextInput>(null);
+  // مؤقّتات إعادة الضبط — تُنظَّف عند التفكيك (كان setScanned يُستدعى بعد الخروج).
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+  }, []);
 
   // إعادة فحص إذن الكاميرا تلقائياً عند العودة للتطبيق من الإعدادات
   useEffect(() => {
@@ -224,10 +230,13 @@ export function ScannerScreen({ navigation }: any) {
       const result = await checkInWithToken(payload.trim(), pos?.lat, pos?.lng);
       interpret(result);
       if (result.kind === 'ok' || result.kind === 'already') await refresh();
-      else setTimeout(() => setScanned(false), 1200);
+      else resetTimerRef.current = setTimeout(() => setScanned(false), 1200);
     } catch (e) {
-      triggerErrorShake((e as Error).message || t('scanner.invalid'));
-      setTimeout(() => setScanned(false), 1200);
+      // رسالة الشبكة مترجمة، وباقي التصنيفات يبقى كما أعاده الخادم (بحث/صلاحية).
+      const msg = (e as Error).message || '';
+      const shown = classifyError(msg) === 'network' ? t('error.network') : (msg || t('scanner.invalid'));
+      triggerErrorShake(shown);
+      resetTimerRef.current = setTimeout(() => setScanned(false), 1200);
     } finally {
       setLoading(false);
     }
@@ -268,7 +277,7 @@ export function ScannerScreen({ navigation }: any) {
           }
         }
         if (!applied && next) {
-          triggerErrorShake('الفلاش غير مدعوم في متصفح جهازك', 'يمكنك تشغيل إضاءة الشاشة أو استخدام كود الـ 6 أرقام الاحتياطي.');
+          triggerErrorShake(t('scanner.flashUnsupported'), t('scanner.flashUnsupportedHint'));
         }
       } catch (err) {
         console.warn('Torch toggle error:', err);

@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Allow: /verify
 Disallow: /api/
+
+Sitemap: https://arena-rho-seven.vercel.app/sitemap.xml

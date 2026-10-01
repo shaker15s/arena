@@ -38,7 +38,6 @@ export function LiveSessionScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
-  const [, setTick] = useState(0);
   const [starting, setStarting] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [endConfirm, setEndConfirm] = useState(false);
@@ -58,12 +57,6 @@ export function LiveSessionScreen() {
   // FUNC-06: وضع الكشك — يخفي الواجهة كلها ويعرض الرمز بحجم كبير مع منع النوم.
   const [kiosk, setKiosk] = useState(false);
   const wakeStatus = useWakeLock(kiosk);
-
-  // نبضة ساعة للتدوير (كل 500ms)
-  useEffect(() => {
-    const iv = setInterval(() => setTick((x) => x + 1), 500);
-    return () => clearInterval(iv);
-  }, []);
 
   // شاشة البروجكتور يجب ألا تنطفئ في منتصف الحضور — KeepAwake طوال وجود جلسة حية.
   const hasLive = Boolean(
@@ -241,9 +234,7 @@ export function LiveSessionScreen() {
   // ── الحالة 2: جلسة حية — شاشة العرض ──
   const batch = batchOf(db, myLive.batchId)!;
   const course = courseOf(db, batch.courseId)!;
-  const now = Date.now();
   const token = qrPayload?.token ?? '';
-  const slotProgress = qrPayload ? Math.max(0, Math.min(1, (qrPayload.expires_at - now) / QR_ROTATION_MS)) : 0;
   const code = qrPayload?.backup_code ?? '••••••';
   const students = batchStudents(db, batch.id);
   const rows = db.attendance.filter((a) => a.sessionId === myLive.id && a.status !== 'absent');
@@ -331,7 +322,7 @@ export function LiveSessionScreen() {
               />
 
               <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-                <RingCountdown progress={slotProgress} size={238} />
+                <RingCountdown expiresAt={qrPayload?.expires_at} size={238} />
                 <View style={{
                   backgroundColor: '#ffffff',
                   padding: 16,
@@ -643,10 +634,21 @@ export function DetailedSessionReportSheet({
 }
 
 // ── حلقة عداد التدوير ──
-function RingCountdown({ progress, size }: { progress: number; size: number }) {
+// النبضة الداخلية (500ms) هنا بدل الشاشة كاملة — كانت كل الشاشة (بما فيها QR
+// والقوائم) تُعاد رسمها مرتين في الثانية لهذا المقياس وحده.
+function RingCountdown({ expiresAt, size }: { expiresAt?: number; size: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (expiresAt === undefined) return;
+    const iv = setInterval(() => setTick((x) => x + 1), 500);
+    return () => clearInterval(iv);
+  }, [expiresAt]);
   const stroke = 5;
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
+  const progress = expiresAt !== undefined
+    ? Math.max(0, Math.min(1, (expiresAt - Date.now()) / QR_ROTATION_MS))
+    : 0;
   const p = Math.max(0, Math.min(1, progress));
   return (
     <View style={{ position: 'absolute', width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>

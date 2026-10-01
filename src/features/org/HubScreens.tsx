@@ -214,6 +214,7 @@ function RulesStudio() {
     'certificate.min_attendance_pct': t('rules.certPct'),
     'kudos.monthly_quota_per_instructor': t('rules.kudosQuota'),
     'streak.freeze_max_hold': t('rules.freezeMax'),
+    'streak.min_sessions_week': t('rules.weekSessions'),
     'league.promotion_pct': t('rules.leagueMove') + ' ↗',
     'league.relegation_pct': t('rules.leagueMove') + ' ↘',
     'points.month_bonus': t('rules.monthBonus'),

@@ -270,7 +270,7 @@ export function OrgWizardScreen({ navigation }: any) {
                   <Card key={def.key}>
                     <Row between center>
                       <Txt variant="body" style={{ flex: 1 }}>{t(`rules.${ruleKeyLabel(def.key)}` as any)}</Txt>
-                      <Tag label={formatRuleValue(def.key, Number(value), t)} color={theme.brand} bg={theme.brandSoft} />
+                      <Tag label={formatRuleValue(def.unit, Number(value), t)} color={theme.brand} bg={theme.brandSoft} />
                     </Row>
                   </Card>
                 );
@@ -338,12 +338,13 @@ function ruleKeyLabel(key: string): string {
     case 'league.promotion_pct': return 'leagueMove';
     case 'kudos.monthly_quota_per_instructor': return 'kudosQuota';
     case 'points.month_bonus': return 'monthBonus';
+    case 'streak.min_sessions_week': return 'weekSessions';
     default: return 'presentPts';
   }
 }
 
-function formatRuleValue(key: string, value: number, t: any): string {
-  if (key.endsWith('_pct') || key.includes('pct')) return `${value}%`;
-  if (key.includes('min')) return `${value} ${t('common.minutes')}`;
+function formatRuleValue(unit: string, value: number, t: any): string {
+  if (unit === 'pct') return `${value}%`;
+  if (unit === 'min') return `${value} ${t('common.minutes')}`;
   return String(value);
 }

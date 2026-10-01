@@ -350,7 +350,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const nextId = s?.user?.id ?? null;
           if ((event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && nextId === lastAuthUserId) return;
           lastAuthUserId = nextId;
-          void applySession(s);
+          // تطبيق الجلسة قد يرمي خطأ شبكة — التقطه هنا بدل unhandled rejection.
+          void applySession(s).catch((err) => {
+            addBreadcrumb('net', 'applySession failed: ' + (err as Error).message);
+          });
         });
         unsubAuth = () => sub.subscription.unsubscribe();
 

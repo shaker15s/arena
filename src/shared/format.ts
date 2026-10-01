@@ -1,4 +1,5 @@
 /** أدوات تنسيق مشتركة — أرقام، تواريخ، أوقات (عربي/إنجليزي). */
+import { arabicCount } from './plural';
 
 const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 /** الأرقام لاتينية دائمًا في العدادات (توثيق التصميم)، والعربية للنصوص عند الحاجة. */
@@ -114,9 +115,19 @@ export function formatDuration(ms: number, lang: 'ar' | 'en'): string {
   const totalMin = Math.max(0, Math.ceil(ms / 60000));
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  if (h === 0) return lang === 'ar' ? `${m} دقيقة` : `${m} min`;
-  if (m === 0) return lang === 'ar' ? `${h} ساعة` : `${h} hr`;
-  return lang === 'ar' ? `${h} س ${m} د` : `${h}h ${m}m`;
+  if (lang === 'ar') {
+    // صيغ الجمع العربية الصحيحة (٠/١/٢/٣-١٠/١١+) عبر arabicCount — كانت «5 دقيقة».
+    if (h === 0) {
+      return arabicCount(m, { zero: '0 دقيقة', one: 'دقيقة واحدة', two: 'دقيقتين', few: `${m} دقائق`, many: `${m} دقيقة` });
+    }
+    if (m === 0) {
+      return arabicCount(h, { zero: '0 ساعة', one: 'ساعة واحدة', two: 'ساعتين', few: `${h} ساعات`, many: `${h} ساعة` });
+    }
+    return `${arabicCount(h, { zero: '0', one: 'ساعة واحدة', two: 'ساعتان', few: `${h} ساعات`, many: `${h} ساعة` })} و${arabicCount(m, { zero: '0', one: 'دقيقة واحدة', two: 'دقيقتان', few: `${m} دقائق`, many: `${m} دقيقة` })}`;
+  }
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h}h ${m}m`;
 }
 
 export function clamp(v: number, min: number, max: number): number {
