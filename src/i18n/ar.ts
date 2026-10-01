@@ -1016,6 +1016,7 @@ export const ar = {
   'users.noBranch': 'غير محدد بفرع',
   'users.branchUpdated': 'تم تحديث الفرع للمستخدم',
   'users.unassignedBranch': 'بدون فرع (عام)',
+  'users.clearBranch': 'إلغاء تعيين الفرع',
   'batchAdm.defaultRoom': 'قاعة التدريب الرئيسية',
   'batchAdm.needBranch': 'يرجى اختيار الفرع',
   'batchAdm.needCourse': 'يرجى اختيار الكورس',

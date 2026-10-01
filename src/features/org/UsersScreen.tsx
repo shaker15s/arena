@@ -13,6 +13,7 @@ import { MasarMascot } from '../../design/mascot';
 import { spacing } from '../../design/tokens';
 import { useDeferredSearch } from '../../shared/useSearch';
 import type { Role } from '../../data/types';
+import type { AccessPatch } from '../../data/accessPayload';
 import { updateUserAccess } from '../../data/actions';
 import { Icon } from '../../design/icons';
 
@@ -40,11 +41,18 @@ export function UsersScreen() {
 
   const selUser = selected ? profileOf(db, selected) : null;
 
-  const changeAccess = async (profileId: string, patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null }) => {
+  const changeAccess = async (profileId: string, patch: AccessPatch) => {
     try {
       await updateUserAccess(profileId, patch);
       await refresh();
-      toast(patch.role ? t('users.roleChanged') : patch.branchId !== undefined ? t('users.branchUpdated') : t('users.statusChanged'), 'success');
+      toast(
+        patch.role
+          ? t('users.roleChanged')
+          : patch.branchId !== undefined || patch.clearBranch
+          ? t('users.branchUpdated')
+          : t('users.statusChanged'),
+        'success',
+      );
     } catch (error) {
       toast((error as Error).message, 'error');
     }
@@ -144,11 +152,18 @@ export function UsersScreen() {
                 <Spacer size={4} />
                 <Txt variant="caption" color={theme.textSecondary}>🏢 تعيين / تغيير الفرع (إدارة الفرع):</Txt>
                 <Row gap={6} wrap>
-                  <Chip
-                    label={t('users.unassignedBranch')}
-                    active={!selUser.branchId}
-                    onPress={() => { void changeAccess(selUser.id, { branchId: null }); }}
-                  />
+                  {selUser.branchId ? (
+                    <Chip
+                      label={t('users.clearBranch')}
+                      active={false}
+                      onPress={() => { void changeAccess(selUser.id, { branchId: null, clearBranch: true }); }}
+                    />
+                  ) : (
+                    <Chip
+                      label={t('users.unassignedBranch')}
+                      active
+                    />
+                  )}
                   {db.branches.map((b) => (
                     <Chip
                       key={b.id}

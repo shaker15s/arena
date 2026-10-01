@@ -972,6 +972,7 @@ export const en: Record<DictKey, string> = {
   'users.noBranch': 'No branch assigned',
   'users.branchUpdated': 'User branch updated',
   'users.unassignedBranch': 'No branch (org-wide)',
+  'users.clearBranch': 'Clear branch',
   'batchAdm.defaultRoom': 'Main training room',
   'batchAdm.needBranch': 'Please pick a branch',
   'batchAdm.needCourse': 'Please pick a course',

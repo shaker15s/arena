@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase';
-import type { Role } from './types';
+import { buildAccessPayload, type AccessPatch } from './accessPayload';
 
 export class ActionError extends Error {
   constructor(message: string, public code = 'action_failed') {
@@ -158,14 +158,9 @@ export async function getPushPreferences(): Promise<PushPreferences> {
 
 export async function updateUserAccess(
   profileId: string,
-  patch: { role?: Role; status?: 'active' | 'disabled'; branchId?: string | null },
+  patch: AccessPatch,
 ): Promise<void> {
-  await rpc('admin_update_user_access', {
-    p_profile_id: profileId,
-    p_role: patch.role ?? null,
-    p_status: patch.status ?? null,
-    p_branch_id: patch.branchId !== undefined ? patch.branchId : null,
-  });
+  await rpc('admin_update_user_access', buildAccessPayload(profileId, patch));
 }
 
 // Rate limiter helper for sensitive actions
