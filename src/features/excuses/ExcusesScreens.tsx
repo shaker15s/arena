@@ -3,7 +3,8 @@
  * F5: قبول ← معذور + ستريك محفوظ بلا نقاط · رفض ← يبقى غياب + إشعار بالسبب.
  */
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { I18nManager, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { attendanceOf, batchOf, courseOf, profileOf } from '../../data/engine';
@@ -29,6 +30,7 @@ import { Icon } from '../../design/icons';
 export function ExcusesScreen({ navigation }: any) {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { db, user, refresh, toast, submitOrQueue } = useApp();
   const [tab, setTab] = useState<'list' | 'new'>('list');
   const [sessionId, setSessionId] = useState<string | null>(null);

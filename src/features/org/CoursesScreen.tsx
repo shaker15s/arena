@@ -83,7 +83,7 @@ export function CoursesScreen({ navigation }: any) {
 
   return (
     <Screen label={t('courses.title')} style={{ flex: 1 }}>
-      <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" onPress={() => setCreating(true)} />} />
+      <Header title={t('courses.title')} back={() => navigation.goBack()} right={<Btn title={t('courses.new')} size="sm" icon="add" responsive onPress={() => setCreating(true)} />} />
       <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: spacing.s8 }}>
         {db.courses.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 30 }}>

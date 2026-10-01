@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   StyleProp,
@@ -16,6 +17,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { radii } from '../tokens';
 import { isReducedMotion } from '../motion';
+
+/** مؤشر تحميل دوراني متوافق مع الثيم القياسي للمنصة */
+export function Spinner({
+  color,
+  size = 'small',
+}: {
+  color?: string;
+  size?: 'small' | 'large' | number;
+}) {
+  const { theme } = useTheme();
+  return <ActivityIndicator size={size as any} color={color ?? theme.brand} />;
+}
 
 export interface SkeletonProps {
   width?: number | string;

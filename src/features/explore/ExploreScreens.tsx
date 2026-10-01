@@ -2,7 +2,7 @@
  * features/explore — S11 الكتالوج + S12 تفاصيل الكورس + S13 ورقة الانضمام.
  */
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +16,7 @@ import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import { useHaptics } from '../../shared/hooks';
 import {
-  Avatar, BackIcon, Btn, Card, Chip, Empty, FadeIn, Header, Input, LiveRegion, ProgressBar, Row,
+  Avatar, BackIcon, Btn, Card, Chip, Empty, ExploreCardSkeleton, FadeIn, Header, Input, LiveRegion, ProgressBar, Row,
   Screen, Segmented, Sheet, Spacer, Stars, Tag, Txt, VisuallyHidden, useDebounce,
 } from '../../design/components';
 import { AnimatedTabContent } from '../../design/AnimatedTabContent';
@@ -125,17 +125,24 @@ export function ExploreScreen({ navigation: propNav }: any) {
         }
         ListEmptyComponent={
           <View style={{ paddingHorizontal: spacing.s5 }}>
-            <Empty
-              emoji="🧭"
-              title={t('explore.noResults')}
-              body={t('explore.noResultsBody')}
-              cta={t('explore.clearFilters')}
-              onCta={() => {
-                setQuery('');
-                setField('all');
-                setBranchId('all');
-              }}
-            />
+            {syncing && db.courses.length === 0 ? (
+              <View style={{ gap: 12 }}>
+                <ExploreCardSkeleton />
+                <ExploreCardSkeleton />
+              </View>
+            ) : (
+              <Empty
+                emoji="🧭"
+                title={t('explore.noResults')}
+                body={t('explore.noResultsBody')}
+                cta={t('explore.clearFilters')}
+                onCta={() => {
+                  setQuery('');
+                  setField('all');
+                  setBranchId('all');
+                }}
+              />
+            )}
           </View>
         }
         renderItem={({ item: course, index: i }) => (
@@ -767,9 +774,14 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
       {/* CTA سفلي ثابت */}
       {!myEnrollment && batches.length > 0 ? (
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s4, paddingBottom: insets.bottom + 12, backgroundColor: theme.glassHeavy, borderTopWidth: 1, borderTopColor: theme.line }}>
-          <Btn title={t('course.join')} size="lg" full icon="add-circle" onPress={() => handleSelectBatch(batches[0])} />
-        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ position: 'absolute', bottom: 0, start: 0, end: 0, zIndex: 100 }}
+        >
+          <View style={{ padding: spacing.s4, paddingBottom: Math.max(insets.bottom, spacing.s4), backgroundColor: theme.glassHeavy, borderTopWidth: 1, borderTopColor: theme.line }}>
+            <Btn title={t('course.join')} size="lg" full icon="add-circle" onPress={() => handleSelectBatch(batches[0])} />
+          </View>
+        </KeyboardAvoidingView>
       ) : null}
 
       {/* ورقة تأكيد الانضمام — S13 */}

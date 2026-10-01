@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   endCapGlow: {
     position: 'absolute',
-    right: 0,
+    end: 0,
     top: 0,
     bottom: 0,
     width: 4,

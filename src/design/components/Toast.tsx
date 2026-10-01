@@ -11,6 +11,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Txt } from '../components';
 import { radii, spacing } from '../tokens';
@@ -67,6 +68,7 @@ export function Toast({
   onDismiss,
   style,
 }: ToastProps) {
+  const insets = useSafeAreaInsets();
   const reduced = isReducedMotion();
   const slideAnim = useRef(new Animated.Value(-80)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -127,6 +129,7 @@ export function Toast({
       style={[
         styles.toastContainer,
         {
+          top: insets.top + spacing.s3,
           backgroundColor: currentTheme.bg,
           borderColor: currentTheme.border,
           opacity: opacityAnim,
@@ -155,9 +158,8 @@ export function Toast({
 const styles = StyleSheet.create({
   toastContainer: {
     position: 'absolute',
-    top: 40,
-    left: 20,
-    right: 20,
+    start: spacing.s5,
+    end: spacing.s5,
     zIndex: 9999,
     flexDirection: 'row',
     alignItems: 'center',

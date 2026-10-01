@@ -11,7 +11,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
-import { Btn, FadeIn, GlassBtn, Input, Row, Screen, SegmentedProgressBar, Spacer, Txt } from '../../design/components';
+import { Btn, FadeIn, GlassBtn, Input, Row, Screen, SegmentedProgressBar, Spacer, Spinner, Txt } from '../../design/components';
 import { GlassCard } from '../../design/glass';
 import { radii, sizes, spacing } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
@@ -477,11 +477,11 @@ function AppleSignInButton({
           <View
             pointerEvents="none"
             style={{
-              position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+              position: 'absolute', start: 0, end: 0, top: 0, bottom: 0,
               alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <ActivityIndicator color={palette.foreground} />
+            <Spinner color={palette.foreground} />
           </View>
         ) : null}
       </View>
@@ -512,7 +512,7 @@ function AppleSignInButton({
       })}
     >
       {busy ? (
-        <ActivityIndicator color={palette.foreground} />
+        <Spinner color={palette.foreground} />
       ) : (
         <>
           <Icon name="logo-apple" size={APPLE_TITLE_FONT_SIZE} color={palette.foreground} />
@@ -717,7 +717,7 @@ export function SignInScreen({ navigation }: any) {
               shadowOffset: { width: 0, height: 8 }, elevation: 6,
             })}
           >
-            {loading ? <ActivityIndicator color="#1C1C1E" /> : <GoogleMark size={22} />}
+            {loading ? <Spinner color="#1C1C1E" /> : <GoogleMark size={22} />}
             <Txt variant="h3" color="#1C1C1E">{t('auth.continueGoogle')}</Txt>
           </Pressable>
         </FadeIn>
@@ -838,7 +838,7 @@ export function CompleteProfileScreen() {
               borderWidth: 2, borderColor: theme.brand,
             }}>
               {uploading ? (
-                <ActivityIndicator color={theme.brand} />
+                <Spinner color={theme.brand} />
               ) : avatar ? (
                 <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
               ) : (

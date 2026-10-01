@@ -2,7 +2,7 @@
  * features/org — S41 معالج «ابدأ مركزك»: 6 خطوات حتى أول باتش على الهواء (F7).
  */
 import React, { useMemo, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
@@ -303,20 +303,25 @@ export function OrgWizardScreen({ navigation }: any) {
       </ScrollView>
 
       {/* أزرار التنقل */}
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s5, paddingBottom: insets.bottom + 16, backgroundColor: theme.glass, borderTopWidth: 1, borderTopColor: theme.line }}>
-        <Row gap={10}>
-          {step > 1 && !createdJoinCode ? <Btn title={t('common.back')} variant="ghost" onPress={() => setStep(step - 1)} /> : null}
-          <View style={{ flex: 1 }}>
-            <Btn
-              title={createdJoinCode ? t('common.done') : step === 6 ? t('wizard.finish') : t('common.next')}
-              size="lg" full icon={createdJoinCode ? 'checkmark' : step === 6 ? 'rocket' : 'arrow-back'}
-              disabled={!canNext || saving}
-              loading={saving}
-              onPress={next}
-            />
-          </View>
-        </Row>
-      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ position: 'absolute', bottom: 0, start: 0, end: 0, zIndex: 100 }}
+      >
+        <View style={{ padding: spacing.s5, paddingBottom: Math.max(insets.bottom, spacing.s4), backgroundColor: theme.glass, borderTopWidth: 1, borderTopColor: theme.line }}>
+          <Row gap={10}>
+            {step > 1 && !createdJoinCode ? <Btn title={t('common.back')} variant="ghost" onPress={() => setStep(step - 1)} /> : null}
+            <View style={{ flex: 1 }}>
+              <Btn
+                title={createdJoinCode ? t('common.done') : step === 6 ? t('wizard.finish') : t('common.next')}
+                size="lg" full icon={createdJoinCode ? 'checkmark' : step === 6 ? 'rocket' : 'arrow-back'}
+                disabled={!canNext || saving}
+                loading={saving}
+                onPress={next}
+              />
+            </View>
+          </Row>
+        </View>
+      </KeyboardAvoidingView>
 
       <CelebrationModal
         visible={doneOpen}

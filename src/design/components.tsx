@@ -26,6 +26,8 @@ import { announce } from './a11y/announce';
 import { useFocusTrap } from './a11y/useFocusTrap';
 import { rovingTabIndex, useRovingKeys } from './a11y/roving';
 import { navigationRef, safeBack } from '../app/navRef';
+import { EmptyStateIllustration } from './components/EmptyStateIllustration';
+import { Spinner } from './components/SkeletonLoader';
 
 // ───────────────────────────── نصوص ─────────────────────────────
 
@@ -90,6 +92,14 @@ export function Txt({
         { lineHeight: calibratedLineHeight },
         // DS-04: كان يستخدم h3 (SemiBold 600) — أي أن `bold` لم يكن Bold أصلًا.
         bold ? { fontFamily: fonts.bold } : null,
+        Platform.OS === 'web' && (numberOfLines === 1 || shrink)
+          ? ({
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              wordBreak: 'keep-all',
+            } as unknown as TextStyle)
+          : null,
         style,
       ]}
     >
@@ -212,6 +222,8 @@ export function Card({ children, style, color, noPad, onPress, solid, heavy, acc
 
 export type BtnKind = 'primary' | 'secondary' | 'tertiary' | 'glass';
 
+export const HeaderActionContext = React.createContext<{ inHeader: boolean }>({ inHeader: false });
+
 export function Btn({
   title, onPress, variant = 'primary', kind, size = 'md', icon, disabled, loading, style, full,
   accessibilityHint, responsive, compact,
@@ -233,10 +245,11 @@ export function Btn({
   compact?: boolean;
 }) {
   const { theme, windowWidth } = useTheme();
+  const inHeader = React.useContext(HeaderActionContext).inHeader;
   const { impactLight, impactMedium } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
 
-  const isIconOnly = Boolean(icon && (compact || (responsive && windowWidth < 500)));
+  const isIconOnly = Boolean(icon && (compact || (responsive && windowWidth < 500) || (inHeader && windowWidth < 600)));
 
   const handlePress = () => {
     if (!onPress || disabled || loading) return;
@@ -417,11 +430,6 @@ export function Btn({
   );
 }
 
-export function Spinner({ color }: { color?: string }) {
-  const { theme } = useTheme();
-  return <ActivityIndicator size="small" color={color ?? theme.brand} />;
-}
-
 // ───────────────────────────── Chips / Tags / Segmented ─────────────────────────────
 
 export function Chip({ label, active, onPress, icon }: {
@@ -479,9 +487,9 @@ export function Segmented<T extends string>({ options, value, onChange, scrollab
   /** يُمكّن التمرير الأفقي بدلاً من حشر التبويبات؛ مفعّل تلقائيًا إذا كانت التبويبات أكثر من 3 */
   scrollable?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme, windowWidth } = useTheme();
   const { impactLight } = useHaptics();
-  const isScrollable = scrollable ?? options.length > 3;
+  const isScrollable = scrollable ?? (options.length > 3 || (windowWidth < 480 && options.length > 2));
   // A11Y-14: ←/→ (مع انعكاس RTL) + Home/End تنقل بين التبويبات وتُحدّث القيمة.
   const activeIndex = Math.max(0, options.findIndex((o) => o.value === value));
   const rovingRefs = useRovingKeys({
@@ -505,7 +513,7 @@ export function Segmented<T extends string>({ options, value, onChange, scrollab
             gap: 6,
             paddingHorizontal: 2,
           }}
-          style={Platform.OS === 'web' ? ({ overflowX: 'auto', scrollbarWidth: 'none' } as any) : undefined}
+          style={Platform.OS === 'web' ? ({ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as any) : undefined}
         >
           {options.map((opt, index) => {
             const active = opt.value === value;
@@ -522,6 +530,7 @@ export function Segmented<T extends string>({ options, value, onChange, scrollab
                 style={({ pressed }) => ([
                   webPointer,
                   {
+                    flexShrink: 0,
                     flexDirection: 'row',
                     gap: 6,
                     alignItems: 'center',
@@ -551,6 +560,7 @@ export function Segmented<T extends string>({ options, value, onChange, scrollab
                   bold={active}
                   color={active ? theme.text : theme.textMuted}
                   numberOfLines={1}
+                  shrink
                 >
                   {opt.label}
                 </Txt>
@@ -579,7 +589,7 @@ export function Segmented<T extends string>({ options, value, onChange, scrollab
             style={({ pressed }) => ([
               webPointer,
               {
-                flex: 1, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
+                flex: 1, minWidth: 0, flexDirection: 'row', gap: componentTokens.segmented.gap, alignItems: 'center', justifyContent: 'center',
                 backgroundColor: active ? theme.card : 'transparent',
                 borderRadius: radii.full, paddingVertical: componentTokens.segmented.paddingVertical,
                 paddingHorizontal: 8,
@@ -749,7 +759,7 @@ export function Input({
           textAlignVertical={multiline ? 'top' : 'center'}
           style={{
             flex: 1, color: theme.text, fontFamily: typography.body.fontFamily, fontSize: 15,
-            textAlign: width ? 'center' : 'auto', paddingVertical: multiline ? 6 : 8, paddingRight: 8,
+            textAlign: width ? 'center' : 'auto', paddingVertical: multiline ? 6 : 8, paddingEnd: 8,
             minWidth: 0, width: '100%',
             ...webInputReset,
           }}
@@ -980,26 +990,51 @@ export function StaggeredList({ children, baseDelay = 50, style }: {
 
 // ───────────────────────────── حالات فارغة / خطأ ─────────────────────────────
 
-export function Empty({ emoji, title, body, cta, onCta }: {
-  emoji: string; title: string; body?: string; cta?: string; onCta?: () => void;
+export function Empty({
+  emoji,
+  title,
+  body,
+  cta,
+  onCta,
+  showIllustration = true,
+}: {
+  emoji?: string;
+  title: string;
+  body?: string;
+  cta?: string;
+  onCta?: () => void;
+  showIllustration?: boolean;
 }) {
   const { theme } = useTheme();
+  const emojiBox = emoji ? (
+    <View
+      accessible={false}
+      style={{
+        width: componentTokens.emptyState.iconBox,
+        height: componentTokens.emptyState.iconBox,
+        borderRadius: componentTokens.emptyState.iconBoxRadius,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.brandSoft,
+        borderWidth: borderWidth.thin,
+        borderColor: `${theme.brand}22`,
+        transform: [{ rotate: '-3deg' }],
+      }}
+    >
+      <Text accessible={false} style={{ fontSize: componentTokens.emptyState.emojiSize, transform: [{ rotate: '3deg' }] }}>
+        {emoji}
+      </Text>
+    </View>
+  ) : null;
+
   return (
     <FadeIn>
       <View style={{ alignItems: 'center', paddingVertical: spacing.s10, paddingHorizontal: spacing.s6, gap: 12 }}>
-        <View
-          accessible={false}
-          style={{
-            width: componentTokens.emptyState.iconBox, height: componentTokens.emptyState.iconBox,
-            borderRadius: componentTokens.emptyState.iconBoxRadius,
-            alignItems: 'center', justifyContent: 'center',
-            backgroundColor: theme.brandSoft,
-            borderWidth: borderWidth.thin, borderColor: `${theme.brand}22`,
-            transform: [{ rotate: '-3deg' }],
-          }}
-        >
-          <Text accessible={false} style={{ fontSize: componentTokens.emptyState.emojiSize, transform: [{ rotate: '3deg' }] }}>{emoji}</Text>
-        </View>
+        {showIllustration ? (
+          <EmptyStateIllustration size={160} fallback={emojiBox} />
+        ) : (
+          emojiBox
+        )}
         <Txt variant="h2" align="center">{title}</Txt>
         {body ? <Txt variant="body" color={theme.textSecondary} align="center" style={{ maxWidth: 340 }}>{body}</Txt> : null}
         {cta && onCta ? <View style={{ marginTop: 10 }}><Btn title={cta} onPress={onCta} icon="arrow-forward" /></View> : null}
@@ -1075,7 +1110,7 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
   title: string; subtitle?: string; back?: () => void; right?: React.ReactNode;
   onSubtitlePress?: () => void; onTitlePress?: () => void;
 }) {
-  const { theme } = useTheme();
+  const { theme, windowWidth } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const titleId = React.useId();
@@ -1165,8 +1200,10 @@ export function Header({ title, subtitle, back, right, onSubtitlePress, onTitleP
           </View>
         </Row>
         {right ? (
-          <View style={{ flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {right}
+          <View style={{ flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: windowWidth < 500 ? '48%' : undefined }}>
+            <HeaderActionContext.Provider value={{ inHeader: true }}>
+              {right}
+            </HeaderActionContext.Provider>
           </View>
         ) : null}
       </Row>
@@ -1606,7 +1643,8 @@ export function OfflineQueueBanner({
 
 export { ScrollView };
 export { LiquidGlassCard } from './components/LiquidGlassCard';
-export { Skeleton, PageSkeleton, TodayCardSkeleton } from './components/SkeletonLoader';
+export { Skeleton, PageSkeleton, TodayCardSkeleton, ExploreCardSkeleton, JourneyCardSkeleton, NotificationSkeleton, KpiCardSkeleton, Spinner } from './components/SkeletonLoader';
+export { EmptyStateIllustration } from './components/EmptyStateIllustration';
 export { Toast } from './components/Toast';
 export { SegmentedProgressBar } from './components/SegmentedProgressBar';
 export { GlassBtn, IconGlassButton } from './components/GlassBtn';

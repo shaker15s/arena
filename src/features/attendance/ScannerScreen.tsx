@@ -11,7 +11,6 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   AppState,
   Easing,
@@ -42,6 +41,7 @@ import {
   IconGlassButton,
   Row,
   Spacer,
+  Spinner,
   Toast,
   Txt,
 } from '../../design/components';
@@ -416,7 +416,7 @@ export function ScannerScreen({ navigation }: any) {
 
               {loading && (
                 <View style={styles.loadingBackdrop}>
-                  <ActivityIndicator size="large" color="#FFF" />
+                  <Spinner size="large" color="#FFF" />
                   <Spacer size={8} />
                   <Txt variant="caption" bold color="#FFF">
                     {t('scanner.verifying')}
@@ -721,8 +721,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     opacity: 0.01,
   },
 });

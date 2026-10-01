@@ -2,7 +2,7 @@
  * features/profile — S27 حسابي + الإعدادات (لغة/ثيم/قواعد/دعم/خروج).
  */
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -12,7 +12,7 @@ import { ThemePref, useTheme } from '../../design/theme';
 import { Lang, useI18n } from '../../i18n';
 import {
   Avatar, BackIcon, Btn, Card, CustomSwitch, FadeIn, Header, Input, ListRow, Row,
-  Screen, Sheet, Spacer, Tag, Txt,
+  Screen, Sheet, Spacer, Spinner, Tag, Txt,
 } from '../../design/components';
 import { spacing, radii, levels, leagueTierColors } from '../../design/tokens';
 import { bidiIsolate, formatDate, formatTime } from '../../shared/format';
@@ -62,7 +62,7 @@ export function ProfileScreen() {
   return (
     <Screen label={t('profile.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh('today'); }} tintColor={theme.brand} />}
       >
         <Header title={t('profile.title')} />
@@ -364,7 +364,7 @@ function EditProfileSheet({ visible, onClose }: { visible: boolean; onClose: () 
             backgroundColor: theme.fill,
             borderWidth: 2, borderColor: theme.brand,
           }}>
-            {uploading ? <ActivityIndicator color={theme.brand} />
+            {uploading ? <Spinner color={theme.brand} />
               : avatar ? <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
               : <Icon name="camera" size={30} color={theme.brand} />}
           </View>
