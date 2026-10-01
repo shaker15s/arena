@@ -13,6 +13,7 @@ import {
 } from '../../data/engine';
 import { joinBatch as joinBatchOnServer, leaveBatch, startTrainingSession } from '../../data/actions';
 import { useTheme } from '../../design/theme';
+import { GlassSurface } from '../../design/glass';
 import { useI18n } from '../../i18n';
 import { useHaptics } from '../../shared/hooks';
 import {
@@ -174,8 +175,8 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
           overflow: 'hidden',
           borderRadius: radii.xxl,
           borderWidth: 1,
-          borderColor: theme.glassBorder,
-          backgroundColor: theme.cardElevated,
+          borderColor: theme.fillBorder,
+          backgroundColor: theme.card,
           shadowColor: course.color,
           shadowOpacity: isDark ? 0.25 : 0.08,
           shadowRadius: 14,
@@ -773,9 +774,17 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
 
       {/* CTA سفلي ثابت */}
       {!myEnrollment && batches.length > 0 ? (
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing.s4, paddingBottom: insets.bottom + 12, backgroundColor: theme.glassHeavy, borderTopWidth: 1, borderTopColor: theme.line }}>
+        <GlassSurface
+          radius={0}
+          borderless
+          style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            padding: spacing.s4, paddingBottom: insets.bottom + 12,
+            borderTopWidth: 1, borderTopColor: theme.line,
+          }}
+        >
           <Btn title={t('course.join')} size="lg" full icon="add-circle" onPress={() => handleSelectBatch(batches[0])} />
-        </View>
+        </GlassSurface>
       ) : null}
 
       {/* ورقة تأكيد الانضمام — S13 */}

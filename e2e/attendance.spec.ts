@@ -12,7 +12,7 @@ import {
 import { qrSignature } from '../src/shared/sha256';
 
 export async function testAttendanceFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص مسار الحضور الذكي والـ QR الدوار (Attendance Flow) ---');
+  console.log('\n--- [SCENARIO] فحص مسار الحضور الذكي والـ QR الدوار (Attendance Flow) ---');
   const db = buildSeedDb();
   const now = Date.now();
 

@@ -46,8 +46,10 @@ export function GlassSurface({
 }) {
   const { theme, isDark } = useTheme();
   const preferences = useA11yPrefsOptional();
-  const reduceTransparency = preferences?.effectiveReduceTransparency ?? false;
   const highContrast = preferences?.highContrast ?? false;
+  // High contrast uses the same opaque material as Reduce Transparency so that
+  // blur never lowers legibility; the stronger border remains a clear affordance.
+  const reduceTransparency = Boolean(preferences?.effectiveReduceTransparency || highContrast);
   const useNativeGlass = !reduceTransparency && canUseNativeLiquidGlass();
   const webBlur = `blur(${blurIntensity.webSurface}px) saturate(150%)`;
   const fill = reduceTransparency ? theme.card : (tintColor ?? theme.glassHeavy);

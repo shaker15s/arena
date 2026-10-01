@@ -6,7 +6,7 @@ import { en } from '../src/i18n/en';
 import { numAr, formatDate, formatTime } from '../src/shared/format';
 
 export async function testRtlFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص التوافق العربي الكامل والتطابق اللغوي (RTL & i18n Flow) ---');
+  console.log('\n--- [SCENARIO] فحص التوافق العربي الكامل والتطابق اللغوي (RTL & i18n Flow) ---');
 
   // 1. فحص تطابق مفاتيح القاموسين (100% Parity)
   const arKeys = Object.keys(ar);

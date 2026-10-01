@@ -12,7 +12,7 @@ import {
 } from '../src/data/engine';
 
 export async function testCertificatesFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص دورة حياة الشهادات المعتمدة (Certificates Lifecycle Flow) ---');
+  console.log('\n--- [SCENARIO] فحص دورة حياة الشهادات المعتمدة (Certificates Lifecycle Flow) ---');
   const db = buildSeedDb();
   const completedBatchId = IDS.g4;
 

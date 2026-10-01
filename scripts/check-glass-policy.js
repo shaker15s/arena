@@ -27,6 +27,7 @@ function inspect(file) {
     [/from\s+['"]expo-blur['"]|<BlurView\b/, 'استخدم BlurView عبر GlassSurface فقط'],
     [/from\s+['"]expo-glass-effect['"]|<GlassView\b|\bisLiquidGlassAvailable\s*\(/, 'استخدم expo-glass-effect عبر المحوّل فقط'],
     [/\b(?:Webkit)?backdropFilter\s*:/, 'لا تضع backdrop-filter خارج GlassSurface'],
+    [/\btheme\.(?:glass|glassHeavy|glassBorder)\b/, 'استخدم ألوان مادة الزجاج عبر GlassSurface فقط؛ للمحتوى والحشوات استخدم أدوار السطوح المناسبة'],
   ];
   for (const [pattern, message] of checks) {
     if (pattern.test(source)) violations.push(`  ✗ ${relative}: ${message}`);
@@ -38,4 +39,4 @@ if (violations.length) {
   console.error('✗ خالفت سياسة الزجاج الموحد:\n' + violations.join('\n'));
   process.exit(1);
 }
-console.log('✓ سياسة المادة سليمة — GlassSurface هو مالك Blur/Glass/CSS filter الوحيد.');
+console.log('✓ سياسة المادة سليمة — GlassSurface يملك Blur/Glass/CSS filter وتوكنز التعبئة فقط.');

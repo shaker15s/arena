@@ -1,6 +1,6 @@
 /**
- * design/components.tsx — كتالوج المكونات الموحدة بتصميم Apple Liquid Glass.
- * كل مكون من التوكنز فقط — لا ألوان حرفية. RTL تلقائي.
+ * design/components.tsx — كتالوج مكونات نظام التصميم الموحد لمسار.
+ * المحتوى صلب افتراضيًا، والأسطح الزجاجية تمر عبر المحوّل المركزي. RTL تلقائي.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -237,8 +237,8 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
 
   const shell: ViewStyle = {
     borderRadius: radii.xl,
-    borderWidth: highContrast ? borderWidth.medium : borderWidth.thin,
-    borderColor: highContrast ? theme.textMuted : useGlass ? theme.glassBorder : theme.fillBorder,
+    borderWidth: useGlass ? 0 : highContrast ? borderWidth.medium : borderWidth.thin,
+    borderColor: highContrast ? theme.textMuted : theme.fillBorder,
     padding: noPad ? 0 : spacing.s4,
     shadowColor: theme.glassShadow,
     ...(isDark ? shadows.card.dark : shadows.card.light),
@@ -246,13 +246,13 @@ export function Card({ children, style, color, noPad, onPress, solid, glass, hea
   };
 
   const content = (
-    <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glassHeavy : color ?? theme.card, transform: [{ scale }] }, style]}>
-      {useGlass && heavy ? (
+    <Animated.View style={[shell, { backgroundColor: useGlass ? 'transparent' : color ?? theme.card, transform: [{ scale }] }, style]}>
+      {useGlass ? (
         <GlassSurface
           radius={radii.xl}
-          intensity={isDark ? blurIntensity.heavyCard.dark : blurIntensity.heavyCard.light}
-          tintColor={theme.glassHeavy}
-          borderless
+          intensity={heavy
+            ? (isDark ? blurIntensity.heavyCard.dark : blurIntensity.heavyCard.light)
+            : blurIntensity.surface}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
@@ -465,7 +465,7 @@ export function Chip({ label, active, onPress, icon }: {
         flexDirection: 'row', alignItems: 'center',
         gap: componentTokens.chip.gap,
         minHeight: componentTokens.chip.minHeight,
-        backgroundColor: active ? theme.brand : theme.glass,
+        backgroundColor: active ? theme.brand : theme.fill,
         borderRadius: radii.full,
         paddingHorizontal: componentTokens.chip.paddingHorizontal,
         paddingVertical: componentTokens.chip.paddingVertical,
@@ -1174,7 +1174,7 @@ export function Sheet({ visible, onClose, children, title }: {
               maxHeight: '92%',
               borderWidth: borderWidth.thin,
               borderBottomWidth: 0,
-              borderColor: theme.glassBorder,
+              borderColor: theme.fillBorder,
               shadowColor: theme.glassShadow,
               ...shadows.sheet,
               transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }],
@@ -1244,11 +1244,11 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger,
           gap: componentTokens.listRow.gap,
           minHeight: componentTokens.listRow.minHeight,
           ...(grow ? { flex: 1 } : null),
-          backgroundColor: theme.glass,
+          backgroundColor: theme.card,
           borderRadius: radii.lg,
           padding: componentTokens.listRow.padding,
           borderWidth: borderWidth.hairline,
-          borderColor: theme.glassBorder,
+          borderColor: theme.fillBorder,
           opacity: pressed ? 0.7 : 1,
           transform: [{ scale: pressed ? pressScale.subtle : 1 }],
         },

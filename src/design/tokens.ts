@@ -1,6 +1,6 @@
 /**
  * design/tokens.ts — المصدر الوحيد للألوان/التايب/المسافات (وثيقة 05)
- * تصميم أبل الزجاجي (Liquid Glass) — فخامة وشفافية وسلاسة
+ * نظام تصميم مسار التكيفي — المحتوى أولًا والزجاج محصور في طبقة التحكم.
  */
 
 /**
@@ -334,7 +334,6 @@ export interface ThemeColors {
   rarityEpic: string;
   rarityLegendary: string;
   // أدوار السطوح والتحكم عبر المنصات
-  cardElevated: string;
   separator: string;
   /** حشوة تحكم خفيفة (chips، segmented، أزرار ثانوية، حقول) */
   fill: string;
@@ -406,7 +405,6 @@ export const lightTheme: ThemeColors = {
   rarityRare: '#007AFF',
   rarityEpic: '#AF52DE',
   rarityLegendary: '#FF9F0A',
-  cardElevated: 'rgba(255, 255, 255, 0.9)',
   separator: 'rgba(60, 60, 67, 0.18)',
   fill: 'rgba(120, 120, 128, 0.12)',
   fillStrong: 'rgba(120, 120, 128, 0.2)',
@@ -462,7 +460,6 @@ export const darkTheme: ThemeColors = {
   focusRing: '#6FB3FF',
   line: 'rgba(84, 84, 88, 0.25)',
   overlay: 'rgba(0, 0, 0, 0.65)',
-  cardElevated: 'rgba(44, 44, 46, 0.8)',
   separator: 'rgba(84, 84, 88, 0.2)',
   fill: 'rgba(120, 120, 128, 0.24)',
   fillStrong: 'rgba(120, 120, 128, 0.32)',
@@ -483,7 +480,6 @@ export const oledTheme: ThemeColors = {
   // DS-07: على الأسود الخالص كانت حدود/فواصل/حشوات الداكن العادي أفتح من اللازم
   // فتُزعج العين — نخفتها هنا (ألوان النصوص تبقى كما هي حفاظًا على التباين ≥ 4.5).
   glassBorder: 'rgba(84, 84, 88, 0.22)',
-  cardElevated: 'rgba(24, 24, 26, 0.8)',
   separator: 'rgba(84, 84, 88, 0.14)',
   line: 'rgba(84, 84, 88, 0.15)',
   fill: 'rgba(120, 120, 128, 0.16)',

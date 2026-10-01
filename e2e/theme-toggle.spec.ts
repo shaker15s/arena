@@ -10,7 +10,7 @@ import {
 } from '../src/design/tokens';
 
 export async function testThemeToggleFlow(assert: (ok: boolean, msg: string) => void) {
-  console.log('\n--- [E2E] فحص نظام المظهر والتباين اللوني (Theme & Contrast Flow) ---');
+  console.log('\n--- [SCENARIO] فحص نظام المظهر والتباين اللوني (Theme & Contrast Flow) ---');
 
   // 1. التحقق من توفر جميع السمات (Light, Dark, OLED)
   const themes: Record<ThemeName, typeof lightTheme> = {
