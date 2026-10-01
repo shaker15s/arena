@@ -291,6 +291,7 @@ export function NotificationsScreen({ navigation }: any) {
                 size="sm"
                 variant="secondary"
                 icon="checkmark-done"
+                responsive
                 onPress={() => markNotificationsRead()}
               />
             ) : null}
@@ -299,6 +300,7 @@ export function NotificationsScreen({ navigation }: any) {
               size="sm"
               variant="secondary"
               icon="options"
+              responsive
               onPress={() => setPrefsOpen(true)}
             />
           </Row>
@@ -313,7 +315,7 @@ export function NotificationsScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />

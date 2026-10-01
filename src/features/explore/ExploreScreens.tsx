@@ -25,7 +25,6 @@ import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
 import { formatDate, formatTime } from '../../shared/format';
 import { useDeferredSearch } from '../../shared/useSearch';
-import { getCourseOverview } from '../../data/actions';
 import { CelebrationModal } from '../../design/celebrations';
 import { batchStudents } from '../../data/engine';
 import { BatchFormSheet } from '../org/AdminScreens';
@@ -80,7 +79,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />
@@ -365,10 +364,6 @@ export function CourseDetailsScreen({ navigation: propNav, route }: any) {
   const stats = courseRatingStats(db, courseId);
   const reviews = db.ratings.filter((r) => r.courseId === courseId).sort((a, b) => b.createdAt - a.createdAt);
 
-  React.useEffect(() => {
-    if (!courseId) return;
-    void getCourseOverview(courseId).catch(() => {});
-  }, [courseId]);
 
   // حالة الإدخال قبل أي إرجاع مبكر (ترتيب الهوكات ثابت — إصلاح خطأ كامن).
   const [joinedBatchData, setJoinedBatchData] = useState<null | { batch: Batch; waitlist: boolean }>(null);

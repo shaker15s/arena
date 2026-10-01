@@ -40,18 +40,36 @@ export function emptyDb(): Db {
 
 const READ_PAGE_SIZE = 500;
 const MAX_READ_ROWS = 100_000;
+const CHUNK_CONCURRENCY = 4;
 
 async function selectAll<T>(table: string, columns = '*', orderColumn = 'id'): Promise<T[]> {
   const sb = getSupabase();
   const rows: T[] = [];
-  for (let from = 0; from < MAX_READ_ROWS; from += READ_PAGE_SIZE) {
-    const { data, error } = await sb.from(table).select(columns)
-      .order(orderColumn, { ascending: true })
-      .range(from, from + READ_PAGE_SIZE - 1);
-    if (error) throw new Error(`${table}: ${error.message}`);
-    const page = (data ?? []) as T[];
-    rows.push(...page);
-    if (page.length < READ_PAGE_SIZE) return rows;
+  const chunkSize = READ_PAGE_SIZE * CHUNK_CONCURRENCY;
+
+  for (let from = 0; from < MAX_READ_ROWS; from += chunkSize) {
+    const pagePromises = Array.from({ length: CHUNK_CONCURRENCY }, (_, i) => {
+      const start = from + i * READ_PAGE_SIZE;
+      const end = start + READ_PAGE_SIZE - 1;
+      return sb.from(table).select(columns)
+        .order(orderColumn, { ascending: true })
+        .range(start, end);
+    });
+
+    const results = await Promise.all(pagePromises);
+    let reachedEnd = false;
+
+    for (const { data, error } of results) {
+      if (error) throw new Error(`${table}: ${error.message}`);
+      const page = (data ?? []) as T[];
+      rows.push(...page);
+      if (page.length < READ_PAGE_SIZE) {
+        reachedEnd = true;
+        break;
+      }
+    }
+
+    if (reachedEnd) return rows;
   }
   throw new Error(`${table}: safety limit of ${MAX_READ_ROWS} rows exceeded; use a server-side paginated view`);
 }
@@ -96,7 +114,249 @@ async function callRows<T>(fn: string): Promise<T[]> {
  * يقرأ فقط النطاق المسموح للمستخدم الحالي. الملفات الشخصية تمر عبر directory
  * آمن يحجب الهاتف والبريد عن الطلاب، وإحصاء المقاعد لا يكشف هويات المسجلين.
  */
-export async function fetchRemoteDb(): Promise<Db> {
+// ───────────────────────── محوّلات السجلات إلى نماذج الواجهة ─────────────────────────
+
+const mapProfiles = (rows: any[]): Profile[] =>
+  rows.map((r): Profile => ({
+    id: r.id,
+    authUserId: r.user_id ?? null,
+    fullName: r.full_name ?? '',
+    email: r.email ?? null,
+    phone: r.phone ?? '',
+    role: r.role ?? 'student',
+    branchId: r.branch_id ?? null,
+    avatarUrl: r.avatar_url ?? null,
+    avatarColor: r.avatar_color ?? '#007AFF',
+    gender: (r.gender === 'f' ? 'f' : r.gender === 'm' ? 'm' : null) as Profile['gender'],
+    status: r.status ?? 'active',
+    joinedAt: tsOr(r.joined_at, Date.now()),
+  }));
+
+const mapBranches = (rows: any[]): Branch[] =>
+  rows.map((r): Branch => ({
+    id: r.id, name: r.name, governorate: r.governorate,
+    address: r.address ?? '', supervisorId: r.supervisor_id ?? null,
+  }));
+
+const mapCommittees = (rows: any[]): Committee[] =>
+  rows.map((r): Committee => ({ id: r.id, branchId: r.branch_id, name: r.name }));
+
+const mapCourses = (rows: any[]): Course[] =>
+  rows.map((r): Course => ({
+    id: r.id, ownerId: r.owner_id ?? null, committeeId: r.committee_id ?? '', title: r.title, field: r.field,
+    description: r.description ?? '', topics: r.topics ?? [],
+    sessionsCount: r.sessions_count ?? 0, status: r.status, color: r.color ?? '#007AFF',
+  }));
+
+const mapBatches = (rows: any[], statsByBatch: Map<string, any>): Batch[] =>
+  rows.map((r): Batch => ({
+    id: r.id, courseId: r.course_id, branchId: r.branch_id, instructorId: r.instructor_id ?? '',
+    capacity: r.capacity ?? 0,
+    enrolledCount: Number(statsByBatch.get(r.id)?.enrolled_count ?? 0),
+    waitlistCount: Number(statsByBatch.get(r.id)?.waitlist_count ?? 0),
+    schedule: r.schedule ?? { days: [], time: '18:00', durationMin: 120 },
+    startDate: tsOr(r.start_date, Date.now()), room: r.room ?? '',
+    status: r.status, joinCode: r.join_code ?? '',
+    geofenceEnabled: Boolean(r.geofence_enabled),
+    latitude: r.latitude ?? undefined, longitude: r.longitude ?? undefined,
+    radiusM: r.radius_m ?? undefined,
+  }));
+
+const mapEnrollments = (rows: any[]): Enrollment[] =>
+  rows.map((r): Enrollment => ({
+    userId: r.user_id, batchId: r.batch_id,
+    status: r.status === 'waitlist' ? 'waitlist' : 'active',
+    joinedAt: tsOr(r.joined_at, Date.now()),
+  }));
+
+const mapSessions = (rows: any[]): TrainingSession[] =>
+  rows.map((r): TrainingSession => ({
+    id: r.id, batchId: r.batch_id, seq: r.seq, title: r.title ?? '',
+    startsAt: tsOr(r.starts_at), durationMin: r.duration_min ?? 120, status: r.status,
+    startedAt: ts(r.started_at), closedAt: ts(r.closed_at),
+    qrSeed: undefined, report: r.report ?? undefined,
+  }));
+
+const mapAttendance = (rows: any[]): Attendance[] =>
+  rows.map((r): Attendance => ({
+    sessionId: r.session_id, userId: r.user_id, status: r.status,
+    checkedInAt: ts(r.checked_in_at), method: r.method ?? undefined, note: r.note ?? undefined,
+  }));
+
+const mapPointEvents = (rows: any[]): PointEvent[] =>
+  rows.map((r): PointEvent => ({
+    id: r.id, userId: r.user_id, points: r.points, reasonCode: r.reason_code,
+    refType: r.ref_type ?? undefined, refId: r.ref_id ?? undefined,
+    awardedBy: r.awarded_by ?? null, idempotencyKey: r.idempotency_key,
+    createdAt: tsOr(r.created_at),
+  }));
+
+const mapStreakWeeks = (rows: any[]): StreakWeek[] =>
+  rows.map((r): StreakWeek => ({
+    userId: r.user_id, weekStart: tsOr(r.week_start), status: r.status,
+    sessionsTotal: r.sessions_total ?? 0, sessionsHonored: r.sessions_honored ?? 0,
+    freezeUsed: Boolean(r.freeze_used),
+  }));
+
+const mapGamification = (rows: any[]): GamificationProfile[] =>
+  rows.map((r): GamificationProfile => ({
+    userId: r.user_id, currentStreakWeeks: r.current_streak_weeks ?? 0,
+    longestStreakWeeks: r.longest_streak_weeks ?? 0, freezesHeld: r.freezes_held ?? 0,
+    leagueTier: r.league_tier ?? 'bronze',
+  }));
+
+const mapBadges = (rows: any[]): Badge[] =>
+  rows.map((r): Badge => ({
+    code: r.code, nameAr: r.name_ar, nameEn: r.name_en, descAr: r.desc_ar ?? '',
+    descEn: r.desc_en ?? '', rarity: r.rarity, icon: r.icon, active: r.active !== false,
+  }));
+
+const mapUserBadges = (rows: any[]): UserBadge[] =>
+  rows.map((r): UserBadge => ({
+    userId: r.user_id, badgeCode: r.badge_code, awardedAt: tsOr(r.awarded_at),
+  }));
+
+const mapLeagueWeeks = (rows: any[]): LeagueWeekRow[] =>
+  rows.map((r): LeagueWeekRow => ({
+    userId: r.user_id, weekStart: tsOr(r.week_start), tier: r.tier,
+    xpWeek: r.xp_week ?? 0, finalRank: r.final_rank ?? undefined, outcome: r.outcome ?? undefined,
+  }));
+
+const mapCertificates = (rows: any[]): Certificate[] =>
+  rows.map((r): Certificate => ({
+    id: r.id, userId: r.user_id, batchId: r.batch_id, serial: r.serial, issuedAt: tsOr(r.issued_at),
+    status: r.status === 'revoked' ? 'revoked' : 'active',
+    revokedAt: ts(r.revoked_at), revokedBy: r.revoked_by ?? undefined,
+    revokeReason: r.revoke_reason ?? undefined,
+    reissuedAt: ts(r.reissued_at), reissuedBy: r.reissued_by ?? undefined,
+    reissueCount: r.reissue_count ?? 0,
+  }));
+
+const mapExcuses = (rows: any[]): Excuse[] =>
+  rows.map((r): Excuse => ({
+    id: r.id, userId: r.user_id, sessionId: r.session_id, reason: r.reason,
+    attachment: r.attachment_url ?? undefined, status: r.status, note: r.note ?? undefined,
+    reviewedBy: r.reviewed_by ?? undefined, createdAt: tsOr(r.created_at),
+  }));
+
+const mapRatings = (rows: any[]): CourseRating[] =>
+  rows.map((r): CourseRating => ({
+    userId: r.user_id, courseId: r.course_id, stars: r.stars,
+    comment: r.comment ?? undefined, createdAt: tsOr(r.created_at),
+  }));
+
+const mapRules = (rows: any[]): GamificationRule[] =>
+  rows.map((r): GamificationRule => ({
+    key: r.key, value: typeof r.value === 'object' && r.value !== null ? (r.value.value ?? 0) : r.value,
+    scope: 'global', updatedBy: r.updated_by ?? null, updatedAt: tsOr(r.updated_at),
+  }));
+
+const mapAudit = (rows: any[]): AuditEntry[] =>
+  rows.map((r): AuditEntry => ({
+    id: r.id, actorId: r.actor_id ?? '', action: r.action, target: r.target ?? '',
+    payload: r.payload ?? {}, createdAt: tsOr(r.created_at),
+  }));
+
+const mapKudosQuotas = (rows: any[]): KudosQuota[] =>
+  rows.map((r): KudosQuota => ({
+    instructorId: r.instructor_id, month: r.month, spent: r.spent ?? 0,
+  }));
+
+const mapNotifications = (rows: any[]): AppNotification[] =>
+  rows.map((r): AppNotification => ({
+    id: r.id, userId: r.user_id, title: r.title, body: r.body ?? '',
+    type: r.type, read: Boolean(r.read), createdAt: tsOr(r.created_at),
+  }));
+
+const mapPrivateNotes = (rows: any[]): PrivateNote[] =>
+  rows.map((r): PrivateNote => ({
+    id: r.id,
+    instructorId: r.instructor_id, userId: r.user_id, note: r.note, updatedAt: tsOr(r.updated_at),
+  }));
+
+const mapCourseRoles = (rows: any[]): CourseRole[] =>
+  rows.map((r): CourseRole => ({
+    id: r.id, courseId: r.course_id, userId: r.user_id, role: r.role,
+    createdAt: tsOr(r.created_at),
+  }));
+
+export type RefreshScope = 'today' | 'org' | 'full';
+
+/**
+ * يقرأ فقط النطاق المحدود المطلوب للشاشة بدل تفريغ كامل الجداول:
+ *  • 'today': جلسات النافذة + حضور حديث + إشعارات + نقاط حديثة + أعذار.
+ *  • 'org': الفروع والمقررات والمجموعات والإحصاءات والشارات وقواعد اللعبة والشهادات.
+ *  • 'full': كامل الجداول الـ 24 (للإقلاع وإعادة الاتصال ومسح الطابور الأوفلاين).
+ */
+export async function fetchRemoteDbScope(scope: RefreshScope = 'full'): Promise<{ scope: RefreshScope; db: Partial<Db> }> {
+  if (scope === 'today') {
+    const [sessions, attendance, pointEvents, notifications, excuses] = await Promise.all([
+      selectSessionWindow(),
+      selectRecent<any>('attendance', '*', 4_000, 'checked_in_at'),
+      selectRecent<any>('point_events', '*', 2_000, 'created_at'),
+      selectRecent<any>('notifications', '*', 200, 'created_at'),
+      selectRecent<any>('excuses', '*', 1_000, 'created_at'),
+    ]);
+    return {
+      scope,
+      db: {
+        sessions: mapSessions(sessions),
+        attendance: mapAttendance(attendance),
+        pointEvents: mapPointEvents(pointEvents),
+        notifications: mapNotifications(notifications),
+        excuses: mapExcuses(excuses),
+      },
+    };
+  }
+
+  if (scope === 'org') {
+    const [
+      branches, committees, courses, batches, batchStats, enrollments,
+      rules, badges, userBadges, leagueWeeks, certificates,
+      ratings, courseRoles, kudosQuotas, gamification,
+    ] = await Promise.all([
+      selectAll<any>('branches'),
+      selectAll<any>('committees'),
+      selectAll<any>('courses'),
+      selectAll<any>('batches'),
+      callRows<any>('get_batch_stats'),
+      selectAll<any>('enrollments'),
+      selectAll<any>('gamification_rules', '*', 'key'),
+      selectAll<any>('badges', '*', 'code'),
+      selectRecent<any>('user_badges', '*', 2_000, 'awarded_at'),
+      selectRecent<any>('league_weeks', '*', 2_000, 'week_start'),
+      selectRecent<any>('certificates', '*', 2_000, 'issued_at'),
+      selectRecent<any>('course_ratings', '*', 2_000, 'created_at'),
+      selectAll<any>('course_roles').catch(() => []),
+      selectRecent<any>('kudos_quotas', '*', 1_000, 'month'),
+      selectAll<any>('gamification', '*', 'user_id'),
+    ]);
+    const statsByBatch = new Map(batchStats.map((r: any) => [r.batch_id, r]));
+    const mappedCerts = mapCertificates(certificates);
+
+    return {
+      scope,
+      db: {
+        branches: mapBranches(branches),
+        committees: mapCommittees(committees),
+        courses: mapCourses(courses),
+        batches: mapBatches(batches, statsByBatch),
+        enrollments: mapEnrollments(enrollments),
+        gamification: mapGamification(gamification),
+        badges: mapBadges(badges),
+        userBadges: mapUserBadges(userBadges),
+        leagueWeeks: mapLeagueWeeks(leagueWeeks),
+        certificates: mappedCerts,
+        certSeq: mappedCerts.length,
+        ratings: mapRatings(ratings),
+        rules: mapRules(rules),
+        kudosQuotas: mapKudosQuotas(kudosQuotas),
+        courseRoles: mapCourseRoles(courseRoles),
+      },
+    };
+  }
+
+  // scope === 'full'
   const [
     profiles, branches, committees, courses, batches, batchStats, enrollments, sessions, attendance,
     pointEvents, streakWeeks, gamification, badges, userBadges, leagueWeeks, certificates,
@@ -124,133 +384,42 @@ export async function fetchRemoteDb(): Promise<Db> {
     selectAll<any>('course_roles').catch(() => []),
   ]);
   const statsByBatch = new Map(batchStats.map((r: any) => [r.batch_id, r]));
+  const mappedCerts = mapCertificates(certificates);
 
-  const db: Db = {
-    profiles: profiles.map((r): Profile => ({
-      id: r.id,
-      authUserId: r.user_id ?? null,
-      fullName: r.full_name ?? '',
-      email: r.email ?? null,
-      phone: r.phone ?? '',
-      role: r.role ?? 'student',
-      branchId: r.branch_id ?? null,
-      avatarUrl: r.avatar_url ?? null,
-      avatarColor: r.avatar_color ?? '#007AFF',
-      gender: (r.gender === 'f' ? 'f' : r.gender === 'm' ? 'm' : null) as Profile['gender'],
-      status: r.status ?? 'active',
-      joinedAt: tsOr(r.joined_at, Date.now()),
-    })),
-    branches: branches.map((r): Branch => ({
-      id: r.id, name: r.name, governorate: r.governorate,
-      address: r.address ?? '', supervisorId: r.supervisor_id ?? null,
-    })),
-    committees: committees.map((r): Committee => ({ id: r.id, branchId: r.branch_id, name: r.name })),
-    courses: courses.map((r): Course => ({
-      id: r.id, ownerId: r.owner_id ?? null, committeeId: r.committee_id ?? '', title: r.title, field: r.field,
-      description: r.description ?? '', topics: r.topics ?? [],
-      sessionsCount: r.sessions_count ?? 0, status: r.status, color: r.color ?? '#007AFF',
-    })),
-    batches: batches.map((r): Batch => ({
-      id: r.id, courseId: r.course_id, branchId: r.branch_id, instructorId: r.instructor_id ?? '',
-      capacity: r.capacity ?? 0,
-      enrolledCount: Number(statsByBatch.get(r.id)?.enrolled_count ?? 0),
-      waitlistCount: Number(statsByBatch.get(r.id)?.waitlist_count ?? 0),
-      schedule: r.schedule ?? { days: [], time: '18:00', durationMin: 120 },
-      startDate: tsOr(r.start_date, Date.now()), room: r.room ?? '',
-      status: r.status, joinCode: r.join_code ?? '',
-      geofenceEnabled: Boolean(r.geofence_enabled),
-      latitude: r.latitude ?? undefined, longitude: r.longitude ?? undefined,
-      radiusM: r.radius_m ?? undefined,
-    })),
-    enrollments: enrollments.map((r): Enrollment => ({
-      userId: r.user_id, batchId: r.batch_id,
-      status: r.status === 'waitlist' ? 'waitlist' : 'active',
-      joinedAt: tsOr(r.joined_at, Date.now()),
-    })),
-    sessions: sessions.map((r): TrainingSession => ({
-      id: r.id, batchId: r.batch_id, seq: r.seq, title: r.title ?? '',
-      startsAt: tsOr(r.starts_at), durationMin: r.duration_min ?? 120, status: r.status,
-      startedAt: ts(r.started_at), closedAt: ts(r.closed_at),
-      // SEC-QR-01: qr_seed عمود محظور بنطاق الـ SELECT (لا يصل أصلًا)، ونُصفّره
-      // احتياطًا حتى لا يُخزَّن في الكاش لو تسرّب من أي مسار آخر.
-      qrSeed: undefined, report: r.report ?? undefined,
-    })),
-    attendance: attendance.map((r): Attendance => ({
-      sessionId: r.session_id, userId: r.user_id, status: r.status,
-      checkedInAt: ts(r.checked_in_at), method: r.method ?? undefined, note: r.note ?? undefined,
-    })),
-    pointEvents: pointEvents.map((r): PointEvent => ({
-      id: r.id, userId: r.user_id, points: r.points, reasonCode: r.reason_code,
-      refType: r.ref_type ?? undefined, refId: r.ref_id ?? undefined,
-      awardedBy: r.awarded_by ?? null, idempotencyKey: r.idempotency_key,
-      createdAt: tsOr(r.created_at),
-    })),
-    streakWeeks: streakWeeks.map((r): StreakWeek => ({
-      userId: r.user_id, weekStart: tsOr(r.week_start), status: r.status,
-      sessionsTotal: r.sessions_total ?? 0, sessionsHonored: r.sessions_honored ?? 0,
-      freezeUsed: Boolean(r.freeze_used),
-    })),
-    gamification: gamification.map((r): GamificationProfile => ({
-      userId: r.user_id, currentStreakWeeks: r.current_streak_weeks ?? 0,
-      longestStreakWeeks: r.longest_streak_weeks ?? 0, freezesHeld: r.freezes_held ?? 0,
-      leagueTier: r.league_tier ?? 'bronze',
-    })),
-    badges: badges.map((r): Badge => ({
-      code: r.code, nameAr: r.name_ar, nameEn: r.name_en, descAr: r.desc_ar ?? '',
-      descEn: r.desc_en ?? '', rarity: r.rarity, icon: r.icon, active: r.active !== false,
-    })),
-    userBadges: userBadges.map((r): UserBadge => ({
-      userId: r.user_id, badgeCode: r.badge_code, awardedAt: tsOr(r.awarded_at),
-    })),
-    leagueWeeks: leagueWeeks.map((r): LeagueWeekRow => ({
-      userId: r.user_id, weekStart: tsOr(r.week_start), tier: r.tier,
-      xpWeek: r.xp_week ?? 0, finalRank: r.final_rank ?? undefined, outcome: r.outcome ?? undefined,
-    })),
-    certificates: certificates.map((r): Certificate => ({
-      id: r.id, userId: r.user_id, batchId: r.batch_id, serial: r.serial, issuedAt: tsOr(r.issued_at),
-      status: r.status === 'revoked' ? 'revoked' : 'active',
-      revokedAt: ts(r.revoked_at), revokedBy: r.revoked_by ?? undefined,
-      revokeReason: r.revoke_reason ?? undefined,
-      reissuedAt: ts(r.reissued_at), reissuedBy: r.reissued_by ?? undefined,
-      reissueCount: r.reissue_count ?? 0,
-    })),
-    excuses: excuses.map((r): Excuse => ({
-      id: r.id, userId: r.user_id, sessionId: r.session_id, reason: r.reason,
-      attachment: r.attachment_url ?? undefined, status: r.status, note: r.note ?? undefined,
-      reviewedBy: r.reviewed_by ?? undefined, createdAt: tsOr(r.created_at),
-    })),
-    ratings: ratings.map((r): CourseRating => ({
-      userId: r.user_id, courseId: r.course_id, stars: r.stars,
-      comment: r.comment ?? undefined, createdAt: tsOr(r.created_at),
-    })),
-    rules: rules.map((r): GamificationRule => ({
-      key: r.key, value: typeof r.value === 'object' && r.value !== null ? (r.value.value ?? 0) : r.value,
-      scope: 'global', updatedBy: r.updated_by ?? null, updatedAt: tsOr(r.updated_at),
-    })),
-    audit: audit.map((r): AuditEntry => ({
-      id: r.id, actorId: r.actor_id ?? '', action: r.action, target: r.target ?? '',
-      payload: r.payload ?? {}, createdAt: tsOr(r.created_at),
-    })),
-    kudosQuotas: kudosQuotas.map((r): KudosQuota => ({
-      instructorId: r.instructor_id, month: r.month, spent: r.spent ?? 0,
-    })),
-    notifications: notifications.map((r): AppNotification => ({
-      id: r.id, userId: r.user_id, title: r.title, body: r.body ?? '',
-      type: r.type, read: Boolean(r.read), createdAt: tsOr(r.created_at),
-    })),
-    privateNotes: privateNotes.map((r): PrivateNote => ({
-      id: r.id,
-      instructorId: r.instructor_id, userId: r.user_id, note: r.note, updatedAt: tsOr(r.updated_at),
-    })),
-    courseRoles: courseRoles.map((r): CourseRole => ({
-      id: r.id, courseId: r.course_id, userId: r.user_id, role: r.role,
-      createdAt: tsOr(r.created_at),
-    })),
+  const fullDb: Db = {
+    profiles: mapProfiles(profiles),
+    branches: mapBranches(branches),
+    committees: mapCommittees(committees),
+    courses: mapCourses(courses),
+    batches: mapBatches(batches, statsByBatch),
+    enrollments: mapEnrollments(enrollments),
+    sessions: mapSessions(sessions),
+    attendance: mapAttendance(attendance),
+    pointEvents: mapPointEvents(pointEvents),
+    streakWeeks: mapStreakWeeks(streakWeeks),
+    gamification: mapGamification(gamification),
+    badges: mapBadges(badges),
+    userBadges: mapUserBadges(userBadges),
+    leagueWeeks: mapLeagueWeeks(leagueWeeks),
+    certificates: mappedCerts,
+    excuses: mapExcuses(excuses),
+    ratings: mapRatings(ratings),
+    rules: mapRules(rules),
+    audit: mapAudit(audit),
+    kudosQuotas: mapKudosQuotas(kudosQuotas),
+    notifications: mapNotifications(notifications),
+    privateNotes: mapPrivateNotes(privateNotes),
+    courseRoles: mapCourseRoles(courseRoles),
     domainEvents: [],
-    certSeq: certificates.length,
+    certSeq: mappedCerts.length,
     seedVersion: 0,
   };
-  return db;
+  return { scope, db: fullDb };
+}
+
+export async function fetchRemoteDb(): Promise<Db> {
+  const { db } = await fetchRemoteDbScope('full');
+  return db as Db;
 }
 
 // ───────────────────────── الزمن الحقيقي ─────────────────────────
@@ -265,6 +434,7 @@ export interface RealtimePatch {
 
 export interface SubscribeRealtimeOptions {
   profileId?: string | null;
+  isStaff?: boolean;
   onReconnect?: () => void;
 }
 
@@ -278,6 +448,7 @@ export function subscribeRealtime(
 ): () => void {
   const sb = getSupabase();
   const profileId = options?.profileId ?? null;
+  const isStaff = Boolean(options?.isStaff);
   const userFilter = profileId ? 'user_id=eq.' + profileId : undefined;
   let hadSubscribed = false;
   let disconnected = false;
@@ -296,19 +467,29 @@ export function subscribeRealtime(
     event: '*' as const, schema: 'public', table: 'sessions',
     select: ['id', 'batch_id', 'seq', 'title', 'starts_at', 'duration_min', 'status', 'started_at', 'closed_at', 'report'],
   };
+  const attendanceRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'attendance' };
   const notifRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'notifications' };
+  const excusesRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'excuses' };
+  const enrollmentsRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'enrollments' };
   const pointsRealtime: Record<string, unknown> = { event: '*', schema: 'public', table: 'point_events' };
+
   if (userFilter) {
     notifRealtime.filter = userFilter;
     pointsRealtime.filter = userFilter;
+    excusesRealtime.filter = userFilter;
+    if (!isStaff) {
+      attendanceRealtime.filter = userFilter;
+      enrollmentsRealtime.filter = userFilter;
+    }
   }
+
   const channel = sb
     .channel(profileId ? 'masar-live-' + profileId.slice(0, 8) : 'masar-live')
     .on('postgres_changes', sessionsRealtime, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, handler)
+    .on('postgres_changes', attendanceRealtime as any, handler)
     .on('postgres_changes', notifRealtime as any, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'excuses' }, handler)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, handler)
+    .on('postgres_changes', excusesRealtime as any, handler)
+    .on('postgres_changes', enrollmentsRealtime as any, handler)
     .on('postgres_changes', pointsRealtime as any, handler)
     .subscribe((status?: string) => {
       if (status === 'SUBSCRIBED') {

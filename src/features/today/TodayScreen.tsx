@@ -29,7 +29,6 @@ import { buildIcs, icsFilename } from '../../shared/calendar';
 import { saveIcs } from '../../shared/export';
 import { PUBLIC_APP_URL } from '../../shared/links';
 import { useNow, useHaptics } from '../../shared/hooks';
-import { getMyCourses, getToday } from '../../data/actions';
 import { Icon } from '../../design/icons';
 
 export function TodayScreen() {
@@ -59,7 +58,6 @@ export function TodayScreen() {
   const myEnrollmentCount = db.enrollments.filter((e) => e.userId === user?.id && e.status === 'active').length;
 
   useEffect(() => {
-    void Promise.all([getToday().catch(() => null), getMyCourses().catch(() => null)]);
     return () => {
       if (flameTimer.current) clearTimeout(flameTimer.current);
     };
@@ -213,7 +211,7 @@ export function TodayScreen() {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />

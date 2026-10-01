@@ -137,7 +137,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('org')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />
@@ -310,40 +310,32 @@ export function DashboardScreen({ navigation: propNav }: any) {
         <FadeIn index={6}>
           <Txt variant="h3">{t('today.quickActions')}</Txt>
           <Spacer size={8} />
-          <ListRow
-            icon="rocket"
-            title={t('dash.openWizard')}
-            subtitle={t('dash.quickSetup')}
-            onPress={() => navigation.navigate('Wizard')}
-          />
-          <Spacer size={8} />
-          <Row gap={8}>
-            <View style={{ flex: 1 }}>
-              <ListRow
-                icon="ribbon"
-                title={t('dash.issueCerts')}
-                subtitle={t('dash.issueEligible')}
-                onPress={() => navigation.navigate('IssueCertificates')}
-                grow
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <ListRow
-                icon="albums"
-                title={t('courses.title')}
-                subtitle={t('dash.catalogManage')}
-                onPress={() => navigation.navigate('Courses')}
-                grow
-              />
-            </View>
-          </Row>
-          <Spacer size={8} />
-          <ListRow
-            icon="people"
-            title={t('batchAdm.title')}
-            subtitle={t('batchAdm.new')}
-            onPress={() => navigation.navigate('BatchesAdmin')}
-          />
+          <View style={{ gap: 8 }}>
+            <ListRow
+              icon="rocket"
+              title={t('dash.openWizard')}
+              subtitle={t('dash.quickSetup')}
+              onPress={() => navigation.navigate('Wizard')}
+            />
+            <ListRow
+              icon="ribbon"
+              title={t('dash.issueCerts')}
+              subtitle={t('dash.issueEligible')}
+              onPress={() => navigation.navigate('IssueCertificates')}
+            />
+            <ListRow
+              icon="albums"
+              title={t('courses.title')}
+              subtitle={t('dash.catalogManage')}
+              onPress={() => navigation.navigate('Courses')}
+            />
+            <ListRow
+              icon="people"
+              title={t('batchAdm.title')}
+              subtitle={t('batchAdm.new')}
+              onPress={() => navigation.navigate('BatchesAdmin')}
+            />
+          </View>
         </FadeIn>
       </ScrollView>
     </Screen>

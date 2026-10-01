@@ -9,7 +9,7 @@ import {
   isBatchComplete, profileOf, seatCounts, sessionsOfBatch, batchStudents,
 } from '../../data/engine';
 import {
-  getCourseOverview, getDetailedCourseAnalytics,
+  getDetailedCourseAnalytics,
   notifySessionAbsentees, revokeCourseRole, sendBroadcast,
   startTrainingSession, type DetailedCourseAnalytics,
 } from '../../data/actions';
@@ -83,10 +83,6 @@ export function CourseManagementScreen({ route, navigation }: any) {
     }
   }, [courseId, tab]);
 
-  useEffect(() => {
-    if (!courseId) return;
-    void getCourseOverview(courseId).catch(() => {});
-  }, [courseId]);
 
   if (!user || !course) return (
     <View style={{ flex: 1 }}>
@@ -199,30 +195,30 @@ export function CourseManagementScreen({ route, navigation }: any) {
         subtitle={t('management.opsSubtitle')}
         back={() => navigation.goBack()}
         right={
-          <Row gap={6}>
-            {isCourseManager ? (
+          isCourseManager ? (
+            <Row gap={6}>
               <Btn
                 title={t('management.editCurriculum')}
                 size="sm"
                 variant="secondary"
                 icon="create-outline"
+                responsive
                 onPress={() => setEditCourseOpen(true)}
               />
-            ) : null}
-            {isCourseManager ? (
               <Btn
                 title={t('batchAdm.new')}
                 size="sm"
                 icon="add"
+                responsive
                 onPress={() => setNewBatchOpen(true)}
               />
-            ) : null}
-          </Row>
+            </Row>
+          ) : null
         }
       />
       <ScrollView
         contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 80 }}
-        refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
+        refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh('org'); }} tintColor={theme.brand} />}
       >
         {/* بطاقة ملخص الكورس والمالك */}
         <Card color={course.color + '14'} style={{ borderColor: course.color + '44' }}>

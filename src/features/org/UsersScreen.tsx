@@ -69,7 +69,7 @@ export function UsersScreen() {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('org')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />

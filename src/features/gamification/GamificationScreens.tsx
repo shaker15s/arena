@@ -63,7 +63,7 @@ export function WalletScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />
@@ -235,7 +235,7 @@ export function LeagueScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />
@@ -389,7 +389,7 @@ export function AchievementsScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />

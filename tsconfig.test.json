@@ -29,6 +29,7 @@
     "scripts/search.test.ts",
     "scripts/calendar.test.ts",
     "scripts/role-access.test.ts",
+    "scripts/data-layer.test.ts",
     "scripts/perf-benchmark.ts",
     "scripts/security-pentest.ts",
     "scripts/load-test.ts",

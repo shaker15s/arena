@@ -63,7 +63,7 @@ export function ProfileScreen() {
     <Screen label={t('profile.title')} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
-        refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh(); }} tintColor={theme.brand} />}
+        refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh('today'); }} tintColor={theme.brand} />}
       >
         <Header title={t('profile.title')} />
 

@@ -52,7 +52,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />
@@ -299,7 +299,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />
@@ -649,7 +649,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
         refreshControl={
           <RefreshControl
             refreshing={syncing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => void refresh('today')}
             tintColor={theme.brand}
             colors={[theme.brand]}
           />

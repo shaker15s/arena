@@ -19,7 +19,8 @@ import {
   consumeWebAuthCallback,
   signInWithGoogle as sbSignInWithGoogle, signInWithApple as sbSignInWithApple, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
-import { applyRealtimePatch, emptyDb, fetchRemoteDb, subscribeRealtime } from './remote';
+import { RefreshScope, applyRealtimePatch, emptyDb, fetchRemoteDbScope, subscribeRealtime } from './remote';
+import { SyncGate } from './syncGate';
 import { runCommandOnServer } from './actions';
 import { clearCommands, loadCommands, markApplied, markFailed, pruneCommands, pushOfflineCommand } from '../shared/offline';
 const CACHE_KEY = 'masar.cache.v2';
@@ -63,7 +64,7 @@ interface AppCtx {
   submitOrQueue: (command: string, payload: Record<string, unknown>) => Promise<{ status: 'applied' | 'queued'; error?: string }>;
   pendingQueueCount: number;
   flushOfflineQueue: () => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: (scope?: RefreshScope) => Promise<void>;
   signInWithGoogle: () => Promise<{ ok: boolean; error: string | null }>;
   signInWithApple: () => Promise<{ ok: boolean; error: string | null }>;
   completeProfile: (draft: ProfileDraft) => Promise<{ ok: boolean; error?: string }>;
@@ -150,6 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pendingQueueCount, setPendingQueueCount] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeq = useRef(0);
+  const syncGate = useMemo(() => new SyncGate(1500), []);
   const refreshInFlight = useRef<Promise<void> | null>(null);
   const refreshQueued = useRef(false);
   const dbRef = useRef(db);
@@ -178,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /** يقرأ القاعدة من السيرفر ويحدّث الحالة والكاش */
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (scope: RefreshScope = 'full') => {
     if (!SUPABASE_ENABLED) return;
     // Realtime قد يرسل عدة أحداث للعملية الواحدة؛ كل المستهلكين ينتظرون نفس القراءة
     // بدل فتح عشرات طلبات متوازية وإظهار بيانات أقدم فوق الأحدث.
@@ -189,18 +191,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const task = (async () => {
       setSyncing(true);
       try {
-        const fresh = await fetchRemoteDb();
+        const res = await fetchRemoteDbScope(scope);
         // لا تُغلق الجلسات أو تغيّر الدفاتر من جهاز المستخدم. المهام المجدولة
         // وعمليات RPC الخادمية هي مصدر الحقيقة الوحيد لهذه الانتقالات.
-        dbRef.current = fresh;
-        setDb(fresh);
-        writeCache(fresh);
+        const updated: Db = { ...dbRef.current, ...res.db };
+        dbRef.current = updated;
+        setDb(updated);
+        writeCache(updated);
         setLastSyncAt(Date.now());
         setSyncError(null);
         setOnline(true);
       } catch (error) {
         // فتات سياق: أغلب أعطال الواجهة تسبقها مزامنة فاشلة — نريدها في التقرير.
-        addBreadcrumb('net', 'refresh failed: ' + (error as Error).message);
+        addBreadcrumb('net', `refresh (${scope}) failed: ` + (error as Error).message);
         setSyncError((error as Error).message);
         setOnline(false);
       } finally {
@@ -218,6 +221,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const unsub = syncGate.onChanged(() => {
+      void refresh();
+    });
+    return () => {
+      unsub();
+      syncGate.destroy();
+    };
+  }, [syncGate, refresh]);
 
   /**
    * يعيد تشغيل الأوامر المعلّقة (Offline write queue) عند عودة الاتصال.
@@ -395,6 +408,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const connectRealtime = () => {
       unsubRealtime?.();
+      const currentUser = dbRef.current.profiles.find((p) => p.id === profileId);
+      const isStaff = currentUser ? (currentUser.role === 'admin' || currentUser.role === 'supervisor') : false;
       unsubRealtime = subscribeRealtime(
         (patch) => {
           if (!isMounted) return;
@@ -410,8 +425,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         {
           profileId,
+          isStaff,
           onReconnect: () => {
-            if (isMounted) void refresh().then(() => flushOfflineQueue());
+            if (isMounted) {
+              syncGate.request();
+              void flushOfflineQueue();
+            }
           },
         },
       );
@@ -429,7 +448,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // قديمة (> 60s) أو فشلت. (كان سبب «تحميل كل الكويريز في كل ريفريش».)
           const meta = syncMetaRef.current;
           const stale = meta.syncError !== null || meta.lastSyncAt === null || Date.now() - meta.lastSyncAt > 60_000;
-          if (stale) void refresh();
+          if (stale) syncGate.request();
         }
       } else if (state === 'background' || state === 'inactive') {
         unsubRealtime?.();
@@ -443,7 +462,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       unsubRealtime?.();
       sub.remove();
     };
-  }, [profileId, refresh, flushOfflineQueue]);
+  }, [profileId, refresh, flushOfflineQueue, syncGate]);
 
   // ── تسجيل توكن الجهاز (Push) + استقبال الإشعارات بعد الدخول ──
   // محايد تمامًا على الويب/المحاكي: getDevicePushToken يعيد null فلا يحدث تسجيل.
@@ -461,9 +480,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
     // إشعار وارد أو نقر عليه ⇒ نحدّث البيانات كي تعكس الواجهة الحدث فورًا.
     const unsubscribe = subscribeToPush({
-      onReceived: () => { void refresh(); },
+      onReceived: () => { void refresh('today'); },
       onOpened: (e) => {
-        void refresh();
+        void refresh('today');
         const type = String(e.data?.type ?? e.data?.kind ?? '');
         if (type) openNotificationRoute(type, dbRef.current.profiles.find((p) => p.id === profileId)?.role);
       },
@@ -474,7 +493,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ── مراقبة الاتصال على الويب ──
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const up = () => { setOnline(true); void refresh().then(() => flushOfflineQueue()); };
+    const up = () => {
+      setOnline(true);
+      syncGate.request();
+      void flushOfflineQueue();
+    };
     const down = () => setOnline(false);
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
@@ -483,7 +506,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', up);
       window.removeEventListener('offline', down);
     };
-  }, [refresh, flushOfflineQueue]);
+  }, [flushOfflineQueue, syncGate]);
 
   // ── الدخول بجوجل ──
   const signInWithGoogle = useCallback(async () => {
