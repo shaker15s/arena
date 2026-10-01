@@ -396,7 +396,7 @@ export function TodayScreen() {
                     </Txt>
                     <Row center gap={4} style={{ marginTop: 5 }}>
                       <Icon name="sparkles" size={11} color={isDark ? '#FBBF24' : '#D97706'} />
-                      <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'} style={{ fontSize: 11 }}>
+                      <Txt variant="micro" color={isDark ? '#FCD34D' : '#B45309'}>
                         اضغط على فطن لاقتباس جديد ✨
                       </Txt>
                     </Row>
@@ -444,7 +444,7 @@ export function TodayScreen() {
                     <View style={{ flex: 1, gap: 8, minWidth: 0 }}>
                       <Row center gap={8}>
                         <Tag label={t('common.liveStatus')} color="#fff" bg="rgba(255,255,255,0.2)" icon="radio" />
-                        <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: 12, fontWeight: '700' }}>
+                        <AnimatedShinyText shimmerColor="#FDE68A" style={{ color: '#FDE68A', fontSize: typography.caption.fontSize, fontWeight: '700' }}>
                           ⚡ مباشر الآن
                         </AnimatedShinyText>
                       </Row>
