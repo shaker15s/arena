@@ -16,7 +16,7 @@ import {
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  AutoGrid, Avatar, Btn, Card, CountUp, FadeIn, Flame, LiquidGlassCard, NotificationBell, ProgressBar, Row, Screen, Spacer, StatRing, Tag, Txt,
+  AutoGrid, Avatar, Btn, Card, CountUp, FadeIn, Flame, NotificationBell, ProgressBar, Row, Screen, Spacer, StatRing, Tag, Txt,
   BorderBeam, AnimatedShinyText,
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';

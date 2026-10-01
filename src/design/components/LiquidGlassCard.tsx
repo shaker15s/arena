@@ -1,110 +1,49 @@
 /**
- * design/components/LiquidGlassCard.tsx — بطاقة Liquid Glass مستوحاة من Gluestack v5
- * تجمع بين Blur الحقيقي، والحواف العاكسة للضوء (Specular Border)، والتدرج اللطيف (Gradient Fallback)
- * المنصوص عليها في MASAR_ASSETS_RESEARCH.md
+ * design/components/LiquidGlassCard.tsx
+ * @deprecated الاسم محفوظ للتوافق؛ بطاقات المحتوى أصبحت صلبة، والزجاج محصور في
+ * التنقل/التحكم عبر GlassSurface. لا تُضف Blur أو لمعانًا إلى بطاقة بيانات.
  */
 import React from 'react';
-import {
-  Platform,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewStyle,
-} from 'react-native';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleProp, View, ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
-import { radii, spacing } from '../tokens';
+import { useA11yPrefsOptional } from '../preferences';
+import { borderWidth, radii, shadows, spacing } from '../tokens';
 
 export interface LiquidGlassCardProps {
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** @deprecated تُهمل؛ بطاقة المحتوى لا تستخدم Blur. */
   intensity?: number;
+  /** @deprecated تُهمل؛ لا توهج زخرفيًا على بطاقات البيانات. */
   glowColor?: string;
   borderColor?: string;
+  /** @deprecated تُهمل؛ لا حواف لمعان زخرفية. */
   hasShimmerBorder?: boolean;
 }
 
-export function LiquidGlassCard({
-  children,
-  style,
-  intensity = 38,
-  glowColor,
-  borderColor,
-  hasShimmerBorder = true,
-}: LiquidGlassCardProps) {
-  const { isDark, themeName } = useTheme();
-  const oled = themeName === 'oled';
-
-  const isAndroid = Platform.OS === 'android';
-  const defaultBorder = borderColor ?? (isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)');
-  const defaultGlow = glowColor ?? (isDark ? 'rgba(0, 122, 255, 0.12)' : 'rgba(0, 122, 255, 0.06)');
-
-  const containerStyle: ViewStyle = {
-    borderRadius: radii.xxl,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: defaultBorder,
-    backgroundColor: isDark
-      ? oled
-        ? 'rgba(0, 0, 0, 0.85)'
-        : 'rgba(15, 23, 42, 0.72)'
-      : 'rgba(255, 255, 255, 0.78)',
-    shadowColor: isDark ? '#000' : '#007AFF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: isDark ? 0.45 : 0.08,
-    shadowRadius: 20,
-    elevation: 4,
-  };
+/** توافق خلفي لاسم قديم؛ المظهر الفعلي سطح محتوى واضح وغير شفاف. */
+export function LiquidGlassCard({ children, style, borderColor }: LiquidGlassCardProps) {
+  const { theme, isDark } = useTheme();
+  const preferences = useA11yPrefsOptional();
+  const highContrast = preferences?.highContrast ?? false;
 
   return (
-    <View style={[containerStyle, style]}>
-      {!isAndroid && (
-        <BlurView
-          intensity={intensity}
-          tint={isDark ? (oled ? 'dark' : 'systemMaterialDark') : 'systemMaterialLight'}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-
-      {/* تدرج هالة الضوء المحيطي (Ambient Glow) */}
-      <LinearGradient
-        colors={[defaultGlow, 'transparent', 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
-      {/* الحافة العاكسة العلوية للزجاج (Specular Highlight) */}
-      {hasShimmerBorder && (
-        <LinearGradient
-          colors={[
-            'rgba(255, 255, 255, 0.45)',
-            'rgba(255, 255, 255, 0.05)',
-            'transparent',
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.specularEdge}
-          pointerEvents="none"
-        />
-      )}
-
-      <View style={styles.content}>{children}</View>
+    <View
+      style={[
+        {
+          backgroundColor: theme.card,
+          borderRadius: radii.xl,
+          borderWidth: highContrast ? borderWidth.medium : borderWidth.thin,
+          borderColor: borderColor ?? (highContrast ? theme.textMuted : theme.fillBorder),
+          padding: spacing.s4,
+          shadowColor: theme.glassShadow,
+          ...(isDark ? shadows.card.dark : shadows.card.light),
+          overflow: 'hidden',
+        },
+        style,
+      ]}
+    >
+      {children}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    padding: spacing.s4,
-  },
-  specularEdge: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1.5,
-  },
-});

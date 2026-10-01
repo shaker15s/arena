@@ -87,6 +87,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     document.documentElement.style.colorScheme = themeName === 'light' ? 'light' : 'dark';
     document.documentElement.style.backgroundColor = themes[themeName].bg;
+    document.documentElement.style.setProperty('--masar-surface-solid', themes[themeName].card);
     document.body.style.backgroundColor = themes[themeName].bg;
   }, [themeName]);
 

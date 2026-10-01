@@ -1,20 +1,15 @@
 /**
  * design/preferences.tsx — تفضيلات الوصول والإتاحة (FUNC-10 + WCAG 1.4.4/1.4.8).
  *
- * ثلاثة إعدادات يطلبها المعيار والخطة، وكلها تُطبَّق فورًا على كل الشاشات:
- *  • **حجم النص** (100% / 115% / 130%) — WCAG 1.4.4 «Resize text»: يجب أن يصل
- *    النص إلى 200% بلا فقدان محتوى؛ نغطي 130% داخل التطبيق لأنه الحد الذي
- *    يحافظ على تخطيط البطاقات، ويبقى تكبير المتصفح متاحًا حتى 200%.
- *  • **تباين عالٍ** — WCAG 1.4.6 (Enhanced): نرفع قوة الحدود والفواصل بدل تغيير
- *    الألوان (تغيير الألوان كان سيُخلّ بنسب التباين المقيسة في check-contrast).
- *  • **تقليل الحركة** — WCAG 2.3.3 + `prefers-reduced-motion`: يُطبَّق على
- *    محرّك الحركة المركزي (design/motion) فلا تبقى أنيميشن واحد شارد.
+ *  • حجم النص (100% / 115% / 130%) — يدعم تكبير المتصفح حتى 200% على الويب.
+ *  • تباين عالٍ — يقوّي الحدود والفواصل دون تبديل ألوان النصوص المقاسة.
+ *  • تقليل الحركة — يغذي محرّك الحركة المركزي.
+ *  • تقليل الشفافية — يوقف طبقات الزجاج؛ وإعداد iOS للنظام يتقدم على اختيار التطبيق.
  *
- * القيم تُخزَّن محليًا (localStorage على الويب / AsyncStorage على الجوال) لأنها
- * تفضيل جهاز لا بيانات حساب.
+ * الاختيارات المحلية تُخزَّن على الجهاز؛ إعداد النظام غير قابل للكتابة ولا يُحفظ.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Platform } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setTextScale } from './tokens';
 import { setReducedMotion } from './motion';
@@ -27,11 +22,20 @@ export interface A11yPrefs {
   textScale: TextScale;
   highContrast: boolean;
   reduceMotion: boolean;
+  reduceTransparency: boolean;
 }
 
-const DEFAULTS: A11yPrefs = { textScale: 1, highContrast: false, reduceMotion: false };
+const DEFAULTS: A11yPrefs = {
+  textScale: 1,
+  highContrast: false,
+  reduceMotion: false,
+  reduceTransparency: false,
+};
 
 interface Ctx extends A11yPrefs {
+  /** يظل إعداد نظام iOS مفعلًا حتى لو أوقف المستخدم تفضيل التطبيق. */
+  systemReduceTransparency: boolean;
+  effectiveReduceTransparency: boolean;
   setPrefs: (patch: Partial<A11yPrefs>) => void;
   reset: () => void;
 }
@@ -65,20 +69,40 @@ function apply(prefs: A11yPrefs): void {
   setReducedMotion(prefs.reduceMotion);
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
     document.documentElement.classList.toggle('masar-contrast', prefs.highContrast);
+    document.documentElement.classList.toggle('masar-reduce-transparency', prefs.reduceTransparency);
     document.documentElement.dataset.masarTextScale = String(prefs.textScale);
   }
 }
 
 export function A11yPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setState] = useState<A11yPrefs>(DEFAULTS);
+  const [systemReduceTransparency, setSystemReduceTransparency] = useState(false);
 
   useEffect(() => {
+    let active = true;
     void (async () => {
       const stored = await loadStored();
+      if (!active) return;
       const merged: A11yPrefs = { ...DEFAULTS, ...(stored ?? {}) };
       setState(merged);
       apply(merged);
     })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return undefined;
+    let active = true;
+    const subscription = AccessibilityInfo.addEventListener('reduceTransparencyChanged', (enabled) => {
+      if (active) setSystemReduceTransparency(enabled);
+    });
+    void AccessibilityInfo.isReduceTransparencyEnabled()
+      .then((enabled) => { if (active) setSystemReduceTransparency(enabled); })
+      .catch(() => { /* إعداد غير متاح على إصدار النظام الحالي */ });
+    return () => {
+      active = false;
+      subscription.remove();
+    };
   }, []);
 
   const setPrefs = useCallback((patch: Partial<A11yPrefs>) => {
@@ -96,7 +120,15 @@ export function A11yPreferencesProvider({ children }: { children: React.ReactNod
     persist(DEFAULTS);
   }, []);
 
-  const value = useMemo<Ctx>(() => ({ ...prefs, setPrefs, reset }), [prefs, setPrefs, reset]);
+  const effectiveReduceTransparency = systemReduceTransparency || prefs.reduceTransparency;
+  const value = useMemo<Ctx>(() => ({
+    ...prefs,
+    systemReduceTransparency,
+    effectiveReduceTransparency,
+    setPrefs,
+    reset,
+  }), [prefs, systemReduceTransparency, effectiveReduceTransparency, setPrefs, reset]);
+
   return <A11yCtx.Provider value={value}>{children}</A11yCtx.Provider>;
 }
 

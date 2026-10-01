@@ -89,8 +89,6 @@ export const blurIntensity = {
   surface: 40,
   /** بطاقة زجاجية ثقيلة (hero/عائم) */
   heavyCard: { light: 42, dark: 34 },
-  /** خلفية اللوح السفلي */
-  sheet: { light: 12, dark: 20 },
 } as const;
 
 /** مناطق اللمس الموسّعة hitSlop (DS-03) — كانت أرقامًا حرفية متفرقة (4/6/8/10/12) */
@@ -234,16 +232,6 @@ export function columnsFor(
   return base;
 }
 
-/** درجات الزجاج القياسية (DESIGN 1.3) */
-export const glassLevels = {
-  thin: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
-  subtle: { intensity: 20, opacityLight: 0.55, opacityDark: 0.58 },
-  regular: { intensity: 40, opacityLight: 0.72, opacityDark: 0.72 },
-  thick: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
-  heavy: { intensity: 64, opacityLight: 0.88, opacityDark: 0.88 },
-  fallback: { intensity: 0, opacityLight: 0.94, opacityDark: 0.94 },
-} as const;
-
 /** توكنز الحركة الموحّدة (DESIGN-06) */
 export const motionTokens = {
   duration: {
@@ -345,10 +333,8 @@ export interface ThemeColors {
   rarityRare: string;
   rarityEpic: string;
   rarityLegendary: string;
-  // Apple-specific
+  // أدوار السطوح والتحكم عبر المنصات
   cardElevated: string;
-  surfaceGlass: string;
-  backdropBlur: string;
   separator: string;
   /** حشوة تحكم خفيفة (chips، segmented، أزرار ثانوية، حقول) */
   fill: string;
@@ -421,8 +407,6 @@ export const lightTheme: ThemeColors = {
   rarityEpic: '#AF52DE',
   rarityLegendary: '#FF9F0A',
   cardElevated: 'rgba(255, 255, 255, 0.9)',
-  surfaceGlass: 'rgba(255, 255, 255, 0.65)',
-  backdropBlur: 'rgba(249, 249, 249, 0.94)',
   separator: 'rgba(60, 60, 67, 0.18)',
   fill: 'rgba(120, 120, 128, 0.12)',
   fillStrong: 'rgba(120, 120, 128, 0.2)',
@@ -479,8 +463,6 @@ export const darkTheme: ThemeColors = {
   line: 'rgba(84, 84, 88, 0.25)',
   overlay: 'rgba(0, 0, 0, 0.65)',
   cardElevated: 'rgba(44, 44, 46, 0.8)',
-  surfaceGlass: 'rgba(28, 28, 30, 0.65)',
-  backdropBlur: 'rgba(22, 22, 24, 0.94)',
   separator: 'rgba(84, 84, 88, 0.2)',
   fill: 'rgba(120, 120, 128, 0.24)',
   fillStrong: 'rgba(120, 120, 128, 0.32)',
@@ -502,8 +484,6 @@ export const oledTheme: ThemeColors = {
   // فتُزعج العين — نخفتها هنا (ألوان النصوص تبقى كما هي حفاظًا على التباين ≥ 4.5).
   glassBorder: 'rgba(84, 84, 88, 0.22)',
   cardElevated: 'rgba(24, 24, 26, 0.8)',
-  surfaceGlass: 'rgba(12, 12, 14, 0.65)',
-  backdropBlur: 'rgba(8, 8, 10, 0.94)',
   separator: 'rgba(84, 84, 88, 0.14)',
   line: 'rgba(84, 84, 88, 0.15)',
   fill: 'rgba(120, 120, 128, 0.16)',
@@ -643,45 +623,3 @@ export const attendanceColors = {
   excused: lightTheme.info,
   absent: '#6E6E73',
 };
-
-// ═══════════════ Apple Glass Utilities ═══════════════
-export const glassEffects = {
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: radii.xl,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 } as const,
-    elevation: 8,
-  },
-  cardDark: {
-    backgroundColor: 'rgba(28, 28, 30, 0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(84, 84, 88, 0.35)',
-    borderRadius: radii.xl,
-  },
-  elevated: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: radii.xl,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 12 } as const,
-    elevation: 12,
-  },
-  tabBar: {
-    backgroundColor: 'rgba(249, 249, 249, 0.94)',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(60, 60, 67, 0.12)',
-  },
-  tabBarDark: {
-    backgroundColor: 'rgba(22, 22, 24, 0.94)',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(84, 84, 88, 0.25)',
-  },
-} as const;

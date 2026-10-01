@@ -7,12 +7,13 @@ import {
   ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable,
   StyleSheet, Text, TextInput, View, ViewStyle, TextStyle, ScrollView,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
+import { useA11yPrefsOptional } from './preferences';
+import { GlassSurface } from './glass';
 import {
   borderWidth, blurIntensity, columnsFor, componentTokens, fonts, hitSlop, layout, radii,
   scaleType, shadows, spacing, springs, typography,
@@ -195,37 +196,49 @@ export function AutoGrid({ children, gap = spacing.s3, minColumnWidth = layout.m
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
-// ───────────────────────────── بطاقات زجاجية ─────────────────────────────
+// ───────────────────────────── أسطح المحتوى ─────────────────────────────
 
-export function Card({ children, style, color, noPad, onPress, solid, heavy, accessibilityLabel, accessibilityHint }: {
+/**
+ * بطاقة المحتوى القياسية: سطح صلب ومقروء افتراضيًا. لا يُفعّل glass إلا بطلب
+ * صريح لحالة عائمة؛ وheavy يمر دائمًا عبر محوّل GlassSurface المركزي.
+ */
+export function Card({ children, style, color, noPad, onPress, solid, glass, heavy, accessibilityLabel, accessibilityHint }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
   color?: string;
   noPad?: boolean;
   onPress?: () => void;
-  /** بطاقة معتمة بلا ضبابية (للحالات التي تحتاج تباينًا كاملًا) */
+  /** توافق خلفي: يضمن سطحًا صلبًا حتى لو مرر أحدهم glass */
   solid?: boolean;
-  /** ضبابية حقيقية للحالات الاستثنائية فقط (hero/عائم) — الافتراضي سطح زجاجي بلا blur للأداء */
+  /** اختياري ومقصود للحالات العائمة فقط؛ البطاقات العادية صلبة */
+  glass?: boolean;
+  /** ضبابية فعلية لسطح glass فقط — تُدار عبر GlassSurface */
   heavy?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
 }) {
   const { theme, isDark } = useTheme();
+  const preferences = useA11yPrefsOptional();
+  const highContrast = preferences?.highContrast ?? false;
   const { impactLight } = useHaptics();
   const scale = useRef(new Animated.Value(1)).current;
-  const useGlass = !solid && !color;
+  const useGlass = Boolean(glass) && !solid && !color;
 
   const pressIn = () => {
-    if (onPress) Animated.spring(scale, { toValue: pressScale.default, useNativeDriver: true, ...springs.default }).start();
+    if (onPress && !isReducedMotion()) {
+      Animated.spring(scale, { toValue: pressScale.default, useNativeDriver: true, ...springs.default }).start();
+    }
   };
   const pressOut = () => {
-    if (onPress) Animated.spring(scale, { toValue: 1, useNativeDriver: true, ...springs.default }).start();
+    if (onPress && !isReducedMotion()) {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, ...springs.default }).start();
+    }
   };
 
   const shell: ViewStyle = {
     borderRadius: radii.xl,
-    borderWidth: borderWidth.thin,
-    borderColor: theme.glassBorder,
+    borderWidth: highContrast ? borderWidth.medium : borderWidth.thin,
+    borderColor: highContrast ? theme.textMuted : useGlass ? theme.glassBorder : theme.fillBorder,
     padding: noPad ? 0 : spacing.s4,
     shadowColor: theme.glassShadow,
     ...(isDark ? shadows.card.dark : shadows.card.light),
@@ -233,31 +246,25 @@ export function Card({ children, style, color, noPad, onPress, solid, heavy, acc
   };
 
   const content = (
-    <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glass : color ?? theme.card, transform: [{ scale }] }, style]}>
+    <Animated.View style={[shell, { backgroundColor: useGlass ? theme.glassHeavy : color ?? theme.card, transform: [{ scale }] }, style]}>
       {useGlass && heavy ? (
-        <BlurView
+        <GlassSurface
+          radius={radii.xl}
           intensity={isDark ? blurIntensity.heavyCard.dark : blurIntensity.heavyCard.light}
-          tint={isDark ? 'dark' : 'light'}
+          tintColor={theme.glassHeavy}
+          borderless
           style={StyleSheet.absoluteFill}
-          pointerEvents="none"
         />
       ) : null}
       {useGlass ? (
         <LinearGradient
           colors={[
-            isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.65)',
-            isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.12)',
+            isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.5)',
             'transparent',
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 1.5,
-          }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1.5 }}
           pointerEvents="none"
         />
       ) : null}
@@ -1124,7 +1131,7 @@ export function DisclosureIcon({ color, size = 18 }: { color: string; size?: num
 export function Sheet({ visible, onClose, children, title }: {
   visible: boolean; onClose: () => void; children: React.ReactNode; title?: string;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
@@ -1149,9 +1156,7 @@ export function Sheet({ visible, onClose, children, title }: {
             accessibilityLabel={t('common.close')}
             style={StyleSheet.absoluteFill}
             onPress={onClose}
-          >
-            <BlurView intensity={isDark ? 20 : 12} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-          </Pressable>
+          />
 
           <Animated.View
             ref={trapRef as unknown as React.Ref<View>}
@@ -1269,13 +1274,29 @@ export function ListRow({ icon, iconBg, title, subtitle, onPress, right, danger,
 
 // ───────────────────────────── Switch ─────────────────────────────
 
-export function CustomSwitch({ value, onChange, color }: { value: boolean; onChange: (v: boolean) => void; color?: string }) {
+export function CustomSwitch({
+  value,
+  onChange,
+  color,
+  disabled = false,
+  accessibilityLabel,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  color?: string;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+}) {
   const { theme } = useTheme();
   const { impactLight, impactMedium } = useHaptics();
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
   const pressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (isReducedMotion()) {
+      anim.setValue(value ? 1 : 0);
+      return;
+    }
     Animated.spring(anim, {
       toValue: value ? 1 : 0,
       useNativeDriver: false,
@@ -1305,17 +1326,24 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
   return (
     <Pressable
       accessibilityRole="switch"
-      accessibilityLabel={value ? 'مفعّل' : 'معطّل'}
-      accessibilityState={{ checked: value }}
+      accessibilityLabel={accessibilityLabel ?? (value ? 'مفعّل' : 'معطّل')}
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
       onPress={() => {
+        if (disabled) return;
         if (!value) impactMedium();
         else impactLight();
         onChange(!value);
       }}
       onPressIn={() => {
+        if (isReducedMotion()) return;
         Animated.timing(pressAnim, { toValue: 1, duration: 120, useNativeDriver: false }).start();
       }}
       onPressOut={() => {
+        if (isReducedMotion()) {
+          pressAnim.setValue(0);
+          return;
+        }
         Animated.spring(pressAnim, { toValue: 0, damping: 15, stiffness: 250, useNativeDriver: false }).start();
       }}
       hitSlop={hitSlop.comfy}
@@ -1326,6 +1354,7 @@ export function CustomSwitch({ value, onChange, color }: { value: boolean; onCha
           height: componentTokens.switch.height,
           borderRadius: componentTokens.switch.radius,
           backgroundColor: bg,
+          opacity: disabled ? 0.65 : 1,
           justifyContent: 'center',
           direction: 'ltr',
           paddingHorizontal: 1,

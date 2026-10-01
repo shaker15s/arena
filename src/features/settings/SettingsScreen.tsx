@@ -44,7 +44,16 @@ export function SettingsScreen({ navigation }: any) {
   const { theme, preference, setTheme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { db, user, toast, deleteMyAccount } = useApp();
-  const { textScale, highContrast, reduceMotion, setPrefs, reset } = useA11yPrefs();
+  const {
+    textScale,
+    highContrast,
+    reduceMotion,
+    reduceTransparency,
+    systemReduceTransparency,
+    effectiveReduceTransparency,
+    setPrefs,
+    reset,
+  } = useA11yPrefs();
 
   const [tzOpen, setTzOpen] = useState(false);
   const [tz, setTz] = useState<string>('Africa/Cairo');
@@ -209,6 +218,24 @@ export function SettingsScreen({ navigation }: any) {
                 <Txt variant="micro" color={theme.textMuted}>{t('settings.reduceMotionHint')}</Txt>
               </View>
               <CustomSwitch value={reduceMotion} onChange={() => setPrefs({ reduceMotion: !reduceMotion })} />
+            </Row>
+
+            <View style={{ height: 12 }} />
+            <Row between center gap={spacing.s3}>
+              <View style={{ flex: 1 }}>
+                <Txt variant="bodyMed">{t('settings.reduceTransparency')}</Txt>
+                <Txt variant="micro" color={theme.textMuted}>
+                  {systemReduceTransparency
+                    ? t('settings.reduceTransparencySystemHint')
+                    : t('settings.reduceTransparencyHint')}
+                </Txt>
+              </View>
+              <CustomSwitch
+                value={effectiveReduceTransparency}
+                onChange={() => setPrefs({ reduceTransparency: !reduceTransparency })}
+                disabled={systemReduceTransparency}
+                accessibilityLabel={t('settings.reduceTransparency')}
+              />
             </Row>
 
             <View style={{ height: 12 }} />
