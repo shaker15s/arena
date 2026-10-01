@@ -4,7 +4,7 @@ import {
   attendanceOf, backupCodeOf, balanceOf, currentQrToken, evaluateBadges, evaluateStreakWeek,
   gamifOf, isBatchComplete, issuanceTable, lookupCertificate, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
-  rpcStartSession, rpcSubmitExcuse, rpcUpdateRule, simulateWeekClose,
+  rpcStartSession, rpcSubmitExcuse, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
 } from '../src/data/engine';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
@@ -106,12 +106,15 @@ const MIN = 60_000;
   ok(summary.absent === 4, 'غير المسجلين الأربعة ← غائب', summary.absent);
   ok(live0.status === 'closed', 'الجلسة أُقفلت');
 
-  // بونص شهر الالتزام الكامل (أغسطس 2026 — كل الجلسات فيه)
+  // بونص الشهر: التوزيع الرسمي = نهاية الشهر بس (mirror لـsettle_previous_month_bonus في 0006) —
+  // قفل أي جلسة في نص الشهر **مايقدمش** bonus.
   const mKey = monthKeyOf(live0.startsAt);
-  const bonusOmar = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:${IDS.omar}:${mKey}`);
-  const bonusHabiba = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_habiba:${mKey}`);
-  const bonusMariam = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_mariam:${mKey}`);
-  ok(bonusOmar && bonusHabiba && !bonusMariam, 'بونص الشهر: عمر وحبيبة نعم، مريم (غياب) لا', { bonusOmar, bonusHabiba, bonusMariam });
+  const midBonusOmar = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:${IDS.omar}:${mKey}`);
+  const midBonusHabiba = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_habiba:${mKey}`);
+  const midBonusMariam = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_mariam:${mKey}`);
+  ok(!midBonusOmar && !midBonusHabiba && !midBonusMariam, 'بونص الشهر: مفيش توزيع في نص الشهر (نهاية الشهر فقط — موافق 0006)', {
+    midBonusOmar, midBonusHabiba, midBonusMariam,
+  });
 
   // ═ 3) الستريك: عدّ واحد فقط + لا تدهور ═
   console.log('\n═ 3) الستريك ═');
@@ -212,6 +215,19 @@ const MIN = 60_000;
   console.log('\n═ 10) دورة جديدة ═');
   const st1 = rpcStartSession(db, IDS.g1, IDS.sara);
   ok('session' in st1 && st1.session.id !== live0.id, 'الجلسة القادمة تُفتح بعد الإقفال', 'session' in st1 ? st1.session.id : st1.error);
+
+  // ═ اختبار تسوية بونص الشهر التلقائية (settlePreviousMonthBonus) ═
+  const prevMonth = monthKeyOf(db.sessions.find((s) => s.id === 's_g1_6')!.startsAt);
+  const settledCount = settlePreviousMonthBonus(db, prevMonth);
+  const postBonusOmar = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:${IDS.omar}:${prevMonth}`);
+  const postBonusHabiba = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_habiba:${prevMonth}`);
+  const postBonusMariam = db.pointEvents.some((e) => e.idempotencyKey === `month.bonus:u_mariam:${prevMonth}`);
+  ok(postBonusOmar && postBonusHabiba && !postBonusMariam, 'تسوية نهاية الشهر: عمر وحبيبة نعم، مريم (غياب) لا', {
+    postBonusOmar, postBonusHabiba, postBonusMariam, settledCount,
+  });
+  // Idempotency:
+  const reSettleCount = settlePreviousMonthBonus(db, prevMonth);
+  ok(reSettleCount === 0, 'تسوية نهاية الشهر لا تكرر المنح (Idempotent)', reSettleCount);
 
   console.log('\n═ 11) المسار الذهبي ═');
   ok(p1.kind === 'ok', 'ذهبي: الطالب يسجّل حضورًا');

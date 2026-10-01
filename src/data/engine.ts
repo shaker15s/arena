@@ -374,20 +374,8 @@ export function rpcCloseSession(db: Db, sessionId: string, actorId: string, repo
     }
   });
 
-  // بونص شهر الالتزام الكامل
-  const month = monthKeyOf(session.startsAt);
   const newBadges: Array<{ userId: string; badge: Badge }> = [];
   students.forEach((st) => {
-    const myBatchIds = db.enrollments.filter((e) => e.userId === st.id && e.status === 'active').map((e) => e.batchId);
-    const monthSessions = db.sessions.filter((s) => myBatchIds.includes(s.batchId) && s.status === 'closed' && monthKeyOf(s.startsAt) === month);
-    const rows = monthSessions.map((s) => attendanceOf(db, s.id, st.id));
-    if (monthSessions.length > 0 && rows.every((r) => r && r.status !== 'absent')) {
-      const bonus = ruleValue(db, 'points.month_bonus');
-      grantPoints(db, {
-        userId: st.id, points: bonus, reason: 'month.bonus', refType: 'admin', refId: `month:${month}`,
-        idempotencyKey: `month.bonus:${st.id}:${month}`,
-      });
-    }
     newBadges.push(...evaluateBadges(db, st.id));
   });
 
@@ -715,6 +703,68 @@ export function simulateWeekClose(db: Db, actorId: string): { moved: number } {
   });
   audit(db, actorId, 'league_week_close', 'system', { moved });
   return { moved };
+}
+
+/**
+ * Mirror of SQL settle_previous_month_bonus (0006_automation_jobs.sql:202-247):
+ * Evaluates closed sessions of the target month across active enrollments.
+ * Awards points.month_bonus ONLY if total > 0 and absent === 0.
+ * Idempotent per user and month (`month.bonus:${userId}:${prevMonth}`).
+ * Evaluates user badges and awards month_star to top student per branch in that month if eligible.
+ * Returns the count of bonuses awarded.
+ */
+export function settlePreviousMonthBonus(db: Db, prevMonth: string): number {
+  const bonusPoints = ruleValue(db, 'points.month_bonus');
+  let count = 0;
+
+  // Active enrollments grouped by user
+  const activeUsers = Array.from(new Set(
+    db.enrollments.filter((e) => e.status === 'active').map((e) => e.userId)
+  ));
+
+  for (const userId of activeUsers) {
+    const userBatchIds = db.enrollments
+      .filter((e) => e.userId === userId && e.status === 'active')
+      .map((e) => e.batchId);
+
+    const monthSessions = db.sessions.filter(
+      (s) => userBatchIds.includes(s.batchId) && s.status === 'closed' && monthKeyOf(s.startsAt) === prevMonth
+    );
+
+    if (monthSessions.length === 0) {
+      evaluateBadges(db, userId);
+      continue;
+    }
+
+    let hasAbsent = false;
+    for (const s of monthSessions) {
+      const att = attendanceOf(db, s.id, userId);
+      if (!att || att.status === 'absent') {
+        hasAbsent = true;
+        break;
+      }
+    }
+
+    if (!hasAbsent && bonusPoints > 0) {
+      const idempotencyKey = `month.bonus:${userId}:${prevMonth}`;
+      const already = db.pointEvents.some((pe) => pe.idempotencyKey === idempotencyKey);
+      if (!already) {
+        grantPoints(db, {
+          userId,
+          points: bonusPoints,
+          reason: 'month.bonus',
+          refType: 'admin',
+          refId: `month:${prevMonth}`,
+          idempotencyKey,
+        });
+        count++;
+      }
+    }
+
+    evaluateBadges(db, userId);
+  }
+
+  return count;
 }
 
 // ───────────────────────────── الانضمام للمجموعة ─────────────────────────────
