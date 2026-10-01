@@ -33,6 +33,7 @@ import { useApp } from '../../data/store';
 import { liveSessionForStudent } from '../../data/engine';
 import { checkInWithToken, type CheckInResponse } from '../../data/actions';
 import { track } from '../../shared/analytics';
+import { classifyError } from '../../shared/errors';
 import { clearPositionCache, getDevicePosition, getLocationPermissionState } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -105,6 +106,11 @@ export function ScannerScreen({ navigation }: any) {
   const flashAnim = useRef(new Animated.Value(0)).current;
   // مرجع حقل كود الطوارئ
   const inputRef = useRef<TextInput>(null);
+  // مؤقّتات إعادة الضبط — تُنظَّف عند التفكيك (كان setScanned يُستدعى بعد الخروج).
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+  }, []);
 
   // إعادة فحص إذن الكاميرا تلقائياً عند العودة للتطبيق من الإعدادات
   useEffect(() => {
@@ -224,10 +230,13 @@ export function ScannerScreen({ navigation }: any) {
       const result = await checkInWithToken(payload.trim(), pos?.lat, pos?.lng);
       interpret(result);
       if (result.kind === 'ok' || result.kind === 'already') await refresh();
-      else setTimeout(() => setScanned(false), 1200);
+      else resetTimerRef.current = setTimeout(() => setScanned(false), 1200);
     } catch (e) {
-      triggerErrorShake((e as Error).message || t('scanner.invalid'));
-      setTimeout(() => setScanned(false), 1200);
+      // رسالة الشبكة مترجمة، وباقي التصنيفات يبقى كما أعاده الخادم (بحث/صلاحية).
+      const msg = (e as Error).message || '';
+      const shown = classifyError(msg) === 'network' ? t('error.network') : (msg || t('scanner.invalid'));
+      triggerErrorShake(shown);
+      resetTimerRef.current = setTimeout(() => setScanned(false), 1200);
     } finally {
       setLoading(false);
     }
@@ -268,7 +277,7 @@ export function ScannerScreen({ navigation }: any) {
           }
         }
         if (!applied && next) {
-          triggerErrorShake('الفلاش غير مدعوم في متصفح جهازك', 'يمكنك تشغيل إضاءة الشاشة أو استخدام كود الـ 6 أرقام الاحتياطي.');
+          triggerErrorShake(t('scanner.flashUnsupported'), t('scanner.flashUnsupportedHint'));
         }
       } catch (err) {
         console.warn('Torch toggle error:', err);
@@ -328,7 +337,7 @@ export function ScannerScreen({ navigation }: any) {
 
           <View style={styles.sessionStatusTag}>
             {liveSess ? (
-              <Row center gap={6}>
+              <Row center gap={spacing.s2}>
                 <View style={styles.liveIndicatorDot} />
                 <Txt variant="micro" bold color="#10B981">
                   {liveSess.title}
@@ -417,7 +426,7 @@ export function ScannerScreen({ navigation }: any) {
               {loading && (
                 <View style={styles.loadingBackdrop}>
                   <ActivityIndicator size="large" color="#FFF" />
-                  <Spacer size={8} />
+                  <Spacer size={spacing.s2} />
                   <Txt variant="caption" bold color="#FFF">
                     {t('scanner.verifying')}
                   </Txt>
@@ -425,7 +434,7 @@ export function ScannerScreen({ navigation }: any) {
               )}
             </Animated.View>
 
-            <Spacer size={16} />
+            <Spacer size={spacing.s4} />
             <Txt variant="caption" color="#CBD5E1" align="center" style={styles.hintText}>
               وجّه الكاميرا نحو رمز QR المعروض في قاعة التدريب
             </Txt>
@@ -439,15 +448,15 @@ export function ScannerScreen({ navigation }: any) {
               interactive
               speechText="نحتاج إذن الكاميرا لمسح رمز الحضور الذكي 📷"
             />
-            <Spacer size={20} />
+            <Spacer size={spacing.s5} />
             <Txt variant="h2" bold color="#FFFFFF" align="center">
               إذن الكاميرا مطلوب
             </Txt>
-            <Spacer size={8} />
+            <Spacer size={spacing.s2} />
             <Txt variant="bodyMed" color="#E2E8F0" align="center" style={{ lineHeight: 22 }}>
               لتسجيل حضورك الفوري، يحتاج التطبيق للوصول إلى الكاميرا لمسح الرمز بدقة وأمان.
             </Txt>
-            <Spacer size={24} />
+            <Spacer size={spacing.s6} />
             <Btn
               title="منح إذن الكاميرا الآن"
               size="lg"
@@ -523,8 +532,8 @@ export function ScannerScreen({ navigation }: any) {
             />
           </Animated.View>
 
-          <Spacer size={12} />
-          <Row center gap={10}>
+          <Spacer size={spacing.s3} />
+          <Row center gap={spacing.s3}>
             <Btn
               title={t('scanner.submit')}
               onPress={() => doCheck(code)}
@@ -687,7 +696,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.s2,
     marginVertical: 4,
   },
   otpBox: {

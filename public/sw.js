@@ -3,7 +3,7 @@
  * يحفظ القشرة الثابتة للتطبيق (App Shell) والأصول المبوّبة للعمل دون اتصال،
  * مع استثناء جميع طلبات Supabase API / Auth / Realtime من التخزين المؤقت.
  */
-const CACHE_NAME = 'masar-shell-v3.2.0';
+const CACHE_NAME = 'masar-shell-v3.2.1';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -13,7 +13,7 @@ const SHELL_ASSETS = [
   '/favicon.png',
   '/icon-192.png',
   '/icon-512.png',
-  '/icon-maskable-512.png',
+  '/maskable-icon.png',
   '/apple-touch-icon.png',
 ];
 
@@ -21,7 +21,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
+      // تحميل متسامح للأصول: أصل مفقود واحد لا يُسقط التثبيت كله
+      // (كان addAll يرفض بالكامل لو أي ملف 404 ⇒ SW لا يُثبّت أبدًا).
+      .then((cache) =>
+        Promise.all(
+          SHELL_ASSETS.map((url) =>
+            cache.add(url).catch(() => undefined),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });

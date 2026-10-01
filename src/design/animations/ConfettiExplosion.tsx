@@ -2,7 +2,7 @@
  * design/animations/ConfettiExplosion.tsx — انفجار احتفالي بقصاصات الزينة الملونة (Confetti Explosion)
  * حركة خفيفة ومرنة مصممة لشاشات التكريم، الشارات، وإصدار الشهادات
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
 import { isReducedMotion } from '../motion';
 
@@ -29,7 +29,9 @@ interface Particle {
 }
 
 export function ConfettiExplosion({ count = 28 }: { count?: number }) {
-  const particles = useRef<Particle[]>(
+  // تهيئة كسولة: useRef(…) كان يُقيَّم كل إعادة رسم (٢٨×٥ قيم Animated جديدة
+  // تُهدر ثم تُرمى) — useState يُنفّذ المُنشئ مرة واحدة فقط.
+  const [particles] = useState<Particle[]>(() =>
     Array.from({ length: count }).map((_, i) => ({
       id: i,
       x: new Animated.Value(0),
@@ -39,9 +41,9 @@ export function ConfettiExplosion({ count = 28 }: { count?: number }) {
       opacity: new Animated.Value(1),
       color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
       size: Math.floor(Math.random() * 6) + 6,
-      shape: i % 3 === 0 ? 'circle' : 'rect',
+      shape: i % 3 === 0 ? ('circle' as const) : ('rect' as const),
     })),
-  ).current;
+  );
 
   useEffect(() => {
     if (isReducedMotion()) return;

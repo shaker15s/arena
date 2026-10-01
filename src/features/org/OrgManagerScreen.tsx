@@ -67,7 +67,7 @@ export function OrgManagerScreen() {
             <Txt variant="body" color={theme.textSecondary} align="center">
               {t('org.branches')}{'\n'}{t('wizard.s1Body')}
             </Txt>
-            <Spacer size={16} />
+            <Spacer size={spacing.s4} />
             <Btn title={t('org.newBranch')} onPress={() => setBranchSheet(true)} />
           </View>
         ) : null}
@@ -78,7 +78,7 @@ export function OrgManagerScreen() {
           return (
             <FadeIn key={b.id} index={i}>
               <Card>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: sizes.iconMedium, height: sizes.iconMedium, borderRadius: radii.md, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="business" size={24} color={theme.brand} />
                   </View>
@@ -108,7 +108,7 @@ export function OrgManagerScreen() {
       </ScrollView>
 
       <Sheet visible={branchSheet} onClose={() => setBranchSheet(false)} title={t('org.newBranch')}>
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing.s3 }}>
           <Input label={t('common.name')} value={name} onChange={setName} icon="business" />
           <Input label={t('org.governorate')} value={gov} onChange={setGov} icon="map" />
           <Input label={t('org.address')} value={address} onChange={setAddress} icon="location" />
@@ -117,7 +117,7 @@ export function OrgManagerScreen() {
       </Sheet>
 
       <Sheet visible={committeeSheet != null} onClose={() => setCommitteeSheet(null)} title={t('org.newCommittee')}>
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing.s3 }}>
           <Input label={t('wizard.committeeName')} value={name} onChange={setName} icon="git-network" />
           <Btn title={t('wizard.addCommittee')} full loading={saving} onPress={saveCommittee} icon="checkmark" disabled={!name.trim()} />
         </View>

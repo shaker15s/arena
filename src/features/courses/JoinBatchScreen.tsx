@@ -43,16 +43,16 @@ export function JoinBatchScreen({ route, navigation }: any) {
   return (
     <Screen label={t('joinCode.title')}>
       <Header title={t('joinCode.title')} back={() => safeBack(navigation)} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4 }}>
         <Card>
-          <Row center gap={10}>
+          <Row center gap={spacing.s3}>
             <Icon name="qr-code" size={28} color={theme.brand} />
             <Txt variant="body" color={theme.textSecondary} style={{ flex: 1 }}>{t('joinCode.body')}</Txt>
           </Row>
         </Card>
 
         {/* حقل إدخال كود الانضمام بتصميم متدرج وأنيق */}
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: spacing.s2 }}>
           <Txt variant="caption" color={theme.textSecondary} style={{ marginHorizontal: 4 }}>
             {t('joinCode.code')}
           </Txt>
@@ -77,7 +77,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
         {batch && course ? (
           <Card color={theme.card}>
             <Txt variant="h3">{course.title}</Txt>
-            <Spacer size={6} />
+            <Spacer size={spacing.s2} />
             <Txt variant="caption" color={theme.textSecondary}>{batch.room} · {batch.schedule.time}</Txt>
           </Card>
         ) : null}
@@ -89,7 +89,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
             onPress={() => navigation.navigate('SignIn')}
           />
         ) : joined ? (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.s3 }}>
             <SuccessWaveAlert
               title={joined === 'active' ? t('joinCode.joined') : t('joinCode.waitlist')}
               description={course ? `${course.title} · ${batch?.room ?? ''}` : t('joinCode.joined')}

@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: spacing.s2,
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -134,13 +134,13 @@ const styles = StyleSheet.create({
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: spacing.s4,
     marginTop: spacing.s2,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: spacing.s1,
   },
   legendDot: {
     width: 8,

@@ -208,7 +208,7 @@ function TabButton({ tab, active, badge, onPress, index, total }: {
         webPointer,
         {
           flex: 1, minWidth: 0, minHeight: 54, flexShrink: 1,
-          alignItems: 'center', justifyContent: 'center', gap: 2,
+          alignItems: 'center', justifyContent: 'center', gap: spacing.s1,
           paddingHorizontal: 2,
           opacity: pressed ? 0.72 : 1,
         },
@@ -418,7 +418,7 @@ function TabsScaffold({ tabs, renders, initial, fab, badges, maxWidth = 920, req
       lastBackPress.current = now;
       if (Platform.OS === 'android') {
         try {
-          ToastAndroid.show(t('common.pressBackAgainToExit' as any) || 'اضغط مرة أخرى للخروج', ToastAndroid.SHORT);
+          ToastAndroid.show(t('common.pressBackAgainToExit'), ToastAndroid.SHORT);
         } catch {}
       }
       return true; // handled — لا تخرج (أول ضغطة)
@@ -699,7 +699,7 @@ function NotFoundScreen({ navigation }: any) {
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <FadeIn style={{ width: '100%', maxWidth: 480 }}>
-          <Card solid style={{ alignItems: 'center', padding: 32, gap: 16 }}>
+          <Card solid style={{ alignItems: 'center', padding: 32, gap: spacing.s4 }}>
             <View
               style={{
                 width: 80,
@@ -716,7 +716,7 @@ function NotFoundScreen({ navigation }: any) {
             <Txt variant="body" color={theme.textSecondary} align="center" style={{ lineHeight: 22 }}>
               {t('common.notFoundBody')}
             </Txt>
-            <Spacer size={12} />
+            <Spacer size={spacing.s3} />
             <Btn
               title={t('common.backToHome')}
               variant="primary"
@@ -740,7 +740,7 @@ function DisabledAccountScreen() {
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <FadeIn style={{ width: '100%', maxWidth: 520 }}>
-          <Card solid style={{ alignItems: 'center', padding: 30, gap: 14 }}>
+          <Card solid style={{ alignItems: 'center', padding: 30, gap: spacing.s4 }}>
             <View style={{ width: 82, height: 82, borderRadius: 26, backgroundColor: theme.dangerSoft, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="lock-closed" size={38} color={theme.danger} />
             </View>
@@ -805,6 +805,20 @@ export function RootNavigator() {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
 
+  // PERF: تحميل مسبق لقطع تبويبات الشاشة التالية بعد استقرار الإقلاع —
+  // نفس مُستدعي import الأكواد الكسولة ⇒ تُوحَّد الحزمة ولا تتكرر، ويختفي
+  // الهيكل الرمادي عند أول تنقّل بدل ظهوره في كل ضغطة أولى.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      void import('../features/today/TodayScreen');
+      void import('../features/explore/ExploreScreens');
+      void import('../features/journey/JourneyScreens');
+      void import('../features/profile/ProfileScreens');
+      void import('../features/notifications/NotificationsScreen');
+    }, 1500);
+    return () => clearTimeout(id);
+  }, []);
+
   const resolveRouteTitle = useCallback(
     (routeName?: string) => {
       const appName = t('common.appName');
@@ -850,6 +864,11 @@ export function RootNavigator() {
           // اسم الشاشة فقط (لا وسائط) — يعطي تقارير الأعطال مسار المستخدم
           // دون تسريب أي معرّفات أو محتوى.
           onStateChange={(state) => {
+            // WEB: مستند الصفحة قد يبقى ممرّرًا من شاشة سابقة (focus-scroll) —
+            // كل شاشة جديدة تبدأ من الصفر حتى لا يبدو المحتوى «مرفوعًا لأعلى».
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.scrollY > 0) {
+              window.scrollTo(0, 0);
+            }
             const route = state?.routes?.[state.index ?? 0];
             if (route?.name) {
               addBreadcrumb('nav', route.name);

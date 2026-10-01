@@ -37,7 +37,7 @@ export function CertificatesScreen({ navigation }: any) {
         keyExtractor={(cert) => cert.id}
         initialNumToRender={10}
         windowSize={5}
-        contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4 }}
         ListEmptyComponent={<Empty emoji="🎓" title={t('certs.emptyTitle')} />}
         renderItem={({ item: cert, index: i }) => {
           const batch = batchOf(db, cert.batchId);
@@ -47,8 +47,8 @@ export function CertificatesScreen({ navigation }: any) {
             <FadeIn index={i}>
               <Card onPress={() => navigation.navigate('CertificateViewer', { certId: cert.id })} noPad style={{ overflow: 'hidden' }}>
                 <View style={{ height: 8, backgroundColor: theme.certGold }} />
-                <View style={{ padding: 16, gap: 8 }}>
-                  <Row center gap={12}>
+                <View style={{ padding: 16, gap: spacing.s2 }}>
+                  <Row center gap={spacing.s3}>
                     <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: theme.warnSoft, alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="ribbon" size={26} color={theme.certGold} />
                     </View>
@@ -59,7 +59,7 @@ export function CertificatesScreen({ navigation }: any) {
                     <DisclosureIcon color={theme.textMuted} />
                   </Row>
                   <Row between center>
-                    <Row center gap={5}>
+                    <Row center gap={spacing.s1}>
                       <Icon name="barcode" size={13} color={theme.textMuted} />
                       <Txt variant="micro" color={theme.textMuted} {...(Platform.OS === 'web' ? ({ lang: 'en', dir: 'ltr' } as any) : {})}>{bidiIsolate(cert.serial)}</Txt>
                     </Row>
@@ -96,6 +96,11 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   const [acting, setActing] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const stamp = useRef(new Animated.Value(0)).current;
+  // مؤقّت إخفاء «تم النسخ» — يُنظَّف عند التفكيك (كان setCopied يُستدعى بعد الخروج).
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   useEffect(() => {
     Animated.spring(stamp, { toValue: 1, useNativeDriver: true, damping: isReducedMotion() ? 30 : 10, stiffness: 120 }).start();
@@ -122,7 +127,8 @@ export function CertificateViewerScreen({ route, navigation }: any) {
       else await Clipboard.setStringAsync(value);
       setCopied(true);
       toast(t('common.copied'), 'success');
-      setTimeout(() => setCopied(false), 1800);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1800);
     } catch (error) {
       toast((error as Error).message, 'error');
     }
@@ -338,14 +344,14 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   return (
     <Screen label={t('certs.viewer')}>
       <Header title={t('certs.viewer')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4, paddingBottom: 40 }}>
         <FadeIn index={0}>
           {/* تصميم الشهادة الرسمي */}
           <View style={{
             backgroundColor: certPaper.bg,
             borderRadius: radii.xxl,
             borderWidth: 3, borderColor: theme.certGold,
-            padding: 24, alignItems: 'center', gap: 10,
+            padding: 24, alignItems: 'center', gap: spacing.s3,
             shadowColor: theme.certGold, shadowOpacity: 0.25, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },
           }}>
             <View style={{ position: 'absolute', top: 12, start: 12, opacity: 0.12 }}>
@@ -364,7 +370,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
             <Txt variant="caption" color={certPaper.inkMuted}>{t('certs.forCompleting')}</Txt>
             <Txt variant="h3" color={certPaper.inkSoft} align="center">{course.title}</Txt>
 
-            <Row center gap={6}>
+            <Row center gap={spacing.s2}>
               <Icon name="business" size={13} color={certPaper.inkMuted} />
               <Txt variant="caption" color={certPaper.inkMuted}>{branch?.name ?? t('certs.issuedBy')}</Txt>
             </Row>
@@ -372,12 +378,12 @@ export function CertificateViewerScreen({ route, navigation }: any) {
 
             <View style={{ height: 1, alignSelf: 'stretch', backgroundColor: certPaper.line, marginVertical: 4 }} />
 
-            <Row center gap={14}>
+            <Row center gap={spacing.s4}>
               <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: certPaper.line }}>
                 {/* QR يوجّه فعليًا لصفحة التحقق العام — وليس توكنًا ميتًا غير موصول */}
                 <QRCode value={verifyUrl} size={88} color={certPaper.ink} backgroundColor="#fff" />
               </View>
-              <View style={{ flex: 1, gap: 4, alignItems: 'center' }}>
+              <View style={{ flex: 1, gap: spacing.s1, alignItems: 'center' }}>
                 {/* الختم ينطبع بأنيميشن */}
                 <Animated.View style={{
                   transform: [{ scale: stamp.interpolate({ inputRange: [0, 1], outputRange: [1.8, 1] }) }, { rotate: '-12deg' }],
@@ -400,23 +406,21 @@ export function CertificateViewerScreen({ route, navigation }: any) {
         </FadeIn>
 
         <FadeIn index={2}>
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <Btn title={copied ? t('common.copied') : t('certs.copyLink')} icon={copied ? 'checkmark' : 'link'} variant="secondary" onPress={copyLink} full />
             <Btn title={t('certs.downloadPdf')} icon="download" variant="ghost" loading={exporting} onPress={() => { void exportCertificate(false); }} full />
           </Row>
-          <Spacer size={8} />
-          <Row gap={10}>
+          <Row gap={spacing.s3}>
             <Btn title={t('certs.downloadPng')} icon="image" variant="ghost" loading={exportingPng} onPress={() => { void exportCertificatePng(); }} full />
             <Btn title={t('certs.openBadge')} icon="shield-checkmark" variant="ghost" loading={exportingBadge} onPress={() => { void exportOpenBadge(); }} full />
           </Row>
-          <Spacer size={8} />
           <Btn title={t('certs.sharePdf')} icon="share-social" variant="ghost" loading={exporting} full onPress={() => { void exportCertificate(true); }} />
         </FadeIn>
 
         {isManager ? (
           <FadeIn index={3}>
             <Card noPad style={{ overflow: 'hidden' }}>
-              <View style={{ padding: 16, gap: 10 }}>
+              <View style={{ padding: 16, gap: spacing.s3 }}>
                 <Txt variant="h3">{t('certs.manage')}</Txt>
                 {cert.status === 'active' && !revoking ? (
                   <Btn title={t('certs.revoke')} icon="ban" variant="danger" full onPress={() => setRevoking(true)} />
@@ -434,7 +438,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
                       maxLength={400}
                       placeholder={t('certs.revokeHint')}
                     />
-                    <Row gap={10}>
+                    <Row gap={spacing.s3}>
                       <Btn title={t('common.cancel')} variant="ghost" full onPress={() => { setRevoking(false); setReason(''); }} />
                       <Btn title={t('certs.revokeConfirm')} icon="ban" variant="danger" full loading={acting} disabled={!reason.trim()} onPress={() => { void doRevoke(); }} />
                     </Row>

@@ -17,7 +17,7 @@ import { addBreadcrumb } from '../shared/telemetry';
 import {
   GoogleIdentity, SUPABASE_ENABLED, getSupabase, identityOf,
   consumeWebAuthCallback,
-  signInWithGoogle as sbSignInWithGoogle, signInWithApple as sbSignInWithApple, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
+  signInWithGoogle as sbSignInWithGoogle, signOut as sbSignOut, uploadAvatar as sbUploadAvatar,
 } from './supabase';
 import { applyRealtimePatch, emptyDb, fetchRemoteDb, subscribeRealtime } from './remote';
 import { runCommandOnServer } from './actions';
@@ -65,7 +65,6 @@ interface AppCtx {
   flushOfflineQueue: () => Promise<void>;
   refresh: () => Promise<void>;
   signInWithGoogle: () => Promise<{ ok: boolean; error: string | null }>;
-  signInWithApple: () => Promise<{ ok: boolean; error: string | null }>;
   completeProfile: (draft: ProfileDraft) => Promise<{ ok: boolean; error?: string }>;
   updateProfile: (patch: Partial<ProfileDraft>) => Promise<{ ok: boolean; error?: string }>;
   uploadAvatar: (uri: string) => Promise<string | null>;
@@ -309,13 +308,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const sb = getSupabase();
-      const [{ data }] = await Promise.all([
-        sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle(),
-        refresh(),
-      ]);
+      // PERF: المزامنة الكاملة تبدأ متوازية مع استعلام البروفايل الخفيف، لكنها
+      // لا تعترض الإقلاع — الشاشات تظهر من الكاش المحلي فور حسم الهوية.
+      const bgSync = refresh().catch((err) => {
+        addBreadcrumb('net', 'background refresh: ' + (err as Error).message);
+      });
+      const { data } = await sb.from('profiles').select('id, phone, full_name').eq('user_id', authUser.id).maybeSingle();
       setProfileId(data?.id ?? null);
       setIdentity(identityOf(authUser));
-      await syncPendingQueueCount();
+      // الدفء: بروفايل موجود في الكاش ⇒ المزامنة تكمل خلفيًا (افتتاحية سريعة).
+      // الكاش بارد ⇒ ننتظر أول مزامنة حتى لا يومض مسار الزائر ثم ينقلب لشاشة المستخدم.
+      const warm = Boolean(data?.id) && dbRef.current.profiles.some((p) => p.id === data?.id);
+      if (!warm) await bgSync;
+      void syncPendingQueueCount().catch(() => { /* عدّاد غير حرج */ });
     } finally {
       setLoading(false);
     }
@@ -350,7 +355,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const nextId = s?.user?.id ?? null;
           if ((event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && nextId === lastAuthUserId) return;
           lastAuthUserId = nextId;
-          void applySession(s);
+          // تطبيق الجلسة قد يرمي خطأ شبكة — التقطه هنا بدل unhandled rejection.
+          void applySession(s).catch((err) => {
+            addBreadcrumb('net', 'applySession failed: ' + (err as Error).message);
+          });
         });
         unsubAuth = () => sub.subscription.unsubscribe();
 
@@ -496,17 +504,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return r;
   }, [applySession]);
 
-  // ── الدخول بآبل ──
-  const signInWithApple = useCallback(async () => {
-    setAuthError(null);
-    const r = await sbSignInWithApple();
-    if (r.ok && Platform.OS !== 'web') {
-      const sb = getSupabase();
-      const { data: { session } } = await sb.auth.getSession();
-      await applySession(session);
-    }
-    return r;
-  }, [applySession]);
 
   const uploadAvatar = useCallback(async (uri: string) => {
     if (!identity) return null;
@@ -618,12 +615,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ready, configured: SUPABASE_ENABLED, db, user, identity, needsProfile, authError, loading, syncing,
     lastSyncAt, syncError, online, setOnline, toasts, toast, dismissToast, submitOrQueue,
     pendingQueueCount, flushOfflineQueue, refresh,
-    signInWithGoogle, signInWithApple, completeProfile, updateProfile, uploadAvatar, logout,
+    signInWithGoogle, completeProfile, updateProfile, uploadAvatar, logout,
     deleteMyAccount: deleteAccount, unreadCount, markNotificationsRead,
   }), [
     ready, db, user, identity, needsProfile, authError, loading, syncing, lastSyncAt, syncError, online,
     toasts, toast, dismissToast, submitOrQueue, pendingQueueCount, flushOfflineQueue, refresh,
-    signInWithGoogle, signInWithApple, completeProfile, updateProfile,
+    signInWithGoogle, completeProfile, updateProfile,
     uploadAvatar, logout, deleteAccount, unreadCount, markNotificationsRead,
   ]);
 

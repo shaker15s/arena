@@ -59,7 +59,7 @@ export function WalletScreen({ navigation }: any) {
         keyExtractor={(e) => e.id}
         initialNumToRender={12}
         windowSize={5}
-        contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -69,7 +69,7 @@ export function WalletScreen({ navigation }: any) {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 14 }}>
+          <View style={{ gap: spacing.s4 }}>
             {/* البطاقة الكبرى — Gradient */}
             <FadeIn index={0}>
               <LinearGradient
@@ -78,12 +78,12 @@ export function WalletScreen({ navigation }: any) {
                 end={{ x: 1, y: 1 }}
                 style={{ borderRadius: radii.xl, paddingVertical: 28, paddingHorizontal: 20, shadowColor: theme.brand, shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12 }}
               >
-                <View style={{ alignItems: 'center', gap: 8 }}>
+                <View style={{ alignItems: 'center', gap: spacing.s2 }}>
                   <Txt variant="caption" color="rgba(255,255,255,0.75)">{t('wallet.total')}</Txt>
                   <CountUp value={balance} variant="display" color="#fff" />
-                  <Row center gap={8} style={{ marginTop: 6 }}>
+                  <Row center gap={spacing.s2} style={{ marginTop: 6 }}>
                     <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radii.full, paddingHorizontal: 16, paddingVertical: 7 }}>
-                      <Row center gap={6}>
+                      <Row center gap={spacing.s2}>
                         <Icon name="shield-half" size={14} color="#fff" />
                         <Txt variant="caption" color="#fff">{t('wallet.level')} {level} · {t(`level.${level}` as any)}</Txt>
                       </Row>
@@ -124,11 +124,11 @@ export function WalletScreen({ navigation }: any) {
           return (
             <FadeIn index={Math.min(i, 5)}>
               <Card>
-                <Row center gap={12}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: theme.successSoft, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={meta.icon} size={20} color={theme.success} />
                   </View>
-                  <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flex: 1, gap: spacing.s1 }}>
                     <Txt variant="bodyMed">{t(('reason.' + e.reasonCode) as any)}</Txt>
                     <Txt variant="micro" color={theme.textMuted}>
                       {timePast(e.createdAt, lang)}
@@ -206,14 +206,14 @@ export function LeagueScreen({ navigation }: any) {
             : r.isYou ? theme.brandSoft : theme.card,
         }}
       >
-        <Row center gap={10}>
+        <Row center gap={spacing.s3}>
           {/* minWidth لا width: «#10» بعرض 28px كان يُقصّ — العرض يتسع حسب الرقم */}
           <Txt variant="h3" color={theme.textSecondary} numberOfLines={1} style={{ minWidth: 30 }}>#{r.rank}</Txt>
           <Avatar name={r.user.fullName} color={r.user.avatarColor} size={38} />
           <View style={{ flex: 1 }}>
             <Txt variant="bodyMed">{r.isYou ? `${r.user.fullName} (${t('league.you')})` : r.user.fullName}</Txt>
           </View>
-          <Row center gap={4}>
+          <Row center gap={spacing.s1}>
             <Icon name="flash" size={13} color={theme.certGold} />
             <Txt variant="h3">{r.xp}</Txt>
           </Row>
@@ -232,7 +232,7 @@ export function LeagueScreen({ navigation }: any) {
         keyExtractor={(r: any) => String(r.user?.id ?? r.rank)}
         initialNumToRender={12}
         windowSize={5}
-        contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: 60 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -242,7 +242,7 @@ export function LeagueScreen({ navigation }: any) {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.s3 }}>
             <FadeIn index={0}>
               <Card
                 onPress={() => {
@@ -251,7 +251,7 @@ export function LeagueScreen({ navigation }: any) {
                 style={{
                   alignItems: 'center',
                   paddingVertical: 22,
-                  gap: 8,
+                  gap: spacing.s2,
                   borderWidth: 1.5,
                   borderColor: tierColor + '44',
                 }}
@@ -274,13 +274,13 @@ export function LeagueScreen({ navigation }: any) {
                   <Icon name="shield" size={54} color={tierColor} />
                 </View>
                 <Txt variant="h2" color={tierColor}>{t(('tier.' + league.tier) as any)}</Txt>
-                <Row center gap={6}>
+                <Row center gap={spacing.s2}>
                   <Icon name="hourglass" size={13} color={theme.textMuted} />
                   <Txt variant="caption" color={theme.textMuted}>
                     {t('league.endsIn')} {daysLeft} {t('common.days')} · {hoursLeft} {t('common.hours')}
                   </Txt>
                 </Row>
-                <Row gap={14} style={{ marginTop: 4 }}>
+                <Row gap={spacing.s4} style={{ marginTop: 4 }}>
                   <Txt variant="micro" color={theme.success}>▲ {t('league.promotionHint', { x: league.promoPct })}</Txt>
                   <Txt variant="micro" color={theme.textMuted}>▼ {t('league.relegationHint', { x: league.relPct })}</Txt>
                 </Row>
@@ -298,10 +298,10 @@ export function LeagueScreen({ navigation }: any) {
             />
 
             {board === 'league' && league.rows.length > 0 ? (
-              <Row gap={12} style={{ justifyContent: 'center' }}>
-                <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.success + '55' }} /><Txt variant="micro" color={theme.textMuted}>{t('league.promotionZone')}</Txt></Row>
-                <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.card }} /><Txt variant="micro" color={theme.textMuted}>{t('league.safeZone')}</Txt></Row>
-                <Row center gap={4}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.line }} /><Txt variant="micro" color={theme.textMuted}>{t('league.relegationZone')}</Txt></Row>
+              <Row gap={spacing.s3} style={{ justifyContent: 'center' }}>
+                <Row center gap={spacing.s1}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.success + '55' }} /><Txt variant="micro" color={theme.textMuted}>{t('league.promotionZone')}</Txt></Row>
+                <Row center gap={spacing.s1}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.card }} /><Txt variant="micro" color={theme.textMuted}>{t('league.safeZone')}</Txt></Row>
+                <Row center gap={spacing.s1}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: theme.line }} /><Txt variant="micro" color={theme.textMuted}>{t('league.relegationZone')}</Txt></Row>
               </Row>
             ) : null}
           </View>
@@ -330,26 +330,26 @@ export function LeagueScreen({ navigation }: any) {
                   borderWidth: r.isYou ? 2 : 1,
                 }}
               >
-                <Row center gap={10}>
+                <Row center gap={spacing.s3}>
                   <Txt variant="h3" numberOfLines={1} color={i === 0 ? theme.certGold : i === 1 ? theme.teal : i === 2 ? theme.brand : theme.textSecondary} style={{ minWidth: 30 }}>
                     #{i + 1}
                   </Txt>
                   <Avatar name={r.user.fullName} color={r.user.avatarColor} size={40} />
                   <View style={{ flex: 1 }}>
                     <Txt variant="bodyMed">{r.isYou ? r.user.fullName + ' (' + t('league.you') + ')' : r.user.fullName}</Txt>
-                    <Row center gap={8} style={{ marginTop: 2 }}>
-                      <Row center gap={3}>
+                    <Row center gap={spacing.s2} style={{ marginTop: 2 }}>
+                      <Row center gap={spacing.s1}>
                         <Flame size={13} urgent={r.streak >= 4} />
                         <Txt variant="micro" color={theme.textMuted}>{t('league.weekCount', { x: r.streak })}</Txt>
                       </Row>
                       <Txt variant="micro" color={theme.textMuted}>·</Txt>
-                      <Row center gap={3}>
+                      <Row center gap={spacing.s1}>
                         <Icon name="ribbon" size={13} color={theme.brand} />
                         <Txt variant="micro" color={theme.textMuted}>{t('league.badgeCount', { x: r.badgesCount })}</Txt>
                       </Row>
                     </Row>
                   </View>
-                  <Row center gap={4}>
+                  <Row center gap={spacing.s1}>
                     <Icon name="sparkles" size={14} color={theme.certGold} />
                     <Txt variant="h3" color={theme.brand}>{r.points}</Txt>
                   </Row>
@@ -386,7 +386,7 @@ export function AchievementsScreen({ navigation }: any) {
     <Screen label={t('achievements.title')} style={{ flex: 1 }}>
       <Header title={t('achievements.title')} subtitle={`${earnedCount}/${db.badges.length}`} back={() => navigation.goBack()} />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, gap: 12 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -396,7 +396,7 @@ export function AchievementsScreen({ navigation }: any) {
           />
         }
       >
-        <Row gap={8} wrap>
+        <Row gap={spacing.s2} wrap>
           {(['all', 'common', 'rare', 'epic', 'legendary'] as const).map((r) => (
             <Btn
               key={r}
@@ -408,7 +408,7 @@ export function AchievementsScreen({ navigation }: any) {
           ))}
         </Row>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s3, justifyContent: 'space-between' }}>
           {badges.map((badge, i) => {
             const earned = db.userBadges.find((u) => u.userId === user.id && u.badgeCode === badge.code);
             const progress = badgeProgress(db, user.id, badge.code);
@@ -420,7 +420,7 @@ export function AchievementsScreen({ navigation }: any) {
                   onPress={() => {
                     setSelectedBadge(badge);
                   }}
-                  style={{ alignItems: 'center', gap: 8, opacity: earned ? 1 : 0.84, paddingVertical: 18 }}
+                  style={{ alignItems: 'center', gap: spacing.s2, opacity: earned ? 1 : 0.84, paddingVertical: 18 }}
                 >
                   <View style={{
                     width: 68, height: 68, borderRadius: 34,
@@ -438,7 +438,7 @@ export function AchievementsScreen({ navigation }: any) {
                     {t('achievements.howTo')}: {lang === 'ar' ? badge.descAr : badge.descEn}
                   </Txt>
                   {!earned && progress > 0 ? (
-                    <View style={{ alignSelf: 'stretch', gap: 3 }}>
+                    <View style={{ alignSelf: 'stretch', gap: spacing.s1 }}>
                       <ProgressBar progress={progress} height={5} color={color} />
                       <Txt variant="micro" color={theme.textMuted} align="center">{Math.round(progress * 100)}%</Txt>
                     </View>
@@ -528,10 +528,10 @@ export function RulesGuideScreen({ navigation }: any) {
   return (
     <Screen label={t('rules.title')} style={{ flex: 1 }}>
       <Header title={t('rules.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s4 }}>
         <FadeIn index={0}>
           <Card>
-            <Row center gap={8}>
+            <Row center gap={spacing.s2}>
               <Icon name="eye" size={18} color={theme.brand} />
               <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('rules.updatedBy')}</Txt>
             </Row>
@@ -540,7 +540,6 @@ export function RulesGuideScreen({ navigation }: any) {
 
         <FadeIn index={1}>
           <Txt variant="h3">{t('rules.pointsSection')}</Txt>
-          <Spacer size={8} />
           <Card noPad>
             {rows.slice(0, 5).map((r, i) => (
               <RuleLine key={i} {...r} last={i === 4} />
@@ -550,7 +549,6 @@ export function RulesGuideScreen({ navigation }: any) {
 
         <FadeIn index={2}>
           <Txt variant="h3">{t('rules.streakSection')}</Txt>
-          <Spacer size={8} />
           <Card noPad>
             {streakRows.map((r, i) => (
               <RuleLine key={r.label} {...r} last={i === streakRows.length - 1} />
@@ -560,7 +558,6 @@ export function RulesGuideScreen({ navigation }: any) {
 
         <FadeIn index={3}>
           <Txt variant="h3">{t('rules.leagueSection')}</Txt>
-          <Spacer size={8} />
           <Card noPad>
             {leagueRows.map((r, i) => (
               <RuleLine key={r.label} {...r} last={i === leagueRows.length - 1} />
@@ -570,7 +567,6 @@ export function RulesGuideScreen({ navigation }: any) {
 
         <FadeIn index={4}>
           <Txt variant="h3">{t('rules.certSection')}</Txt>
-          <Spacer size={8} />
           <Card noPad>
             {rows.slice(5).map((r, i) => (
               <RuleLine key={i} {...r} last={i === rows.slice(5).length - 1} />
@@ -585,7 +581,7 @@ export function RulesGuideScreen({ navigation }: any) {
 function RuleLine({ icon, label, value, color, last }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color: string; last?: boolean }) {
   const { theme } = useTheme();
   return (
-    <Row center gap={12} style={{ padding: 13, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.line }}>
+    <Row center gap={spacing.s3} style={{ padding: 13, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.line }}>
       <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={17} color={color} />
       </View>

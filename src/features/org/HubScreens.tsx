@@ -2,7 +2,7 @@
  * features/org — Hub: S49 قواعد اللعبة + S50 استوديو الشارات + S51 المراسلات + S52 سجل العمليات
  * + S46 إصدار الشهادات.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
@@ -41,7 +41,7 @@ export function HubScreen() {
     <Screen label={t('tabs.hub')} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}>
         <Header title={t('tabs.hub')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.s2, paddingVertical: 2 }}>
           {[
             { value: 'rules', label: t('studio.title'), icon: 'options' },
             { value: 'badges', label: t('badges.title'), icon: 'medal' },
@@ -79,20 +79,24 @@ function AnalyticsPanel() {
   const [data, setData] = useState<AnalyticsResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // حارس السباقات: استجابة قديمة (scope تغيّر أو user وصل لاحقًا) لا تلوّث
+  // الحالة الحالية ولا تعيد الهيكل الرمادي دون داعٍ.
+  const reqRef = useRef(0);
 
-  useEffect(() => { void load(); }, [scope, scopeId]);
+  useEffect(() => { void load(); }, [scope, scopeId, user]);
 
   const load = async () => {
     if (!user) return;
+    const req = ++reqRef.current;
     setLoading(true);
     setError('');
     try {
       const result = await getAnalytics(scope, scopeId);
-      setData(result);
+      if (reqRef.current === req) setData(result);
     } catch (e) {
-      setError((e as Error).message);
+      if (reqRef.current === req) setError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (reqRef.current === req) setLoading(false);
     }
   };
 
@@ -105,20 +109,20 @@ function AnalyticsPanel() {
     : id;
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.s3 }}>
       <Card>
-        <Row center gap={8}>
+        <Row center gap={spacing.s2}>
           <Icon name="stats-chart" size={16} color={theme.brand} />
           <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('analytics.subtitle')}</Txt>
         </Row>
       </Card>
-      <Row gap={6} wrap>
+      <Row gap={spacing.s2} wrap>
         {(['branch', 'course', 'batch', 'session'] as AnalyticsScope[]).map((s) => (
           <Chip key={s} label={t(`analytics.scope.${s}` as any)} active={scope === s} onPress={() => { setScope(s); setScopeId(null); }} />
         ))}
       </Row>
       {active.length > 0 ? (
-        <Row gap={6} wrap>
+        <Row gap={spacing.s2} wrap>
           <Chip key="all" label={t('common.all')} active={scopeId == null} onPress={() => setScopeId(null)} />
           {active.map((item) => (
             <Chip key={item.id} label={scopeLabel(item.id)} active={scopeId === item.id} onPress={() => setScopeId(item.id)} />
@@ -137,21 +141,21 @@ function AnalyticsPanel() {
         <Card color={theme.dangerSoft}><Txt variant="caption" color={theme.danger}>{error}</Txt></Card>
       ) : data ? (
         <>
-          <AutoGrid gap={10} minColumnWidth={layout.minColumn.stat}>
+          <AutoGrid gap={spacing.s3} minColumnWidth={layout.minColumn.stat}>
             <AnalyticsCard label={t('analytics.sessions')} value={data.sessions} color={theme.brand} icon="calendar" />
             <AnalyticsCard label={t('analytics.enrollments')} value={data.enrollments} color={theme.success} icon="people" />
             <AnalyticsCard label={t('analytics.attendance')} value={data.attendance} color={theme.teal} icon="checkmark-done" />
           </AutoGrid>
           <Card>
             <Row between center>
-              <Row center gap={6}>
+              <Row center gap={spacing.s2}>
                 <Icon name="pulse" size={16} color={theme.warn} />
                 <Txt variant="bodyMed">{t('analytics.attendanceRatio')}</Txt>
               </Row>
               <Txt variant="h2" color={data.attendanceRatio >= 75 ? theme.success : theme.warn}>{data.attendanceRatio}%</Txt>
             </Row>
           </Card>
-          <Row gap={8}>
+          <Row gap={spacing.s2}>
             <View style={{ flex: 1 }}>
               <Btn title={t('common.refresh')} variant="ghost" icon="refresh" onPress={() => { void refresh(); void load(); }} loading={syncing} full />
             </View>
@@ -185,7 +189,7 @@ function AnalyticsPanel() {
 
 function AnalyticsCard({ label, value, color, icon }: { label: string; value: number; color: string; icon: keyof typeof Ionicons.glyphMap }) {
   return (
-    <Card style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 14 }}>
+    <Card style={{ flex: 1, alignItems: 'center', gap: spacing.s1, paddingVertical: 14 }}>
       <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={18} color={color} />
       </View>
@@ -214,6 +218,7 @@ function RulesStudio() {
     'certificate.min_attendance_pct': t('rules.certPct'),
     'kudos.monthly_quota_per_instructor': t('rules.kudosQuota'),
     'streak.freeze_max_hold': t('rules.freezeMax'),
+    'streak.min_sessions_week': t('rules.weekSessions'),
     'league.promotion_pct': t('rules.leagueMove') + ' ↗',
     'league.relegation_pct': t('rules.leagueMove') + ' ↘',
     'points.month_bonus': t('rules.monthBonus'),
@@ -252,7 +257,7 @@ function RulesStudio() {
   return (
     <>
       <Card>
-        <Row center gap={8}>
+        <Row center gap={spacing.s2}>
           <Icon name="flash" size={16} color={theme.brand} />
           <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('rules.updatedBy')}</Txt>
         </Row>
@@ -263,7 +268,7 @@ function RulesStudio() {
         return (
           <FadeIn key={def.key} index={i}>
             <Card>
-              <Row center gap={12}>
+              <Row center gap={spacing.s3}>
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyMed">{defLabel}</Txt>
                   <Txt variant="micro" color={theme.textMuted}>{t('studio.minMax', { min: def.min, max: def.max })}</Txt>
@@ -273,8 +278,8 @@ function RulesStudio() {
               </Row>
 
               {editing?.key === def.key ? (
-                <View style={{ marginTop: 12, gap: 10, borderTopWidth: 1, borderTopColor: theme.line, paddingTop: 12 }}>
-                  <Row gap={10}>
+                <View style={{ marginTop: 12, gap: spacing.s3, borderTopWidth: 1, borderTopColor: theme.line, paddingTop: 12 }}>
+                  <Row gap={spacing.s3}>
                     <View style={{ flex: 1 }}>
                       <Input
                         value={editing.value}
@@ -289,7 +294,7 @@ function RulesStudio() {
                   </Row>
                   {impact != null ? (
                     <Card color={impact > 0 ? theme.warnSoft : theme.successSoft} noPad style={{ padding: 10, borderColor: impact > 0 ? theme.warn + '44' : theme.success + '44' }}>
-                      <Row center gap={8}>
+                      <Row center gap={spacing.s2}>
                         <Icon name={impact > 0 ? 'warning' : 'checkmark-circle'} size={16} color={impact > 0 ? theme.warn : theme.success} />
                         <Txt variant="caption" color={impact > 0 ? theme.warn : theme.success} style={{ flex: 1 }}>
                           {impact > 0 ? t('studio.impactResult', { x: impact }) : t('studio.impactNone')}
@@ -297,7 +302,7 @@ function RulesStudio() {
                       </Row>
                     </Card>
                   ) : null}
-                  <Row gap={8}>
+                  <Row gap={spacing.s2}>
                     <Btn title={t('studio.save')} loading={saving} onPress={save} icon="checkmark" />
                     <Btn title={t('common.cancel')} variant="ghost" onPress={() => { setEditing(null); setImpact(null); }} />
                   </Row>
@@ -328,7 +333,7 @@ function BadgeStudio() {
         return (
           <FadeIn key={badge.code} index={i}>
             <Card>
-              <Row center gap={12}>
+              <Row center gap={spacing.s3}>
                 <View style={{
                   width: 48, height: 48, borderRadius: 24,
                   backgroundColor: rarityColor(badge.rarity) + '22',
@@ -342,7 +347,7 @@ function BadgeStudio() {
                   <Txt variant="micro" color={theme.textMuted}>{lang === 'ar' ? badge.descAr : badge.descEn}</Txt>
                   <Txt variant="micro" color={theme.brand}>{holders} {t('common.students')}</Txt>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                <View style={{ alignItems: 'flex-end', gap: spacing.s2 }}>
                   <Tag label={t(`achievements.rarity.${badge.rarity}` as any)} color={rarityColor(badge.rarity)} bg={rarityColor(badge.rarity) + '1F'} />
                   <CustomSwitch
                     value={badge.active}
@@ -416,19 +421,19 @@ function BroadcastComposer() {
   const meta = typeMeta[type];
 
   return (
-    <View style={{ gap: 14 }}>
+    <View style={{ gap: spacing.s4 }}>
       <Card>
         <Txt variant="caption" color={theme.textSecondary}>{t('broadcast.scope')}</Txt>
-        <Spacer size={8} />
-        <Row gap={8} wrap>
+        <Spacer size={spacing.s2} />
+        <Row gap={spacing.s2} wrap>
           <Chip label={t('broadcast.scopeAll')} active={scope === 'all'} onPress={() => setScope('all')} />
           <Chip label={t('broadcast.scopeBranch')} active={scope === 'branch'} onPress={() => setScope('branch')} />
           <Chip label={t('broadcast.scopeBatch')} active={scope === 'batch'} onPress={() => setScope('batch')} />
         </Row>
         {scope === 'branch' ? (
           <>
-            <Spacer size={8} />
-            <Row gap={8} wrap>
+            <Spacer size={spacing.s2} />
+            <Row gap={spacing.s2} wrap>
               {db.branches.map((b) => (
                 <Chip key={b.id} label={b.name.replace('فرع ', '')} active={branchId === b.id} onPress={() => setBranchId(b.id)} />
               ))}
@@ -437,16 +442,16 @@ function BroadcastComposer() {
         ) : null}
         {scope === 'batch' ? (
           <>
-            <Spacer size={8} />
-            <Row gap={8} wrap>
+            <Spacer size={spacing.s2} />
+            <Row gap={spacing.s2} wrap>
               {db.batches.map((b) => (
                 <Chip key={b.id} label={courseOf(db, b.courseId)?.title ?? b.id} active={batchId === b.id} onPress={() => setBatchId(b.id)} />
               ))}
             </Row>
           </>
         ) : null}
-        <Spacer size={10} />
-        <Row center gap={6}>
+        <Spacer size={spacing.s3} />
+        <Row center gap={spacing.s2}>
           <Icon name="people" size={14} color={theme.brand} />
           <Txt variant="caption" color={theme.brand}>{targetCount}</Txt>
         </Row>
@@ -454,15 +459,15 @@ function BroadcastComposer() {
 
       <Card>
         <Txt variant="caption" color={theme.textSecondary}>{t('broadcast.type')}</Txt>
-        <Spacer size={8} />
-        <Row gap={8} wrap>
+        <Spacer size={spacing.s2} />
+        <Row gap={spacing.s2} wrap>
           {(['alert', 'reminder', 'congrats'] as const).map((x) => (
             <Chip key={x} label={typeMeta[x].label} active={type === x} onPress={() => setType(x)} icon={typeMeta[x].icon} />
           ))}
         </Row>
-        <Spacer size={10} />
+        <Spacer size={spacing.s3} />
         <Input label={t('common.name')} value={title} onChange={setTitle} icon="megaphone" />
-        <Spacer size={10} />
+        <Spacer size={spacing.s3} />
         <Input label={t('broadcast.message')} value={body} onChange={setBody} multiline />
       </Card>
 
@@ -471,7 +476,7 @@ function BroadcastComposer() {
         <FadeIn>
           <Txt variant="caption" color={theme.textMuted}>{t('broadcast.preview')}</Txt>
           <Card style={{ borderColor: meta.color + '55', backgroundColor: theme.card }}>
-            <Row center gap={12}>
+            <Row center gap={spacing.s3}>
               <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: meta.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={meta.icon} size={19} color={meta.color} />
               </View>
@@ -516,7 +521,7 @@ function AuditLog() {
           return (
             <FadeIn key={a.id} index={Math.min(i, 6)}>
               <Card>
-                <Row center gap={10}>
+                <Row center gap={spacing.s3}>
                   <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={actionIcon(a.action)} size={17} color={theme.brand} />
                   </View>
@@ -574,13 +579,13 @@ export function IssueCertificatesScreen({ navigation }: any) {
   return (
     <Screen label={t('issue.title')} style={{ flex: 1 }}>
       <Header title={t('issue.title')} back={() => navigation.goBack()} subtitle={t('issue.ruleNote', { pct: pctRule })} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: 40 }}>
         {completedBatches.length === 0 ? (
           <Empty emoji="🎓" title={t('issue.noCompleted')} />
         ) : (
           <>
             <Txt variant="caption" color={theme.textSecondary}>{t('issue.pickBatch')}</Txt>
-            <Row gap={8} wrap>
+            <Row gap={spacing.s2} wrap>
               {completedBatches.map((b) => (
                 <Chip key={b.id} label={courseOf(db, b.courseId)?.title ?? b.id} active={batchId === b.id} onPress={() => setBatchId(b.id)} />
               ))}
@@ -589,7 +594,7 @@ export function IssueCertificatesScreen({ navigation }: any) {
             {table.map((row, i) => (
               <FadeIn key={row.user.id} index={Math.min(i, 8)}>
                 <Card>
-                  <Row center gap={10}>
+                  <Row center gap={spacing.s3}>
                     <Avatar name={row.user.fullName} color={row.user.avatarColor} size={40} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="bodyMed">{row.user.fullName}</Txt>
@@ -609,7 +614,7 @@ export function IssueCertificatesScreen({ navigation }: any) {
 
             {alreadyAll ? (
               <Card>
-                <Row center gap={8}>
+                <Row center gap={spacing.s2}>
                   <Icon name="checkmark-done" size={18} color={theme.success} />
                   <Txt variant="body" color={theme.success}>{t('issue.alreadyIssued')}</Txt>
                 </Row>

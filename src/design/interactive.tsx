@@ -384,7 +384,7 @@ export function SuccessWaveAlert({
         <Icon name="checkmark-circle" size={24} color={theme.success} />
       </View>
 
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: spacing.s1 }}>
         <Txt variant="bodyMed" color={theme.success} bold>
           {title}
         </Txt>
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.s2,
   },
   pillOuterGradient: {
     height: 52,
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     borderWidth: 1.5,
-    gap: 14,
+    gap: spacing.s4,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 14,

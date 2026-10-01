@@ -153,7 +153,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         />
 
         {/* فلتر الفروع */}
-        <Row gap={8} wrap>
+        <Row gap={spacing.s2} wrap>
           <Chip label={t('dash.allBranches')} active={branchFilter === 'all'} onPress={() => setBranchFilter('all')} />
           {db.branches.map((b) => (
             <Chip key={b.id} label={b.name.replace('فرع ', '')} active={branchFilter === b.id} onPress={() => setBranchFilter(b.id)} />
@@ -166,7 +166,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
         <NeedsAttention db={db} t={t} navigation={navigation} />
 
         {/* KPI Bento */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s3 }}>
           <KpiCard icon="business" color={theme.brand} value={stats.branchesCount} label={t('dash.branches')} index={0} />
           <KpiCard icon="people" color={theme.success} value={stats.activeBatches} label={t('dash.activeBatches')} index={1} />
           <KpiCard icon="school" color={theme.warn} value={stats.students} label={t('dash.activeStudents')} index={2} />
@@ -191,10 +191,10 @@ export function DashboardScreen({ navigation: propNav }: any) {
                 <Txt variant="h3">{t('dash.attention')}</Txt>
                 <Tag label={String(attention.reduce((a, i) => a + i.count, 0))} color={theme.warn} bg={theme.warnSoft} icon="alert" />
               </Row>
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: spacing.s2 }}>
                 {attention.map((item) => (
-                  <Row key={item.key} between center gap={10}>
-                    <Row center gap={8} style={{ flex: 1 }}>
+                  <Row key={item.key} between center gap={spacing.s3}>
+                    <Row center gap={spacing.s2} style={{ flex: 1 }}>
                       <Icon
                         name={item.urgency === 'high' ? 'alert-circle' : 'ellipse-outline'}
                         size={16}
@@ -228,15 +228,15 @@ export function DashboardScreen({ navigation: propNav }: any) {
                 <Txt variant="h3">{t('dash.weekly')}</Txt>
                 <Tag label={t('dash.weeklyTz')} color={theme.info} bg={theme.infoSoft} icon="time-outline" />
               </Row>
-              <Row between center gap={8} style={{ marginBottom: 6 }}>
+              <Row between center gap={spacing.s2} style={{ marginBottom: 6 }}>
                 <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklyRate')}</Txt>
                 <Txt variant="bodyMed" color={theme.success}>{weekly.attendance_rate}%</Txt>
               </Row>
-              <Row between center gap={8} style={{ marginBottom: 6 }}>
+              <Row between center gap={spacing.s2} style={{ marginBottom: 6 }}>
                 <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklySessions')}</Txt>
                 <Txt variant="bodyMed">{weekly.sessions_closed} / {weekly.sessions_total}</Txt>
               </Row>
-              <Row between center gap={8} style={{ marginBottom: spacing.s2 }}>
+              <Row between center gap={spacing.s2} style={{ marginBottom: spacing.s2 }}>
                 <Txt variant="caption" color={theme.textSecondary}>{t('dash.weeklyMissing')}</Txt>
                 <Txt variant="bodyMed" color={weekly.sessions_missing_report > 0 ? theme.warn : theme.textMuted}>
                   {weekly.sessions_missing_report}
@@ -258,13 +258,13 @@ export function DashboardScreen({ navigation: propNav }: any) {
         {signals.length > 0 ? (
           <FadeIn index={7}>
             <Card>
-              <Row center gap={8} style={{ marginBottom: spacing.s2 }}>
+              <Row center gap={spacing.s2} style={{ marginBottom: spacing.s2 }}>
                 <Icon name="shield-half-outline" size={17} color={theme.brand} />
                 <Txt variant="h3" style={{ flex: 1 }}>{t('dash.anticheat')}</Txt>
               </Row>
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: spacing.s2 }}>
                 {signals.map((row) => (
-                  <Row key={row.id} between center gap={10}>
+                  <Row key={row.id} between center gap={spacing.s3}>
                     <View style={{ flex: 1 }}>
                       <Txt variant="caption">{t(`dash.sig.${row.signal}` as any)}</Txt>
                       <Txt variant="micro" color={theme.textMuted} numberOfLines={1}>
@@ -290,9 +290,9 @@ export function DashboardScreen({ navigation: propNav }: any) {
               <Txt variant="h3">{t('dash.trend')}</Txt>
               <Tag label="6" color={theme.brand} bg={theme.brandSoft} icon="calendar" />
             </Row>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 110 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.s2, height: 110 }}>
               {stats.trend.map((v, i) => (
-                <View key={i} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                <View key={i} style={{ flex: 1, alignItems: 'center', gap: spacing.s1 }}>
                   <Txt variant="micro" color={theme.textMuted}>{v}%</Txt>
                   <TrendBar
                     value={v}
@@ -309,15 +309,13 @@ export function DashboardScreen({ navigation: propNav }: any) {
         {/* إجراءات سريعة */}
         <FadeIn index={6}>
           <Txt variant="h3">{t('today.quickActions')}</Txt>
-          <Spacer size={8} />
           <ListRow
             icon="rocket"
             title={t('dash.openWizard')}
             subtitle={t('dash.quickSetup')}
             onPress={() => navigation.navigate('Wizard')}
           />
-          <Spacer size={8} />
-          <Row gap={8}>
+          <Row gap={spacing.s2}>
             <View style={{ flex: 1 }}>
               <ListRow
                 icon="ribbon"
@@ -337,7 +335,6 @@ export function DashboardScreen({ navigation: propNav }: any) {
               />
             </View>
           </Row>
-          <Spacer size={8} />
           <ListRow
             icon="people"
             title={t('batchAdm.title')}
@@ -360,7 +357,7 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
     <FadeIn index={0}>
       <Card>
         <Txt variant="h3" style={{ marginBottom: spacing.s2 }}>{t('dash.needsAttention')}</Txt>
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: spacing.s2 }}>
           {pendingExcuses > 0 ? (
             <Card style={{ backgroundColor: theme.dangerSoft, borderStartWidth: 3, borderStartColor: theme.danger, padding: spacing.s3 }}>
               <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('ExcusesInbox')} />
@@ -415,7 +412,7 @@ function KpiCard({ icon, color, value, suffix, label, index }: { icon: keyof typ
         <View style={{ width: 44, height: 44, borderRadius: radii.md, backgroundColor: color + '1F', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon} size={22} color={color} />
         </View>
-        <Row center gap={2}>
+        <Row center gap={spacing.s1}>
           <CountUp value={value} variant="numberHero" />
           {suffix ? <Txt variant="h3" color={color}>{suffix}</Txt> : null}
         </Row>

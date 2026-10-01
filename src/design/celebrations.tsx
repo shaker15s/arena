@@ -155,7 +155,7 @@ export function CelebrationModal({
             shadowOpacity: 0.15,
             shadowRadius: 30,
             shadowOffset: { width: 0, height: 12 },
-            gap: 12,
+            gap: spacing.s3,
           }}
         >
           <MasarMascot size={110} mode={streakSafe ? 'streak_fire' : 'celebrating'} interactive />
@@ -173,12 +173,12 @@ export function CelebrationModal({
             </Animated.View>
           ) : null}
           {streakSafe ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s2 }}>
               <Icon name="flame" size={18} color={theme.flameFrom} />
               <Text style={{ fontSize: 24 }}>{emoji}</Text>
             </View>
           ) : null}
-          <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 10 }}>
+          <View style={{ alignSelf: 'stretch', gap: spacing.s2, marginTop: 10 }}>
             <Btn
               variant="secondary"
               icon="share-social-outline"
@@ -262,7 +262,7 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
             alignItems: 'center',
             width: '100%',
             maxWidth: 360,
-            gap: 14,
+            gap: spacing.s4,
             borderWidth: 1,
             borderColor: theme.glassBorder,
             shadowColor: theme.glassShadow,

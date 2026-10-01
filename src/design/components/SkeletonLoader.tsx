@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { radii } from '../tokens';
 import { isReducedMotion } from '../motion';
+import { spacing } from '../tokens';
 
 export interface SkeletonProps {
   width?: number | string;
@@ -198,7 +199,7 @@ export function PageSkeleton() {
         <Skeleton width="40%" height={22} />
       </View>
       <View style={{ height: 16 }} />
-      <View style={{ flexDirection: 'row', gap: 12 }}>
+      <View style={{ flexDirection: 'row', gap: spacing.s3 }}>
         <View style={{ flex: 1 }}><Skeleton height={76} borderRadius={radii.lg} /></View>
         <View style={{ flex: 1 }}><Skeleton height={76} borderRadius={radii.lg} /></View>
       </View>
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   pageSkeleton: {
     flex: 1,
     padding: 20,
-    gap: 12,
+    gap: spacing.s3,
   },
   cardSkeleton: {
     padding: 16,
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.s3,
   },
   col: {
     flex: 1,
