@@ -23,6 +23,7 @@ import { RefreshScope, applyRealtimePatch, emptyDb, fetchRemoteDbScope, subscrib
 import { SyncGate } from './syncGate';
 import { runCommandOnServer } from './actions';
 import { clearCommands, loadCommands, markApplied, markFailed, pruneCommands, pushOfflineCommand } from '../shared/offline';
+import { announce } from '../design/a11y/announce';
 const CACHE_KEY = 'masar.cache.v2';
 
 interface Toast {
@@ -171,6 +172,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toast = useCallback((message: string, kind: Toast['kind'] = 'info') => {
     toastSeq.current += 1;
     const id = toastSeq.current;
+    try {
+      announce(message, kind === 'error' ? 'assertive' : 'polite');
+    } catch {}
     setToasts((current) => [...current.slice(-2), { id, message, kind }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3600);
   }, []);

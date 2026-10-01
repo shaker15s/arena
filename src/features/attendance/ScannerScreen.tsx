@@ -35,6 +35,7 @@ import { track } from '../../shared/analytics';
 import { clearPositionCache, getDevicePosition, getLocationPermissionState } from '../../shared/location';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
+import { announce } from '../../design/a11y/announce';
 import {
   Btn,
   FadeIn,
@@ -47,7 +48,7 @@ import {
 } from '../../design/components';
 import { SessionCompleteCelebration } from './SessionCompleteCelebration';
 import { MasarMascot } from '../../design/mascot';
-import { spacing, radii, sizes } from '../../design/tokens';
+import { spacing, radii, sizes, typography } from '../../design/tokens';
 import { isReducedMotion } from '../../design/motion';
 import { Icon } from '../../design/icons';
 import { Screen, VisuallyHidden } from '../../design/a11y/semantics';
@@ -169,6 +170,9 @@ export function ScannerScreen({ navigation }: any) {
 
   const triggerErrorShake = (title: string, msg?: string) => {
     haptic('error');
+    try {
+      announce(msg ? `${title} — ${msg}` : title, 'assertive');
+    } catch {}
     setToast({ visible: true, type: 'error', title, msg });
     triggerOtpShake();
     Animated.sequence([
@@ -184,6 +188,9 @@ export function ScannerScreen({ navigation }: any) {
     switch (r.kind) {
       case 'ok':
         haptic('success');
+        try {
+          announce(t('scanner.success'), 'polite');
+        } catch {}
         track('checkin_ok', { status: r.status ?? 'present' });
         Animated.sequence([
           Animated.timing(flashAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
@@ -194,6 +201,9 @@ export function ScannerScreen({ navigation }: any) {
         break;
       case 'already':
         haptic('warning');
+        try {
+          announce(t('scanner.already'), 'polite');
+        } catch {}
         setSuccess({ points: 0, status: 'present', already: true });
         break;
       case 'expired':
@@ -468,7 +478,7 @@ export function ScannerScreen({ navigation }: any) {
 
         {/* 5. إدخال الكود اليدوي الاحتياطي (6 أرقام OTP Boxes) */}
         <View style={styles.manualCodeContainer}>
-          <Txt variant="caption" bold color="#FFFFFF" align="center" style={{ marginBottom: 10, fontSize: 13 }}>
+          <Txt variant="caption" bold color="#FFFFFF" align="center" style={{ marginBottom: 10 }}>
             تعذّرت الكاميرا؟ أدخل كود الطوارئ (6 أرقام):
           </Txt>
 
@@ -714,8 +724,7 @@ const styles = StyleSheet.create({
   },
   otpDigit: {
     fontVariant: ['tabular-nums'],
-    fontSize: 22,
-    lineHeight: 28,
+    ...typography.h2,
   },
   hiddenInput: {
     position: 'absolute',

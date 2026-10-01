@@ -12,6 +12,30 @@
  */
 import { AccessibilityInfo, Platform } from 'react-native';
 
+/**
+ * تصنيف وميزانية الحركة المعيارية الموحدة (Directive §15, §18, §19):
+ * M0: منعدمة / بدون حركة (Reduce Motion) = 0ms
+ * M1: تفاعلات دقيقة / Micro (80–140ms — tooltips, toggles, icon press)
+ * M2: استجابة لمسية / Interaction (160–300ms — taps, cards, small state feedback)
+ * M3: انتقالات هيكلية / Transition (250–380ms — sheets, page slides, modal entrance)
+ * M4: احتفالات وإنجازات / Celebration (400–700ms — badge unlock, confetti, streak flame)
+ *
+ * جميع الحركات مصممة لتكون قابلة للمقاطعة (Interruptible) وتُلغى تلقائيًا عند Reduce Motion.
+ */
+export const motionHierarchy = {
+  M0: 0,
+  M1: 120, // 80–140ms
+  M2: 220, // 160–300ms
+  M3: 320, // 250–380ms
+  M4: 550, // 400–700ms
+} as const;
+
+export const M0 = motionHierarchy.M0;
+export const M1 = motionHierarchy.M1;
+export const M2 = motionHierarchy.M2;
+export const M3 = motionHierarchy.M3;
+export const M4 = motionHierarchy.M4;
+
 export const duration = {
   instant: 90,
   micro: 140,

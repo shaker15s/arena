@@ -16,14 +16,52 @@ const TOKENS = path.join(ROOT, 'src', 'design', 'tokens.ts');
 
 // ── WCAG نسب التباين ───────────────────────────────────────────────
 const srgb = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-function luminance(hex) {
-  const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
-  const r = parseInt(full.slice(0, 2), 16) / 255;
-  const g = parseInt(full.slice(2, 4), 16) / 255;
-  const b = parseInt(full.slice(4, 6), 16) / 255;
-  return 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
+
+function parseColor(str) {
+  if (!str) return null;
+  if (typeof str === 'object' && typeof str.r === 'number') return str;
+  if (typeof str !== 'string') return null;
+  if (str.startsWith('#')) {
+    const h = str.replace('#', '');
+    const full = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
+    return {
+      r: parseInt(full.slice(0, 2), 16),
+      g: parseInt(full.slice(2, 4), 16),
+      b: parseInt(full.slice(4, 6), 16),
+      a: full.length === 8 ? parseInt(full.slice(6, 8), 16) / 255 : 1,
+    };
+  }
+  const m = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (m) {
+    return {
+      r: parseInt(m[1], 10),
+      g: parseInt(m[2], 10),
+      b: parseInt(m[3], 10),
+      a: m[4] !== undefined ? parseFloat(m[4]) : 1,
+    };
+  }
+  return null;
 }
+
+function composite(overlayStr, baseStr) {
+  const fg = parseColor(overlayStr);
+  const bg = parseColor(baseStr);
+  if (!fg || !bg) return null;
+  const a = fg.a;
+  return {
+    r: Math.round(fg.r * a + bg.r * (1 - a)),
+    g: Math.round(fg.g * a + bg.g * (1 - a)),
+    b: Math.round(fg.b * a + bg.b * (1 - a)),
+    a: 1,
+  };
+}
+
+function luminance(c) {
+  const p = typeof c === 'string' ? parseColor(c) : c;
+  if (!p) return 0;
+  return 0.2126 * srgb(p.r / 255) + 0.7152 * srgb(p.g / 255) + 0.0722 * srgb(p.b / 255);
+}
+
 function ratio(a, b) {
   const la = luminance(a);
   const lb = luminance(b);
@@ -70,37 +108,54 @@ const REQUIRED = [
   // A11Y-10: حلقة التركيز عنصر واجهة ⇒ WCAG 1.4.11 يشترط ≥ 3:1 مع ما يجاورها
   ['focusRing (حلقة التركيز) / bg', 'focusRing', 'bg', 3],
   ['focusRing (حلقة التركيز) / card', 'focusRing', 'card', 3],
+  // Composite Glass Contrast (WCAG 1.4.3 عبر الأسطح الزجاجية المركبة)
+  ['text / glass (زجاج مركّب)', 'text', 'glass', 4.5],
+  ['textSecondary / glass (زجاج مركّب)', 'textSecondary', 'glass', 4.5],
+  ['textMuted / glass (زجاج مركّب)', 'textMuted', 'glass', 4.5],
+  ['textSuccess / glass (زجاج مركّب)', 'textSuccess', 'glass', 4.5],
+  ['textWarn / glass (زجاج مركّب)', 'textWarn', 'glass', 4.5],
+  ['textDanger / glass (زجاج مركّب)', 'textDanger', 'glass', 4.5],
+  ['brandText / glass (زجاج مركّب)', 'brandText', 'glass', 4.5],
+  ['text / glassHeavy (زجاج كثيف)', 'text', 'glassHeavy', 4.5],
+  ['textSecondary / glassHeavy (زجاج كثيف)', 'textSecondary', 'glassHeavy', 4.5],
+  ['textMuted / glassHeavy (زجاج كثيف)', 'textMuted', 'glassHeavy', 4.5],
   ['line (حدود) / card', 'line', 'card', 1], // معلوماتي فقط
 ];
 
 let failures = 0;
 let checked = 0;
 console.log('═══════════════════════════════════════════════════════');
-console.log('  مسار — بوابة تباين الألوان (WCAG 1.4.3)');
+console.log('  مسار — بوابة تباين الألوان (WCAG 1.4.3 & Glass Contrast)');
 console.log('═══════════════════════════════════════════════════════');
 for (const [themeName, map] of Object.entries(themes)) {
   console.log(`\n▸ ${themeName}`);
   for (const [label, fgKey, bgKey, min] of REQUIRED) {
     const fg = map[fgKey];
-    const bg = map[bgKey];
+    let bg = map[bgKey];
     if (!fg || !bg) {
       if (min > 1) {
         failures += 1;
-        console.log(`  ✗ ${label.padEnd(34)} مفتاح مفقود (${!fg ? fgKey : bgKey})`);
+        console.log(`  ✗ ${label.padEnd(36)} مفتاح مفقود (${!fg ? fgKey : bgKey})`);
       }
       continue;
     }
-    if (!/^#[0-9A-Fa-f]{3,8}$/.test(fg) || !/^#[0-9A-Fa-f]{3,8}$/.test(bg)) {
-      // ألوان rgba (زجاج/حدود) لا تُقاس هنا — تُختبر في axe على DOM الحقيقي.
-      console.log(`  · ${label.padEnd(34)} متجاهَل (rgba)`);
+
+    let effectiveBg = bg;
+    if (bg.startsWith('rgba') && map.bg) {
+      effectiveBg = composite(bg, map.bg);
+    }
+
+    if (!parseColor(fg) || !parseColor(effectiveBg)) {
+      console.log(`  · ${label.padEnd(36)} متجاهَل (لون غير قابل للتحليل)`);
       continue;
     }
+
     checked += 1;
-    const r = ratio(fg, bg);
+    const r = ratio(fg, effectiveBg);
     const ok = r >= min;
     if (!ok) failures += 1;
     console.log(
-      `  ${ok ? '✓' : '✗'} ${label.padEnd(34)} ${r.toFixed(2)}:1 (المطلوب ≥ ${min}:1)`,
+      `  ${ok ? '✓' : '✗'} ${label.padEnd(36)} ${r.toFixed(2)}:1 (المطلوب ≥ ${min}:1)`,
     );
   }
 }

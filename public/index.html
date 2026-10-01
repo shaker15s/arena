@@ -218,7 +218,7 @@
           hide();
         }, 20000); // أمان: لو فشل التحميل لا نحبس المستخدم
 
-        // A11Y-12 (WCAG 2.4.11): حارس تمرير عند التركيز لمنع حجب العنصر خلف الشريط السفلي العائم
+        // A11Y-12 (WCAG 2.4.11): حارس تمرير عند التركيز لمنع حجب العنصر خلف الشريط السفلي العائم أو الترويسة العلوية
         document.addEventListener('focusin', function (e) {
           var target = e.target;
           if (!target || typeof target.getBoundingClientRect !== 'function') return;
@@ -226,7 +226,7 @@
           var rect = target.getBoundingClientRect();
           var rawPad = getComputedStyle(document.documentElement).getPropertyValue('--masar-tabbar-h');
           var pad = parseInt(rawPad, 10) || 140;
-          if (rect.bottom > window.innerHeight - pad && typeof target.scrollIntoView === 'function') {
+          if ((rect.bottom > window.innerHeight - pad || rect.top < 64) && typeof target.scrollIntoView === 'function') {
             target.scrollIntoView({ block: 'center', inline: 'nearest' });
           }
         }, true);
