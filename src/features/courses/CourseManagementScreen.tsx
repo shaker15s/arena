@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
@@ -37,6 +38,7 @@ import {
 import { Icon } from '../../design/icons';
 
 export function CourseManagementScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { db, user, refresh, syncing, toast } = useApp();
   const { theme } = useTheme();
   const { t, lang } = useI18n();
@@ -217,7 +219,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
         }
       />
       <ScrollView
-        contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: insets.bottom + spacing.s6 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => { void refresh('org'); }} tintColor={theme.brand} />}
       >
         {/* بطاقة ملخص الكورس والمالك */}

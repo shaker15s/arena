@@ -3,6 +3,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -62,7 +63,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('vtoday.title')}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -235,7 +236,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('batches.title')}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -345,6 +346,7 @@ export function MyBatchesScreen({ navigation: propNav }: any) {
 // ───────────────────────────── S37 سجل الجلسات ─────────────────────────────
 
 export function SessionsHistoryScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, toast, user } = useApp();
@@ -464,7 +466,7 @@ export function SessionsHistoryScreen({ route, navigation }: any) {
           <Btn title={t('sess.exportPdf')} size="sm" variant="ghost" icon="document-text" responsive onPress={exportPdf} />
         </Row>
       } />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: insets.bottom + spacing.s6 }}>
         {/* الطلاب */}
         <FadeIn index={0}>
           <Txt variant="h3">{t('common.students')} ({students.length})</Txt>
@@ -577,6 +579,7 @@ function ReportStat({ label, value, color, bg }: { label: string; value: number;
 // ───────────────────────────── S36 ملف الطالب ─────────────────────────────
 
 export function StudentRecordScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast } = useApp();
@@ -653,7 +656,7 @@ export function StudentRecordScreen({ route, navigation }: any) {
   return (
     <Screen label={t('student.title')}>
       <Header title={t('student.title')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: insets.bottom + spacing.s6 }}>
         <FadeIn index={0}>
           <Card style={{ alignItems: 'center', paddingVertical: 18, gap: 8 }}>
             <Avatar name={student.fullName} color={student.avatarColor} size={72} />

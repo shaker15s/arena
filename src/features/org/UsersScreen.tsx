@@ -65,7 +65,7 @@ export function UsersScreen() {
         keyExtractor={(p) => p.id}
         initialNumToRender={12}
         windowSize={5}
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

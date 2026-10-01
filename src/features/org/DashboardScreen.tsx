@@ -133,7 +133,7 @@ export function DashboardScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('dash.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

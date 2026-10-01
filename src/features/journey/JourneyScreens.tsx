@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../../data/store';
@@ -14,7 +15,7 @@ import { submitCourseRating, issueBatchCertificates } from '../../data/actions';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
-  Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, ProgressBar, Row,
+  Btn, Card, Chip, DisclosureIcon, Empty, FadeIn, Flame, Header, Input, JourneyCardSkeleton, ProgressBar, Row,
   Screen, Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
@@ -48,7 +49,7 @@ export function JourneyScreen({ navigation: propNav }: any) {
   return (
     <Screen label={t('journey.title')} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: spacing.s5 }}
+        contentContainerStyle={{ paddingBottom: spacing.s5 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}
@@ -61,7 +62,14 @@ export function JourneyScreen({ navigation: propNav }: any) {
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: 14 }}>
           {myEnrollments.length === 0 ? (
-            <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => tabs.setTab('explore')} />
+            syncing ? (
+              <View style={{ gap: 14 }}>
+                <JourneyCardSkeleton />
+                <JourneyCardSkeleton />
+              </View>
+            ) : (
+              <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => tabs.setTab('explore')} />
+            )
           ) : (
             myEnrollments.map((enr, i) => {
               const batch = batchOf(db, enr.batchId);
@@ -602,6 +610,7 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
 type Filter = 'all' | AttendanceStatus;
 
 export function AttendanceHistoryScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, syncing } = useApp();
@@ -645,7 +654,7 @@ export function AttendanceHistoryScreen({ route, navigation }: any) {
         keyExtractor={(r) => r.sess.id}
         initialNumToRender={12}
         windowSize={5}
-        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: 60, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.s5, paddingBottom: insets.bottom + spacing.s6, gap: 12 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

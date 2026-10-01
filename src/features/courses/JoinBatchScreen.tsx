@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import { joinBatchByCode } from '../../data/actions';
@@ -13,6 +14,7 @@ import { Icon } from '../../design/icons';
 import { safeBack } from '../../app/navRef';
 
 export function JoinBatchScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { db, user, refresh, toast } = useApp();
   const { theme } = useTheme();
   const { t } = useI18n();
@@ -43,7 +45,7 @@ export function JoinBatchScreen({ route, navigation }: any) {
   return (
     <Screen label={t('joinCode.title')}>
       <Header title={t('joinCode.title')} back={() => safeBack(navigation)} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: insets.bottom + spacing.s6 }}>
         <Card>
           <Row center gap={10}>
             <Icon name="qr-code" size={28} color={theme.brand} />

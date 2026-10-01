@@ -4,6 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import {
@@ -39,7 +40,7 @@ export function HubScreen() {
 
   return (
     <Screen label={t('tabs.hub')} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: spacing.s3, padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: spacing.s3, paddingBottom: spacing.s5 }}>
         <Header title={t('tabs.hub')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
           {[
@@ -542,6 +543,7 @@ function AuditLog() {
 // ───────────────────────────── S46 إصدار الشهادات ─────────────────────────────
 
 export function IssueCertificatesScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { t } = useI18n();
   const { theme } = useTheme();
   const { db, user, refresh, toast } = useApp();
@@ -574,7 +576,7 @@ export function IssueCertificatesScreen({ navigation }: any) {
   return (
     <Screen label={t('issue.title')} style={{ flex: 1 }}>
       <Header title={t('issue.title')} back={() => navigation.goBack()} subtitle={t('issue.ruleNote', { pct: pctRule })} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 12, paddingBottom: insets.bottom + spacing.s6 }}>
         {completedBatches.length === 0 ? (
           <Empty emoji="🎓" title={t('issue.noCompleted')} />
         ) : (

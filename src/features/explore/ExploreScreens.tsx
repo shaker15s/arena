@@ -75,7 +75,7 @@ export function ExploreScreen({ navigation: propNav }: any) {
         keyExtractor={(course) => course.id}
         initialNumToRender={8}
         windowSize={5}
-        contentContainerStyle={{ paddingTop: spacing.s3, paddingBottom: spacing.s5, gap: spacing.s3 }}
+        contentContainerStyle={{ paddingBottom: spacing.s5, gap: spacing.s3 }}
         refreshControl={
           <RefreshControl
             refreshing={syncing}

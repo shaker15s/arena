@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import { toDataURL as qrToDataUrl } from 'qrcode';
@@ -23,6 +24,7 @@ import { CelebrationModal } from '../../design/celebrations';
 import { Icon } from '../../design/icons';
 
 export function CertificatesScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { t } = useI18n();
   const { theme } = useTheme();
   const { db, user } = useApp();
@@ -37,7 +39,7 @@ export function CertificatesScreen({ navigation }: any) {
         keyExtractor={(cert) => cert.id}
         initialNumToRender={10}
         windowSize={5}
-        contentContainerStyle={{ padding: spacing.s5, gap: 14 }}
+        contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: insets.bottom + spacing.s6 }}
         ListEmptyComponent={<Empty emoji="🎓" title={t('certs.emptyTitle')} />}
         renderItem={({ item: cert, index: i }) => {
           const batch = batchOf(db, cert.batchId);
@@ -82,6 +84,7 @@ export function CertificatesScreen({ navigation }: any) {
 // ───────────────────────────── S23 العارض ─────────────────────────────
 
 export function CertificateViewerScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { t, lang } = useI18n();
   const { theme } = useTheme();
   const { db, user, toast, refresh } = useApp();
@@ -338,7 +341,7 @@ export function CertificateViewerScreen({ route, navigation }: any) {
   return (
     <Screen label={t('certs.viewer')}>
       <Header title={t('certs.viewer')} back={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.s5, gap: 14, paddingBottom: insets.bottom + spacing.s6 }}>
         <FadeIn index={0}>
           {/* تصميم الشهادة الرسمي */}
           <View style={{
