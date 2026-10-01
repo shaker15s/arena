@@ -356,6 +356,26 @@ T0 preflight → T1 (roles) ──┐
 
 ---
 
+## Task 6bis (T6b): إضافات ت6 — توازن الألوان + orbs + توحيد Toast + scroll behavior (توجيه §11, §12, §33, §40)
+
+**Files:** `src/design/glass.tsx` (AppBackground orbs) · `src/design/components/Toast.tsx` + `src/app/App.tsx` (ToastHost) · `RootNavigator.tsx` + الشاشات (scroll) · Test: visual (screenshot matrix T8).
+
+- [ ] **Step 1: orbs (توجيه §12)**
+  `AppBackground` (glass.tsx) — حالياً 3 orbs متحركة (orbPrimary/Secondary/Tertiary). **قلها لشكل ambient واحد** (orb واحد static أو subtle drift)، وخلي الحركة **قصيرة/هادفة** (لا infinite إلا على واحد كحد أقصى + reduced-motion guard). قاعدة الشاشة: مفيش شاشة = orb+beam+shimmer+mascot+progress+card في نفس الوقت (§12).
+- [ ] **Step 2: توازن الألوان (توجيه §11)**
+  عند لمس أي شاشة في T6: توزيع = **Neutral 70–80% · Brand 10–15% · Semantic 5–10% · Delight لحظات فقط**؛ **الـgold** مقصور على certificate/achievement/streak/rank (مش لون عام). (قاعدة مراجعة بصرية مش كود — في الـrelease gate T8.)
+- [ ] **Step 3: توحيد Toast (توجيه §33)**
+  عندك **منهجين**: `ToastHost`/`ToastItem` في `App.tsx` + مكوّن `design/components/Toast.tsx`. **وحدهم في ToastManager واحد** (`ToastManager → ToastHost → ToastSurface`) بنوعين 4 (success/warning/error/info) — واحد من الاثنين يتبطل (احذف أو خليه re-export). **اختيار: `components/Toast.tsx` هو الـsurface الرسمي** (فيه logic موجود) و`App.tsx` بيفضل host بس.
+- [ ] **Step 4: scroll behavior (توجيه §40) — feature واضحة الحدود**
+  على الشاشات اللي عندها toolbar/CTA فوق: **scroll down → الـtoolbar يتقلص خفيف + tab bar footprint يتقلص** · **scroll up → بيجوا يارجعوا** — **من غير animation استعراضي** (transform/opacity فقط، interruptible، reduced-motion = off). **scroll-edge fade** تحت الـglass (gradient خفيف) عشان المحتوى اللي بيعدي تحت الـchrome يقرا. **التنفيذ:** listener `onScroll` على الـScrollView في الـscreen (مش global) + state محلي.
+- [ ] **Step 5: GREEN + commit**
+  ```
+  git commit -m "feat(ui): color/orbs restraint, unified toast system, scroll-edge chrome behavior"
+  ```
+  **Acceptance:** مفيش 2 toast system في src · orb واحد · toolbar/tab bar بيتقلصوا مع scroll (ويعمل على light/dark) · مفيش infinite animation زيادة عن الحد (check-motion).
+
+---
+
 ## Task 7 (T7): تقوية الباك-اند + indexes + retention (LIVE-OPS — موافقة مطلوبة قبل التطبيق على الـlive)
 
 > **قاعدة:** كل SQL هنا **يكتب + يتّست محليًا** (sql:check + rpc:check) — **لكن تطبيقه على الـlive (udqgaudt) يستاهل sign-off صريح من Shaker** (بند 2 Global Constraints).
@@ -463,10 +483,11 @@ T0 preflight → T1 (roles) ──┐
 | T7 | DB indexes/retention/async (**LIVE-OPS موافقة**) | 1 | sql:check + pg_cron |
 | T8 | a11y/motion/perf/release gate | 1 | Release Gate matrix |
 | T9 | render pass (memo/timers — **بعد T3**: نفس ملف engine) | 1 | 60fps live + re-render = الـtab النشط فقط |
+| T6b | orbs/ألوان/Toast/scroll (توجيه §11/12/33/40) | 1 | مفيش 2 toast system · orb واحد · scroll-edge |
 
 **Rollback:** كل Task = commit واحد → `git revert <sha>` (T7 = revert migration + **LIVE** rollback needs approval). T5/T6 visual-only (safe). T2/T3 = data/logic (revert يسحب الـscoped refresh — **مفيش data loss** لأن الـcache بتاعنا).
 
-**ولا نفعلها دلوقتي (انضباط):** React-Query/SWR (ابدأ بـscoped) · Service Worker upgrade · Rive/Lottie (مفصود في Master Plan §4) · Materialized views بدل MVs في 0032 · Reanimated 4 (انتقائي لاحق).
+**ولا نفعلها دلوقتي (انضباط):** React-Query/SWR (ابدأ بـscoped) · Service Worker upgrade · Rive/Lottie + Faten asset pipeline (مفصود في Master Plan §4/§32 — قرار منفصل + ميزانية) · Materialized views بدل MVs في 0032 · Reanimated 4 (انتقائي لاحق) · desktop 3-panel experience (توجيه §28/§29 = مرحلة ما بعد T6 — مفيش طلب حالي للتابلت).
 
 **LIVE-OPS (تستاهل موافقة Shaker صريحة):** تطبيق `0035`/`0036`/`0032_wave_c` + retention cron على `udqgaudt` — **بالترتيب** `0032 → 0035 → 0036` (0033/0034 متطبقين حسب probe 10-01).
 
