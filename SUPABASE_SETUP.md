@@ -137,7 +137,49 @@ Expo Go أو web export وحدهما لا يثبتان سلامة التكامل
 رسالة الخطأ فيه (مثل `Invalid request: auth code already used` أو
 `PKCE code verifier not found`) تحدد السبب مباشرة.
 
-## 9) قائمة ما قبل الإنتاج
+## 10) ترتيب الترحيلات ومعرفة «أنا واصل لفين؟»
+
+الترحيلات في `supabase/migrations/` **مرتّبة وتُطبَّق بالترتيب** (`0001` ← `0038`).
+لا يوجد جدول `schema_version` مركزي، فإذا شغّلت ترحيلًا يعتمد على ترحيل غير مُطبَّق
+تظهر أخطاء Postgres مثل:
+
+```
+ERROR: 42703: column "module_id" does not exist          -- 0036 يحتاج 0035
+ERROR: 42P01: relation "public.session_feedback" does not exist   -- 0038 يحتاج 0035
+```
+
+**قبل أي ترحيل جديد، اعرف مستواك**: افتح `supabase/diagnostics/migration_level.sql`
+والصق محتواه في SQL Editor ثم Run — سيُظهر جدولًا لكل ترحيل بحالة ✅/❌. ابدأ من
+**أول ترحيل مكتوب أمامه ❌** وطبّق الملفات بعده بالترتيب. الملف للقراءة فقط ولا يكتب شيئًا.
+
+كل الترحيلات **idempotent** (`IF NOT EXISTS` / `ON CONFLICT` / `CREATE OR REPLACE`)،
+فتكرار تطبيق ترحيل مكتمل آمن. ولمنع الأخطاء الغامضة، الترحيلات التي تعتمد على سابقتها
+تحتوي **تحقّقًا مسبقًا** يشرح بالعربية والإنجليزية أي ترحيل ينقصك:
+
+```
+ERROR: MASAR 0038 needs migration 0035 first (session_feedback table).
+       Required order: 0035 -> 0036 -> 0037 -> 0038.
+```
+
+مثال كامل لإكمال قاعدة بيانات متأخرة:
+
+```
+0035_lecture_feedback_and_reports.sql   →  Run
+0036_course_organizer_authority.sql     →  Run
+0037_course_reports.sql                 →  Run
+0038_more_badges.sql                    →  Run
+```
+
+اختياري بعد 0038 (لمنح الشارات الجديدة للمستخدمين الحاليين فورًا، إذ تُحسب عادة عند
+إغلاق المحاضرات):
+
+```sql
+select public.evaluate_user_badges(id)
+from public.profiles
+where role = 'student' and status = 'active';
+```
+
+## 11) قائمة ما قبل الإنتاج
 
 - طبّق migrations على staging من قاعدة فارغة واختبر سياسات كل دور.
 - اختبر سباقات التسجيل في آخر مقعد، تكرار QR، إغلاق الجلسة مرتين، وإصدار الشهادات مرتين.

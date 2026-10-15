@@ -22,6 +22,23 @@
 -- ────────────────────────────────────────────────────────────────────────────
 -- 1) ربط محاضرة بوحدة تعليمية (p_module_id = NULL ⇒ فصل المحاضرة)
 -- ────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────
+-- ⚠️ تحقّق مسبق: 0036 يبني على كائنات أنشأها 0035 (جدول course_modules والعمود
+-- sessions.module_id). لو لم يُطبَّق 0035 كانت النتيجة خطأ Postgres غامضًا:
+--     ERROR: 42703: column "module_id" does not exist
+-- الآن يفشل الترحيل برسالة واضحة تسمّي الترحيل المطلوب بالتحديد.
+-- ───────────────────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF to_regclass('public.course_modules') IS NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'sessions' AND column_name = 'module_id'
+     ) THEN
+    RAISE EXCEPTION 'MASAR 0036 needs migration 0035 first (course_modules + sessions.module_id). Shaghel 0035_lecture_feedback_and_reports.sql then 0036.';
+  END IF;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.set_session_module(p_session_id UUID, p_module_id UUID DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp

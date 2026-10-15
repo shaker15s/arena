@@ -524,6 +524,10 @@ npm run test:all                  # كل البوابات والاختبارات
 
 # قاعدة البيانات: طبّق الترحيلات بالترتيب 0001 → 0038
 # (عبر supabase CLI: supabase db push، أو الصق كل ملف في SQL Editor بالترتيب)
+# لمعرفة أول ترحيل ناقص في قاعدة قائمة: supabase/diagnostics/migration_level.sql
+#   (قراءة فقط: يُظهر ✅/❌ لكل ترحيل + فحص أعمدة الشارات، ويُولَّد بـ
+#    node scripts/gen-migration-level.js) — والترحيلات 0036/0038 بها تحقّق مسبق
+#    يشرح بالعربية أي ترحيل ينقصك بدل خطأ Postgres الغامض.
 
 npm run web                       # تشغيل التطوير على الويب
 npm run export:web                # بناء الإنتاج إلى dist/

@@ -469,3 +469,22 @@ engine/rls/search/calendar/perf/pentest/load ✓ · **e2e 62/62**.
 - **`rpc:types` أُعيد توليدها** من الترحيلات (110 دالة) بعد إضافة `my_badge_progress` ⇒ البوابة متزامنة.
 
 **اللقطات الدائمة الجديدة (`docs/design/smoke/`):** `DaySummaryCard.html` · `NearestBadgeCard.html` · `NextSessionCard.html` · `DaySummaryCard_—_الحقيقة_الزمنية.html` — نصّها المُستخرج من التصيير الفعلي: «ملخص النهاردة · محاضرة واحدة النهاردة · باقي محاضرة واحدة · شغّالة دلوقتي» و«أقرب شارة للكسب · 2 من 5 · الماراثون · باقي لك 3 محاضرات».
+
+# الموجة H — الحزمة الثالثة: تشخيص الترحيلات ومنع الأخطاء الغامضة (15 أكتوبر 2026)
+
+> بلاغ المستخدم أثناء تطبيق الترحيلات:
+> `ERROR: 42703: column "module_id" does not exist` و
+> `ERROR: 42P01: relation "public.session_feedback" does not exist`.
+> السبب ليس خطأً في الترحيلات بل **قاعدة بيانات متأخرة**: `session_feedback` و
+> `sessions.module_id` يُنشَآن في 0035، و0036/0038 يعتمدان عليه. المشكلة الحقيقية أن
+> رسالة الخطأ لا تقول ذلك.
+
+| البند | الوضع | الدليل المُقاس |
+| --- | --- | --- |
+| **لا طريقة لمعرفة مستوى الترحيلات** | ✅ مُصلَّح | `supabase/diagnostics/migration_level.sql` — استعلام **قراءة فقط** يُظهر لكل ترحيل (32 علامة مميّزة: أول جدول/دالة يُنشئها الملف) حالة ✅/❌، مع فحص أعمدة `badges.target/metric` وعدد الشارات ودالة `my_badge_progress()`. مُولَّد آليًا بـ`scripts/gen-migration-level.js` (و`--check` يمنع تقادمه) |
+| **أخطاء غامضة عند تشغيل ترحيل ناقص الاعتماديات** | ✅ مُصلَّح | 0036 و0038 صارا يبدآن بـ**تحقّق مسبق** (`DO $$ … RAISE EXCEPTION`) يسمّي الترحيل المطلوب: «MASAR 0036 needs migration 0035 first (course_modules + sessions.module_id)» و«MASAR 0038 needs migration 0035 first (session_feedback table). Required order: 0035 → 0036 → 0037 → 0038» |
+| **توثيق خطوات الترحيل** | ✅ منجز | قسم جديد في `SUPABASE_SETUP.md` (§10 «ترتيب الترحيلات ومعرفة أنا واصل لفين؟») + تحديث §20 في `docs/PROJECT_HANDBOOK_AR.md` بأمر التشخيص وأمر منح الشارات للمستخدمين الحاليين |
+
+**التحقق:** `node scripts/check-sql.js` ✅ (0 أخطاء نحوية · 0 دوال بلا تحكم وصول) ·
+ملف التشخيص مُحلَّل نحويًا بعبارتين صحيحتين (`pgsql-ast-parser`) ·
+`node scripts/gen-migration-level.js --check` ✅.

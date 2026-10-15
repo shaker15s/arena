@@ -26,7 +26,7 @@
     "test:load": "tsc -p tsconfig.test.json && node .test-build/scripts/load-test.js",
     "test:scenarios": "tsc -p tsconfig.test.json && node .test-build/e2e/runner.js",
     "test:e2e": "npm run test:scenarios && npm run faten:ssr && npm run smoke",
-    "test:all": "npm run typecheck && npm run a11y && npm run hooks:check && npm run glass:check && npm run contrast && npm run i18n:lint && npm run parity && npm run rpc:check && npm run sql:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search && npm run test:calendar && npm run test:layout && npm run layout:check && npm run test:perf && npm run test:pentest && npm run test:load && npm run test:scenarios && npm run faten:ssr && npm run smoke",
+    "test:all": "npm run typecheck && npm run a11y && npm run hooks:check && npm run glass:check && npm run contrast && npm run i18n:lint && npm run parity && npm run rpc:check && npm run sql:check && npm run migrations:level:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search && npm run test:calendar && npm run test:layout && npm run layout:check && npm run test:perf && npm run test:pentest && npm run test:load && npm run test:scenarios && npm run faten:ssr && npm run smoke",
     "rpc:check": "node scripts/check-rpc-contract.js",
     "rpc:types": "node scripts/gen-rpc-types.js",
     "test:calendar": "tsc -p tsconfig.test.json && node .test-build/scripts/calendar.test.js",
@@ -36,7 +36,9 @@
     "layout:check": "node scripts/check-layout.js",
     "faten:sheet": "tsc -p tsconfig.test.json && node .test-build/scripts/faten-sheet.js",
     "faten:ssr": "tsc -p tsconfig.test.json && node scripts/faten-ssr-run.js",
-    "smoke": "tsc -p tsconfig.smoke.json && node scripts/screen-smoke-run.js"
+    "smoke": "tsc -p tsconfig.smoke.json && node scripts/screen-smoke-run.js",
+    "migrations:level": "node scripts/gen-migration-level.js",
+    "migrations:level:check": "node scripts/gen-migration-level.js --check"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",

@@ -17,6 +17,25 @@
 -- ---------------------------------------------------------------------------
 -- 1. هدف الشارة ووحدة قياسها (للعرض الصادق في كرت «أقرب شارة»)
 -- ---------------------------------------------------------------------------
+-- ───────────────────────────────────────────────────────────────────────────
+-- ⚠️ تحقّق مسبق: 0038 يعتمد على جدول session_feedback (من 0035) وعلى العمود
+-- certificates.status (من 0020). بدونهما كان الترحيل يفشل بخطأ غامض:
+--     ERROR: 42P01: relation "public.session_feedback" does not exist
+-- لمعرفة أول ترحيل ناقص: شغّل supabase/diagnostics/migration_level.sql
+-- ───────────────────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF to_regclass('public.session_feedback') IS NULL THEN
+    RAISE EXCEPTION 'MASAR 0038 needs migration 0035 first (session_feedback table). Required order: 0035 -> 0036 -> 0037 -> 0038.';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'certificates' AND column_name = 'status'
+  ) THEN
+    RAISE EXCEPTION 'MASAR 0038 needs migration 0020 first (certificates.status column).';
+  END IF;
+END $$;
+
 ALTER TABLE public.badges ADD COLUMN IF NOT EXISTS target INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE public.badges ADD COLUMN IF NOT EXISTS metric TEXT NOT NULL DEFAULT 'attendance';
 DO $$ BEGIN
