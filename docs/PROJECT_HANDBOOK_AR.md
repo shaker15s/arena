@@ -434,7 +434,7 @@ docs/       هذا الدليل + سجلات التنفيذ + تقارير ال�
 | `parity` | `check-i18n-parity.js` | تطابق القاموسين + صحة كل استخدام ثابت |
 | `rpc:check` | `check-rpc-contract.js` | كل RPC يستدعيه العميل **معرَّف فعلًا** في الترحيلات |
 | `sql:check` | `check-sql.js` | تحليل نحوي حقيقي + `GRANT` لكل دالة + `search_path` |
-| `sql:exec` | `check-sql-exec.js` | **تنفيذ فعلي** لكل الترحيلات على Postgres 18 داخل Node (PGlite): 0001→0038 من قاعدة فاضية + ملف التطبيق الموحّد مرّتين + RLS والصلاحيات |
+| `sql:exec` | `check-sql-exec.js` | **تنفيذ فعلي** لكل الترحيلات على Postgres 18 داخل Node (PGlite): 0001→0038 من قاعدة فاضية + ملف التطبيق الموحّد مرّتين + قاعدة نصف مطبَّقة + RLS والصلاحيات |
 | `migrations:level:check` | `gen-migration-level.js --check` | ملف تشخيص مستوى الترحيلات مُحدَّث |
 | `migrations:bundle:check` | `gen-apply-bundle.js --check` | ملف التطبيق الموحّد مُحدَّث مقارنةً بملفات الترحيل |
 | `rpc:types` | `gen-rpc-types.js` | توليد أنواع RPCs ومطابقتها (`src/types/database.ts`) |

@@ -161,6 +161,31 @@ async function run() {
   if (/(^|[,{])(anon|authenticated)=/.test(acl)) failures.push('evaluate_user_badges ممنوحة لـ anon/authenticated — خطر أمني');
   if (Number(q.rls_on) !== 4) failures.push(`RLS مفعّل على ${q.rls_on}/4 من الجداول الجديدة`);
 
+  // ── 4) قاعدة «نصف مطبَّقة» (لو تشغيل سابق مات في المنتصف) ───────────────
+  console.log('\n── 4) الملف على قاعدة نصف مطبَّقة (تشغيل مات في المنتصف) ───────────────');
+  const db3 = await freshDb(PGlite, extensions);
+  await applyBaseChain(db3, STRICT_FROM);
+  const { splitStatements } = require(path.join(__dirname, 'sql-exec', 'split.js'));
+  const stmts = splitStatements(fs.readFileSync(BUNDLE, 'utf8'));
+  const cut = stmts.findIndex((s, i) => i > 6 && /CREATE OR REPLACE FUNCTION/i.test(s));
+  let applied = 0;
+  for (let i = 0; i < cut; i++) {
+    try { await db3.exec(stmts[i]); applied++; } catch (e) { try { await db3.exec('rollback;'); } catch {} }
+  }
+  const mid = (await db3.query(
+    `select to_regclass('public.course_modules') as cm, to_regclass('public.session_feedback') as sf,
+            (select count(*) from public.badges)::int as badges`)).rows[0];
+  console.log(`   طبّقنا ${applied}/${stmts.length} عبارة فقط (جداول 0035 موجودة، الدوال لأ) · شارات=${mid.badges}`);
+  try {
+    const res3 = await db3.exec(fs.readFileSync(BUNDLE, 'utf8'));
+    const row3 = res3[res3.length - 1].rows[0];
+    console.log(`   ✅ الملف كامل نجح على القاعدة النصف مطبَّقة → ${row3['الحالة']} · شارات=${row3['عدد الشارات (المتوقّع 16)']}`);
+    if (Number(row3['عدد الشارات (المتوقّع 16)']) < 16) failures.push('الملف على قاعدة نصف مطبَّقة لم يوصل الشارات إلى 16');
+  } catch (e) {
+    failures.push(`apply_0035_0038.sql (قاعدة نصف مطبَّقة): ${brief(e)}`);
+    console.log(`   ❌ فشل → ${brief(e)}`);
+  }
+
   console.log('\n' + '═'.repeat(74));
   if (failures.length) {
     console.log(`❌ فحص تنفيذ SQL فشل — ${failures.length} مشكلة:`);
