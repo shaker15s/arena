@@ -5,6 +5,8 @@
  *  • تباين عالٍ — يقوّي الحدود والفواصل دون تبديل ألوان النصوص المقاسة.
  *  • تقليل الحركة — يغذي محرّك الحركة المركزي.
  *  • تقليل الشفافية — يوقف طبقات الزجاج؛ وإعداد iOS للنظام يتقدم على اختيار التطبيق.
+ *  • إعدادات فطن — «يتكلم معي» و«المساعد العائم»: الشخصية ليست مفروضة على أحد؛
+ *    من يريد واجهة هادئة بلا تعليقات يوقفها بضغطة واحدة (احترام كامل لتفضيل المستخدم).
  *
  * الاختيارات المحلية تُخزَّن على الجهاز؛ إعداد النظام غير قابل للكتابة ولا يُحفظ.
  */
@@ -23,6 +25,10 @@ export interface A11yPrefs {
   highContrast: boolean;
   reduceMotion: boolean;
   reduceTransparency: boolean;
+  /** فطن يتحدّث: يتحكم في مستوى الحديث في كل مواضع الشخصية */
+  mascotChatty: boolean;
+  /** فطن المساعد: الرسائل السياقية العائمة داخل الشاشات */
+  mascotCompanion: boolean;
 }
 
 const DEFAULTS: A11yPrefs = {
@@ -30,6 +36,8 @@ const DEFAULTS: A11yPrefs = {
   highContrast: false,
   reduceMotion: false,
   reduceTransparency: false,
+  mascotChatty: true,
+  mascotCompanion: true,
 };
 
 interface Ctx extends A11yPrefs {

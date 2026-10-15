@@ -21,6 +21,7 @@ import { useI18n } from '../../i18n';
 import { useA11yPrefs, type TextScale } from '../../design/preferences';
 import { Btn, Card, CustomSwitch, FadeIn, Header, Input, Row, Screen, Segmented, Sheet, Txt } from '../../design/components';
 import { Icon } from '../../design/icons';
+import { MasarMascot } from '../../design/mascot';
 import { radii, spacing } from '../../design/tokens';
 import { saveTextFile } from '../../shared/export';
 import { setMyTimezone } from '../../data/actions';
@@ -49,6 +50,8 @@ export function SettingsScreen({ navigation }: any) {
     highContrast,
     reduceMotion,
     reduceTransparency,
+    mascotChatty,
+    mascotCompanion,
     systemReduceTransparency,
     effectiveReduceTransparency,
     setPrefs,
@@ -250,6 +253,44 @@ export function SettingsScreen({ navigation }: any) {
 
             <View style={{ height: 12 }} />
             <Btn title={t('settings.resetA11y')} variant="ghost" size="sm" icon="refresh" onPress={reset} />
+          </Card>
+        </FadeIn>
+
+        {/* ── شخصية مسار «فطن» (FATEN-2): المستخدم يتحكم في مستوى الحديث ── */}
+        <FadeIn index={3}>
+          <Card>
+            <Row center gap={spacing.s2} style={{ marginBottom: 10 }}>
+              <Icon name="chatbubbles-outline" size={18} color={theme.brand} />
+              <Txt variant="bodyMed" style={{ flex: 1 }}>{t('settings.fatenSection')}</Txt>
+            </Row>
+            <Row center gap={spacing.s3} style={{ marginBottom: 12 }}>
+              <MasarMascot size={54} behavior={mascotChatty ? 'welcome' : 'quiet'} hideFloatingBubble liveliness="calm" />
+              <Txt variant="micro" color={theme.textMuted} style={{ flex: 1 }}>
+                {t('faten.role')}
+              </Txt>
+            </Row>
+
+            <Row between center gap={spacing.s3}>
+              <View style={{ flex: 1 }}>
+                <Txt variant="bodyMed">{t('faten.chatty')}</Txt>
+                <Txt variant="micro" color={theme.textMuted}>{t('faten.chattyHint')}</Txt>
+              </View>
+              <CustomSwitch value={mascotChatty} onChange={() => setPrefs({ mascotChatty: !mascotChatty })} accessibilityLabel={t('faten.chatty')} />
+            </Row>
+
+            <View style={{ height: 12 }} />
+            <Row between center gap={spacing.s3}>
+              <View style={{ flex: 1 }}>
+                <Txt variant="bodyMed">{t('faten.companionOn')}</Txt>
+                <Txt variant="micro" color={theme.textMuted}>{t('faten.companionOnHint')}</Txt>
+              </View>
+              <CustomSwitch
+                value={mascotCompanion}
+                onChange={() => setPrefs({ mascotCompanion: !mascotCompanion })}
+                disabled={!mascotChatty}
+                accessibilityLabel={t('faten.companionOn')}
+              />
+            </Row>
           </Card>
         </FadeIn>
 

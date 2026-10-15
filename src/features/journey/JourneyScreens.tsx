@@ -18,6 +18,8 @@ import {
   Screen, Segmented, Sheet, Spacer, Stars, StatRing, Tag, Txt, StreakCalendarGrid,
 } from '../../design/components';
 import { CelebrationModal } from '../../design/celebrations';
+import { StreakHero } from '../gamification/StreakHero';
+import { CourseOutline } from './CourseOutline';
 import { DayStatus } from '../../design/components/StreakCalendarGrid';
 import { spacing, radii, attendanceColors } from '../../design/tokens';
 import { formatDate, formatTime, timePast } from '../../shared/format';
@@ -60,6 +62,11 @@ export function JourneyScreen({ navigation: propNav }: any) {
       >
         <Header title={t('journey.title')} />
         <View style={{ paddingHorizontal: spacing.s5, gap: spacing.s4 }}>
+          {/* بطاقة السلسلة الأسبوعية — الستريك أولًا: أهم مشعر تحفيزي (UX-G1) */}
+          <FadeIn index={0}>
+            <StreakHero onProtect={() => tabs.setTab('today')} />
+          </FadeIn>
+
           {myEnrollments.length === 0 ? (
             <Empty emoji="🗺️" title={t('journey.emptyTitle')} cta={t('today.exploreCta')} onCta={() => tabs.setTab('explore')} />
           ) : (
@@ -345,106 +352,26 @@ export function JourneyMapScreen({ route, navigation: propNav }: any) {
           </FadeIn>
 
           <Spacer size={spacing.s2} />
-          <Txt variant="h3" style={{ marginHorizontal: 4 }}>{t('journey.map')}</Txt>
+          <Row between center style={{ marginHorizontal: 4 }}>
+            <Txt variant="h3">{t('journey.map')}</Txt>
+            <Tag
+              label={t('outline.unitProgress', { done: attendedCount + excusedCount, total: sessions.length })}
+              color={theme.brand}
+              bg={theme.brandSoft}
+              icon="layers"
+            />
+          </Row>
 
-          {/* المسار التفاعلي للمحاضرات */}
-          {sessions.map((sess, i) => {
-            const st = statusOf(sess);
-            const meta = nodeMeta(st);
-            const isLiveNow = sess.status === 'live';
-            const att = attendanceOf(db, sess.id, user.id);
-            const isPassed = st === 'done' || st === 'late' || st === 'excused';
-
-            return (
-              <FadeIn key={sess.id} index={i + 1}>
-                <View style={{ width: '100%', position: 'relative' }}>
-                  {/* خط الربط بين العقد */}
-                  {i < sessions.length - 1 ? (
-                    <View
-                      pointerEvents="none"
-                      style={{
-                        position: 'absolute',
-                        top: 56,
-                        // العقدة (48px) أول عنصر في الصف، فمركزها 28 من البداية
-                        // المنطقية — `start` ينعكس صحيحًا في RTL وLTR معًا.
-                        start: 28,
-                        bottom: -24,
-                        width: 3,
-                        backgroundColor: isPassed ? theme.success : theme.line,
-                        zIndex: 0,
-                      }}
-                    />
-                  ) : null}
-
-                  <Card
-                    style={{
-                      borderColor: isLiveNow ? theme.brand : meta.color + '44',
-                      borderWidth: isLiveNow ? 2 : 1,
-                      backgroundColor: isLiveNow ? theme.brandSoft + '44' : theme.card,
-                    }}
-                  >
-                    <Row center gap={spacing.s3}>
-                      <View
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 24,
-                          backgroundColor: meta.bg,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderWidth: 2,
-                          borderColor: meta.color,
-                        }}
-                      >
-                        <Icon name={meta.icon} size={22} color={meta.color} />
-                      </View>
-
-                      <View style={{ flex: 1 }}>
-                        <Row between center>
-                          <Txt variant="bodyMed">{sess.title}</Txt>
-                          <Tag label={meta.label} color={meta.color} bg={meta.bg} />
-                        </Row>
-                        <Txt variant="micro" color={theme.textMuted}>
-                          {formatDate(sess.startsAt, lang)} · {formatTime(sess.startsAt, lang)}
-                        </Txt>
-
-                        {isLiveNow ? (
-                          <View style={{ marginTop: 8 }}>
-                            <Btn
-                              title={t('journey.scanNow')}
-                              size="sm"
-                              variant="gold"
-                              icon="qr-code"
-                              onPress={() => navigation.navigate('Scanner')}
-                              full
-                            />
-                          </View>
-                        ) : st === 'absent' ? (
-                          <Row center gap={spacing.s2} style={{ marginTop: 6 }}>
-                            <Txt variant="micro" color={theme.danger}>{t('history.absent')}</Txt>
-                            <Btn
-                              title={t('excuses.title')}
-                              size="sm"
-                              variant="ghost"
-                              icon="shield"
-                              onPress={() => navigation.navigate('Excuses', { sessionId: sess.id })}
-                            />
-                          </Row>
-                        ) : st === 'done' || st === 'late' ? (
-                          <Row center gap={spacing.s2} style={{ marginTop: 4 }}>
-                            <Icon name="checkmark-circle" size={14} color={theme.success} />
-                            <Txt variant="micro" color={theme.success}>
-                              {st === 'done' ? `+10 ${t('common.points')}` : `+7 ${t('common.points')} (${t('history.late')})`}
-                            </Txt>
-                          </Row>
-                        ) : null}
-                      </View>
-                    </Row>
-                  </Card>
-                </View>
-              </FadeIn>
-            );
-          })}
+          {/* الوحدات التعليمية (كورسيرا-style): تنظيم المحاضرات في وحدات قابلة للفتح
+              مع تقدّم كل وحدة، ومحتوى كل محاضرة (أهداف/محاور/ملخص/موارد) بدل قائمة مسطّحة. */}
+          <CourseOutline
+            batchId={batchId}
+            onScan={() => navigation.navigate('Scanner')}
+            onExcuse={(sessionId) => navigation.navigate('Excuses', { sessionId })}
+            onOpenSession={(sess) => {
+              if (sess.reportReady) navigation.navigate('LectureReport', { sessionId: sess.id });
+            }}
+          />
 
           {/* العقدة النهائية: منصة التخرج والشهادة */}
           <FadeIn index={sessions.length + 1}>

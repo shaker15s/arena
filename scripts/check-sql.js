@@ -88,12 +88,29 @@ const files = fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort(
 /** كل دالة خادمية معرَّفة، وكل ما حصل على تحكم وصول صريح في المستودع كله. */
 const allFunctions = new Map(); // name -> first file
 const guarded = new Set();
+/** دوال تمنح لمن يُنفّذها صلاحية الكتابة نيابة عن **مستخدم آخر** (تستقبل user id
+ *  كوسيط، أو تعيد تسوية شاملة) — يجب أن تبقى للخادم وحده (`service_role`).
+ *  كانت `evaluate_user_badges` قد مُنحت لـ`authenticated` بالخطأ في 0038، فأي طالب
+ *  كان يمكنه تشغيلها على معرّف غيره ⇒ هذه قائمة حظر دائمة تمنع تكرار الخطأ. */
+const SERVICE_ONLY_FUNCTIONS = ['public.evaluate_user_badges'];
+const leakedGrants = [];
 for (const f of files) {
   const sql = fs.readFileSync(path.join(MIGRATIONS, f), 'utf8');
   for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+(public\.\w+)/gi)) {
     if (!allFunctions.has(m[1])) allFunctions.set(m[1], f);
   }
   for (const m of sql.matchAll(/(?:GRANT|REVOKE)[^;]*?FUNCTION\s+(public\.\w+)/gi)) guarded.add(m[1]);
+
+  // كشف تسريب صلاحية دالة داخلية لأدوار العميل: نضغط العبارة لسطر واحد ثم نبحث
+  // عن `GRANT … TO … authenticated|anon|public` لنفس اسم الدالة.
+  for (const m of sql.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+(public\.\w+)[^;]*?TO\s+([^;]*);/gis)) {
+    const name = m[1];
+    const roles = m[2].toLowerCase();
+    if (!SERVICE_ONLY_FUNCTIONS.includes(name)) continue;
+    if (/\bauthenticated\b|\banon\b|\bpublic\b/.test(roles)) {
+      leakedGrants.push(`${f}: GRANT EXECUTE ON ${name} TO ${m[2].replace(/\s+/g, ' ').trim()}`);
+    }
+  }
 
   // نمط التحكم المُدار بالفهرس (0031): كتلة DO تسرد أسماء الدوال في مصفوفات
   // TEXT[] ثم تنفّذ REVOKE/GRANT عبر format() — نقرأ الأسماء من المصفوفات.
@@ -227,9 +244,11 @@ for (const [kind, n] of [...skipped.entries()].sort((a, b) => b[1] - a[1]).slice
 console.log(`  • أخطاء نحوية: ${parseErrors}`);
 console.log(`  • مخالفات بنيوية: ${structuralErrors}`);
 console.log(`  • دوال بلا تحكم وصول: ${grantsMissing}`);
+console.log(`  • تسريب صلاحيات دوال داخلية: ${leakedGrants.length}`);
+for (const line of leakedGrants) console.log(`      ✗ ${line}`);
 console.log(`  • دوال SECURITY DEFINER (${securityDefinerCount}) بلا search_path: ${searchPathMissing}`);
 
-const failed = parseErrors + structuralErrors + grantsMissing + searchPathMissing;
+const failed = parseErrors + structuralErrors + grantsMissing + searchPathMissing + leakedGrants.length;
 if (failed > 0) {
   console.error(`\n✗ فشل: ${failed} مشكلة في ترحيلات SQL.`);
   process.exit(1);

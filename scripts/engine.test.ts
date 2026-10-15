@@ -6,10 +6,17 @@ import {
   lookupCertificate, pendingFeedbackFor, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
   rpcStartSession, rpcSubmitExcuse, rpcSubmitSessionFeedback, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
+  streakSnapshot, courseOutline, sessionsOfBatch, courseFeedback, courseReportSummary,
+  badgeProgressDetail, nearestBadge, badgeBoard,
 } from '../src/data/engine';
+import {
+  agendaFor, nextAgendaItem, todayAgenda, daySummary,
+} from '../src/data/agenda';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
-import { weekStartOf } from '../src/shared/format';
+import {
+  weekStartOf, relativeDayLabel, startsIn, dayTimeLabel, formatDuration,
+} from '../src/shared/format';
 import { qrSignature } from '../src/shared/sha256';
 
 let passed = 0, failed = 0;
@@ -288,6 +295,254 @@ const MIN = 60_000;
   ok(rep !== null && rep.hasFeedback && rep.attendance === 'present', 'تقرير المحاضرة: حضور + تغذية', rep);
   ok(rep !== null && rep.fullDay, 'تقرير المحاضرة: اليوم الكامل', rep?.fullDay);
   ok(rep !== null && rep.topicsHard.includes('الشروط'), 'تقرير المحاضرة: المحاور المحتاجة توضيح', rep?.topicsHard);
+
+
+  // ═ 13) الستريك الأسبوعي: لقطة كاملة (UX-G1) ═
+  console.log('\n═ 13) لقطة الستريك الأسبوعي ═');
+  const snapK = streakSnapshot(db, 'u_karim');
+  ok(snapK.weekGoal >= 1, 'لقطة الستريك: الهدف الأسبوعي من قواعد اللعبة', snapK.weekGoal);
+  ok(snapK.days.length === 7, 'لقطة الستريك: 7 أيام مهما كان تاريخ التشغيل', snapK.days.length);
+  ok(snapK.days.some((d) => d.isToday), 'لقطة الستريك: يوجد يوم «اليوم» واحد بين الأيام');
+  ok(snapK.msLeft > 0 && snapK.msLeft <= 7 * 86_400_000, 'لقطة الستريك: العدّ التنازلي داخل الأسبوع', snapK.msLeft);
+  ok(snapK.longest >= snapK.weeks, 'لقطة الستريك: الطويلة ≥ الحالية دائمًا');
+  ok(['kept', 'tracking', 'at_risk', 'frozen', 'broken', 'pending'].includes(snapK.status), 'لقطة الستريك: حالة معروفة', snapK.status);
+  ok(snapK.milestone.next >= 4 && snapK.milestone.progress >= 0 && snapK.milestone.progress <= 1, 'لقطة الستريك: المعلم القادم وتقدّمه صحيحان', snapK.milestone);
+
+  // الحضور هذا الأسبوع يجب أن يطابق العدّ اليدوي على الجلسات المغلقة
+  const manualHonored = db.sessions
+    .filter((x) => weekStartOf(x.startsAt) === weekStartOf(Date.now()) && x.status === 'closed')
+    .filter((x) => {
+      const a = attendanceOf(db, x.id, 'u_karim');
+      return a && a.status !== 'absent';
+    }).length;
+  ok(snapK.honoredThisWeek === manualHonored, 'لقطة الستريك: عدّ الحضور مطابق للحساب اليدوي', { snap: snapK.honoredThisWeek, manual: manualHonored });
+
+  // ═ 14) تنظيم الكورس في وحدات (UX-C1) ═
+  console.log('\n═ 14) مخطط الكورس (وحدات + حالات) ═');
+  const outline = courseOutline(db, IDS.g2, 'u_karim');
+  ok(outline.totalSessions > 0, 'المخطط: يحتوي محاضرات المجموعة', outline.totalSessions);
+  ok(outline.units.length >= 1, 'المخطط: وحدة واحدة على الأقل (افتراضية عند غياب الوحدات)', outline.units.length);
+  const flatStatuses = outline.units.flatMap((u) => u.sessions.map((s) => s.status));
+  ok(flatStatuses.filter((s2) => s2 === 'current').length <= 1, 'المخطط: محاضرة «جارية» واحدة كحد أقصى', flatStatuses);
+  ok(outline.units.every((u) => u.completed <= u.total), 'المخطط: المكتمل لا يتجاوز الإجمالي في أي وحدة');
+  ok(outline.units.every((u) => Math.abs(u.progress - (u.total ? u.completed / u.total : 0)) < 1e-9), 'المخطط: نسبة كل وحدة متسقة مع أرقامها');
+  ok(outline.progress >= 0 && outline.progress <= 1, 'المخطط: نسبة الكورس الكلية داخل 0–1', outline.progress);
+
+  // المقفول لا يأتي قبل مفتوح: أي محاضرة مقفولة يسبقها محاضرة غير محسومة
+  let lockedOrderOk = true;
+  for (const unit of outline.units) {
+    const list = unit.sessions;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].status !== 'locked') continue;
+      const earlierUnsettled = list.slice(0, i).some((p) => p.status === 'locked' || p.status === 'current' || p.status === 'absent');
+      if (!earlierUnsettled && i > 0 && list.slice(0, i).every((p) => p.status === 'done' || p.status === 'late' || p.status === 'excused')) {
+        lockedOrderOk = false;
+      }
+    }
+  }
+  ok(lockedOrderOk, 'المخطط: التسلسل منطقي (لا محاضرة مقفولة بعد سلسلة مكتملة)');
+
+  // إنشاء وحدات فعلية على نفس البذرة: يجب أن تُوزّع المحاضرات على الوحدات
+  db.modules.push(
+    { id: 'mod_1', courseId: db.batches.find((b) => b.id === IDS.g2)!.courseId, title: 'الوحدة الأولى', seq: 1, createdAt: Date.now() },
+    { id: 'mod_2', courseId: db.batches.find((b) => b.id === IDS.g2)!.courseId, title: 'الوحدة الثانية', seq: 2, createdAt: Date.now() },
+  );
+  const g2Sessions = sessionsOfBatch(db, IDS.g2).sort((a, b) => a.seq - b.seq);
+  ok(g2Sessions.length >= 3, 'البذرة: مجموعة الاختبار بها 3 محاضرات على الأقل لوحدات المخطط', g2Sessions.length);
+  if (g2Sessions[0]) g2Sessions[0].moduleId = 'mod_1';
+  if (g2Sessions[1]) g2Sessions[1].moduleId = 'mod_1';
+  // نترك بقية المحاضرات بلا وحدة عمدًا لاختبار وحدة «محاضرات إضافية»
+  const outline2 = courseOutline(db, IDS.g2, 'u_karim');
+  ok(outline2.units.length >= 2, 'المخطط: الوحدات المنشأة تظهر كوحدات منفصلة', outline2.units.map((u) => u.title));
+  ok(
+    outline2.units.find((u) => u.id === 'mod_1')?.sessions.length === 2,
+    'المخطط: محاضرات الوحدة الأولى = 2',
+    outline2.units.find((u) => u.id === 'mod_1')?.sessions.length,
+  );
+  ok(
+    outline2.units.some((u) => u.id === 'extra'),
+    'المخطط: المحاضرات بلا وحدة تُجمَّع في «محاضرات إضافية»',
+    outline2.units.map((u) => u.id),
+  );
+  ok(
+    outline2.totalSessions === outline.totalSessions,
+    'المخطط: إضافة الوحدات لا تُفقد أو تُكرّر أي محاضرة',
+    { before: outline.totalSessions, after: outline2.totalSessions },
+  );
+
+
+  // ═ 15) التغذية الراجعة على مستوى الكورس + ملخص تقرير الكورس (UX-C2/C3) ═
+  console.log('\n═ 15) تغذية الكورس وملخص التقرير ═');
+  const courseId = db.batches.find((b) => b.id === IDS.g2)!.courseId;
+  const cf = courseFeedback(db, courseId);
+  ok(cf.sessions.length >= 3, 'تغذية الكورس: صف لكل محاضرة في الكورس', cf.sessions.length);
+  ok(cf.totals.responses === cf.sessions.reduce((sum, x) => sum + x.responses, 0), 'تغذية الكورس: الإجمالي = مجموع المحاضرات');
+  ok(
+    cf.sessions.every((x) => x.avgUnderstanding >= 0 && x.avgUnderstanding <= 5),
+    'تغذية الكورس: متوسطات الفهم داخل 1–5',
+  );
+  ok(
+    cf.totals.avgUnderstanding === 0 || (cf.totals.avgUnderstanding >= 1 && cf.totals.avgUnderstanding <= 5),
+    'تغذية الكورس: متوسط الفهم الكلي منطقي',
+    cf.totals.avgUnderstanding,
+  );
+  // المجهولية: لا يوجد أي معرّف مستخدم في أي تعليق
+  const commentKeys = cf.sessions.flatMap((x) => x.comments.map((c) => Object.keys(c).join(',')));
+  ok(
+    commentKeys.every((keys) => !keys.includes('userId') && !keys.includes('user_id')),
+    'تغذية الكورس: التعليقات مجهولة الهوية 100% (بلا user id)',
+    commentKeys.slice(0, 2),
+  );
+  ok(
+    cf.topicsHard.length === 0 || cf.topicsHard.every((x, i2, arr) => i2 === 0 || arr[i2 - 1].count >= x.count),
+    'تغذية الكورس: المحاور الصعبة مرتّبة تنازليًا',
+    cf.topicsHard.map((x) => x.count),
+  );
+  ok(cf.ratings.count === db.ratings.filter((r) => r.courseId === courseId).length, 'تغذية الكورس: عدد التقييمات مطابق للجدول');
+
+  const crs = courseReportSummary(db, courseId);
+  ok(crs.sessionsTotal === cf.totals.sessionsTotal, 'ملخص التقرير: عدد المحاضرات مطابق لتغذية الكورس');
+  ok(crs.sessionsClosed <= crs.sessionsTotal, 'ملخص التقرير: المغلقة ≤ الإجمالي');
+  ok(crs.learning.responses === cf.totals.responses, 'ملخص التقرير: عدد الاستجابات مطابق');
+  ok(
+    crs.attendance.total ===
+      crs.attendance.present + crs.attendance.late + crs.attendance.absent + crs.attendance.excused,
+    'ملخص التقرير: مجموع الحضور = تفصيل الحالات',
+    crs.attendance,
+  );
+  ok(crs.missingReports >= 0 && crs.students >= 0, 'ملخص التقرير: قيم غير سالبة');
+
+  // ═ 16) دقّة الأجندة (UX-G1): «إيه اللي جاي» لا يكذب في أي اتجاه ═
+  console.log('\n═ 16) دقّة الأجندة والمحاضرة القادمة ═');
+  const student = IDS.omar;
+  const nowMs = Date.now();
+
+  // (أ) الجلسة الملغاة/المغلقة لا تظهر أبدًا في الأجندة
+  const agenda = agendaFor(db, student, nowMs);
+  const hiddenStatuses = new Set(['cancelled', 'closed']);
+  ok(agenda.every((i) => !hiddenStatuses.has(i.session.status)), 'الأجندة: لا تعرض جلسة ملغاة أو مغلقة');
+
+  // (ب) الأجندة مرتّبة زمنيًا تصاعديًا
+  ok(agenda.every((i, i2) => i2 === 0 || agenda[i2 - 1].startsAt <= i.startsAt), 'الأجندة: مرتّبة زمنيًا');
+
+  // (ج) «القادمة» = الجارية أولًا ثم الأقرب زمنيًا — لا تُقفز فوق محاضرة بعد 10 دقائق
+  const next = nextAgendaItem(db, student, nowMs);
+  if (next) {
+    const sooner = agenda.find((i) => i.endsAt + 45 * MIN >= nowMs && i.startsAt < next.startsAt);
+    ok(!sooner, 'القادمة: لا توجد جلسة أقرب مُتجاهَلة', { picked: next.startsAt, sooner: sooner?.startsAt });
+    ok(next.session.status !== 'cancelled', 'القادمة: ليست ملغاة');
+    const liveItems = agenda.filter((i) => i.session.status === 'live' && !i.stale);
+    if (liveItems.length > 0) ok(next.session.id === liveItems[0].session.id, 'القادمة: الجلسة الجارية لها الأولوية المطلقة');
+  } else {
+    ok(agenda.length === 0, 'القادمة: لا توجد أجندة أصلًا هذا صحيح');
+  }
+
+  // (د) اختبار الحدّ الحرج: جلسة بعد 10 دقائق يجب أن تفوز على جلسة بعد 3 أيام
+  const probeDb = buildSeedDb();
+  const probeBatch = probeDb.batches.find((b) => probeDb.enrollments.some((e) => e.batchId === b.id && e.userId === student && e.status === 'active'));
+  ok(!!probeBatch, 'حدّ الدقّة: للمستخدم مجموعة نشطة');
+  const farStart = nowMs + 3 * 24 * 60 * MIN;
+  const nearStart = nowMs + 10 * MIN;
+  probeDb.sessions.push(
+    { id: 'probe-far', batchId: probeBatch!.id, seq: 900, title: 'بعيدة', startsAt: farStart, durationMin: 90, status: 'scheduled', createdBy: null } as never,
+    { id: 'probe-near', batchId: probeBatch!.id, seq: 901, title: 'قريبة', startsAt: nearStart, durationMin: 90, status: 'scheduled', createdBy: null } as never,
+  );
+  // نُبقي جلستَي الاختبار فقط لقياس ترتيب المحرّك بدقة (البذرة بها جلسة حية الآن).
+  const orderingDb = buildSeedDb();
+  orderingDb.sessions = orderingDb.sessions.filter((x) => x.id === 'probe-near' || x.id === 'probe-far');
+  orderingDb.sessions.push(probeDb.sessions.find((x) => x.id === 'probe-far')!, probeDb.sessions.find((x) => x.id === 'probe-near')!);
+  const probeNext = nextAgendaItem(orderingDb, student, nowMs);
+  ok(probeNext?.session.id === 'probe-near', 'حدّ الدقّة: محاضرة بعد 10 دقائق تتقدّم على محاضرة بعد 3 أيام', probeNext?.session.id);
+
+  // (هـ) ملخص اليوم: كل بنود اليوم بداخله فعلًا، والمحاضرة البعيدة خارج العدّ
+  const day = daySummary(probeDb, student, nowMs);
+  ok(day.today.items.every((i) => i.startsAt >= day.today.dayStart && i.startsAt < day.today.dayEnd), 'ملخص اليوم: كل البنود داخل اليوم');
+  ok(!day.today.items.some((i) => i.session.id === 'probe-far'), 'ملخص اليوم: المحاضرة بعد 3 أيام ليست «النهاردة»');
+  ok(day.laterCount >= 1, 'ملخص اليوم: عدد المحاضرات بعد اليوم محسوب');
+  ok(day.today.done <= day.today.total, 'ملخص اليوم: المحضور ≤ الإجمالي');
+  ok(day.today.minutesRemaining >= 0, 'ملخص اليوم: الدقائق المتبقية غير سالبة');
+  const todayOnly = todayAgenda(probeDb, student, nowMs);
+  ok(todayOnly.total === day.today.total, 'ملخص اليوم: قراءتان تعطيان نفس الرقم');
+
+  // ═ 16b) سلطة المنظّم: من يدير الكورس يرى جلسته القادمة ═
+  console.log('\n═ 16b) سلطة المنظّم على الأجندة ═');
+  const managerAgenda = agendaFor(db, IDS.mahmoud, nowMs);
+  ok(managerAgenda.length > 0, 'المنظّم: أجندته لا تُبنى على التسجيلات فقط بل على الكورسات التي يديرها', managerAgenda.length);
+  const managedCourses = new Set(db.courseRoles.filter((r) => r.userId === IDS.mahmoud).map((r) => r.courseId));
+  ok(managedCourses.size > 0, 'المنظّم: يملك دورًا على كورس واحد على الأقل');
+  ok(
+    managerAgenda.every((i) => managedCourses.has(i.batch.courseId) || i.batch.instructorId === IDS.mahmoud),
+    'المنظّم: كل عنصر في أجندته يخصّ كورسًا يديره أو دفعة يدرّسها',
+  );
+  const managerNext = nextAgendaItem(db, IDS.mahmoud, nowMs);
+  ok(Boolean(managerNext), 'المنظّم: له «جلسة قادمة» تُعرض في لوحته');
+  const otherAgenda = agendaFor(db, IDS.mahmoud, nowMs);
+  ok(otherAgenda.every((i) => !hiddenStatuses.has(i.session.status)), 'المنظّم: لا جلسات ملغاة في أجندته');
+
+  // ═ 17) دقّة الشارات (UX-G2): تقدّم حقيقي + لا شارة ميتة ═
+  console.log('\n═ 17) دقّة الشارات و«أقرب شارة» ═');
+  const activeBadges = db.badges.filter((b) => b.active);
+  ok(activeBadges.length >= 15, 'الشارات: 15 شارة نشطة على الأقل بعد الزيادة', activeBadges.length);
+
+  // كل شارة نشطة يجب أن يكون لها عدّاد حقيقي (قابل للحساب) لا نسبة مخترعة
+  const everyDetail = activeBadges.map((b) => ({ code: b.code, d: badgeProgressDetail(db, student, b.code) }));
+  ok(everyDetail.every((x) => x.d.progress >= 0 && x.d.progress <= 1), 'الشارات: كل التقدّمات داخل 0–1');
+  ok(everyDetail.every((x) => Number.isFinite(x.d.current) && Number.isFinite(x.d.target)), 'الشارات: كل عدّاد رقم صحيح');
+  ok(everyDetail.filter((x) => x.d.achievable).length >= 12, 'الشارات: 12 شارة قابلة للكسب على الأقل', everyDetail.filter((x) => x.d.achievable).length);
+
+  // الشارات الثلاث التي كانت «ميتة» يجب أن تُحسب الآن
+  for (const code of ['month_star', 'top_scorer', 'climber']) {
+    const d = badgeProgressDetail(db, student, code);
+    ok(d.achievable, `الشارات: «${code}» لم تعد ميتة`);
+  }
+
+  // `cert_hunter` = 0 تقدّم ما لم توجد شهادة واحدة (كان يرجع 1 قبل الكسب!)
+  const certCount = db.certificates.filter((c) => c.userId === student && c.status === 'active').length;
+  const certDetail = badgeProgressDetail(db, student, 'cert_hunter');
+  ok(certDetail.current === certCount, 'الشارات: عدّاد صائد الشهادات = عدد الشهادات الفعلي', { current: certDetail.current, certCount });
+  ok(certCount > 0 || certDetail.progress === 0, 'الشارات: بلا شهادة ⇒ تقدّم صفر (لا رقم مُخمَّن)');
+
+  // العدّاد لا يتجاوز الهدف أبدًا في العرض
+  const capped = badgeProgressDetail(db, student, 'first_step');
+  ok(capped.progress <= 1 && capped.current >= 0, 'الشارات: العدّاد مقصوص عند الهدف');
+
+  // «أقرب شارة» = أعلى تقدّم فعلًا بين غير المكتسبة، ولا تعرض شارة مكتسبة
+  const near = nearestBadge(db, student);
+  const earnedCodes = new Set(db.userBadges.filter((u) => u.userId === student).map((u) => u.badgeCode));
+  if (near) {
+    ok(!earnedCodes.has(near.badge.code), 'أقرب شارة: ليست مكتسبة بالفعل');
+    ok(near.progress < 1, 'أقرب شارة: ليست مكتملة');
+    const better = everyDetail
+      .filter((x) => x.d.achievable && x.d.progress < 1 && !earnedCodes.has(x.code))
+      .some((x) => x.d.progress > near.progress);
+    ok(!better, 'أقرب شارة: فعلًا الأعلى تقدّمًا', { picked: near.badge.code, progress: near.progress });
+    ok(near.remaining === near.target - near.current, 'أقرب شارة: «باقي» = الهدف − الحالي');
+  } else {
+    ok(earnedCodes.size >= activeBadges.length, 'أقرب شارة: لا توجد شارة قريبة لأن كل الشارات مكتسبة');
+  }
+
+  // لوحة الشارات: المكتسب أولًا ثم الأعلى تقدّمًا
+  const board = badgeBoard(db, student);
+  ok(board.length === activeBadges.length, 'لوحة الشارات: تعرض كل الشارات النشطة');
+  ok(board.filter((r) => r.earned).length === earnedCodes.size, 'لوحة الشارات: عدد المكتسب مطابق');
+
+  // ═ 18) صياغة الزمن (UX-G1): لا «بعد 4320 دقيقة» أبدًا ═
+  console.log('\n═ 18) صياغة الوقت النسبي ═');
+  const t0 = Date.UTC(2026, 8, 30, 16, 0, 0);
+  const tenMin = t0 + 10 * MIN;
+  const inHour = t0 + 60 * MIN;
+  const inThreeDays = t0 + 3 * 24 * 60 * MIN;
+  ok(startsIn(tenMin, 'ar', t0).includes('10'), 'الوقت: محاضرة بعد 10 دقائق تُقال بالدقائق', startsIn(tenMin, 'ar', t0));
+  ok(startsIn(tenMin, 'ar', t0).includes('دقيقة'), 'الوقت: وحدة الدقائق صحيحة');
+  ok(!startsIn(inHour, 'ar', t0).includes('60 دقيقة'), 'الوقت: بعد ساعة لا تُقال «60 دقيقة»', startsIn(inHour, 'ar', t0));
+  ok(startsIn(inThreeDays, 'ar', t0) === relativeDayLabel(inThreeDays, 'ar', t0), 'الوقت: البعيد يُقال بأيام', startsIn(inThreeDays, 'ar', t0));
+  ok(!/\d{3,}/.test(startsIn(inThreeDays, 'ar', t0).replace(/[٠-٩]/g, '')), 'الوقت: لا أرقام دقائق خام للبعيد', startsIn(inThreeDays, 'ar', t0));
+  ok(relativeDayLabel(t0, 'ar', t0).includes('النهاردة'), 'الوقت: اليوم = النهاردة');
+  ok(relativeDayLabel(t0 + 24 * 60 * MIN, 'ar', t0).includes('بكرة'), 'الوقت: غدًا = بكرة');
+  ok(relativeDayLabel(t0 + 7 * 24 * 60 * MIN, 'ar', t0).includes('7'), 'الوقت: بعد أسبوع = بعد 7 أيام');
+  ok(relativeDayLabel(t0 + 20 * 24 * 60 * MIN, 'ar', t0).includes('أسبوعين'), 'الوقت: البعيد جدًا لا يعدّ أيامًا');
+  ok(dayTimeLabel(tenMin, 'ar', t0).includes('·'), 'الوقت: سطر اليوم والوقت مكوّن من جزئين');
+  ok(formatDuration(90 * MIN, 'ar').includes('ساعة'), 'المدة: 90 دقيقة = ساعة و30 دقيقة', formatDuration(90 * MIN, 'ar'));
 
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);

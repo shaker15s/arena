@@ -192,6 +192,9 @@ export interface GamificationProfile {
 
 export type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
+/** وحدة قياس تقدّم الشارة — تُعرَّب في الواجهة (حضور/أسابيع/شهادات/تقييمات…). */
+export type BadgeMetric = 'attendance' | 'weeks' | 'certificates' | 'ratings' | 'feedback' | 'kudos' | 'rank';
+
 export interface Badge {
   code: string;
   nameAr: string;
@@ -201,6 +204,10 @@ export interface Badge {
   rarity: BadgeRarity;
   icon: string; // ionicons name
   active: boolean;
+  /** عدد الوحدات المطلوب للوصول للشارة (للعرض الصادق: «باقي 3 محاضرات»). */
+  target: number;
+  /** نوع الوحدة التي يقيسها `target`. */
+  metric: BadgeMetric;
 }
 
 export interface UserBadge {
@@ -260,6 +267,26 @@ export interface CourseModule {
   title: string;
   seq: number;
   createdAt: number;
+}
+
+/**
+ * تقرير كورس سردي يكتبه المنظّم (ترحيل 0037).
+ * مسودة أو منشور؛ الطالب يرى المنشور فقط.
+ */
+export interface CourseReport {
+  id: string;
+  courseId: string;
+  batchId?: string | null;
+  authorId: string;
+  title: string;
+  summary: string;
+  achievements: string;
+  challenges: string;
+  recommendations: string;
+  published: boolean;
+  publishedAt?: number | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** مورد مرفق بمحتوى المحاضرة */
@@ -375,6 +402,8 @@ export interface Db {
   sessionContent: SessionContent[];
   /** التغذية الراجعة بعد المحاضرات (صفوف المستخدم الحالي فقط عبر RLS) */
   sessionFeedback: SessionFeedback[];
+  /** تقارير الكورسات المكتوبة (المنظّم: الكل — الطالب: المنشور فقط عبر RLS) */
+  courseReports: CourseReport[];
   rules: GamificationRule[];
   audit: AuditEntry[];
   kudosQuotas: KudosQuota[];

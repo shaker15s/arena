@@ -11,7 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './theme';
-import { Btn, Txt } from './components';
+import { Btn, Tag, Txt } from './components';
 import { duration, isReducedMotion } from './motion';
 import { radii, spacing } from './tokens';
 import { useI18n } from '../i18n';
@@ -217,9 +217,11 @@ export function CelebrationModal({
 }
 
 // ── انبثاق شارة مكتسبة (Apple Glass) ──
-export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel, rarityColor, icon }: {
+export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel, rarityColor, icon, progressLabel }: {
   visible: boolean; onClose: () => void; badgeName: string; badgeDesc: string;
   rarityLabel: string; rarityColor: string; icon: keyof typeof Ionicons.glyphMap;
+  /** سطر التقدّم الحقيقي (مثال: «2 من 4 محاضرات») — يُعرض داخل نافذة الشارة. */
+  progressLabel?: string;
 }) {
   const { theme, isDark } = useTheme();
   const { t } = useI18n();
@@ -294,6 +296,9 @@ export function BadgeModal({ visible, onClose, badgeName, badgeDesc, rarityLabel
           <Txt variant="caption" color={rarityColor}>{rarityLabel}</Txt>
           <Txt variant="h1" align="center">{badgeName}</Txt>
           <Txt variant="body" color={theme.textSecondary} align="center">{badgeDesc}</Txt>
+          {progressLabel ? (
+            <Tag label={progressLabel} color={rarityColor} bg={rarityColor + '1A'} icon="stats-chart" />
+          ) : null}
           <View style={{ alignSelf: 'stretch', marginTop: 10 }}>
             <Btn title={t('common.awesome')} onPress={onClose} size="lg" full />
           </View>

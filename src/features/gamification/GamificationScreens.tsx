@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useApp } from '../../data/store';
 import {
-  balanceOf, badgeProgress, getWeeklyLeague, levelOf, nearestBadge, profileOf,
+  balanceOf, badgeBoard, getWeeklyLeague, levelOf, nearestBadge, profileOf,
   risingStars, gamifGet, courseStreak,
 } from '../../data/engine';
 import { useTheme } from '../../design/theme';
@@ -24,6 +24,7 @@ import { formatDate, timePast } from '../../shared/format';
 import { PointReason, BadgeRarity } from '../../data/types';
 import { MasarMascot } from '../../design/mascot';
 import { Icon } from '../../design/icons';
+import { StreakHero } from './StreakHero';
 
 // ───────────────────────────── S19 المحفظة ─────────────────────────────
 
@@ -244,10 +245,15 @@ export function LeagueScreen({ navigation }: any) {
         }
         ListHeaderComponent={
           <View style={{ gap: spacing.s3 }}>
+            {/* السلسلة الأسبوعية: تربط «ستريك» بـ«الدوري» في نفس الشاشة */}
             <FadeIn index={0}>
+              <StreakHero onProtect={() => toast(t('streak.hintRisk'), 'info')} />
+            </FadeIn>
+
+            <FadeIn index={1}>
               <Card
                 onPress={() => {
-                  toast('درع ' + t(('tier.' + league.tier) as any) + ' — استمر في التقدم للصعود! 🏆', 'info');
+                  toast(t('league.tierToast', { tier: t(('tier.' + league.tier) as any) }), 'info');
                 }}
                 style={{
                   alignItems: 'center',
@@ -380,7 +386,12 @@ export function AchievementsScreen({ navigation }: any) {
     r === 'legendary' ? theme.rarityLegendary : r === 'epic' ? theme.rarityEpic : r === 'rare' ? theme.rarityRare : theme.rarityCommon;
   const rarityLabel = (r: BadgeRarity) => t(`achievements.rarity.${r}` as any);
 
-  const badges = db.badges.filter((b) => b.active && (rarityFilter === 'all' || b.rarity === rarityFilter));
+  // `badgeBoard` ترتّب: المكتسبة أولًا ثم الأقرب للكسب — أحسن من ترتيب عشوائي.
+  const board = badgeBoard(db, user.id);
+  const detailOf = (code: string) => board.find((row) => row.badge.code === code)!.detail;
+  const badges = board
+    .map((row) => row.badge)
+    .filter((b) => rarityFilter === 'all' || b.rarity === rarityFilter);
   const earnedCount = db.userBadges.filter((u) => u.userId === user.id).length;
 
   return (
@@ -412,7 +423,9 @@ export function AchievementsScreen({ navigation }: any) {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s3, justifyContent: 'space-between' }}>
           {badges.map((badge, i) => {
             const earned = db.userBadges.find((u) => u.userId === user.id && u.badgeCode === badge.code);
-            const progress = badgeProgress(db, user.id, badge.code);
+            // التقدّم الحقيقي: عدّاد + هدف (مثال: 2 من 4 محاضرات) بدل نسبة مُخمَّنة.
+            const detail = detailOf(badge.code);
+            const progress = detail.progress;
             const color = rarityColor(badge.rarity);
             const badgeTitle = lang === 'ar' ? badge.nameAr : badge.nameEn;
             return (
@@ -438,11 +451,21 @@ export function AchievementsScreen({ navigation }: any) {
                   <Txt variant="micro" color={theme.textMuted} align="center" numberOfLines={2}>
                     {t('achievements.howTo')}: {lang === 'ar' ? badge.descAr : badge.descEn}
                   </Txt>
-                  {!earned && progress > 0 ? (
+                  {!earned && detail.achievable ? (
                     <View style={{ alignSelf: 'stretch', gap: spacing.s1 }}>
                       <ProgressBar progress={progress} height={5} color={color} />
-                      <Txt variant="micro" color={theme.textMuted} align="center">{Math.round(progress * 100)}%</Txt>
+                      <Txt variant="micro" color={theme.textMuted} align="center">
+                        {detail.target > 1
+                          ? t('badges.progressOf', {
+                            current: String(detail.current),
+                            target: String(detail.target),
+                            unit: t(`day.unit.${badge.metric}` as any),
+                          })
+                          : `${Math.round(progress * 100)}%`}
+                      </Txt>
                     </View>
+                  ) : !earned ? (
+                    <Tag label={t('badges.notAchievable')} color={theme.textMuted} bg={theme.bg} icon="hourglass" />
                   ) : earned ? (
                     <>
                       <Tag label={t('achievements.earned')} color={theme.success} bg={theme.successSoft} icon="checkmark" />
@@ -487,6 +510,13 @@ export function AchievementsScreen({ navigation }: any) {
           rarityLabel={rarityLabel(selectedBadge.rarity)}
           rarityColor={rarityColor(selectedBadge.rarity)}
           icon={selectedBadge.icon as any}
+          progressLabel={detailOf(selectedBadge.code).achievable
+            ? t('badges.progressOf', {
+              current: String(detailOf(selectedBadge.code).current),
+              target: String(detailOf(selectedBadge.code).target),
+              unit: t(`day.unit.${selectedBadge.metric}` as any),
+            })
+            : t('badges.notAchievable')}
         />
       ) : null}
     </Screen>

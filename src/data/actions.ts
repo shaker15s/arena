@@ -494,6 +494,138 @@ export async function saveSessionContent(input: {
   });
 }
 
+/** ربط محاضرة بوحدة تعليمية (أو فصلها بتمرير `null`) — سلطة المنظّم على بناء الكورس. */
+export async function setSessionModule(sessionId: string, moduleId: string | null): Promise<void> {
+  await rpc('set_session_module', { p_session_id: sessionId, p_module_id: moduleId });
+}
+
+/** إعادة تسمية وحدة تعليمية. */
+export async function renameCourseModule(moduleId: string, title: string): Promise<void> {
+  await rpc('rename_course_module', { p_module_id: moduleId, p_title: title });
+}
+
+/** حذف وحدة — المحاضرات تبقى وتُفصل من الوحدة. */
+export async function deleteCourseModule(moduleId: string): Promise<number> {
+  const result = await rpc<{ ok: boolean; detached_sessions: number }>('delete_course_module', { p_module_id: moduleId });
+  return result.detached_sessions ?? 0;
+}
+
+/** ترتيب وحدة لأعلى (-1) أو لأسفل (1). */
+export async function reorderCourseModule(moduleId: string, direction: -1 | 1): Promise<boolean> {
+  const result = await rpc<{ ok: boolean; moved: boolean }>('reorder_course_module', {
+    p_module_id: moduleId,
+    p_direction: direction,
+  });
+  return Boolean(result.moved);
+}
+
+// ───────────────────── تقارير الكورس (كتابة المنظّم) — 0037 ─────────────────────
+
+export interface CourseReportRow {
+  id: string;
+  course_id: string;
+  batch_id: string | null;
+  author_id: string;
+  author_name: string;
+  title: string;
+  summary: string;
+  achievements: string;
+  challenges: string;
+  recommendations: string;
+  published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  batch_room: string;
+}
+
+export interface CourseReportSummary {
+  course: { id: string; title: string } | null;
+  batches: number;
+  sessions_total: number;
+  sessions_closed: number;
+  students: number;
+  certificates: number;
+  attendance: { total: number; present: number; late: number; absent: number; excused: number };
+  learning: { responses: number; avg_understanding: number; avg_pace: number; avg_clarity: number };
+  ratings: { count: number; avg: number };
+  missing_reports: number;
+}
+
+/** كتابة/تحديث تقرير كورس (مسودة أو منشور) — سلطة المنظّم. */
+export async function saveCourseReport(input: {
+  courseId: string;
+  reportId?: string | null;
+  batchId?: string | null;
+  title?: string;
+  summary?: string;
+  achievements?: string;
+  challenges?: string;
+  recommendations?: string;
+  publish?: boolean;
+}): Promise<{ id: string; published: boolean }> {
+  const result = await rpc<{ ok: boolean; id: string; published: boolean }>('save_course_report', {
+    p_course_id: input.courseId,
+    p_report_id: input.reportId ?? null,
+    p_batch_id: input.batchId ?? null,
+    p_title: input.title ?? '',
+    p_summary: input.summary ?? '',
+    p_achievements: input.achievements ?? '',
+    p_challenges: input.challenges ?? '',
+    p_recommendations: input.recommendations ?? '',
+    p_publish: input.publish ?? false,
+  });
+  return { id: result.id, published: result.published };
+}
+
+/** نشر/إلغاء نشر تقرير كورس (مع إشعار الطلاب مرة واحدة عند النشر). */
+export async function publishCourseReport(reportId: string, publish = true): Promise<number> {
+  const result = await rpc<{ ok: boolean; published: boolean; notified: number }>('publish_course_report', {
+    p_report_id: reportId,
+    p_publish: publish,
+  });
+  return result.notified ?? 0;
+}
+
+/** حذف تقرير كورس. */
+export async function deleteCourseReport(reportId: string): Promise<void> {
+  await rpc('delete_course_report', { p_report_id: reportId });
+}
+
+/** تقارير الكورس المتاحة للمستخدم (المنظّم: الكل — الطالب: المنشور فقط). */
+export async function getCourseReports(courseId: string): Promise<{ can_manage: boolean; reports: CourseReportRow[] }> {
+  return rpc('get_course_reports', { p_course_id: courseId });
+}
+
+/** ملخص رقمي للكورس يُدرج في متن التقرير (للمنظّم فقط). */
+export async function getCourseReportSummary(courseId: string): Promise<CourseReportSummary> {
+  return rpc('get_course_report_summary', { p_course_id: courseId });
+}
+
+/** نظرة التغذية الراجعة الكاملة للكورس (مجهولة الهوية) — للمنظّم. */
+export async function getCourseFeedback(courseId: string): Promise<CourseFeedbackResult> {
+  return rpc('get_course_feedback', { p_course_id: courseId });
+}
+
+/** شكل نتيجة `get_course_feedback` (0036) — مطابق لمرآة `courseFeedback` في المحرّك. */
+export interface CourseFeedbackResult {
+  course: { id: string; title: string };
+  totals: {
+    responses: number; sessions_with_feedback: number; sessions_total: number;
+    avg_understanding: number; avg_pace: number; avg_clarity: number;
+    praise_count: number; missing_reports: number;
+  };
+  sentiments: Record<string, number>;
+  topics_hard: Array<{ topic: string; count: number }>;
+  sessions: Array<{
+    session_id: string; title: string; batch_id: string; starts_at: string; status: string;
+    responses: number; avg_understanding: number; avg_pace: number; avg_clarity: number;
+    praise_count: number; sentiments: Record<string, number>; topics_hard: string[];
+    has_report: boolean; comments: Array<{ comment: string; sentiment: string; created_at: string }>;
+  }>;
+  ratings: { count: number; avg: number; distribution: Record<string, number> };
+}
+
 /** إنشاء وحدة تعليمية داخل الكورس. */
 export async function createCourseModule(courseId: string, title: string): Promise<string> {
   const result = await rpc<{ ok: boolean; id: string }>('create_course_module', {

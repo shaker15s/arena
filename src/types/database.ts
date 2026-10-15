@@ -796,6 +796,10 @@ export interface Database {
   create_course: { Args: { p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
   /** 0035_lecture_feedback_and_reports.sql */
   create_course_module: { Args: { p_course_id: string; p_title: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  delete_course_module: { Args: { p_module_id: string }; Returns: Json };
+  /** 0037_course_reports.sql */
+  delete_course_report: { Args: { p_report_id: string }; Returns: Json };
   /** 0008_account_deletion.sql */
   delete_my_account: { Args: { p_confirm: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -820,10 +824,16 @@ export interface Database {
   get_command: { Args: { p_command_id: string }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
   get_course_detail: { Args: { p_course_id: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  get_course_feedback: { Args: { p_course_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_course_overview: { Args: { p_course_id: string }; Returns: Json };
   /** 0035_lecture_feedback_and_reports.sql */
   get_course_report: { Args: { p_course_id: string; p_user_id?: string | null }; Returns: Json };
+  /** 0037_course_reports.sql */
+  get_course_report_summary: { Args: { p_course_id: string }; Returns: Json };
+  /** 0037_course_reports.sql */
+  get_course_reports: { Args: { p_course_id: string }; Returns: Json };
   /** 0024_course_operating_system.sql */
   get_detailed_course_analytics: { Args: { p_course_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -880,6 +890,8 @@ export interface Database {
   manual_mark_attendance: { Args: { p_session_id: string; p_user_id: string; p_status: string; p_reason: string }; Returns: Json };
   /** 0014_critical_fixes.sql */
   mark_notifications_read: { Args: Record<string, never>; Returns: Json };
+  /** 0038_more_badges.sql */
+  my_badge_progress: { Args: Record<string, never>; Returns: Json };
   /** 0031_functional_completeness.sql */
   needs_attention: { Args: Record<string, never>; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */
@@ -892,6 +904,8 @@ export interface Database {
   promote_waitlists: { Args: Record<string, never>; Returns: Json };
   /** 0031_functional_completeness.sql */
   public_badge_assertion: { Args: { p_serial: string }; Returns: Json };
+  /** 0037_course_reports.sql */
+  publish_course_report: { Args: { p_report_id: string; p_publish?: boolean | null }; Returns: Json };
   /** 0031_functional_completeness.sql */
   quiet_hours_end: { Args: { p_user: string; p_at?: string | null }; Returns: Json };
   /** 0025_rpc_rate_limits.sql */
@@ -900,6 +914,10 @@ export interface Database {
   reissue_certificate: { Args: { p_certificate_id: string }; Returns: Json };
   /** 0009_waitlist_promotion.sql */
   remove_from_batch: { Args: { p_batch_id: string; p_user_id: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  rename_course_module: { Args: { p_module_id: string; p_title: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  reorder_course_module: { Args: { p_module_id: string; p_direction: number }; Returns: Json };
   /** 0024_course_operating_system.sql */
   reschedule_training_session: { Args: { p_session_id: string; p_starts_at: string; p_reason?: string | null }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -916,6 +934,8 @@ export interface Database {
   rule_num: { Args: { p_key: string }; Returns: Json };
   /** 0035_lecture_feedback_and_reports.sql */
   run_command: { Args: { p_command_id: string; p_command: string; p_payload?: Json | null; p_device_created_at?: string | null }; Returns: Json };
+  /** 0037_course_reports.sql */
+  save_course_report: { Args: { p_course_id: string; p_report_id?: string | null; p_batch_id?: string | null; p_title?: string | null; p_summary?: string | null; p_achievements?: string | null; p_challenges?: string | null; p_recommendations?: string | null; p_publish?: boolean | null }; Returns: Json };
   /** 0019_save_private_note.sql */
   save_private_note: { Args: { p_user_id: string; p_note: string }; Returns: Json };
   /** 0035_lecture_feedback_and_reports.sql */
@@ -930,6 +950,8 @@ export interface Database {
   set_push_preferences: { Args: { p_prefs: Json }; Returns: Json };
   /** 0031_functional_completeness.sql */
   set_report_subscription: { Args: { p_cadence?: string | null; p_enabled?: boolean | null; p_day_of_week?: number | null; p_hour_local?: number | null }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  set_session_module: { Args: { p_session_id: string; p_module_id?: string | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   start_training_session: { Args: { p_batch_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */

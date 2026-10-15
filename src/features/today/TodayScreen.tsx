@@ -13,6 +13,10 @@ import {
   attendancePct, courseOf, batchOf, getMyGamification, liveSessionForStudent,
   nearestBadge, nextSessionForUser, pendingFeedbackFor, seatCounts, sessionsOfBatch,
 } from '../../data/engine';
+// الأجندة: مصدر واحد صادق لـ«إيه اللي جاي» — يفرّق بين الجارية والقادمة ولا
+// يعرض جلسة بعد أيام على أنها «اليوم».
+import { daySummary } from '../../data/agenda';
+import { DaySummaryCard, NearestBadgeCard } from './DayCards';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -21,10 +25,12 @@ import {
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
-import { MasarMascot, FatenBehaviorState, getRandomMascotQuote } from '../../design/mascot';
+import { StreakHero } from '../gamification/StreakHero';
+import { MasarMascot, FatenBehaviorState, pickFatenLine, nextTip } from '../../design/mascot';
 import { ShimmerProgressBar } from '../../design/animations';
 import { layout, spacing, radii, leagueTierColors } from '../../design/tokens';
-import { formatDuration, formatTime, formatDate, getFirstName, sameDay } from '../../shared/format';
+import { formatDuration, formatTime, formatDate, getFirstName, relativeDayLabel, sameDay, startsIn } from '../../shared/format';
+import { tPlural } from '../../shared/plural';
 import { buildIcs, icsFilename } from '../../shared/calendar';
 import { saveIcs } from '../../shared/export';
 import { PUBLIC_APP_URL } from '../../shared/links';
@@ -42,7 +48,7 @@ export function TodayScreen() {
   const { impactLight } = useHaptics();
 
   const [showEasterEgg, setShowEasterEgg] = useState(false);
-  const [activeMascotQuote, setActiveMascotQuote] = useState<string>(() => getRandomMascotQuote('welcome'));
+  const [activeMascotQuote, setActiveMascotQuote] = useState<string>('');
   const flameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFlameTap = () => {
@@ -54,7 +60,11 @@ export function TodayScreen() {
   const gam = useMemo(() => (user ? getMyGamification(db, user.id) : null), [db, user]);
   const liveSess = useMemo(() => (user ? liveSessionForStudent(db, user.id) : undefined), [db, user]);
   const now = useNow(60_000);
-  const nextSess = useMemo(() => (user ? nextSessionForUser(db, user.id) : undefined), [db, user]);
+  // `daySummary` = المحاضرة الجارية + كل محاضرات اليوم + القادم + التغذية المعلّقة،
+  // كلها من مصدر واحد حتى لا تتناقض الأرقام بين الكروت.
+  const day = useMemo(() => (user ? daySummary(db, user.id, now) : null), [db, user, now]);
+  const nextSess = day?.next?.session ?? (user ? nextSessionForUser(db, user.id) : undefined);
+  const nextItem = day?.next;
   const near = useMemo(() => (user ? nearestBadge(db, user.id) : null), [db, user]);
   // خطة الإصلاح D4 — التغذية الراجعة المعلّقة بعد المحاضرات
   const pendingFeedback = useMemo(() => (user ? pendingFeedbackFor(db, user.id) : []), [db, user]);
@@ -175,8 +185,27 @@ export function TodayScreen() {
     ? 'achievement'
     : 'welcome';
 
+  // نُبقي الاقتباس ثابتًا مع تغيّر الحالة (لا «قفزات» نصية أثناء التمرير) — ويُحدَّث
+  // عند لمس المستخدم للشخصية فقط، أو مرّة واحدة عند أول ظهور.
+  const spokenFor = useRef<string>('');
   useEffect(() => {
-    setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
+    if (spokenFor.current === mascotBehavior) return;
+    spokenFor.current = mascotBehavior;
+    setActiveMascotQuote(
+      pickFatenLine(mascotBehavior, {
+        name: firstName,
+        streakWeeks: gam?.streak ?? 0,
+        courseTitle: liveCourse?.title ?? nextCourse?.title,
+        // الدقائق تُمرَّر فقط حين تكون مفهومة (< 90 دقيقة) — وإلا تختار فطن جملة
+        // بلا أرقام بدل «محاضرتك بعد 4320 دقيقة» التي كانت تُربك المستخدم.
+        minutes: nextItem && nextItem.msUntilStart > 0 && nextItem.msUntilStart < 90 * 60_000
+          ? Math.max(1, Math.round(nextItem.msUntilStart / 60_000))
+          : undefined,
+        room: nextBatch?.room,
+        neededForCert: needed,
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mascotBehavior]);
 
   if (!user) return null;
@@ -193,7 +222,7 @@ export function TodayScreen() {
     : isUpcomingToday
     ? t('today.quoteUpcoming', { time: formatTime(nextSess.startsAt, lang), room: nextBatch?.room ?? t('common.room') })
     : needed > 0
-    ? t('today.quoteCertGap', { n: needed, pct: certPct })
+    ? tPlural(t as never, 'today.quoteCertGap', needed, { n: String(needed), pct: String(certPct) })
     : t('today.quoteGeneric');
 
   return (
@@ -304,7 +333,14 @@ export function TodayScreen() {
                 accessibilityLabel={t('a11y.mascotInteract')}
                 onPress={() => {
                   impactLight();
-                  setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
+                  setActiveMascotQuote(
+                    nextTip() ||
+                      pickFatenLine(mascotBehavior, {
+                        name: firstName,
+                        streakWeeks: gam?.streak ?? 0,
+                        neededForCert: needed,
+                      }),
+                  );
                 }}
                 style={{
                   padding: spacing.s4,
@@ -328,10 +364,11 @@ export function TodayScreen() {
                   }}
                 >
                   <MasarMascot
-                    size={78}
+                    size={82}
                     behavior={mascotBehavior}
                     interactive={false}
                     hideFloatingBubble
+                    liveliness="playful"
                   />
                 </View>
 
@@ -353,21 +390,21 @@ export function TodayScreen() {
                     >
                       <Icon name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
                       <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'}>
-                        نصيحة فطن 💬
+                        {t('faten.newTip')}
                       </Txt>
                     </View>
                   </Row>
 
                   <Txt variant="bodyMed" bold color={isDark ? '#FFFFFF' : '#1F2937'}>
                     {liveSess && !alreadyChecked
-                      ? 'المحاضرة بدأت الآن! ⚡'
+                      ? t('today.fatenLive')
                       : liveSess && alreadyChecked
-                      ? 'حضورك موثق لليوم ✓'
+                      ? t('today.fatenChecked')
                       : streakUrgent
-                      ? 'حافظ على الستريك اليوم! 🔥'
+                      ? t('today.fatenStreak')
                       : isUpcomingToday
-                      ? 'جلستك القادمة اليوم 🎯'
-                      : 'صقر مسار («فطن») يقول لك:'}
+                      ? t('today.fatenUpcoming')
+                      : t('today.fatenSays')}
                   </Txt>
 
                   {/* فقاعة الحديث الكاريكاتورية الأنيقة */}
@@ -558,50 +595,65 @@ export function TodayScreen() {
         ) : null}
 
         <View style={{ paddingHorizontal: spacing.s5, gap: spacing.s4 }}>
+          {/* ── ملخص النهاردة: أول ما تشوفه في الصفحة ── */}
+          {day && hasBatches ? (
+            <FadeIn index={2}>
+              <DaySummaryCard db={db} userId={user.id} now={now} onPress={() => tabs.setTab('journey')} />
+            </FadeIn>
+          ) : null}
+
           {/* ── المحاضرة القادمة ── */}
           {nextSess && nextCourse ? (
             <FadeIn index={3}>
               <Card>
                 <Row between center>
-                  <View style={{ flex: 1, gap: spacing.s2 }}>
-                    <Row center gap={spacing.s2}>
-                      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name="calendar" size={13} color={theme.brand} />
-                      </View>
-                      <Txt variant="caption" color={theme.brand}>{t('today.nextSession')}</Txt>
+                  <Row center gap={spacing.s2}>
+                    <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: nextItem?.session.status === 'live' ? theme.dangerSoft : theme.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name={nextItem?.session.status === 'live' ? 'radio' : 'calendar'} size={13} color={nextItem?.session.status === 'live' ? theme.danger : theme.brand} />
+                    </View>
+                    <Txt variant="caption" color={nextItem?.session.status === 'live' ? theme.danger : theme.brand}>
+                      {nextItem?.session.status === 'live' ? t('day.liveBadge') : t('today.nextSession')}
+                    </Txt>
+                  </Row>
+                  {/* عدّاد نسبي صادق: «بعد 10 دقايق» / «بكرة» / «بعد 3 أيام» */}
+                  <Tag
+                    label={startsIn(nextSess.startsAt, lang, now)}
+                    color={nextItem?.msUntilStart != null && nextItem.msUntilStart < 60 * 60_000 ? theme.danger : theme.brand}
+                    bg={(nextItem?.msUntilStart != null && nextItem.msUntilStart < 60 * 60_000 ? theme.danger : theme.brand) + '1A'}
+                    icon="time"
+                  />
+                </Row>
+
+                <View style={{ marginTop: spacing.s3, gap: spacing.s2 }}>
+                  <Txt variant="h3">{nextCourse.title}</Txt>
+                  <Txt variant="caption" color={theme.textSecondary}>{nextSess.title}</Txt>
+                  <Row center gap={spacing.s3} wrap>
+                    <Row center gap={spacing.s1}>
+                      <Icon name="calendar-outline" size={14} color={theme.textMuted} />
+                      <Txt variant="micro" color={theme.textMuted}>{relativeDayLabel(nextSess.startsAt, lang, now)}</Txt>
                     </Row>
-                    <Txt variant="h3">{nextCourse.title}</Txt>
-                    <Txt variant="caption" color={theme.textSecondary}>{nextSess.title}</Txt>
-                    <Row center gap={spacing.s3} wrap style={{ marginTop: 4 }}>
-                      <Row center gap={spacing.s1}>
-                        <Icon name="time-outline" size={14} color={theme.textMuted} />
-                        <Txt variant="micro" color={theme.textMuted}>
-                          {sameDay(nextSess.startsAt, now) ? t('common.today') : formatDate(nextSess.startsAt, lang)} · {formatTime(nextSess.startsAt, lang)}
-                        </Txt>
-                      </Row>
+                    <Row center gap={spacing.s1}>
+                      <Icon name="time-outline" size={14} color={theme.textMuted} />
+                      <Txt variant="micro" color={theme.textMuted}>{formatTime(nextSess.startsAt, lang)} · {formatDuration((nextSess.durationMin > 0 ? nextSess.durationMin : 90) * 60_000, lang)}</Txt>
+                    </Row>
+                    {nextBatch?.room ? (
                       <Row center gap={spacing.s1}>
                         <Icon name="location-outline" size={14} color={theme.textMuted} />
-                        <Txt variant="micro" color={theme.textMuted}>{nextBatch?.room}</Txt>
+                        <Txt variant="micro" color={theme.textMuted}>{nextBatch.room}</Txt>
                       </Row>
-                    </Row>
-                    {/* FUNC-03: تصدير الموعد لملف تقويم (ICS) بضغطة واحدة */}
-                    <Btn
-                      title={t('today.addToCalendar')}
-                      variant="secondary"
-                      size="sm"
-                      icon="calendar-outline"
-                      onPress={() => void addNextToCalendar()}
-                      style={{ marginTop: 10, alignSelf: 'flex-start' }}
-                    />
-                  </View>
-                  <View style={{
-                    width: 68, height: 68, borderRadius: 20,
-                    backgroundColor: (nextCourse.color ?? theme.brand) + '1A',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon name="book" size={32} color={nextCourse.color ?? theme.brand} />
-                  </View>
-                </Row>
+                    ) : null}
+                  </Row>
+                </View>
+
+                {/* FUNC-03: تصدير الموعد لملف تقويم (ICS) بضغطة واحدة */}
+                <Btn
+                  title={t('today.addToCalendar')}
+                  variant="secondary"
+                  size="sm"
+                  icon="calendar-outline"
+                  onPress={() => void addNextToCalendar()}
+                  style={{ marginTop: spacing.s3, alignSelf: 'flex-start' }}
+                />
               </Card>
             </FadeIn>
           ) : null}
@@ -625,7 +677,7 @@ export function TodayScreen() {
                     <Txt variant="h3">{pendingFeedback[0].title}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>
                       {pendingFeedback.length > 1
-                        ? t('today.feedbackCount', { n: String(pendingFeedback.length) })
+                        ? tPlural(t as never, 'today.feedbackCount', pendingFeedback.length)
                         : t('today.feedbackBody')}
                     </Txt>
                     <Btn
@@ -668,7 +720,7 @@ export function TodayScreen() {
                     <Icon name={combinedPct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={combinedPct >= certPct ? theme.success : theme.warn} />
                   </View>
                   <Txt variant="caption" color={combinedPct >= certPct ? theme.success : theme.warn} align="center">
-                    {combinedPct >= certPct ? t('today.eligible') : t('today.needMore', { x: needed })}
+                    {combinedPct >= certPct ? t('today.eligible') : tPlural(t as never, 'today.needMore', needed, { x: String(needed) })}
                   </Txt>
                   <Txt variant="micro" color={theme.textMuted} align="center">
                     {t('journey.sessionXofY', { x: closedCount, y: totalCount })}
@@ -678,28 +730,15 @@ export function TodayScreen() {
             </FadeIn>
           ) : null}
 
-          {/* ── أقرب شارة ── */}
+          {/* ── السلسلة الأسبوعية: أهم مشعر تحفيزي — يظهر قبل أي شيء آخر ── */}
+          <FadeIn index={2}>
+            <StreakHero compact onProtect={() => tabs.setTab('journey')} />
+          </FadeIn>
+
+          {/* ── أقرب شارة: أرقام حقيقية (باقي كام بالظبط من إيه) ── */}
           {near ? (
             <FadeIn index={5}>
-              <Card onPress={() => navigation.navigate('Achievements')}>
-                <Row center gap={spacing.s4}>
-                  <View style={{
-                    width: 56, height: 56, borderRadius: 18,
-                    backgroundColor: theme.brandSoft,
-                    alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon name={near.badge.icon as any} size={28} color={theme.brand} />
-                  </View>
-                  <View style={{ flex: 1, gap: spacing.s2 }}>
-                    <Row between center>
-                      <Txt variant="caption" color={theme.textMuted}>{t('today.nearestBadge')}</Txt>
-                      <Txt variant="caption" color={theme.brand}>{Math.round(near.progress * 100)}%</Txt>
-                    </Row>
-                    <Txt variant="bodyMed">{lang === 'ar' ? near.badge.nameAr : near.badge.nameEn}</Txt>
-                    <ShimmerProgressBar progress={near.progress} />
-                  </View>
-                </Row>
-              </Card>
+              <NearestBadgeCard db={db} userId={user.id} near={near} onPress={() => navigation.navigate('Achievements')} />
             </FadeIn>
           ) : null}
 

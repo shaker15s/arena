@@ -25,15 +25,23 @@
     "test:pentest": "tsc -p tsconfig.test.json && node .test-build/scripts/security-pentest.js",
     "test:load": "tsc -p tsconfig.test.json && node .test-build/scripts/load-test.js",
     "test:scenarios": "tsc -p tsconfig.test.json && node .test-build/e2e/runner.js",
-    "test:e2e": "npm run test:scenarios",
-    "test:all": "npm run typecheck && npm run a11y && npm run hooks:check && npm run glass:check && npm run contrast && npm run i18n:lint && npm run parity && npm run rpc:check && npm run sql:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search && npm run test:calendar && npm run test:layout && npm run layout:check && npm run test:perf && npm run test:pentest && npm run test:load && npm run test:scenarios",
+    "test:e2e": "npm run test:scenarios && npm run faten:ssr && npm run smoke",
+    "test:all": "npm run typecheck && npm run a11y && npm run hooks:check && npm run glass:check && npm run contrast && npm run i18n:lint && npm run parity && npm run rpc:check && npm run sql:check && npm run sql:exec && npm run migrations:level:check && npm run migrations:bundle:check && npm run rpc:types && npm run test:engine && npm run test:rls && npm run test:search && npm run test:calendar && npm run test:layout && npm run layout:check && npm run test:perf && npm run test:pentest && npm run test:load && npm run test:scenarios && npm run faten:ssr && npm run smoke",
     "rpc:check": "node scripts/check-rpc-contract.js",
     "rpc:types": "node scripts/gen-rpc-types.js",
     "test:calendar": "tsc -p tsconfig.test.json && node .test-build/scripts/calendar.test.js",
     "hooks:check": "node scripts/check-hooks-order.js",
     "sql:check": "node scripts/check-sql.js",
     "test:layout": "tsc -p tsconfig.test.json && node .test-build/scripts/layout.test.js",
-    "layout:check": "node scripts/check-layout.js"
+    "layout:check": "node scripts/check-layout.js",
+    "faten:sheet": "tsc -p tsconfig.test.json && node .test-build/scripts/faten-sheet.js",
+    "faten:ssr": "tsc -p tsconfig.test.json && node scripts/faten-ssr-run.js",
+    "smoke": "tsc -p tsconfig.smoke.json && node scripts/screen-smoke-run.js",
+    "migrations:level": "node scripts/gen-migration-level.js",
+    "migrations:level:check": "node scripts/gen-migration-level.js --check",
+    "migrations:bundle": "node scripts/gen-apply-bundle.js",
+    "migrations:bundle:check": "node scripts/gen-apply-bundle.js --check",
+    "sql:exec": "node scripts/check-sql-exec.js"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
@@ -75,6 +83,7 @@
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@types/node": "^22.20.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "~19.2.2",

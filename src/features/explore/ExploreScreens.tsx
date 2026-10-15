@@ -24,7 +24,7 @@ import { AnimatedTabContent } from '../../design/AnimatedTabContent';
 import { JellyButton, PillGradientSearchInput, SaveActionButton } from '../../design/interactive';
 import { Course, Batch } from '../../data/types';
 import { spacing, radii } from '../../design/tokens';
-import { formatDate, formatTime } from '../../shared/format';
+import { formatDate, formatTime, getFirstName } from '../../shared/format';
 import { useDeferredSearch } from '../../shared/useSearch';
 import { getCourseOverview } from '../../data/actions';
 import { CelebrationModal } from '../../design/celebrations';
@@ -257,7 +257,7 @@ function CourseCard({ course, index, onPress }: { course: Course; index: number;
               >
                 <Avatar name={organizer.fullName} color={organizer.avatarColor} size={18} />
                 <Txt variant="micro" color="#FFFFFF" numberOfLines={1}>
-                  {isMyCourse ? t('explore.youOrganize') : organizer.fullName.split(' ')[0]}
+                  {isMyCourse ? t('explore.youOrganize') : getFirstName(organizer.fullName)}
                 </Txt>
               </View>
             ) : (
