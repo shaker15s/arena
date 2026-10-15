@@ -84,6 +84,14 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 
 process.env.NODE_ENV = 'development';
 
+// ── 0) ساعة مثبّتة ──────────────────────────────────────────────────────────
+// نفس ساعة اختبارات المحرك (`Date.UTC(2026,8,30,16,0,0)`) ليكون مخرَج التصيير
+// ولقطات `docs/design/smoke/*.html` **حتمية**: قبل ذلك كانت كل تشغيلة تُغيّر
+// أوقات الكروت (11:29 ص ← 11:50 ص) فتظهر فروق وهمية في Git عند كل تحقق.
+// التثبيت قبل بناء البذرة عمدًا حتى تُبنى الجلسات والمواعيد على نفس الساعة.
+const FIXED_NOW = Date.UTC(2026, 8, 30, 16, 0, 0);
+Date.now = () => FIXED_NOW;
+
 // ── 1) ذاكرة بذرة حقيقية + متجر مُستبدل ──
 const seed = require(path.join(build, 'scripts', 'fixtures', 'seed.js'));
 const db = seed.buildSeedDb();
@@ -209,7 +217,7 @@ const cases = [
   },
   {
     name: 'DaySummaryCard (ملخص النهاردة — كروت الطالب)',
-    node: React.createElement(dayCards.DaySummaryCard, { db, userId: seed.IDS.omar, now: Date.now() }),
+    node: React.createElement(dayCards.DaySummaryCard, { db, userId: seed.IDS.omar, now: FIXED_NOW }),
     expect: ['ملخص النهاردة'],
   },
   {

@@ -434,10 +434,13 @@ docs/       هذا الدليل + سجلات التنفيذ + تقارير ال�
 | `parity` | `check-i18n-parity.js` | تطابق القاموسين + صحة كل استخدام ثابت |
 | `rpc:check` | `check-rpc-contract.js` | كل RPC يستدعيه العميل **معرَّف فعلًا** في الترحيلات |
 | `sql:check` | `check-sql.js` | تحليل نحوي حقيقي + `GRANT` لكل دالة + `search_path` |
+| `sql:exec` | `check-sql-exec.js` | **تنفيذ فعلي** لكل الترحيلات على Postgres 18 داخل Node (PGlite): 0001→0038 من قاعدة فاضية + ملف التطبيق الموحّد مرّتين + RLS والصلاحيات |
+| `migrations:level:check` | `gen-migration-level.js --check` | ملف تشخيص مستوى الترحيلات مُحدَّث |
+| `migrations:bundle:check` | `gen-apply-bundle.js --check` | ملف التطبيق الموحّد مُحدَّث مقارنةً بملفات الترحيل |
 | `rpc:types` | `gen-rpc-types.js` | توليد أنواع RPCs ومطابقتها (`src/types/database.ts`) |
 | `test:layout` + `layout:check` | `check-layout.js` | قواعد التخطيط (wrap، لا قيم خام، نصوص عربية لا تُقصّ) |
 | `faten:ssr` | `faten-ssr-run.js` | شبكة كل حالات فطن تُصيَّر بلا أخطاء |
-| `smoke` | `screen-smoke-run.js` | تصيير React حقيقي **لشاشات كاملة** (اليوم · يوم المدرّب · لوحة المنظّم · قاعة الإنجازات) + كروت مستقلة، ورفض `NaN`/`undefined`/النصوص المفقودة، وحفظ لقطة HTML دائمة لكل حالة في `docs/design/smoke/` |
+| `smoke` | `screen-smoke-run.js` | تصيير React حقيقي **لشاشات كاملة** (اليوم · يوم المدرّب · لوحة المنظّم · قاعة الإنجازات) + كروت مستقلة، ورفض `NaN`/`undefined`/النصوص المفقودة، وحفظ لقطة HTML دائمة لكل حالة في `docs/design/smoke/` — بساعة مثبّتة (`Date.UTC(2026,8,30,16,0,0)`) وبذرة مبنية عليها ⇒ لقطات **حتمية** لا تتغيّر بين التشغيلات |
 | `sql:check` (بند الصلاحيات) | `check-sql.js` | فوق الفحص النحوي: يرفض منح دوال داخلية (تستقبل معرّف مستخدم) لدور العميل — قائمة حظر `SERVICE_ONLY_FUNCTIONS` |
 
 ---
@@ -521,9 +524,13 @@ EXPO_PUBLIC_PUBLIC_APP_URL=https://<نطاق-النشر>
 npm install                       # تثبيت التبعيات
 npm run typecheck                 # تحقّق أنواع سريع
 npm run test:all                  # كل البوابات والاختبارات (إلزامي قبل النشر)
+                                  # منها sql:exec: تنفيذ فعلي للترحيلات على Postgres
 
 # قاعدة البيانات: طبّق الترحيلات بالترتيب 0001 → 0038
 # (عبر supabase CLI: supabase db push، أو الصق كل ملف في SQL Editor بالترتيب)
+# أسرع طريق لقاعدة متأخّرة: ملف واحد يُلصق مرة واحدة في SQL Editor
+#   supabase/diagnostics/apply_0035_0038.sql  (بوابة + 0035→0038 + تحقّق نهائي)
+#   يُولَّد بـ npm run migrations:bundle، وبوّابته npm run migrations:bundle:check
 # لمعرفة أول ترحيل ناقص في قاعدة قائمة: supabase/diagnostics/migration_level.sql
 #   (قراءة فقط: يُظهر ✅/❌ لكل ترحيل + فحص أعمدة الشارات، ويُولَّد بـ
 #    node scripts/gen-migration-level.js) — والترحيلات 0036/0038 بها تحقّق مسبق
@@ -547,9 +554,11 @@ npm run preview                   # خدمة نسخة الإنتاج محليً�
 
 صادقًا وبلا تجميل:
 
-1. **الشهادات والمعاملات الحرجة** مغطّاة، لكن لا يوجد اختبار تكامل على Postgres حقيقي
-   داخل هذا المستودع (لا Postgres في بيئة الفحص) — الترحيلات تُفحص نحويًا وبنيويًا،
-   والمنطق يُختبر على محاكي `engine.ts` المطابق.
+1. **الشهادات والمعاملات الحرجة** مغطّاة، والترحيلات **تُنفَّذ فعليًا** على Postgres 18
+   داخل Node عبر `@electric-sql/pglite` في `npm run sql:exec` (سلسلة 0001→0038 من قاعدة
+   فاضية + ملف التطبيق الموحّد مرّتين + فحوص RLS والصلاحيات). اللي **لسه ناقص**: اختبار
+   تكامل على مشروع Supabase مستضاف حقيقي (شبكة + PostgREST + Realtime)، ومنطق التطبيق
+   نفسه يُختبر على محاكي `engine.ts` المطابق.
 2. **الترتيب الزمني للترحيلات**: يجب تطبيقها بالترتيب؛ لا يوجد رقم `schema_version`
    مركزي بعد.
 3. **`season_legend`** تبقى مخفية حتى يوجد كيان «موسم» حقيقي.

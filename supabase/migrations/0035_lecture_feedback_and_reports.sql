@@ -417,7 +417,7 @@ BEGIN
                     'attendance_pct', (SELECT COALESCE(round(
                         100.0 * count(*) FILTER (WHERE a.status IN ('present','late'))
                         / NULLIF((SELECT count(*) FROM public.enrollments e2 WHERE e2.batch_id = b.id AND e2.status = 'active')
-                                 * (SELECT count(*) FROM public.sessions s2 WHERE s2.batch_id = b.id AND s2.status = 'closed'), 0), 0)
+                                 * (SELECT count(*) FROM public.sessions s2 WHERE s2.batch_id = b.id AND s2.status = 'closed'), 0), 0))
                        FROM public.attendance a JOIN public.sessions s ON s.id = a.session_id
                       WHERE s.batch_id = b.id),
                     'avg_satisfaction', (SELECT COALESCE(round(avg(f.understanding)::numeric, 2), 0)
