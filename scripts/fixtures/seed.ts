@@ -8,7 +8,7 @@
 import { defaultRules } from '../../src/data/rules';
 import { weekStartOf, monthKeyOf } from '../../src/shared/format';
 import {
-  Attendance, Badge, Batch, Branch, Certificate, Committee, Course, CourseModule, Db,
+  Attendance, Badge, Batch, Branch, Certificate, Committee, Course, CourseModule, CourseReport, Db,
   Enrollment, Excuse, GamificationProfile, PointEvent, Profile,
   SessionContent, SessionFeedback, StreakWeek, TrainingSession, AppNotification, CourseRating,
 } from '../../src/data/types';
@@ -461,6 +461,22 @@ export function buildSeedDb(): Db {
   // التغذية الراجعة: نور أرسلت تغذيتها على s_g2_2 منذ أكثر من 24 ساعة
   // (خارج نافذة التعديل — لإثبات editWindowClosed في الاختبارات) —
   // وكريم ما زال «ينتظر التغذية الراجعة» على نفس المحاضرة (اختبارات D4).
+  // تقارير الكورس (0037): مسودة واحدة + تقرير منشور لدفعة مكتملة
+  const courseReports: CourseReport[] = [
+    {
+      id: 'cr_g1', courseId: 'c_g1', batchId: IDS.g1, authorId: 'u_mahmoud',
+      title: 'تقرير كورس أساسيات التصميم — الدفعة الأولى',
+      summary: 'أكملنا 12 محاضرة بتغطية كاملة للمحاور.', achievements: 'التزام عالٍ وحضور قوي.',
+      challenges: 'بعض الطلاب احتاجوا إعادة شرح المحور الثالث.', recommendations: 'إضافة جلسة مراجعة قبل الاختبار.',
+      published: true, publishedAt: now - 20 * DAY, createdAt: now - 21 * DAY, updatedAt: now - 20 * DAY,
+    },
+    {
+      id: 'cr_g1_draft', courseId: 'c_g1', batchId: IDS.g1, authorId: 'u_mahmoud',
+      title: 'مسودة التقرير الختامي', summary: 'قيد الكتابة…', achievements: '', challenges: '',
+      recommendations: '', published: false, publishedAt: null, createdAt: now - 2 * DAY, updatedAt: now - 2 * DAY,
+    },
+  ];
+
   const sessionFeedback: SessionFeedback[] = [
     {
       id: 'sf_1', sessionId: 's_g2_2', userId: 'u_nour',
@@ -484,7 +500,7 @@ export function buildSeedDb(): Db {
     profiles, branches, committees, courses, batches, enrollments,
     sessions, attendance, pointEvents, streakWeeks, gamification,
     badges, userBadges, leagueWeeks, certificates, excuses, ratings,
-    modules, sessionContent, sessionFeedback,
+    modules, sessionContent, sessionFeedback, courseReports,
     rules: defaultRules(),
     audit: [
       { id: 'au_1', actorId: IDS.mahmoud, action: 'admin_update_rule', target: 'certificate.min_attendance_pct', payload: { from: 80, to: 75 }, createdAt: now - 5 * DAY },

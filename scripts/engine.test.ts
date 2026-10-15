@@ -6,7 +6,7 @@ import {
   lookupCertificate, pendingFeedbackFor, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
   rpcStartSession, rpcSubmitExcuse, rpcSubmitSessionFeedback, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
-  streakSnapshot, courseOutline, sessionsOfBatch,
+  streakSnapshot, courseOutline, sessionsOfBatch, courseFeedback, courseReportSummary,
 } from '../src/data/engine';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
@@ -363,6 +363,48 @@ const MIN = 60_000;
     'المخطط: إضافة الوحدات لا تُفقد أو تُكرّر أي محاضرة',
     { before: outline.totalSessions, after: outline2.totalSessions },
   );
+
+
+  // ═ 15) التغذية الراجعة على مستوى الكورس + ملخص تقرير الكورس (UX-C2/C3) ═
+  console.log('\n═ 15) تغذية الكورس وملخص التقرير ═');
+  const courseId = db.batches.find((b) => b.id === IDS.g2)!.courseId;
+  const cf = courseFeedback(db, courseId);
+  ok(cf.sessions.length >= 3, 'تغذية الكورس: صف لكل محاضرة في الكورس', cf.sessions.length);
+  ok(cf.totals.responses === cf.sessions.reduce((sum, x) => sum + x.responses, 0), 'تغذية الكورس: الإجمالي = مجموع المحاضرات');
+  ok(
+    cf.sessions.every((x) => x.avgUnderstanding >= 0 && x.avgUnderstanding <= 5),
+    'تغذية الكورس: متوسطات الفهم داخل 1–5',
+  );
+  ok(
+    cf.totals.avgUnderstanding === 0 || (cf.totals.avgUnderstanding >= 1 && cf.totals.avgUnderstanding <= 5),
+    'تغذية الكورس: متوسط الفهم الكلي منطقي',
+    cf.totals.avgUnderstanding,
+  );
+  // المجهولية: لا يوجد أي معرّف مستخدم في أي تعليق
+  const commentKeys = cf.sessions.flatMap((x) => x.comments.map((c) => Object.keys(c).join(',')));
+  ok(
+    commentKeys.every((keys) => !keys.includes('userId') && !keys.includes('user_id')),
+    'تغذية الكورس: التعليقات مجهولة الهوية 100% (بلا user id)',
+    commentKeys.slice(0, 2),
+  );
+  ok(
+    cf.topicsHard.length === 0 || cf.topicsHard.every((x, i2, arr) => i2 === 0 || arr[i2 - 1].count >= x.count),
+    'تغذية الكورس: المحاور الصعبة مرتّبة تنازليًا',
+    cf.topicsHard.map((x) => x.count),
+  );
+  ok(cf.ratings.count === db.ratings.filter((r) => r.courseId === courseId).length, 'تغذية الكورس: عدد التقييمات مطابق للجدول');
+
+  const crs = courseReportSummary(db, courseId);
+  ok(crs.sessionsTotal === cf.totals.sessionsTotal, 'ملخص التقرير: عدد المحاضرات مطابق لتغذية الكورس');
+  ok(crs.sessionsClosed <= crs.sessionsTotal, 'ملخص التقرير: المغلقة ≤ الإجمالي');
+  ok(crs.learning.responses === cf.totals.responses, 'ملخص التقرير: عدد الاستجابات مطابق');
+  ok(
+    crs.attendance.total ===
+      crs.attendance.present + crs.attendance.late + crs.attendance.absent + crs.attendance.excused,
+    'ملخص التقرير: مجموع الحضور = تفصيل الحالات',
+    crs.attendance,
+  );
+  ok(crs.missingReports >= 0 && crs.students >= 0, 'ملخص التقرير: قيم غير سالبة');
 
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);

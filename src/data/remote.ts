@@ -12,7 +12,7 @@
  */
 import { getSupabase } from './supabase';
 import {
-  Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, CourseModule, CourseRole, Db,
+  Attendance, AuditEntry, Badge, Batch, Branch, Certificate, Committee, Course, CourseModule, CourseReport, CourseRole, Db,
   Enrollment, Excuse, GamificationProfile, GamificationRule, KudosQuota, LeagueWeekRow,
   AppNotification, PointEvent, PrivateNote, Profile, CourseRating, SessionContent, SessionFeedback,
   StreakWeek, TrainingSession, UserBadge,
@@ -30,7 +30,7 @@ export function emptyDb(): Db {
     profiles: [], branches: [], committees: [], courses: [], batches: [], enrollments: [],
     sessions: [], attendance: [], pointEvents: [], streakWeeks: [], gamification: [],
     badges: [], userBadges: [], leagueWeeks: [], certificates: [], excuses: [], ratings: [],
-    modules: [], sessionContent: [], sessionFeedback: [],
+    modules: [], sessionContent: [], sessionFeedback: [], courseReports: [],
     rules: [], audit: [], kudosQuotas: [], notifications: [], privateNotes: [],
     courseRoles: [], domainEvents: [],
     certSeq: 0, seedVersion: 0,
@@ -101,7 +101,7 @@ export async function fetchRemoteDb(): Promise<Db> {
   const [
     profiles, branches, committees, courses, batches, batchStats, enrollments, sessions, attendance,
     pointEvents, streakWeeks, gamification, badges, userBadges, leagueWeeks, certificates,
-    excuses, ratings, modules, sessionContent, sessionFeedback, rules, audit, kudosQuotas,
+    excuses, ratings, modules, sessionContent, sessionFeedback, courseReports, rules, audit, kudosQuotas,
     notifications, privateNotes, courseRoles,
   ] = await Promise.all([
     callRows<any>('list_visible_profiles'), selectAll<any>('branches'), selectAll<any>('committees'),
@@ -122,6 +122,8 @@ export async function fetchRemoteDb(): Promise<Db> {
     selectAll<any>('session_content', '*', 'session_id').catch(() => []),
     // التغذية الراجعة: RLS يُعيد صفوف المستخدم الحالي فقط (خصوصية D4)
     selectRecent<any>('session_feedback', '*', 2_000, 'created_at').catch(() => []),
+    // تقارير الكورس: RLS يمنح المنظّم كل شيء والطالب المنشور فقط
+    selectRecent<any>('course_reports', '*', 500, 'created_at').catch(() => []),
     selectAll<any>('gamification_rules', '*', 'key'),
     selectRecent<any>('audit_log', '*', 500, 'created_at'),
     selectRecent<any>('kudos_quotas', '*', 1_000, 'month'),
@@ -240,6 +242,14 @@ export async function fetchRemoteDb(): Promise<Db> {
       summary: r.summary ?? '',
       resources: Array.isArray(r.resources) ? r.resources : [],
       updatedAt: tsOr(r.updated_at),
+    })),
+    courseReports: courseReports.map((r): CourseReport => ({
+      id: r.id, courseId: r.course_id, batchId: r.batch_id ?? null, authorId: r.author_id,
+      title: r.title ?? '', summary: r.summary ?? '', achievements: r.achievements ?? '',
+      challenges: r.challenges ?? '', recommendations: r.recommendations ?? '',
+      published: Boolean(r.published),
+      publishedAt: r.published_at ? tsOr(r.published_at) : null,
+      createdAt: tsOr(r.created_at), updatedAt: tsOr(r.updated_at),
     })),
     sessionFeedback: sessionFeedback.map((r): SessionFeedback => ({
       id: r.id, sessionId: r.session_id, userId: r.user_id,

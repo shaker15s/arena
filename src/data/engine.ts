@@ -1581,6 +1581,59 @@ export function courseFeedback(db: Db, courseId: string): CourseFeedbackView {
   };
 }
 
+/**
+ * `courseReportSummary` — الملخص الرقمي الذي يُدرج في تقرير الكورس المكتوب (0037).
+ *
+ * مرآة محلية لـ`get_course_report_summary`: نفس الأرقام كي تُعرض المسودة بلا شبكة
+ * وتظل مطابقة لما يراه المنظّم على السيرفر.
+ */
+export interface CourseReportSummaryView {
+  batches: number;
+  sessionsTotal: number;
+  sessionsClosed: number;
+  students: number;
+  certificates: number;
+  attendance: { total: number; present: number; late: number; absent: number; excused: number };
+  learning: { responses: number; avgUnderstanding: number; avgPace: number; avgClarity: number };
+  ratings: { count: number; avg: number };
+  missingReports: number;
+}
+
+export function courseReportSummary(db: Db, courseId: string): CourseReportSummaryView {
+  const batchIds = new Set(db.batches.filter((b) => b.courseId === courseId).map((b) => b.id));
+  const sessions = db.sessions.filter((s) => batchIds.has(s.batchId));
+  const sessionIds = new Set(sessions.map((s) => s.id));
+  const feedback = db.sessionFeedback.filter((f) => sessionIds.has(f.sessionId));
+  const attendance = db.attendance.filter((a) => sessionIds.has(a.sessionId));
+  const ratings = db.ratings.filter((r) => r.courseId === courseId);
+
+  return {
+    batches: batchIds.size,
+    sessionsTotal: sessions.length,
+    sessionsClosed: sessions.filter((s) => s.status === 'closed').length,
+    students: new Set(
+      db.enrollments.filter((e) => batchIds.has(e.batchId) && e.status === 'active').map((e) => e.userId),
+    ).size,
+    // الشهادات مرتبطة بالدفعة لا بالكورس في المخطط المحلي — نعدّ شهادات دفعات الكورس.
+    certificates: db.certificates.filter((c) => batchIds.has(c.batchId) && c.status === 'active').length,
+    attendance: {
+      total: attendance.length,
+      present: attendance.filter((a) => a.status === 'present').length,
+      late: attendance.filter((a) => a.status === 'late').length,
+      absent: attendance.filter((a) => a.status === 'absent').length,
+      excused: attendance.filter((a) => a.status === 'excused').length,
+    },
+    learning: {
+      responses: feedback.length,
+      avgUnderstanding: avgOf(feedback.map((f) => f.understanding)),
+      avgPace: avgOf(feedback.map((f) => f.pace)),
+      avgClarity: avgOf(feedback.map((f) => f.clarity)),
+    },
+    ratings: { count: ratings.length, avg: avgOf(ratings.map((r) => r.stars)) },
+    missingReports: sessions.filter((s) => s.status === 'closed' && !(s.report && (s.report.done || s.report.challenges))).length,
+  };
+}
+
 export function getMyGamification(db: Db, userId: string): MyGamification {
   const g = gamifGet(db, userId);
   const league = getWeeklyLeague(db, userId, g.leagueTier);

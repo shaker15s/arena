@@ -45,7 +45,9 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { FatenArt } = require(path.join(root, '.test-build', 'src', 'design', 'mascot', 'FatenArt.js'));
 const ssr = require(path.join(root, '.test-build', 'scripts', 'faten-ssr.js'));
-const { Resvg } = require('/tmp/svgtool/node_modules/@resvg/resvg-js');
+// الراستر اختياري: بعض البيئات لا تحتوي الحزمة — الفحوص النصية تبقى حاسمة.
+let Resvg = null;
+try { ({ Resvg } = require('/tmp/svgtool/node_modules/@resvg/resvg-js')); } catch { /* بلا راستر */ }
 
 const htmlByState = ssr.renderFatenStates({ React, renderToStaticMarkup, FatenArt });
 
@@ -110,13 +112,17 @@ fs.writeFileSync(
 // صورة كبيرة للحالة الأساسية
 const oneSvg = ssr.htmlToSvg(htmlByState.__base, 420, 487);
 fs.writeFileSync(path.join(outDir, 'faten-react-one.svg'), oneSvg, 'utf8');
-fs.writeFileSync(
-  path.join(outDir, 'faten-react-ssr.png'),
-  new Resvg(fs.readFileSync(path.join(outDir, 'faten-react-ssr.svg'), 'utf8'), {
-    fitTo: { mode: 'width', value: 1000 },
-    background: '#FFFFFF',
-  }).render().asPng(),
-);
+if (Resvg) {
+  fs.writeFileSync(
+    path.join(outDir, 'faten-react-ssr.png'),
+    new Resvg(fs.readFileSync(path.join(outDir, 'faten-react-ssr.svg'), 'utf8'), {
+      fitTo: { mode: 'width', value: 1000 },
+      background: '#FFFFFF',
+    }).render().asPng(),
+  );
+} else {
+  console.log('ℹ️ resvg غير متاح — تخطّي توليد PNG (المخرَج SVG كافٍ للفحص)');
+}
 
 console.log(`\n${failures === 0 ? '✅' : '❌'} النتيجة: ${failures === 0 ? 'كل الرسومات سليمة' : failures + ' مشكلة'}`);
 process.exit(failures === 0 ? 0 : 1);

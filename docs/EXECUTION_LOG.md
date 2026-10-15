@@ -2,7 +2,7 @@
 
 > **المرجع:** `MASAR_MASTER_PLAN_2026-09-28.md` (الخطة الواحدة). هذا الملف يوثّق **ما نُفِّذ فعلًا**،
 > بالملف والسطر والأمر والناتج المقيس — بلا أي ادعاء غير مقيس.
-> **آخر تحديث:** 29 سبتمبر 2026 (الموجة E) · الفرع: `arena/01a0e854-arena`.
+> **آخر تحديث:** 15 أكتوبر 2026 (الموجة F — فطن 3.0 + تنظيم الكورس والتقارير) · الفرع: `arena/507f7804-arena`.
 
 ## 0) قيادة التحقق (Verification Gate)
 
@@ -20,6 +20,57 @@ npm run typecheck && npm run a11y && npm run contrast && npm run parity && npm r
 | `npm run parity` | تطابق مفاتيح ar/en | ✅ **927** مفتاحًا |
 | `npm run rpc:check` | كل نداء عميل له دالة على الخادم | ✅ 56 نداء / 93 دالة |
 | `npm run test:all` | المحرّكات + RLS + البحث + الأداء + الاختراق + الحمل + E2E | ✅ 62/62 نجاحًا · 0 فشل |
+
+
+## F) الموجة F — فطن 3.0 · الستريك · تنظيم الكورس · سلطة المنظّم (15 أكتوبر 2026)
+
+المطلوب من المستخدم: شخصية «فطن» تفاعلية بكل الحالات، تحسين نظام التلعيب والستريك،
+تنظيم الكورس، تغذية راجعة يراها المنظّم، وكتابة تقارير الكورس — بلا أي تراجع.
+
+### F1) رسم فطن أصبح «بيانات لا كود» (Art-as-data)
+| الملف | الدور |
+| --- | --- |
+| `src/design/mascot/faten.paths.ts` | كل الهندسة: مسارات الجسم/الأجنحة/الريش/المنقار/العرف/الأكسسوارات (بلا React) |
+| `src/design/mascot/faten.scene.ts` | تجميع المشهد من (وضعية + لوحة) إلى طبقات مرتّبة |
+| `src/design/mascot/FatenArt.tsx` | عارض رقيق فقط — `useId` لمعرّفات تدرجات فريدة (إصلاح تصادم التدرجات عند تكرار التميمة) |
+| `scripts/faten-sheet.ts` (`npm run faten:sheet`) | يولّد `docs/faten/faten-states.svg` — 14 حالة من **نفس** الهندسة |
+| `scripts/faten-ssr.ts` + `scripts/faten-ssr-run.js` (`npm run faten:ssr`) | يصيّر **المكوّن الحقيقي** عبر React DOM إلى SVG ويفحصه (عناصر مسموحة، تدرجات معرّفة، لا معرّفات مكرّرة، viewBox) |
+
+**الإثبات:** 15/15 رسمة سليمة · مخرَج PNG لـ14 حالة + الحالة الأساسية في `docs/faten/`
+(`faten-react-ssr.png` من مخرَج React نفسه، لا من سكربت موازٍ).
+
+### F2) نظام الستريك (UX-G1)
+- `src/data/engine.ts › streakSnapshot(db, userId, now?)` — مصدر واحد لكل أرقام السلسلة:
+  أسابيع/أطول سلسلة/دروع التجميد/هدف الأسبوع/الأيام السبعة/الحالة (`kept|tracking|at_risk|frozen|broken|pending`)/المعلم القادم.
+- `src/features/gamification/StreakHero.tsx` — بطاقة السلسلة (شريط أسبوعي + 7 نقاط أيام + عدّ تنازلي + دروع + معلم تالٍ + `CountUp` + تميمة بحالتها).
+- **مُثبَّتة فعلًا** في: `TodayScreen` (compact) · `JourneyScreen` · `LeagueScreen`.
+- 17 مفتاح `streak.*` في القاموسين (عربي/إنجليزي) — بلا نص مضمّن.
+
+### F3) تنظيم الكورس بمبدأ الوحدات (UX-C1)
+- `src/data/engine.ts › courseOutline(db, batchId, userId)` — وحدات + حالة كل محاضرة + تقدّم كل وحدة + الوحدة النشطة.
+- `src/features/journey/CourseOutline.tsx` — مسار وحدات قابل للفتح (دوولينجو-style): عقدة لكل محاضرة (مُنجز/متأخر/جارٍ/مقفول/بعذر/غائب) + خط ربط يتلوّن + محتوى المحاضرة (أهداف/محاور/ملخص/موارد) + مؤشرات (محتوى/تغذية/نقاط).
+- **الواجهة الإدارية:** `CourseBuildTab.tsx` — إنشاء/تسمية/ترتيب/حذف الوحدات + ربط/فصل المحاضرات + محرّر محتوى المحاضرة.
+
+### F4) التغذية الراجعة على مستوى الكورس (UX-C2)
+- `src/data/engine.ts › courseFeedback(db, courseId)` (مرآة `get_course_feedback`) — متوسطات الفهم/الإيقاع/الوضوح، توزيع الانطباع، الثناء، المحاور المحتاجة توضيحًا، التعليقات **مجهولة الهوية**، التقييمات.
+- `src/features/courses/management/CourseFeedbackTab.tsx` — تبويب «التغذية الراجعة» للمنظّم.
+
+### F5) تقارير الكورس: كتابة ونشر (UX-C3)
+- `supabase/migrations/0037_course_reports.sql` — جدول `course_reports` + RLS (الطالب يرى المنشور فقط) + خمس دوال: `save_course_report`, `publish_course_report` (إشعار مرة واحدة), `delete_course_report`, `get_course_reports`, `get_course_report_summary`.
+- `supabase/migrations/0036_course_organizer_authority.sql` — `set_session_module`, `rename_course_module`, `delete_course_module`, `reorder_course_module`, `get_course_feedback` + فهارس.
+- `src/features/courses/management/CourseReportTab.tsx` — كتابة (ملخص/ما تحقق/تحديات/توصيات) + إدراج الأرقام تلقائيًا + مسودة/نشر/إلغاء نشر/حذف.
+
+### F6) بوابات جديدة ونتائج مقيسة
+| البوابة | الناتج |
+| --- | --- |
+| `npm run test:engine` | ✅ **118** ناجح / 0 فاشل (شمل: لقطة الستريك، مخطط الكورس، تغذية الكورس، ملخص التقرير) |
+| `npm run smoke` | ✅ 7/7 مكوّنات صيّرت عبر React DOM بلا انفجار + فحص صلاحيات (تبويب التقرير محجوب عن غير المنظّم) |
+| `npm run faten:ssr` | ✅ 15/15 رسمة سليمة من المكوّن الحقيقي |
+| `npm run a11y` | ✅ 0 أخطاء · 67 ضغطة · 247 أيقونة · 44/44 شاشة |
+| `npm run layout:check` | ✅ 0 مخالفة (L1–L5) |
+| `npm run parity` | ✅ **1576** مفتاحًا في القاموسين · 1176 استخدامًا ساكنًا |
+| `npm run glass:check` | ✅ (كان يفشل قبل الموجة: `components.tsx` استخدم `theme.glassBorder` خارج `GlassSurface`) |
+| `npm run test:all` | ✅ **EXIT=0** — كل البوابات + المحرّكات + RLS + البحث + الأداء + الاختراق + الحمل + السيناريوهات |
 
 ## 1) إمكانية الوصول — المرحلة 1 (A11Y-01 → 15)
 

@@ -104,7 +104,7 @@ export function StreakHero({ compact = false, onProtect, style }: StreakHeroProp
       {/* أيام الأسبوع — نقطة لكل يوم بحالته */}
       <View
         accessibilityRole="text"
-        accessibilityLabel={t('streak.weekProgressLabel', { done: snap.honoredThisWeek, goal: snap.weekGoal })}
+        accessibilityLabel={t('streak.weekProgressLabel', { done: Math.min(snap.honoredThisWeek, snap.weekGoal), goal: snap.weekGoal })}
         style={styles.daysRow}
       >
         {snap.days.map((d) => {
@@ -146,7 +146,7 @@ export function StreakHero({ compact = false, onProtect, style }: StreakHeroProp
       <View style={{ gap: spacing.s2 }}>
         <Row between center>
           <Txt variant="caption" color={theme.textSecondary}>
-            {t('streak.weekGoal', { done: snap.honoredThisWeek, goal: snap.weekGoal })}
+            {t('streak.weekGoal', { done: Math.min(snap.honoredThisWeek, snap.weekGoal), goal: snap.weekGoal })}
           </Txt>
           <Txt variant="micro" color={atRisk ? theme.danger : theme.textMuted}>
             {fmtCountdown(snap.msLeft, t)}

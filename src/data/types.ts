@@ -262,6 +262,26 @@ export interface CourseModule {
   createdAt: number;
 }
 
+/**
+ * تقرير كورس سردي يكتبه المنظّم (ترحيل 0037).
+ * مسودة أو منشور؛ الطالب يرى المنشور فقط.
+ */
+export interface CourseReport {
+  id: string;
+  courseId: string;
+  batchId?: string | null;
+  authorId: string;
+  title: string;
+  summary: string;
+  achievements: string;
+  challenges: string;
+  recommendations: string;
+  published: boolean;
+  publishedAt?: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** مورد مرفق بمحتوى المحاضرة */
 export interface SessionResource {
   title: string;
@@ -375,6 +395,8 @@ export interface Db {
   sessionContent: SessionContent[];
   /** التغذية الراجعة بعد المحاضرات (صفوف المستخدم الحالي فقط عبر RLS) */
   sessionFeedback: SessionFeedback[];
+  /** تقارير الكورسات المكتوبة (المنظّم: الكل — الطالب: المنشور فقط عبر RLS) */
+  courseReports: CourseReport[];
   rules: GamificationRule[];
   audit: AuditEntry[];
   kudosQuotas: KudosQuota[];
