@@ -464,6 +464,21 @@ const MIN = 60_000;
   const todayOnly = todayAgenda(probeDb, student, nowMs);
   ok(todayOnly.total === day.today.total, 'ملخص اليوم: قراءتان تعطيان نفس الرقم');
 
+  // ═ 16b) سلطة المنظّم: من يدير الكورس يرى جلسته القادمة ═
+  console.log('\n═ 16b) سلطة المنظّم على الأجندة ═');
+  const managerAgenda = agendaFor(db, IDS.mahmoud, nowMs);
+  ok(managerAgenda.length > 0, 'المنظّم: أجندته لا تُبنى على التسجيلات فقط بل على الكورسات التي يديرها', managerAgenda.length);
+  const managedCourses = new Set(db.courseRoles.filter((r) => r.userId === IDS.mahmoud).map((r) => r.courseId));
+  ok(managedCourses.size > 0, 'المنظّم: يملك دورًا على كورس واحد على الأقل');
+  ok(
+    managerAgenda.every((i) => managedCourses.has(i.batch.courseId) || i.batch.instructorId === IDS.mahmoud),
+    'المنظّم: كل عنصر في أجندته يخصّ كورسًا يديره أو دفعة يدرّسها',
+  );
+  const managerNext = nextAgendaItem(db, IDS.mahmoud, nowMs);
+  ok(Boolean(managerNext), 'المنظّم: له «جلسة قادمة» تُعرض في لوحته');
+  const otherAgenda = agendaFor(db, IDS.mahmoud, nowMs);
+  ok(otherAgenda.every((i) => !hiddenStatuses.has(i.session.status)), 'المنظّم: لا جلسات ملغاة في أجندته');
+
   // ═ 17) دقّة الشارات (UX-G2): تقدّم حقيقي + لا شارة ميتة ═
   console.log('\n═ 17) دقّة الشارات و«أقرب شارة» ═');
   const activeBadges = db.badges.filter((b) => b.active);

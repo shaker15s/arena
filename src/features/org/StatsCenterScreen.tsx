@@ -16,6 +16,7 @@ import {
 } from '../../design/components';
 import { Icon } from '../../design/icons';
 import { spacing, layout } from '../../design/tokens';
+import { tPlural } from '../../shared/plural';
 
 type Tab = 'learning' | 'attendance' | 'ops' | 'categories' | 'quality';
 
@@ -156,7 +157,7 @@ export function StatsCenterScreen({ navigation }: any) {
                     <Row gap={spacing.s2}>
                       <Icon name="alert-circle" size={22} color={theme.warn} />
                       <Txt variant="bodyMed" style={{ flex: 1 }}>
-                        {t('stats.needsAttention', { n: String(data.ops.needs_attention) })}
+                        {tPlural(t as never, 'stats.needsAttention', data.ops.needs_attention)}
                       </Txt>
                     </Row>
                   </Card>

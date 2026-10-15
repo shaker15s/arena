@@ -513,7 +513,11 @@ export function buildSeedDb(): Db {
     kudosQuotas: [{ instructorId: IDS.sara, month: monthKeyOf(now), spent: 25 }],
     notifications,
     privateNotes: [{ id: 'pn_1', instructorId: IDS.sara, userId: 'u_omar', note: 'مهتم ومتفاعل — رشّحه لمشروع المعرض', updatedAt: now - 2 * DAY }],
-    courseRoles: [],
+    // أدوار الكورسات: المنظّم الحقيقي في البذرة (كانت فارغة ⇒ سلطة المنظّم غير مختبَرة)
+    courseRoles: [
+      { id: 'cr_1', courseId: 'c_design', userId: IDS.mahmoud, role: 'organizer', createdAt: now - 60 * DAY },
+      { id: 'cr_2', courseId: 'c_python', userId: IDS.sara, role: 'owner', createdAt: now - 40 * DAY },
+    ],
     domainEvents: [],
     certSeq,
     seedVersion: SEED_VERSION,

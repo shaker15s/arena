@@ -18,6 +18,7 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { streakSnapshot } from '../../data/engine';
+import { tPlural } from '../../shared/plural';
 import { useApp } from '../../data/store';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
@@ -35,12 +36,18 @@ export interface StreakHeroProps {
   style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * عدّاد نهاية الأسبوع بصيغة عربية صحيحة: «باقي يومين و12 ساعة» لا «2 يوم».
+ * (صيغ 0/1/2/3–10/11+ عبر `tPlural` من `shared/plural`.)
+ */
 function fmtCountdown(ms: number, t: (k: any, vars?: Record<string, string | number>) => string): string {
   const totalHours = Math.floor(ms / 3_600_000);
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
-  if (days <= 0) return t('streak.hoursLeft', { hours: totalHours });
-  return t('streak.daysLeft', { days, hours });
+  if (days <= 0) {
+    return tPlural(t as never, 'streak.hoursLeft', totalHours, { hours: String(totalHours) });
+  }
+  return tPlural(t as never, 'streak.daysLeft', days, { days: String(days), hours: String(hours) });
 }
 
 export function StreakHero({ compact = false, onProtect, style }: StreakHeroProps) {
@@ -88,12 +95,13 @@ export function StreakHero({ compact = false, onProtect, style }: StreakHeroProp
           <Txt variant="micro" color={theme.textMuted}>{t('streak.title')}</Txt>
           <Row center gap={spacing.s2}>
             <CountUp value={snap.weeks} variant="h1" color={accent} />
-            <Txt variant="h3" color={theme.textSecondary}>{t('streak.weeksUnit')}</Txt>
+            {/* الوحدة تتبع العدد: أسبوع / أسبوعين / أسابيع / أسبوعًا */}
+            <Txt variant="h3" color={theme.textSecondary}>{tPlural(t as never, 'streak.weeksUnit', snap.weeks)}</Txt>
             {snap.weeks > 0 ? <Icon name="flame" size={20} color={accent} /> : null}
           </Row>
           <Txt variant="micro" color={theme.textMuted}>
             {snap.longest > snap.weeks
-              ? t('streak.longest', { weeks: snap.longest })
+              ? tPlural(t as never, 'streak.longest', snap.longest, { weeks: String(snap.longest) })
               : t('streak.startToday')}
           </Txt>
         </View>
@@ -172,7 +180,7 @@ export function StreakHero({ compact = false, onProtect, style }: StreakHeroProp
         <View style={[styles.pill, { backgroundColor: theme.warnSoft }]}>
           <Icon name="trophy" size={14} color={theme.warn} />
           <Txt variant="micro" color={theme.warn}>
-            {t('streak.nextMilestone', { weeks: snap.milestone.next })}
+            {tPlural(t as never, 'streak.nextMilestone', snap.milestone.next, { weeks: String(snap.milestone.next) })}
           </Txt>
         </View>
       </Row>

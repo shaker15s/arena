@@ -455,10 +455,10 @@ export function AchievementsScreen({ navigation }: any) {
                     <View style={{ alignSelf: 'stretch', gap: spacing.s1 }}>
                       <ProgressBar progress={progress} height={5} color={color} />
                       <Txt variant="micro" color={theme.textMuted} align="center">
-                        {badge.target > 1
+                        {detail.target > 1
                           ? t('badges.progressOf', {
                             current: String(detail.current),
-                            target: String(badge.target),
+                            target: String(detail.target),
                             unit: t(`day.unit.${badge.metric}` as any),
                           })
                           : `${Math.round(progress * 100)}%`}
@@ -513,7 +513,7 @@ export function AchievementsScreen({ navigation }: any) {
           progressLabel={detailOf(selectedBadge.code).achievable
             ? t('badges.progressOf', {
               current: String(detailOf(selectedBadge.code).current),
-              target: String(selectedBadge.target),
+              target: String(detailOf(selectedBadge.code).target),
               unit: t(`day.unit.${selectedBadge.metric}` as any),
             })
             : t('badges.notAchievable')}

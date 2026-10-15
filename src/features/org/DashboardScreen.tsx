@@ -9,6 +9,7 @@ import {
 // «الجلسة القادمة على مجموعاتك» — نفس مصدر الطالب والمدرّب بلا حساب موازي.
 import { nextAgendaItem } from '../../data/agenda';
 import { formatTime, relativeDayLabel, startsIn } from '../../shared/format';
+import { tPlural } from '../../shared/plural';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -447,12 +448,12 @@ function NeedsAttention({ db, t, navigation }: { db: Db; t: (k: any, p?: any) =>
         <View style={{ gap: spacing.s2 }}>
           {pendingExcuses > 0 ? (
             <Card style={{ backgroundColor: theme.dangerSoft, borderStartWidth: 3, borderStartColor: theme.danger, padding: spacing.s3 }}>
-              <ListRow icon="shield" title={t('dash.pendingExcuses', { x: pendingExcuses })} onPress={() => navigation.navigate('ExcusesInbox')} />
+              <ListRow icon="shield" title={tPlural(t as never, 'dash.pendingExcuses', pendingExcuses)} onPress={() => navigation.navigate('ExcusesInbox')} />
             </Card>
           ) : null}
           {liveSessions > 0 ? (
             <Card style={{ backgroundColor: theme.warnSoft, borderStartWidth: 3, borderStartColor: theme.warn, padding: spacing.s3 }}>
-              <ListRow icon="radio" title={t('dash.liveSessions', { x: liveSessions })} onPress={() => navigation.navigate('BatchesAdmin')} />
+              <ListRow icon="radio" title={tPlural(t as never, 'dash.liveSessions', liveSessions)} onPress={() => navigation.navigate('BatchesAdmin')} />
             </Card>
           ) : null}
           {completedWithoutCert > 0 ? (

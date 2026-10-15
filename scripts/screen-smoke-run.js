@@ -154,6 +154,9 @@ const { CourseBuildTab } = require(path.join(build, 'src', 'features', 'courses'
 const mascot = require(path.join(build, 'src', 'design', 'mascot', 'index.js'));
 const dayCards = require(path.join(build, 'src', 'features', 'today', 'DayCards.js'));
 const orgDash = require(path.join(build, 'src', 'features', 'org', 'DashboardScreen.js'));
+const gamScreens = require(path.join(build, 'src', 'features', 'gamification', 'GamificationScreens.js'));
+const todayScreen = require(path.join(build, 'src', 'features', 'today', 'TodayScreen.js'));
+const volunteerScreens = require(path.join(build, 'src', 'features', 'volunteer', 'VolunteerScreens.js'));
 
 /** مُترجم بسيط للاستخدام خارج شجرة React (بطاقة لوحة المنظّم تطلب `t` كخاصية). */
 const i18nT = (key, params) => {
@@ -174,11 +177,13 @@ const course = db.courses.find((c) => c.id === courseId);
 const cases = [
   {
     name: 'StreakHero (بطاقة السلسلة الأسبوعية)',
+    user: seed.IDS.omar,
     node: React.createElement(StreakHero, { compact: true, onProtect: () => {} }),
-    expect: ['سلسلتك الأسبوعية', 'هدف الأسبوع'],
+    expect: ['سلسلتك الأسبوعية', 'هدف الأسبوع', 'باقي'],
   },
   {
     name: 'StreakHero — النسخة الكاملة',
+    user: seed.IDS.omar,
     node: React.createElement(StreakHero, { onProtect: () => {} }),
     expect: ['سلسلتك الأسبوعية', 'دروع التجميد'],
   },
@@ -235,6 +240,40 @@ const cases = [
     expect: ['الجاية'],
   },
   {
+    // التقدّم في قاعة الإنجازات لازم يكون عدّادًا حقيقيًا («2 من 4 محاضرات»)
+    name: 'AchievementsScreen (قاعة الإنجازات — تقدّم الشارات)',
+    user: seed.IDS.omar,
+    node: React.createElement(gamScreens.AchievementsScreen, { navigation: { goBack: () => {}, navigate: () => {} } }),
+    expect: ['قاعة الإنجازات', 'من', 'محاضرات'],
+  },
+  {
+    // الشاشة الرئيسية كاملة: أي انفجار في ترتيب الكروت أو الحسابات يظهر هنا
+    name: 'TodayScreen (اليوم — الشاشة كاملة)',
+    node: React.createElement(todayScreen.TodayScreen, {}),
+    expect: ['ملخص النهاردة', 'اليوم'],
+  },
+  {
+    name: 'VolunteerTodayScreen (يوم المدرّب — الشاشة كاملة)',
+    user: seed.IDS.sara,
+    node: React.createElement(volunteerScreens.VolunteerTodayScreen, { navigation: { navigate: () => {} } }),
+    expect: ['ملخص النهاردة', 'لمحة سريعة'],
+  },
+  {
+    // بلاغ المستخدم: شاشة المنظّم ما كانش فيها بطاقة «الجلسة القادمة» أصلًا
+    name: 'NextSessionCard — المنظّم يدير كورسًا (عرض حقيقي)',
+    user: seed.IDS.mahmoud,
+    node: React.createElement(orgDash.NextSessionCard, {
+      db, userId: seed.IDS.mahmoud, t: i18nT, navigation: { navigate: () => {} },
+    }),
+    expect: ['كورساتك'],
+  },
+  {
+    name: 'DashboardScreen (لوحة المنظّم — الشاشة كاملة)',
+    user: seed.IDS.mahmoud,
+    node: React.createElement(orgDash.DashboardScreen, { navigation: { navigate: () => {}, goBack: () => {} } }),
+    expect: ['لوحة'],
+  },
+  {
     name: 'MasarMascot — كل الحالات (14)',
     node: React.createElement(React.Fragment, null,
       ...db.__mascotStates.map((state, i) => React.createElement(mascot.MasarMascot, { key: i, behavior: state, size: 90, hideFloatingBubble: true }))),
@@ -246,13 +285,19 @@ let failures = 0;
 console.log('\n══ دخان الشاشات: تصيير React حقيقي لمكوّنات مسار ══\n');
 for (const testCase of cases) {
   let html = '';
+  // بعض الحالات تحتاج مستخدمًا مختلفًا (مدرّب/منظّم) — نبدّله حول التصيير فقط.
+  const previousUser = currentUser.current;
+  if (testCase.user) currentUser.current = db.profiles.find((p2) => p2.id === testCase.user) ?? previousUser;
   try {
     html = withProviders(testCase.node);
   } catch (error) {
     failures++;
     console.log(`❌ ${testCase.name}: انفجار — ${error.message.split('\n')[0]}`);
+    if (process.env.SMOKE_STACK === '1') console.log(String(error.stack).split('\n').slice(0, 8).join('\n'));
+    currentUser.current = previousUser;
     continue;
   }
+  currentUser.current = previousUser;
   // لقطات HTML دائمة (لمكوّنات الواجهة، لا الرسم الكبير) لمراجعة بشرية سريعة
   // اسم اللقطة = الجزء قبل الأقواس + تمييز الحالات الخاصة، حتى لا تلغي لقطةٌ لقطةً
   // أخرى (كانت حالتان بنفس الكلمة الأولى تُنتجان ملفًا واحدًا).

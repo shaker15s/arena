@@ -25,7 +25,8 @@ import {
   Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
 import { layout, spacing, radii, sizes, attendanceColors } from '../../design/tokens';
-import { formatDate, formatTime, monthKeyOf, relativeDayLabel, sameDay, startsIn, uid } from '../../shared/format';
+import { formatDate, formatTime, getFirstName, monthKeyOf, relativeDayLabel, sameDay, startsIn, uid } from '../../shared/format';
+import { tPlural } from '../../shared/plural';
 import { useTabs } from '../../app/RootNavigator';
 import { BatchFormSheet } from '../org/AdminScreens';
 import { Icon } from '../../design/icons';
@@ -84,7 +85,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
       >
         <Header
           title={t('vtoday.title')}
-          subtitle={`${t('dash.hello')} ${user.fullName.split(' ')[0]} 👋`}
+          subtitle={`${t('dash.hello')} ${getFirstName(user.fullName)} 👋`}
           onSubtitlePress={() => tabs.setTab('profile')}
           right={
             <NotificationBell count={unreadCount} onPress={() => navigation.navigate('Notifications')} />
@@ -97,7 +98,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
             <Card onPress={() => tabs.setTab('inbox')}>
               <Row center gap={spacing.s3}>
                 <Icon name="shield" size={22} color={theme.warn} />
-                <Txt variant="bodyMed" style={{ flex: 1 }}>{t('dash.pendingExcuses', { x: pendingExcuses })}</Txt>
+                <Txt variant="bodyMed" style={{ flex: 1 }}>{tPlural(t as never, 'dash.pendingExcuses', pendingExcuses)}</Txt>
               </Row>
             </Card>
           </FadeIn>
@@ -109,7 +110,7 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
             <Card>
               <Row between center>
                 <Txt variant="caption" color={theme.textMuted}>{t('day.title')}</Txt>
-                <Tag label={t('vtoday.todayCount', { n: String(agendaToday.total) })} color={theme.brand} bg={theme.brandSoft} icon="calendar" />
+                <Tag label={tPlural(t as never, 'vtoday.todayCount', agendaToday.total)} color={theme.brand} bg={theme.brandSoft} icon="calendar" />
               </Row>
               {agendaToday.total === 0 ? (
                 <Txt variant="caption" color={theme.textSecondary} style={{ marginTop: spacing.s2 }}>

@@ -163,8 +163,11 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.evaluate_user_badges(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.evaluate_user_badges(UUID) TO authenticated, service_role;
+-- ⚠️ أمان: هذه الدالة تستقبل `p_user_id` لأي مستخدم، لذلك تبقى **داخلية فقط**:
+-- تُستدعى من دوال التسوية (SECURITY DEFINER) ومن service_role، ولا تُمنح
+-- للمستخدم المُسجَّل — وإلا استطاع أي طالب تشغيلها على معرّف غيره.
+REVOKE ALL ON FUNCTION public.evaluate_user_badges(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.evaluate_user_badges(UUID) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 4. تقدّم الشارة للعميل: أرقام حقيقية (current/target) لا نسب مُخمَّنة.

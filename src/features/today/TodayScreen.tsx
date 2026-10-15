@@ -30,6 +30,7 @@ import { MasarMascot, FatenBehaviorState, pickFatenLine, nextTip } from '../../d
 import { ShimmerProgressBar } from '../../design/animations';
 import { layout, spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, getFirstName, relativeDayLabel, sameDay, startsIn } from '../../shared/format';
+import { tPlural } from '../../shared/plural';
 import { buildIcs, icsFilename } from '../../shared/calendar';
 import { saveIcs } from '../../shared/export';
 import { PUBLIC_APP_URL } from '../../shared/links';
@@ -221,7 +222,7 @@ export function TodayScreen() {
     : isUpcomingToday
     ? t('today.quoteUpcoming', { time: formatTime(nextSess.startsAt, lang), room: nextBatch?.room ?? t('common.room') })
     : needed > 0
-    ? t('today.quoteCertGap', { n: needed, pct: certPct })
+    ? tPlural(t as never, 'today.quoteCertGap', needed, { n: String(needed), pct: String(certPct) })
     : t('today.quoteGeneric');
 
   return (
@@ -676,7 +677,7 @@ export function TodayScreen() {
                     <Txt variant="h3">{pendingFeedback[0].title}</Txt>
                     <Txt variant="caption" color={theme.textSecondary}>
                       {pendingFeedback.length > 1
-                        ? t('today.feedbackCount', { n: String(pendingFeedback.length) })
+                        ? tPlural(t as never, 'today.feedbackCount', pendingFeedback.length)
                         : t('today.feedbackBody')}
                     </Txt>
                     <Btn
@@ -719,7 +720,7 @@ export function TodayScreen() {
                     <Icon name={combinedPct >= certPct ? 'checkmark-circle' : 'ribbon-outline'} size={30} color={combinedPct >= certPct ? theme.success : theme.warn} />
                   </View>
                   <Txt variant="caption" color={combinedPct >= certPct ? theme.success : theme.warn} align="center">
-                    {combinedPct >= certPct ? t('today.eligible') : t('today.needMore', { x: needed })}
+                    {combinedPct >= certPct ? t('today.eligible') : tPlural(t as never, 'today.needMore', needed, { x: String(needed) })}
                   </Txt>
                   <Txt variant="micro" color={theme.textMuted} align="center">
                     {t('journey.sessionXofY', { x: closedCount, y: totalCount })}

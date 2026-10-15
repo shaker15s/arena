@@ -25,6 +25,11 @@ module.exports = new Proxy({ __esModule: true }, {
       case 'impactAsync':
       case 'notificationAsync':
       case 'selectionAsync': return asyncNoop;
+      // شاشات كاملة تستخدم الشريط الآمن: هوامش صفرية كافية لتصيير صحيح.
+      case 'useSafeAreaInsets': return () => ({ top: 0, bottom: 0, left: 0, right: 0 });
+      case 'useSafeAreaFrame': return () => ({ x: 0, y: 0, width: 390, height: 844 });
+      case 'SafeAreaProvider':
+      case 'SafeAreaView': return View;
       case 'getItem':
       case 'setItem':
       case 'removeItem': return asyncNoop;
