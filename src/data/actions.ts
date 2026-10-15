@@ -494,6 +494,55 @@ export async function saveSessionContent(input: {
   });
 }
 
+/** ربط محاضرة بوحدة تعليمية (أو فصلها بتمرير `null`) — سلطة المنظّم على بناء الكورس. */
+export async function setSessionModule(sessionId: string, moduleId: string | null): Promise<void> {
+  await rpc('set_session_module', { p_session_id: sessionId, p_module_id: moduleId });
+}
+
+/** إعادة تسمية وحدة تعليمية. */
+export async function renameCourseModule(moduleId: string, title: string): Promise<void> {
+  await rpc('rename_course_module', { p_module_id: moduleId, p_title: title });
+}
+
+/** حذف وحدة — المحاضرات تبقى وتُفصل من الوحدة. */
+export async function deleteCourseModule(moduleId: string): Promise<number> {
+  const result = await rpc<{ ok: boolean; detached_sessions: number }>('delete_course_module', { p_module_id: moduleId });
+  return result.detached_sessions ?? 0;
+}
+
+/** ترتيب وحدة لأعلى (-1) أو لأسفل (1). */
+export async function reorderCourseModule(moduleId: string, direction: -1 | 1): Promise<boolean> {
+  const result = await rpc<{ ok: boolean; moved: boolean }>('reorder_course_module', {
+    p_module_id: moduleId,
+    p_direction: direction,
+  });
+  return Boolean(result.moved);
+}
+
+/** نظرة التغذية الراجعة الكاملة للكورس (مجهولة الهوية) — للمنظّم. */
+export async function getCourseFeedback(courseId: string): Promise<CourseFeedbackResult> {
+  return rpc('get_course_feedback', { p_course_id: courseId });
+}
+
+/** شكل نتيجة `get_course_feedback` (0036) — مطابق لمرآة `courseFeedback` في المحرّك. */
+export interface CourseFeedbackResult {
+  course: { id: string; title: string };
+  totals: {
+    responses: number; sessions_with_feedback: number; sessions_total: number;
+    avg_understanding: number; avg_pace: number; avg_clarity: number;
+    praise_count: number; missing_reports: number;
+  };
+  sentiments: Record<string, number>;
+  topics_hard: Array<{ topic: string; count: number }>;
+  sessions: Array<{
+    session_id: string; title: string; batch_id: string; starts_at: string; status: string;
+    responses: number; avg_understanding: number; avg_pace: number; avg_clarity: number;
+    praise_count: number; sentiments: Record<string, number>; topics_hard: string[];
+    has_report: boolean; comments: Array<{ comment: string; sentiment: string; created_at: string }>;
+  }>;
+  ratings: { count: number; avg: number; distribution: Record<string, number> };
+}
+
 /** إنشاء وحدة تعليمية داخل الكورس. */
 export async function createCourseModule(courseId: string, title: string): Promise<string> {
   const result = await rpc<{ ok: boolean; id: string }>('create_course_module', {

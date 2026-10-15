@@ -6,6 +6,7 @@ import {
   lookupCertificate, pendingFeedbackFor, qrSlotOf, rpcAwardKudos, rpcCheckIn, rpcCloseSession,
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
   rpcStartSession, rpcSubmitExcuse, rpcSubmitSessionFeedback, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
+  streakSnapshot, courseOutline, sessionsOfBatch,
 } from '../src/data/engine';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
@@ -288,6 +289,80 @@ const MIN = 60_000;
   ok(rep !== null && rep.hasFeedback && rep.attendance === 'present', 'تقرير المحاضرة: حضور + تغذية', rep);
   ok(rep !== null && rep.fullDay, 'تقرير المحاضرة: اليوم الكامل', rep?.fullDay);
   ok(rep !== null && rep.topicsHard.includes('الشروط'), 'تقرير المحاضرة: المحاور المحتاجة توضيح', rep?.topicsHard);
+
+
+  // ═ 13) الستريك الأسبوعي: لقطة كاملة (UX-G1) ═
+  console.log('\n═ 13) لقطة الستريك الأسبوعي ═');
+  const snapK = streakSnapshot(db, 'u_karim');
+  ok(snapK.weekGoal >= 1, 'لقطة الستريك: الهدف الأسبوعي من قواعد اللعبة', snapK.weekGoal);
+  ok(snapK.days.length === 7, 'لقطة الستريك: 7 أيام مهما كان تاريخ التشغيل', snapK.days.length);
+  ok(snapK.days.some((d) => d.isToday), 'لقطة الستريك: يوجد يوم «اليوم» واحد بين الأيام');
+  ok(snapK.msLeft > 0 && snapK.msLeft <= 7 * 86_400_000, 'لقطة الستريك: العدّ التنازلي داخل الأسبوع', snapK.msLeft);
+  ok(snapK.longest >= snapK.weeks, 'لقطة الستريك: الطويلة ≥ الحالية دائمًا');
+  ok(['kept', 'tracking', 'at_risk', 'frozen', 'broken', 'pending'].includes(snapK.status), 'لقطة الستريك: حالة معروفة', snapK.status);
+  ok(snapK.milestone.next >= 4 && snapK.milestone.progress >= 0 && snapK.milestone.progress <= 1, 'لقطة الستريك: المعلم القادم وتقدّمه صحيحان', snapK.milestone);
+
+  // الحضور هذا الأسبوع يجب أن يطابق العدّ اليدوي على الجلسات المغلقة
+  const manualHonored = db.sessions
+    .filter((x) => weekStartOf(x.startsAt) === weekStartOf(Date.now()) && x.status === 'closed')
+    .filter((x) => {
+      const a = attendanceOf(db, x.id, 'u_karim');
+      return a && a.status !== 'absent';
+    }).length;
+  ok(snapK.honoredThisWeek === manualHonored, 'لقطة الستريك: عدّ الحضور مطابق للحساب اليدوي', { snap: snapK.honoredThisWeek, manual: manualHonored });
+
+  // ═ 14) تنظيم الكورس في وحدات (UX-C1) ═
+  console.log('\n═ 14) مخطط الكورس (وحدات + حالات) ═');
+  const outline = courseOutline(db, IDS.g2, 'u_karim');
+  ok(outline.totalSessions > 0, 'المخطط: يحتوي محاضرات المجموعة', outline.totalSessions);
+  ok(outline.units.length >= 1, 'المخطط: وحدة واحدة على الأقل (افتراضية عند غياب الوحدات)', outline.units.length);
+  const flatStatuses = outline.units.flatMap((u) => u.sessions.map((s) => s.status));
+  ok(flatStatuses.filter((s2) => s2 === 'current').length <= 1, 'المخطط: محاضرة «جارية» واحدة كحد أقصى', flatStatuses);
+  ok(outline.units.every((u) => u.completed <= u.total), 'المخطط: المكتمل لا يتجاوز الإجمالي في أي وحدة');
+  ok(outline.units.every((u) => Math.abs(u.progress - (u.total ? u.completed / u.total : 0)) < 1e-9), 'المخطط: نسبة كل وحدة متسقة مع أرقامها');
+  ok(outline.progress >= 0 && outline.progress <= 1, 'المخطط: نسبة الكورس الكلية داخل 0–1', outline.progress);
+
+  // المقفول لا يأتي قبل مفتوح: أي محاضرة مقفولة يسبقها محاضرة غير محسومة
+  let lockedOrderOk = true;
+  for (const unit of outline.units) {
+    const list = unit.sessions;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].status !== 'locked') continue;
+      const earlierUnsettled = list.slice(0, i).some((p) => p.status === 'locked' || p.status === 'current' || p.status === 'absent');
+      if (!earlierUnsettled && i > 0 && list.slice(0, i).every((p) => p.status === 'done' || p.status === 'late' || p.status === 'excused')) {
+        lockedOrderOk = false;
+      }
+    }
+  }
+  ok(lockedOrderOk, 'المخطط: التسلسل منطقي (لا محاضرة مقفولة بعد سلسلة مكتملة)');
+
+  // إنشاء وحدات فعلية على نفس البذرة: يجب أن تُوزّع المحاضرات على الوحدات
+  db.modules.push(
+    { id: 'mod_1', courseId: db.batches.find((b) => b.id === IDS.g2)!.courseId, title: 'الوحدة الأولى', seq: 1, createdAt: Date.now() },
+    { id: 'mod_2', courseId: db.batches.find((b) => b.id === IDS.g2)!.courseId, title: 'الوحدة الثانية', seq: 2, createdAt: Date.now() },
+  );
+  const g2Sessions = sessionsOfBatch(db, IDS.g2).sort((a, b) => a.seq - b.seq);
+  ok(g2Sessions.length >= 3, 'البذرة: مجموعة الاختبار بها 3 محاضرات على الأقل لوحدات المخطط', g2Sessions.length);
+  if (g2Sessions[0]) g2Sessions[0].moduleId = 'mod_1';
+  if (g2Sessions[1]) g2Sessions[1].moduleId = 'mod_1';
+  // نترك بقية المحاضرات بلا وحدة عمدًا لاختبار وحدة «محاضرات إضافية»
+  const outline2 = courseOutline(db, IDS.g2, 'u_karim');
+  ok(outline2.units.length >= 2, 'المخطط: الوحدات المنشأة تظهر كوحدات منفصلة', outline2.units.map((u) => u.title));
+  ok(
+    outline2.units.find((u) => u.id === 'mod_1')?.sessions.length === 2,
+    'المخطط: محاضرات الوحدة الأولى = 2',
+    outline2.units.find((u) => u.id === 'mod_1')?.sessions.length,
+  );
+  ok(
+    outline2.units.some((u) => u.id === 'extra'),
+    'المخطط: المحاضرات بلا وحدة تُجمَّع في «محاضرات إضافية»',
+    outline2.units.map((u) => u.id),
+  );
+  ok(
+    outline2.totalSessions === outline.totalSessions,
+    'المخطط: إضافة الوحدات لا تُفقد أو تُكرّر أي محاضرة',
+    { before: outline.totalSessions, after: outline2.totalSessions },
+  );
 
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);

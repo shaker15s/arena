@@ -21,7 +21,8 @@ import {
 } from '../../design/components';
 import { StatBubble } from '../../design/glass';
 import { useTabs } from '../../app/RootNavigator';
-import { MasarMascot, FatenBehaviorState, getRandomMascotQuote } from '../../design/mascot';
+import { StreakHero } from '../gamification/StreakHero';
+import { MasarMascot, FatenBehaviorState, pickFatenLine, nextTip } from '../../design/mascot';
 import { ShimmerProgressBar } from '../../design/animations';
 import { layout, spacing, radii, leagueTierColors } from '../../design/tokens';
 import { formatDuration, formatTime, formatDate, getFirstName, sameDay } from '../../shared/format';
@@ -42,7 +43,7 @@ export function TodayScreen() {
   const { impactLight } = useHaptics();
 
   const [showEasterEgg, setShowEasterEgg] = useState(false);
-  const [activeMascotQuote, setActiveMascotQuote] = useState<string>(() => getRandomMascotQuote('welcome'));
+  const [activeMascotQuote, setActiveMascotQuote] = useState<string>('');
   const flameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFlameTap = () => {
@@ -175,8 +176,23 @@ export function TodayScreen() {
     ? 'achievement'
     : 'welcome';
 
+  // نُبقي الاقتباس ثابتًا مع تغيّر الحالة (لا «قفزات» نصية أثناء التمرير) — ويُحدَّث
+  // عند لمس المستخدم للشخصية فقط، أو مرّة واحدة عند أول ظهور.
+  const spokenFor = useRef<string>('');
   useEffect(() => {
-    setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
+    if (spokenFor.current === mascotBehavior) return;
+    spokenFor.current = mascotBehavior;
+    setActiveMascotQuote(
+      pickFatenLine(mascotBehavior, {
+        name: firstName,
+        streakWeeks: gam?.streak ?? 0,
+        courseTitle: liveCourse?.title ?? nextCourse?.title,
+        minutes: nextSess ? Math.max(1, Math.round((nextSess.startsAt - Date.now()) / 60000)) : undefined,
+        room: nextBatch?.room,
+        neededForCert: needed,
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mascotBehavior]);
 
   if (!user) return null;
@@ -304,7 +320,14 @@ export function TodayScreen() {
                 accessibilityLabel={t('a11y.mascotInteract')}
                 onPress={() => {
                   impactLight();
-                  setActiveMascotQuote(getRandomMascotQuote(mascotBehavior));
+                  setActiveMascotQuote(
+                    nextTip() ||
+                      pickFatenLine(mascotBehavior, {
+                        name: firstName,
+                        streakWeeks: gam?.streak ?? 0,
+                        neededForCert: needed,
+                      }),
+                  );
                 }}
                 style={{
                   padding: spacing.s4,
@@ -328,10 +351,11 @@ export function TodayScreen() {
                   }}
                 >
                   <MasarMascot
-                    size={78}
+                    size={82}
                     behavior={mascotBehavior}
                     interactive={false}
                     hideFloatingBubble
+                    liveliness="playful"
                   />
                 </View>
 
@@ -353,21 +377,21 @@ export function TodayScreen() {
                     >
                       <Icon name="sparkles" size={12} color={isDark ? '#FBBF24' : '#B45309'} />
                       <Txt variant="micro" bold color={isDark ? '#FDE68A' : '#92400E'}>
-                        نصيحة فطن 💬
+                        {t('faten.newTip')}
                       </Txt>
                     </View>
                   </Row>
 
                   <Txt variant="bodyMed" bold color={isDark ? '#FFFFFF' : '#1F2937'}>
                     {liveSess && !alreadyChecked
-                      ? 'المحاضرة بدأت الآن! ⚡'
+                      ? t('today.fatenLive')
                       : liveSess && alreadyChecked
-                      ? 'حضورك موثق لليوم ✓'
+                      ? t('today.fatenChecked')
                       : streakUrgent
-                      ? 'حافظ على الستريك اليوم! 🔥'
+                      ? t('today.fatenStreak')
                       : isUpcomingToday
-                      ? 'جلستك القادمة اليوم 🎯'
-                      : 'صقر مسار («فطن») يقول لك:'}
+                      ? t('today.fatenUpcoming')
+                      : t('today.fatenSays')}
                   </Txt>
 
                   {/* فقاعة الحديث الكاريكاتورية الأنيقة */}
@@ -677,6 +701,11 @@ export function TodayScreen() {
               </Row>
             </FadeIn>
           ) : null}
+
+          {/* ── السلسلة الأسبوعية: أهم مشعر تحفيزي — يظهر قبل أي شيء آخر ── */}
+          <FadeIn index={2}>
+            <StreakHero compact onProtect={() => tabs.setTab('journey')} />
+          </FadeIn>
 
           {/* ── أقرب شارة ── */}
           {near ? (

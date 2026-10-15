@@ -33,7 +33,8 @@
     "hooks:check": "node scripts/check-hooks-order.js",
     "sql:check": "node scripts/check-sql.js",
     "test:layout": "tsc -p tsconfig.test.json && node .test-build/scripts/layout.test.js",
-    "layout:check": "node scripts/check-layout.js"
+    "layout:check": "node scripts/check-layout.js",
+    "faten:sheet": "tsc -p tsconfig.test.json && node .test-build/scripts/faten-sheet.js"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",

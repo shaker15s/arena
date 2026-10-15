@@ -9,7 +9,7 @@ import { getLang, tStatic } from '../i18n/core';
 import {
   AuditEntry, Attendance, Badge, Certificate, Db, GamificationProfile,
   PointEvent, PointReason, Profile, SessionReport, StreakWeek,
-  TrainingSession, AppNotification, Batch, Course, Enrollment, Excuse, Role,
+  TrainingSession, AppNotification, Batch, Course, Enrollment, Excuse, FeedbackSentiment, Role,
 } from './types';
 import { HARD_CUTOFF_MIN, LEVEL_THRESHOLDS, QR_ROTATION_MS, RULE_DEFS, levelForPoints } from './rules';
 import { hashStr, monthKeyOf, uid, weekStartOf } from '../shared/format';
@@ -1188,6 +1188,397 @@ export interface MyGamification {
   streak: number; longestStreak: number; freezes: number;
   leagueTier: GamificationProfile['leagueTier']; leagueRank: number; leagueXp: number; leagueEndsAt: number;
   weekStatus: StreakWeek['status'];
+}
+
+/**
+ * `streakSnapshot` — لقطة كاملة لحالة الستريك الأسبوعي (UX-G1).
+ *
+ * لماذا في المحرّك؟ لأن شريط الستريك يحتاج ستة أرقام مرتبطة ببعضها (الهدف الأسبوعي،
+ * المُنجَز، الغيابات، موعد حسم الأسبوع، الدروع، والمعلم التالي) وحسابها موزّعًا في
+ * الشاشات كان يعطي أرقامًا متناقضة بين شاشة وأخرى. هنا مصدر واحد للحقيقة، ويستطيع
+ * الخادم لاحقًا إرجاع نفس الشكل من RPC واحد.
+ */
+export interface StreakSnapshot {
+  weeks: number;
+  longest: number;
+  freezesHeld: number;
+  freezesMax: number;
+  /** الحد الأدنى لعدد الجلسات المطلوب أسبوعيًا للحفاظ على السلسلة */
+  weekGoal: number;
+  /** جلسات مغلقة هذا الأسبوع حضرها المستخدم (بما فيها المتأخر «محسوب») */
+  honoredThisWeek: number;
+  /** جلسات مغلقة هذا الأسبوع في مجموعات المستخدم */
+  closedThisWeek: number;
+  /** غيابات هذا الأسبوع (بلا عذر مقبول) */
+  absencesThisWeek: number;
+  /** نهاية الأسبوع الحالي (لحظة الحسم) */
+  weekEndsAt: number;
+  /** وقت متبقٍّ بالمللي ثانية قبل حسم الأسبوع */
+  msLeft: number;
+  status: 'kept' | 'tracking' | 'at_risk' | 'frozen' | 'broken' | 'pending' | 'unknown';
+  /** حالة كل يوم من أيام الأسبوع الحالي (U=الأحد … S=السبت) */
+  days: Array<{ ts: number; hasSession: boolean; honored: boolean; absent: boolean; isToday: boolean; isFuture: boolean }>;
+  /** المعلم القادم (4/8/12/26/52) وتقدّمنا نحوه */
+  milestone: { next: number; previous: number; progress: number };
+}
+
+const STREAK_MILESTONES = [4, 8, 12, 26, 52];
+
+export function streakSnapshot(db: Db, userId: string, now = Date.now()): StreakSnapshot {
+  const g = gamifGet(db, userId);
+  const weekStart = weekStartOf(now);
+  const weekEndsAt = weekStart + 7 * 86_400_000;
+  const myBatchIds = db.enrollments
+    .filter((e) => e.userId === userId && e.status === 'active')
+    .map((e) => e.batchId);
+  const weekSessions = db.sessions.filter(
+    (s) => myBatchIds.includes(s.batchId) && weekStartOf(s.startsAt) === weekStart,
+  );
+  const closed = weekSessions.filter((s) => s.status === 'closed');
+
+  let honoredThisWeek = 0;
+  let absencesThisWeek = 0;
+  for (const s of closed) {
+    const a = attendanceOf(db, s.id, userId);
+    if (a && a.status !== 'absent') honoredThisWeek += 1;
+    else absencesThisWeek += 1;
+  }
+
+  const row = db.streakWeeks.find((r) => r.userId === userId && r.weekStart === weekStart);
+  const weekGoal = Math.max(1, ruleValue(db, 'streak.min_sessions_week') || 1);
+  const freezesMax = Math.max(0, ruleValue(db, 'streak.freeze_max_hold') || 0);
+
+  // الأيام السبعة: نحسب لكل يوم هل فيه جلسة، وهل حضرها/غاب عنها المستخدم
+  const da = new Date(weekStart);
+  const days = Array.from({ length: 7 }).map((_, i) => {
+    const ts = da.getTime() + i * 86_400_000;
+    const daySessions = weekSessions.filter((s) => new Date(s.startsAt).toDateString() === new Date(ts).toDateString());
+    let honored = false;
+    let absent = false;
+    for (const s of daySessions) {
+      if (s.status !== 'closed') continue;
+      const a = attendanceOf(db, s.id, userId);
+      if (a && a.status !== 'absent') honored = true;
+      else absent = true;
+    }
+    return {
+      ts,
+      hasSession: daySessions.length > 0,
+      honored,
+      absent,
+      isToday: new Date(ts).toDateString() === new Date(now).toDateString(),
+      isFuture: ts > now,
+    };
+  });
+
+  let status: StreakSnapshot['status'] = row?.status ?? 'unknown';
+  if (status === 'tracking' || status === 'unknown' || status === 'pending') {
+    if (absencesThisWeek > 0) {
+      status = 'at_risk'; // الغياب بلا عذر = خطر مباشر على السلسلة (الدرع متاح للتفسير في الواجهة)
+    } else if (honoredThisWeek >= weekGoal) {
+      status = 'kept';
+    } else if (weekSessions.length === 0) {
+      status = 'tracking';
+    } else {
+      status = 'at_risk';
+    }
+  }
+
+  const next = STREAK_MILESTONES.find((m) => m > g.currentStreakWeeks) ?? STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
+  const previous = [...STREAK_MILESTONES].reverse().find((m) => m <= g.currentStreakWeeks) ?? 0;
+  const span = Math.max(1, next - previous);
+  const progress = Math.min(1, Math.max(0, (g.currentStreakWeeks - previous) / span));
+
+  return {
+    weeks: g.currentStreakWeeks,
+    longest: g.longestStreakWeeks,
+    freezesHeld: g.freezesHeld,
+    freezesMax,
+    weekGoal,
+    honoredThisWeek,
+    closedThisWeek: closed.length,
+    absencesThisWeek,
+    weekEndsAt,
+    msLeft: Math.max(0, weekEndsAt - now),
+    status,
+    days,
+    milestone: { next, previous, progress },
+  };
+}
+
+/**
+ * `courseOutline` — تنظيم محاضرات المجموعة في **وحدات** (كورسيرا-style) مع حالة كل
+ * محاضرة وتقدّم كل وحدة (UX-C1).
+ *
+ * لماذا في المحرّك؟ لأن «أين أنا من الكورس؟» سؤال واحد، والإجابة عنه كانت موزّعة:
+ * شاشة الرحلة تعرض تسلسلًا مسطّحًا، وشاشة إدارة الكورس تعرض الوحدات، وشاشة التقارير
+ * تعرض المحاور — فيظهر للمستخدم ثلاثة أرقام مختلفة لنفس الحقيقة. هنا مصدر واحد:
+ *   • الوحدة = `course_modules` إن وُجدت، وإلا وحدة افتراضية تجمع الكل.
+ *   • المحاضرات غير المرتبطة بوحدة تُجمَّع في وحدة «محاضرات إضافية».
+ *   • لكل محاضرة: الحالة + مؤشر الإتقان (محتوى/تغذية راجعة/تقرير).
+ */
+export type OutlineSessionStatus = 'done' | 'late' | 'current' | 'locked' | 'excused' | 'absent' | 'cancelled';
+
+export interface OutlineSession {
+  id: string;
+  seq: number;
+  title: string;
+  startsAt: number;
+  durationMin: number;
+  status: OutlineSessionStatus;
+  hasContent: boolean;
+  hasFeedback: boolean;
+  hasReport: boolean;
+  points: number;
+  reportReady: boolean;
+}
+
+export interface OutlineUnit {
+  id: string;
+  title: string;
+  seq: number;
+  sessions: OutlineSession[];
+  completed: number;
+  total: number;
+  progress: number;
+  /** أول محاضرة قادمة في الوحدة (لفتح الوحدة تلقائيًا في الواجهة) */
+  nextSessionId: string | null;
+}
+
+export interface CourseOutline {
+  units: OutlineUnit[];
+  totalSessions: number;
+  completedSessions: number;
+  progress: number;
+  /** الوحدة التي تحتوي المحاضرة الجارية/القادمة */
+  activeUnitId: string | null;
+  /** المحاضرة القادمة على مستوى الكورس */
+  nextSessionId: string | null;
+}
+
+export function courseOutline(db: Db, batchId: string, userId: string): CourseOutline {
+  const batch = batchOf(db, batchId);
+  const sessions = sessionsOfBatch(db, batchId);
+  const modules = batch
+    ? db.modules.filter((m) => m.courseId === batch.courseId).sort((a, b) => a.seq - b.seq)
+    : [];
+
+  const statusOf = (sess: TrainingSession): OutlineSessionStatus => {
+    if (sess.status === 'cancelled') return 'cancelled';
+    const att = attendanceOf(db, sess.id, userId);
+    if (sess.status === 'live') {
+      if (!att || att.status === 'absent') return 'current';
+      return att.status === 'late' ? 'late' : 'done';
+    }
+    if (sess.status === 'closed') {
+      if (!att || att.status === 'absent') return 'absent';
+      if (att.status === 'excused') return 'excused';
+      if (att.status === 'late') return 'late';
+      return 'done';
+    }
+    // مجدولة: مفتوحة لو كل ما سبقها محسوم بالحضور/العذر
+    const prev = sessions.filter((s) => s.seq < sess.seq);
+    const prevDone = prev.every((p) => {
+      if (p.status === 'cancelled') return true;
+      const a = attendanceOf(db, p.id, userId);
+      return p.status === 'closed' && a && a.status !== 'absent';
+    });
+    return prevDone ? 'current' : 'locked';
+  };
+
+  const build = (list: TrainingSession[]): OutlineSession[] => list
+    .sort((a, b) => a.seq - b.seq)
+    .map((sess) => {
+      const points = db.pointEvents
+        .filter((e) => e.userId === userId && e.refType === 'session' && e.refId === sess.id)
+        .reduce((sum, e) => sum + e.points, 0);
+      return {
+        id: sess.id,
+        seq: sess.seq,
+        title: sess.title,
+        startsAt: sess.startsAt,
+        durationMin: sess.durationMin,
+        status: statusOf(sess),
+        hasContent: db.sessionContent.some((c) => c.sessionId === sess.id),
+        hasFeedback: Boolean(feedbackOf(db, sess.id, userId)),
+        hasReport: Boolean(sess.report && (sess.report.done || sess.report.challenges)),
+        points,
+        reportReady: sess.status === 'closed' && Boolean(lectureReportFor(db, sess.id, userId)),
+      };
+    });
+
+  const units: OutlineUnit[] = [];
+  if (modules.length === 0) {
+    const list = build([...sessions]);
+    units.push({
+      id: 'all',
+      title: tStatic('outline.allUnits'),
+      seq: 1,
+      sessions: list,
+      completed: list.filter((s) => s.status === 'done' || s.status === 'late' || s.status === 'excused').length,
+      total: list.length,
+      progress: list.length ? list.filter((s) => s.status === 'done' || s.status === 'late' || s.status === 'excused').length / list.length : 0,
+      nextSessionId: list.find((s) => s.status === 'current')?.id ?? null,
+    });
+  } else {
+    for (const mod of modules) {
+      const list = build(sessions.filter((s) => s.moduleId === mod.id));
+      if (list.length === 0) continue;
+      const done = list.filter((s) => s.status === 'done' || s.status === 'late' || s.status === 'excused').length;
+      units.push({
+        id: mod.id,
+        title: mod.title,
+        seq: mod.seq,
+        sessions: list,
+        completed: done,
+        total: list.length,
+        progress: list.length ? done / list.length : 0,
+        nextSessionId: list.find((s) => s.status === 'current')?.id ?? null,
+      });
+    }
+    const orphan = build(sessions.filter((s) => !s.moduleId || !modules.some((m) => m.id === s.moduleId)));
+    if (orphan.length > 0) {
+      const done = orphan.filter((s) => s.status === 'done' || s.status === 'late' || s.status === 'excused').length;
+      units.push({
+        id: 'extra',
+        title: tStatic('outline.extraSessions'),
+        seq: modules.length + 1,
+        sessions: orphan,
+        completed: done,
+        total: orphan.length,
+        progress: orphan.length ? done / orphan.length : 0,
+        nextSessionId: orphan.find((s) => s.status === 'current')?.id ?? null,
+      });
+    }
+  }
+
+  const allSessions = units.flatMap((u) => u.sessions);
+  const completedSessions = allSessions.filter((s) => s.status === 'done' || s.status === 'late' || s.status === 'excused').length;
+  const activeUnit = units.find((u) => u.sessions.some((s) => s.status === 'current')) ?? null;
+
+  return {
+    units,
+    totalSessions: allSessions.length,
+    completedSessions,
+    progress: allSessions.length ? completedSessions / allSessions.length : 0,
+    activeUnitId: activeUnit?.id ?? (units[0]?.id ?? null),
+    nextSessionId: allSessions.find((s) => s.status === 'current')?.id ?? null,
+  };
+}
+
+/**
+ * `courseFeedback` — نظرة واحدة على **كل** تغذية الكورس الراجعة (UX-C2).
+ *
+ * مرآة محلية لدالة `get_course_feedback` (ترحيل 0036): نفس الأرقام بالضبط حتى
+ * يرى المنظّم شيئًا واحدًا سواء كان متصلًا (RPC) أو يعرض من الذاكرة/أوفلاين.
+ * **مجهول الهوية 100%**: لا يُعاد أي `userId`، والتعليقات تُعرَض بلا صاحبها.
+ */
+export interface CourseFeedbackSession {
+  sessionId: string;
+  batchId: string;
+  seq: number;
+  title: string;
+  startsAt: number;
+  status: string;
+  responses: number;
+  avgUnderstanding: number;
+  avgPace: number;
+  avgClarity: number;
+  praiseCount: number;
+  sentiments: Partial<Record<FeedbackSentiment, number>>;
+  topicsHard: string[];
+  hasReport: boolean;
+  /** تعليقات مجهولة الهوية (نص + انطباع + تاريخ) */
+  comments: Array<{ comment: string; sentiment: FeedbackSentiment; createdAt: number }>;
+}
+
+export interface CourseFeedbackView {
+  sessions: CourseFeedbackSession[];
+  totals: {
+    responses: number;
+    sessionsWithFeedback: number;
+    sessionsTotal: number;
+    avgUnderstanding: number;
+    avgPace: number;
+    avgClarity: number;
+    praiseCount: number;
+    missingReports: number;
+  };
+  sentiments: Partial<Record<FeedbackSentiment, number>>;
+  /** المحاور الأكثر احتياجًا لتوضيح عبر الكورس كاملًا (مرتّبة تنازليًا) */
+  topicsHard: Array<{ topic: string; count: number }>;
+  ratings: { count: number; avg: number; distribution: Record<number, number> };
+}
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+const avgOf = (values: number[]) => (values.length === 0 ? 0 : round2(values.reduce((a, b) => a + b, 0) / values.length));
+
+export function courseFeedback(db: Db, courseId: string): CourseFeedbackView {
+  const batchIds = new Set(db.batches.filter((b) => b.courseId === courseId).map((b) => b.id));
+  const sessions = db.sessions.filter((s) => batchIds.has(s.batchId)).sort((a, b) => a.seq - b.seq);
+  const sessionIds = new Set(sessions.map((s) => s.id));
+  const feedback = db.sessionFeedback.filter((f) => sessionIds.has(f.sessionId));
+
+  const rows: CourseFeedbackSession[] = sessions.map((sess) => {
+    const rowsOfSession = feedback.filter((f) => f.sessionId === sess.id);
+    const sentiments: Partial<Record<FeedbackSentiment, number>> = {};
+    for (const f of rowsOfSession) sentiments[f.sentiment] = (sentiments[f.sentiment] ?? 0) + 1;
+    return {
+      sessionId: sess.id,
+      batchId: sess.batchId,
+      seq: sess.seq,
+      title: sess.title,
+      startsAt: sess.startsAt,
+      status: sess.status,
+      responses: rowsOfSession.length,
+      avgUnderstanding: avgOf(rowsOfSession.map((f) => f.understanding)),
+      avgPace: avgOf(rowsOfSession.map((f) => f.pace)),
+      avgClarity: avgOf(rowsOfSession.map((f) => f.clarity)),
+      praiseCount: rowsOfSession.filter((f) => f.praiseInstructor).length,
+      sentiments,
+      topicsHard: Array.from(new Set(rowsOfSession.flatMap((f) => f.topicsHard))),
+      hasReport: Boolean(sess.report && (sess.report.done || sess.report.challenges)),
+      comments: rowsOfSession
+        .filter((f) => f.comment.trim().length > 0)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((f) => ({ comment: f.comment.trim(), sentiment: f.sentiment, createdAt: f.createdAt })),
+    };
+  });
+
+  const sentiments: Partial<Record<FeedbackSentiment, number>> = {};
+  for (const f of feedback) sentiments[f.sentiment] = (sentiments[f.sentiment] ?? 0) + 1;
+
+  const topicCounts = new Map<string, number>();
+  for (const f of feedback) {
+    for (const topic of new Set(f.topicsHard)) topicCounts.set(topic, (topicCounts.get(topic) ?? 0) + 1);
+  }
+
+  const ratings = db.ratings.filter((r) => r.courseId === courseId);
+  const distribution: Record<number, number> = {};
+  for (const r of ratings) distribution[r.stars] = (distribution[r.stars] ?? 0) + 1;
+
+  return {
+    sessions: rows,
+    totals: {
+      responses: feedback.length,
+      sessionsWithFeedback: new Set(feedback.map((f) => f.sessionId)).size,
+      sessionsTotal: sessions.length,
+      avgUnderstanding: avgOf(feedback.map((f) => f.understanding)),
+      avgPace: avgOf(feedback.map((f) => f.pace)),
+      avgClarity: avgOf(feedback.map((f) => f.clarity)),
+      praiseCount: feedback.filter((f) => f.praiseInstructor).length,
+      missingReports: sessions.filter((s) => s.status === 'closed' && !(s.report && (s.report.done || s.report.challenges))).length,
+    },
+    sentiments,
+    topicsHard: Array.from(topicCounts.entries())
+      .map(([topic, count]) => ({ topic, count }))
+      .sort((a, b) => b.count - a.count || a.topic.localeCompare(b.topic)),
+    ratings: {
+      count: ratings.length,
+      avg: avgOf(ratings.map((r) => r.stars)),
+      distribution,
+    },
+  };
 }
 
 export function getMyGamification(db: Db, userId: string): MyGamification {

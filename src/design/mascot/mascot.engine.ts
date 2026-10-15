@@ -1,9 +1,11 @@
 /**
- * design/mascot/mascot.engine.ts — محرك القرارات والسلوك لشخصية «فطن»
- * يطبق هرمية الأولويات، ميزانية المحادثة، وتفصيل الردود بحسب سياق الطالب الحقيقي
+ * design/mascot/mascot.engine.ts — محرك القرارات والسلوك لشخصية «فطن» 3.0
+ * يطبّق هرمية الأولويات ويصوغ الردود من سياق المستخدم الحقيقي:
+ * الاسم، الستريك، الشارات، التغذية الراجعة، حالة الشبكة، والدور (طالب/منظّم).
  */
 
 import { tStatic } from '../../i18n/core';
+import { pickFatenGreeting } from './faten.lines';
 import {
   FatenBehaviorState,
   MASCOT_PRIORITY,
@@ -127,6 +129,20 @@ export function resolveMascotReaction(
     }
 
     case 'STREAK_AT_RISK': {
+      // إن كان لدينا رقم الستريك نستخدم رسالة أدق (أثر نفسي أقوى من نص عام)
+      if (event.weeks && event.weeks > 1) {
+        return {
+          state: 'alert',
+          priority: MASCOT_PRIORITY.ACTION_REQUIRED,
+          messageKey: 'faten.msg.streakRisk',
+          messageVars: { weeks: event.weeks },
+          messageFallback: tStatic('faten.msg.streakRisk', { weeks: event.weeks }),
+          hapticPattern: 'warning',
+          durationMs: 5000,
+          pointsToCTA: true,
+          actionHint: 'checkin_now',
+        };
+      }
       return {
         state: 'alert',
         priority: MASCOT_PRIORITY.ACTION_REQUIRED,
@@ -135,6 +151,7 @@ export function resolveMascotReaction(
         hapticPattern: 'warning',
         durationMs: 5000,
         pointsToCTA: true,
+        actionHint: 'checkin_now',
       };
     }
 
@@ -164,8 +181,9 @@ export function resolveMascotReaction(
       return {
         state: 'achievement',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
-        messageKey: 'mascot.badge_unlocked',
-        messageFallback: tStatic('mascot.badge_unlocked', { badge: event.badgeTitle }),
+        messageKey: 'faten.msg.badgeUnlocked',
+        messageVars: { badge: event.badgeTitle },
+        messageFallback: tStatic('faten.msg.badgeUnlocked', { badge: event.badgeTitle }),
         hapticPattern: 'success',
         durationMs: 5000,
       };
@@ -173,12 +191,13 @@ export function resolveMascotReaction(
 
     case 'LEVEL_UP': {
       return {
-        state: 'achievement',
+        state: 'level_up',
         priority: MASCOT_PRIORITY.ACHIEVEMENT,
-        messageKey: 'mascot.level_up',
-        messageFallback: tStatic('mascot.level_up', { tier: event.tier }),
+        messageKey: 'faten.msg.levelUp',
+        messageVars: { tier: event.tier },
+        messageFallback: tStatic('faten.msg.levelUp', { tier: event.tier }),
         hapticPattern: 'success',
-        durationMs: 5000,
+        durationMs: 5200,
       };
     }
 
@@ -212,6 +231,113 @@ export function resolveMascotReaction(
         messageFallback: tStatic('mascot.online_restored'),
         hapticPattern: 'light',
         durationMs: 3000,
+      };
+    }
+
+    case 'APP_OPEN': {
+      const greeting = pickFatenGreeting({ name: event.name, hour: context.hour });
+      return {
+        state: 'welcome',
+        priority: MASCOT_PRIORITY.CONTEXTUAL,
+        messageFallback: greeting,
+        hapticPattern: 'none',
+        durationMs: 5200,
+      };
+    }
+
+    case 'DAILY_TIP': {
+      return {
+        state: 'nudge',
+        priority: MASCOT_PRIORITY.CONTEXTUAL,
+        messageKey: 'faten.msg.tipDaily',
+        messageFallback: tStatic('faten.msg.tipDaily'),
+        hapticPattern: 'none',
+        durationMs: 6000,
+      };
+    }
+
+    case 'FEEDBACK_SUBMITTED': {
+      return {
+        state: 'success',
+        priority: MASCOT_PRIORITY.SUCCESS,
+        messageKey: 'faten.msg.feedbackDone',
+        messageFallback: tStatic('faten.msg.feedbackDone'),
+        hapticPattern: 'success',
+        durationMs: 4200,
+      };
+    }
+
+    case 'FEEDBACK_DUE': {
+      return {
+        state: 'nudge',
+        priority: MASCOT_PRIORITY.CONTEXTUAL,
+        messageKey: 'today.feedbackBody',
+        messageFallback: tStatic('today.feedbackBody'),
+        hapticPattern: 'light',
+        durationMs: 5000,
+        actionHint: 'open_feedback',
+      };
+    }
+
+    case 'REPORT_READY': {
+      return {
+        state: 'ready',
+        priority: MASCOT_PRIORITY.CONTEXTUAL,
+        messageKey: 'faten.msg.reportReady',
+        messageVars: { title: event.title },
+        messageFallback: tStatic('faten.msg.reportReady', { title: event.title }),
+        hapticPattern: 'light',
+        durationMs: 5000,
+        actionHint: 'open_report',
+      };
+    }
+
+    case 'COURSE_COMPLETED': {
+      return {
+        state: 'achievement',
+        priority: MASCOT_PRIORITY.ACHIEVEMENT,
+        messageKey: 'faten.msg.courseCompleted',
+        messageVars: { course: event.courseTitle },
+        messageFallback: tStatic('faten.msg.courseCompleted', { course: event.courseTitle }),
+        hapticPattern: 'success',
+        durationMs: 5200,
+      };
+    }
+
+    case 'KUDOS_RECEIVED': {
+      return {
+        state: 'achievement',
+        priority: MASCOT_PRIORITY.ACHIEVEMENT,
+        messageKey: 'faten.msg.kudos',
+        messageVars: { points: event.points },
+        messageFallback: tStatic('faten.msg.kudos', { points: event.points }),
+        hapticPattern: 'success',
+        durationMs: 4600,
+      };
+    }
+
+    case 'EXCUSE_ACCEPTED': {
+      return {
+        state: 'ready',
+        priority: MASCOT_PRIORITY.CONTEXTUAL,
+        messageKey: 'faten.msg.excuseAccepted',
+        messageFallback: tStatic('faten.msg.excuseAccepted'),
+        hapticPattern: 'light',
+        durationMs: 4200,
+      };
+    }
+
+    case 'EXCUSE_REJECTED': {
+      return {
+        state: 'recovery',
+        priority: MASCOT_PRIORITY.ACTION_REQUIRED,
+        messageKey: 'notify.excuseRejectedReason',
+        messageVars: { reason: event.reason ?? '' },
+        messageFallback: event.reason
+          ? tStatic('notify.excuseRejectedReason', { reason: event.reason })
+          : tStatic('mascot.checkin_failed'),
+        hapticPattern: 'warning',
+        durationMs: 4600,
       };
     }
 
@@ -256,6 +382,29 @@ function resolveUserInteractionReaction(context: MascotContext): MascotReaction 
       hapticPattern: 'medium',
       pointsToCTA: true,
       durationMs: 3500,
+    };
+  }
+
+  if (context.isOrganizer) {
+    return {
+      state: 'ready',
+      priority: MASCOT_PRIORITY.CONTEXTUAL,
+      messageKey: 'faten.msg.orgWelcome',
+      messageFallback: tStatic('faten.msg.orgWelcome'),
+      hapticPattern: 'light',
+      durationMs: 4200,
+    };
+  }
+
+  if (context.pendingFeedback && context.pendingFeedback > 0) {
+    return {
+      state: 'nudge',
+      priority: MASCOT_PRIORITY.CONTEXTUAL,
+      messageKey: 'today.feedbackBody',
+      messageFallback: tStatic('today.feedbackBody'),
+      hapticPattern: 'light',
+      durationMs: 4000,
+      actionHint: 'open_feedback',
     };
   }
 

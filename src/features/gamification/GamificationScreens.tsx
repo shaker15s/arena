@@ -24,6 +24,7 @@ import { formatDate, timePast } from '../../shared/format';
 import { PointReason, BadgeRarity } from '../../data/types';
 import { MasarMascot } from '../../design/mascot';
 import { Icon } from '../../design/icons';
+import { StreakHero } from './StreakHero';
 
 // ───────────────────────────── S19 المحفظة ─────────────────────────────
 
@@ -244,10 +245,15 @@ export function LeagueScreen({ navigation }: any) {
         }
         ListHeaderComponent={
           <View style={{ gap: spacing.s3 }}>
+            {/* السلسلة الأسبوعية: تربط «ستريك» بـ«الدوري» في نفس الشاشة */}
             <FadeIn index={0}>
+              <StreakHero onProtect={() => toast(t('streak.hintRisk'), 'info')} />
+            </FadeIn>
+
+            <FadeIn index={1}>
               <Card
                 onPress={() => {
-                  toast('درع ' + t(('tier.' + league.tier) as any) + ' — استمر في التقدم للصعود! 🏆', 'info');
+                  toast(t('league.tierToast', { tier: t(('tier.' + league.tier) as any) }), 'info');
                 }}
                 style={{
                   alignItems: 'center',

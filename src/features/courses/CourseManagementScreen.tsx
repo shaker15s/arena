@@ -34,6 +34,10 @@ import {
   CourseOverviewTab, CourseSessionsTab, CourseStudentsTab,
   CourseStaffTab, CourseAnalyticsTab, CourseReviewsTab,
 } from './management/CourseTabs';
+import { CourseBuildTab } from './management/CourseBuildTab';
+import { CourseFeedbackTab } from './management/CourseFeedbackTab';
+import {
+} from './management/CourseTabs';
 import { Icon } from '../../design/icons';
 
 export function CourseManagementScreen({ route, navigation }: any) {
@@ -55,7 +59,7 @@ export function CourseManagementScreen({ route, navigation }: any) {
   }, [courseId, db.batches, db.courseRoles, user]);
 
   const [batchId, setBatchId] = useState<string>(requestedBatchId ?? allowedBatches[0]?.id ?? '');
-  const [tab, setTab] = useState<'overview' | 'sessions' | 'students' | 'staff' | 'analytics' | 'reviews'>('overview');
+  const [tab, setTab] = useState<'overview' | 'build' | 'sessions' | 'students' | 'feedback' | 'staff' | 'analytics' | 'reviews'>('overview');
   const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
   const [rescheduleSession, setRescheduleSession] = useState<TrainingSession | null>(null);
   const [cancelSessionTarget, setCancelSessionTarget] = useState<TrainingSession | null>(null);
@@ -315,9 +319,11 @@ export function CourseManagementScreen({ route, navigation }: any) {
               onChange={(value) => setTab(value as typeof tab)}
               options={[
                 { value: 'overview', label: t('management.tabOverview'), icon: 'information-circle' },
+                { value: 'build', label: t('management.tabBuild'), icon: 'construct' },
                 { value: 'sessions', label: t('management.tabSessions', { x: sessions.length }), icon: 'calendar' },
                 { value: 'students', label: t('management.tabStudents', { x: counts.taken }), icon: 'people' },
                 { value: 'staff', label: t('management.tabStaff', { x: rolesList.length + (owner ? 1 : 0) }), icon: 'shield' },
+                { value: 'feedback', label: t('management.tabFeedback'), icon: 'chatbubbles' },
                 { value: 'analytics', label: t('management.tabAnalytics'), icon: 'analytics' },
                 { value: 'reviews', label: t('management.tabReviews', { x: db.ratings.filter((r) => r.courseId === course.id).length }), icon: 'star' },
               ]}
@@ -340,6 +346,16 @@ export function CourseManagementScreen({ route, navigation }: any) {
                 onShareLink={copyJoinLink}
                 onBroadcast={() => setBroadcastOpen(true)}
                 onCancelBatch={() => setCancelBatchTarget(batch.id)}
+              />
+            ) : null}
+
+            {/* 1b) تبويب بناء الكورس — تنظيم الوحدات وكتابة محتوى المحاضرات */}
+            {tab === 'build' ? (
+              <CourseBuildTab
+                db={db}
+                course={course}
+                sessions={sessions}
+                canEdit={isCourseManager}
               />
             ) : null}
 
@@ -368,6 +384,11 @@ export function CourseManagementScreen({ route, navigation }: any) {
                 countsTaken={counts.taken}
                 onStudentPress={(userId, bId) => navigation.navigate('StudentRecord', { userId, batchId: bId })}
               />
+            ) : null}
+
+            {/* 3b) تبويب التغذية الراجعة — نظرة المنظّم على رأي الطلاب كاملًا */}
+            {tab === 'feedback' ? (
+              <CourseFeedbackTab db={db} courseId={course.id} />
             ) : null}
 
             {/* 4) تبويب فريق العمل والمنظمين */}

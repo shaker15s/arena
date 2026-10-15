@@ -1,12 +1,20 @@
 /**
- * design/mascot/MasarMascot.tsx — تميمة مسار التفاعلية («صقر مسار - فطن») 2.0
- * منظومة السلوك الحركي الهادئ الموحد لعام 2026
- * - تنفس فيزيائي متباعد (4200ms)
- * - إيماءات ذات ضربة واحدة (One-Shot Gestures) بدون حلقات رفرفة لانهائية
- * - خلو تام من تداخل الـ Pressables والـ Double Haptics
- * - تنظيف آمن للمؤقتات (clearTimeout)
+ * design/mascot/MasarMascot.tsx — تميمة مسار التفاعلية («صقر مسار — فطن») 3.0
+ *
+ * ما الذي تغيّر عن 2.0 (وهو جوهر هذه النسخة):
+ *  1. **رسم حقيقي للصقر** (FatenArt) — تشريح صقري: قرص وجهي، قبعة داكنة، شريط
+ *     وجنة، منقار معقوف، عرف، أجنحة ثلاثية الطبقات، وذيل مروحي. (كان شكلًا رمزيًا.)
+ *  2. **حالات وأمزجة بلا حدود**: 14 حالة، كل واحدة لها وضعية تشريحية كاملة
+ *     (وضع العين، ميل الحاجب، فتح المنقار، رفع العرف، التوهج، الأكسسوار)
+ *     — نفس مبدأ دوولينجو: تُقرأ المشاعر من الشخصية قبل النص.
+ *  3. **أنيميشن بأربع طبقات**: تنفّس/طفو، ميل رأس طبيعي، رمش غير منتظم،
+ *     رفرفة جناح بضربة واحدة عند تغيّر الحالة، وتفاعل لمسي (Squash & Stretch).
+ *  4. **فقاعة حديث Apple-ية** بظهور فيزيائي (Spring) وذيل متجه للشخصية.
+ *  5. **صفر نص عربي مضمّن**: كل جملة من القاموسين (تعريب كامل + RTL سليم).
+ *  6. **أداء**: كل الحركات على `useNativeDriver` (عدا الرسم المُنفصل)، وإعادة رسم
+ *     الرسم SVG تحدث فقط في اللحظات المنفصلة (رمش/رفرفة) لا في كل إطار.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -17,23 +25,18 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import Svg, {
-  Circle,
-  Defs,
-  Ellipse,
-  G,
-  LinearGradient,
-  Path,
-  Polygon,
-  Stop,
-} from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Txt } from '../components';
-import { radii, spacing } from '../tokens';
+import { useTheme } from '../theme';
+import { borderWidth, radii, shadows, spacing } from '../tokens';
 import { isReducedMotion } from '../motion';
-import { tStatic, useI18n, type DictKey } from '../../i18n';
+import { useI18n, type DictKey } from '../../i18n';
 import { FatenBehaviorState } from './mascot.types';
 import { mascotTokens } from './mascot.tokens';
+import { FatenArt } from './FatenArt';
+import { FATEN_DARK, FATEN_LIGHT } from './faten.palette';
+import { FATEN_BASE_POSE, FatenEyeMode, FatenPose, poseOf } from './faten.pose';
+import { pickFatenLine, tipOfTheDay } from './faten.lines';
 
 export type MascotMode =
   | 'greeting'
@@ -48,17 +51,33 @@ export type MascotMode =
   | 'thinking'
   | FatenBehaviorState;
 
+export type MascotLiveliness = 'calm' | 'normal' | 'playful';
+
 export interface MasarMascotProps {
   size?: number;
   mode?: MascotMode;
   behavior?: FatenBehaviorState;
   interactive?: boolean;
+  /** نص حديث مفروض من الخارج (يتجاهل محرّك الجمل) */
   speechText?: string;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   onQuoteChange?: (quote: string) => void;
   hideFloatingBubble?: boolean;
   colorMode?: 'light' | 'dark';
+  /** متغيّرات السياق المستخدمة في نص الجملة (الاسم/الستريك/الشارة…) */
+  lineVars?: Record<string, string | number>;
+  /** ترحيب تلقائي عند الظهور */
+  autoGreet?: boolean;
+  /** مستوى الحيوية — `calm` للشاشات الكثيفة */
+  liveliness?: MascotLiveliness;
+  /** موضع الفقاعة */
+  bubblePlacement?: 'top' | 'bottom';
+  /** أعلن الجملة لقارئ الشاشة (يُستحسن في اللحظات المهمة فقط) */
+  announceSpeech?: boolean;
+  /** تركيب الوضعية الثابتة فقط (بلا أي حركة) */
+  static?: boolean;
+  a11yLabel?: string;
 }
 
 function normalizeToBehavior(input?: MascotMode | FatenBehaviorState): FatenBehaviorState {
@@ -92,109 +111,34 @@ function normalizeToBehavior(input?: MascotMode | FatenBehaviorState): FatenBeha
       return 'offline';
     case 'quiet':
       return 'quiet';
+    case 'level_up':
+      return 'level_up';
+    case 'nudge':
+      return 'nudge';
     default:
       return 'idle';
   }
 }
 
-// A11Y-33 + §4 (فطن 3.0): كل العبارات من i18n بالعربية والإنجليزية — لا نص مضمّن.
-const PHRASE_KEYS: Record<FatenBehaviorState, DictKey[]> = {
-  welcome: [
-    'mascot.p.welcome.1',
-    'mascot.p.welcome.2',
-    'mascot.p.welcome.3',
-    'mascot.p.welcome.4',
-    'mascot.p.welcome.5',
-    'mascot.p.welcome.6',
-    'mascot.p.welcome.7',
-    'mascot.p.welcome.8',
-  ],
-  streak_fire: [
-    'mascot.p.streak_fire.1',
-    'mascot.p.streak_fire.2',
-    'mascot.p.streak_fire.3',
-    'mascot.p.streak_fire.4',
-    'mascot.p.streak_fire.5',
-    'mascot.p.streak_fire.6',
-    'mascot.p.streak_fire.7',
-    'mascot.p.streak_fire.8',
-  ],
-  achievement: [
-    'mascot.p.achievement.1',
-    'mascot.p.achievement.2',
-    'mascot.p.achievement.3',
-    'mascot.p.achievement.4',
-    'mascot.p.achievement.5',
-    'mascot.p.achievement.6',
-    'mascot.p.achievement.7',
-    'mascot.p.achievement.8',
-  ],
-  success: [
-    'mascot.p.success.1',
-    'mascot.p.success.2',
-    'mascot.p.success.3',
-    'mascot.p.success.4',
-    'mascot.p.success.5',
-    'mascot.p.success.6',
-  ],
-  recovery: [
-    'mascot.p.recovery.1',
-    'mascot.p.recovery.2',
-    'mascot.p.recovery.3',
-    'mascot.p.recovery.4',
-    'mascot.p.recovery.5',
-    'mascot.p.recovery.6',
-    'mascot.p.recovery.7',
-    'mascot.p.recovery.8',
-  ],
-  attention: [
-    'mascot.p.attention.1',
-    'mascot.p.attention.2',
-    'mascot.p.attention.3',
-    'mascot.p.attention.4',
-  ],
-  working: [
-    'mascot.p.working.1',
-    'mascot.p.working.2',
-    'mascot.p.working.3',
-  ],
-  ready: [
-    'mascot.p.ready.1',
-    'mascot.p.ready.2',
-    'mascot.p.ready.3',
-    'mascot.p.ready.4',
-    'mascot.p.ready.5',
-  ],
-  alert: [
-    'mascot.p.alert.1',
-    'mascot.p.alert.2',
-    'mascot.p.alert.3',
-  ],
-  offline: [
-    'mascot.p.offline.1',
-    'mascot.p.offline.2',
-  ],
-  quiet: [
-    'mascot.p.quiet.1',
-    'mascot.p.quiet.2',
-  ],
-  idle: [
-    'mascot.p.idle.1',
-    'mascot.p.idle.2',
-    'mascot.p.idle.3',
-    'mascot.p.idle.4',
-    'mascot.p.idle.5',
-    'mascot.p.idle.6',
-    'mascot.p.idle.7',
-    'mascot.p.idle.8',
-  ],
+/** ثواني الرمش بحسب الحيوية — فطن لا يرمش كالآلة */
+const BLINK_RANGE: Record<MascotLiveliness, [number, number]> = {
+  calm: [4200, 7600],
+  normal: [3200, 6200],
+  playful: [2400, 4600],
 };
 
+const LOOK_RANGE: Record<MascotLiveliness, [number, number]> = {
+  calm: [12000, 20000],
+  normal: [8000, 15000],
+  playful: [5200, 10000],
+};
 
-export function getRandomMascotQuote(behavior: FatenBehaviorState = 'idle'): string {
-  const list = PHRASE_KEYS[behavior] || PHRASE_KEYS.idle;
-  const key = list[Math.floor(Math.random() * list.length)];
-  return tStatic(key);
+/** الجملة الافتراضية للحالة (تُختار من محرّك الحديث) */
+export function getRandomMascotQuote(
+  behavior: FatenBehaviorState = 'idle',
+  vars: Record<string, string | number> = {},
+): string {
+  return pickFatenLine(behavior, vars as never, { avoidContextVars: true });
 }
 
 export function MasarMascot({
@@ -208,578 +152,360 @@ export function MasarMascot({
   onQuoteChange,
   hideFloatingBubble = false,
   colorMode = 'light',
+  lineVars,
+  autoGreet = false,
+  liveliness = 'normal',
+  bubblePlacement = 'top',
+  announceSpeech = false,
+  static: staticRendering = false,
+  a11yLabel,
 }: MasarMascotProps) {
-  // A11Y-33: أسماء التميمة تُترجم (لا نصوص عربية مضمّنة).
   const { t } = useI18n();
-  const activeBehavior: FatenBehaviorState = normalizeToBehavior(behavior || mode);
-  const isScannerMode = mode === 'scanner';
+  const { isDark } = useTheme();
+  const activeBehavior = normalizeToBehavior(behavior || mode);
+  const reduced = isReducedMotion() || staticRendering;
+  const level = reduced ? 'calm' : liveliness;
 
+  const palette = isDark || colorMode === 'dark' ? FATEN_DARK : FATEN_LIGHT;
+
+  const [speech, setSpeech] = useState('');
   const [showSpeech, setShowSpeech] = useState(false);
-  const [currentPhrase, setCurrentPhrase] = useState('');
+  const [blinkFrames, setBlinkFrames] = useState<FatenEyeMode | null>(null);
+  const [flapBoost, setFlapBoost] = useState(0);
+  const [lookOffset, setLookOffset] = useState(0);
 
-  // مراجع آمنة للمؤقتات
-  const speechTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // حركات التميمة الفيزيائية والحركية الغنية
+  const bubbleAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
-  const blinkAnim = useRef(new Animated.Value(1)).current;
+  const tiltAnim = useRef(new Animated.Value(0)).current;
   const tapScale = useRef(new Animated.Value(1)).current;
-  const speechOpacity = useRef(new Animated.Value(0)).current;
-  const flamePulse = useRef(new Animated.Value(1)).current;
-  const gestureAnim = useRef(new Animated.Value(0)).current;
-  const headTiltAnim = useRef(new Animated.Value(0)).current;
   const bounceAnim = useRef(new Animated.Value(0)).current;
-  const sparkleAnim = useRef(new Animated.Value(0)).current;
+  const shiverAnim = useRef(new Animated.Value(0)).current;
+  const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lookTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
 
-  // 1. حركة الطفو والتنفس الدورية الهادئة (4200ms Calm Breathing)
+  const pose = poseOf(activeBehavior);
+  const effectivePose: FatenPose = useMemo(() => {
+    if (flapBoost === 0 && lookOffset === 0) return pose;
+    return {
+      ...pose,
+      wingAngle: pose.wingAngle + flapBoost,
+      tailWag: pose.tailWag + (flapBoost < 0 ? -2 : 2),
+      headTilt: pose.headTilt + lookOffset,
+    };
+  }, [pose, flapBoost, lookOffset]);
+
+  /* ── الطبقة 1: تنفّس وطفو هادئ (Native Driver) ── */
   useEffect(() => {
-    if (isReducedMotion()) return;
-
-    const floatLoop = Animated.loop(
+    if (reduced) {
+      floatAnim.setValue(0);
+      return undefined;
+    }
+    const duration = level === 'playful' ? 1700 : level === 'calm' ? 2600 : 2100;
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: -4.5,
-          duration: 2100,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 2100,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+        Animated.timing(floatAnim, { toValue: -4.5, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
+    loop.start();
+    return () => loop.stop();
+  }, [floatAnim, reduced, level]);
 
-    floatLoop.start();
-    return () => floatLoop.stop();
-  }, [floatAnim]);
-
-  // 2. حركة ميلان الرأس الطبيعية (Companion Falcon Head Tilt)
+  /* ── الطبقة 2: ميل الرأس الطبيعي (كما تفعل الصقور الحقيقية) ── */
   useEffect(() => {
-    if (isReducedMotion()) return;
-
-    const tiltLoop = Animated.loop(
+    if (reduced) {
+      tiltAnim.setValue(0);
+      return undefined;
+    }
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(headTiltAnim, {
-          toValue: 1,
-          duration: 3000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(headTiltAnim, {
-          toValue: -1,
-          duration: 3200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(headTiltAnim, {
-          toValue: 0,
-          duration: 2200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+        Animated.timing(tiltAnim, { toValue: 1, duration: 2900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(tiltAnim, { toValue: -1, duration: 3100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(tiltAnim, { toValue: 0, duration: 2100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
+    loop.start();
+    return () => loop.stop();
+  }, [tiltAnim, reduced]);
 
-    tiltLoop.start();
-    return () => tiltLoop.stop();
-  }, [headTiltAnim]);
-
-  // 3. قفزة الاحتفال والشرارات وقت الإنجاز (Celebration Bounce & Sparkles)
+  /* ── الطبقة 3: رمش غير منتظم + نظرات حوالين (Living Character) ── */
   useEffect(() => {
-    if (isReducedMotion()) return;
-
-    if (activeBehavior === 'achievement' || activeBehavior === 'success') {
-      const celebrationLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnim, {
-            toValue: -7,
-            duration: 340,
-            easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
-          }),
-          Animated.timing(bounceAnim, {
-            toValue: 0,
-            duration: 340,
-            easing: Easing.bounce,
-            useNativeDriver: true,
-          }),
-          Animated.delay(1400),
-        ]),
-      );
-      celebrationLoop.start();
-
-      const sparkleLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(sparkleAnim, {
-            toValue: 1,
-            duration: 550,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }),
-          Animated.timing(sparkleAnim, {
-            toValue: 0.25,
-            duration: 550,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      sparkleLoop.start();
-
-      return () => {
-        celebrationLoop.stop();
-        sparkleLoop.stop();
-      };
-    } else {
-      bounceAnim.setValue(0);
-      sparkleAnim.setValue(0);
-    }
-  }, [activeBehavior, bounceAnim, sparkleAnim]);
-
-  // 4. حركة رمش العينين الطبيعية كل ~4.5 ثوانٍ
-  useEffect(() => {
-    if (isReducedMotion()) return;
-
-    const interval = setInterval(() => {
-      Animated.sequence([
-        Animated.timing(blinkAnim, {
-          toValue: 0.1,
-          duration: 110,
-          useNativeDriver: true,
-        }),
-        Animated.timing(blinkAnim, {
-          toValue: 1,
-          duration: 130,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [blinkAnim]);
-
-  // 5. حركة الستريك النارية الهادئة
-  useEffect(() => {
-    if (isReducedMotion()) return;
-
-    if (activeBehavior === 'streak_fire') {
-      const flameLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(flamePulse, {
-            toValue: 1.1,
-            duration: 800,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }),
-          Animated.timing(flamePulse, {
-            toValue: 0.95,
-            duration: 800,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      flameLoop.start();
-      return () => flameLoop.stop();
-    }
-  }, [activeBehavior, flamePulse]);
-
-  // 6. إيماءة لمرة واحدة (One-Shot Gesture) عند تغيير الوضعية أو حدوث تفاعل
-  useEffect(() => {
-    if (isReducedMotion()) return;
-
-    if (
-      activeBehavior === 'welcome' ||
-      activeBehavior === 'achievement' ||
-      activeBehavior === 'attention' ||
-      activeBehavior === 'success'
-    ) {
-      Animated.sequence([
-        Animated.spring(gestureAnim, {
-          toValue: 1,
-          friction: 5,
-          tension: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(gestureAnim, {
-          toValue: 0,
-          duration: 600,
-          delay: 400,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [activeBehavior, gestureAnim]);
-
-  // تنظيف كافة المؤقتات عند التدمير
-  useEffect(() => {
+    if (reduced) return undefined;
+    const [min, max] = BLINK_RANGE[level];
+    const schedule = () => {
+      const delay = min + Math.random() * (max - min);
+      blinkTimer.current = setTimeout(() => {
+        if (!mounted.current) return;
+        setBlinkFrames('squint');
+        setTimeout(() => {
+          if (!mounted.current) return;
+          setBlinkFrames('closed');
+          setTimeout(() => {
+            if (!mounted.current) return;
+            setBlinkFrames(null);
+            schedule();
+          }, 90);
+        }, 70);
+      }, delay);
+    };
+    schedule();
     return () => {
-      if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (blinkTimer.current) clearTimeout(blinkTimer.current);
+    };
+  }, [reduced, level]);
+
+  useEffect(() => {
+    if (reduced) return undefined;
+    const [min, max] = LOOK_RANGE[level];
+    const schedule = () => {
+      lookTimer.current = setTimeout(() => {
+        if (!mounted.current) return;
+        setLookOffset(Math.random() > 0.5 ? 3 : -3);
+        setTimeout(() => {
+          if (mounted.current) setLookOffset(0);
+          schedule();
+        }, 1400);
+      }, min + Math.random() * (max - min));
+    };
+    schedule();
+    return () => {
+      if (lookTimer.current) clearTimeout(lookTimer.current);
+    };
+  }, [reduced, level]);
+
+  /* ── الطبقة 4: رفرفة/ضربة واحدة عند تغيّر الحالة + قفزة الاحتفال ── */
+  useEffect(() => {
+    if (reduced) return undefined;
+    const celebratory = activeBehavior === 'achievement' || activeBehavior === 'success'
+      || activeBehavior === 'level_up' || activeBehavior === 'streak_fire';
+    const boost = celebratory ? -14 : activeBehavior === 'welcome' || activeBehavior === 'attention' ? -10 : -6;
+    setFlapBoost(boost);
+    const timer = setTimeout(() => {
+      if (mounted.current) setFlapBoost(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [activeBehavior, reduced]);
+
+  useEffect(() => {
+    if (reduced) return undefined;
+    if (activeBehavior === 'achievement' || activeBehavior === 'level_up' || activeBehavior === 'success') {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, { toValue: -8, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(bounceAnim, { toValue: 0, duration: 340, easing: Easing.bounce, useNativeDriver: true }),
+          Animated.delay(1200),
+        ]),
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+    bounceAnim.setValue(0);
+    return undefined;
+  }, [activeBehavior, bounceAnim, reduced]);
+
+  useEffect(() => {
+    if (reduced) {
+      shiverAnim.setValue(0);
+      return undefined;
+    }
+    if (activeBehavior === 'working') {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shiverAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+          Animated.timing(shiverAnim, { toValue: -1, duration: 220, useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+    shiverAnim.setValue(0);
+    return undefined;
+  }, [activeBehavior, shiverAnim, reduced]);
+
+  /* ── فقاعة الحديث: ظهور فيزيائي + إخفاء تلقائي ── */
+  const speak = useCallback((text: string, holdMs = 4200) => {
+    if (!text) return;
+    setSpeech(text);
+    setShowSpeech(true);
+    onQuoteChange?.(text);
+    if (reduced) {
+      bubbleAnim.setValue(1);
+    } else {
+      bubbleAnim.setValue(0);
+      Animated.spring(bubbleAnim, {
+        toValue: 1,
+        damping: 13,
+        stiffness: 190,
+        mass: 0.7,
+        useNativeDriver: true,
+      }).start();
+    }
+    if (speechTimer.current) clearTimeout(speechTimer.current);
+    speechTimer.current = setTimeout(() => {
+      if (!mounted.current) return;
+      if (reduced) {
+        setShowSpeech(false);
+        bubbleAnim.setValue(0);
+        return;
+      }
+      Animated.timing(bubbleAnim, { toValue: 0, duration: 220, useNativeDriver: true })
+        .start(() => { if (mounted.current) setShowSpeech(false); });
+    }, holdMs);
+  }, [bubbleAnim, onQuoteChange, reduced]);
+
+  /* تنظيف كل المؤقتات عند التفكيك */
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (speechTimer.current) clearTimeout(speechTimer.current);
+      if (blinkTimer.current) clearTimeout(blinkTimer.current);
+      if (lookTimer.current) clearTimeout(lookTimer.current);
     };
   }, []);
 
-  // التفاعل عند النقر
-  const handlePress = (e?: GestureResponderEvent) => {
-    if (onPress) onPress();
-    if (!interactive && !onQuoteChange) return;
+  /* نص مفروض من الخارج */
+  const externalSpeech = speechText;
+  const lastExternal = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (externalSpeech && externalSpeech !== lastExternal.current) {
+      lastExternal.current = externalSpeech;
+      speak(externalSpeech, 5200);
+    }
+    if (!externalSpeech) lastExternal.current = undefined;
+  }, [externalSpeech, speak]);
+
+  /* ترحيب/نصيحة تلقائية عند الظهور */
+  useEffect(() => {
+    if (!autoGreet || hideFloatingBubble || speechText) return undefined;
+    const timer = setTimeout(() => {
+      const tip = activeBehavior === 'nudge' || activeBehavior === 'idle'
+        ? tipOfTheDay()
+        : pickFatenLine(activeBehavior, lineVars as never);
+      speak(tip || pickFatenLine(activeBehavior, lineVars as never), 5600);
+    }, 700);
+    return () => clearTimeout(timer);
+    // يعمل مرة واحدة لكل جلسة ظهور
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGreet, hideFloatingBubble]);
+
+  const handlePress = useCallback((_event?: GestureResponderEvent) => {
+    onPress?.();
+    if (!interactive && !onPress && !onQuoteChange) return;
 
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {}
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    } catch { /* الاهتزاز غير متاح على الويب */ }
 
-    const reduced = isReducedMotion();
     if (!reduced) {
       Animated.sequence([
-        Animated.timing(tapScale, {
-          toValue: mascotTokens.physics.tapSquashScale,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-        Animated.spring(tapScale, {
-          toValue: 1,
-          friction: 4,
-          tension: 160,
-          useNativeDriver: true,
-        }),
+        Animated.timing(tapScale, { toValue: mascotTokens.physics.tapSquashScale, duration: 80, useNativeDriver: true }),
+        Animated.spring(tapScale, { toValue: 1, friction: 4, tension: 170, useNativeDriver: true }),
       ]).start();
-
-      Animated.sequence([
-        Animated.timing(gestureAnim, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(gestureAnim, {
-          toValue: 0,
-          duration: 350,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
+      setFlapBoost(pose.wingAngle - 26);
+      setTimeout(() => { if (mounted.current) setFlapBoost(0); }, 420);
     }
 
-    const list = PHRASE_KEYS[activeBehavior] || PHRASE_KEYS.idle;
-    const picked = speechText || tStatic(list[Math.floor(Math.random() * list.length)]);
-    setCurrentPhrase(picked);
-
-    if (onQuoteChange) onQuoteChange(picked);
-
-    if (!hideFloatingBubble) {
-      if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-
-      setShowSpeech(true);
-      if (reduced) {
-        speechOpacity.setValue(1);
-      } else {
-        Animated.timing(speechOpacity, {
-          toValue: 1,
-          duration: mascotTokens.physics.reactionFadeDurationMs,
-          useNativeDriver: true,
-        }).start();
-      }
-
-      speechTimerRef.current = setTimeout(() => {
-        if (reduced) {
-          speechOpacity.setValue(0);
-          setShowSpeech(false);
-        } else {
-          Animated.timing(speechOpacity, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            setShowSpeech(false);
-          });
-        }
-      }, 3000);
-    }
-  };
+    const line = speechText
+      ?? (activeBehavior === 'idle'
+        ? tipOfTheDay()
+        : pickFatenLine(activeBehavior, lineVars as never, { avoidContextVars: true }))
+      ?? getRandomMascotQuote(activeBehavior);
+    if (line) speak(line, 5200);
+  }, [activeBehavior, interactive, lineVars, onPress, onQuoteChange, pose.wingAngle, reduced, speak, speechText, tapScale]);
 
   const isQuiet = activeBehavior === 'quiet';
-  const effectiveSize = isQuiet ? size * 0.75 : size;
-  const reducedMotion = isReducedMotion();
+  const effectiveSize = isQuiet ? size * 0.82 : size;
 
-  const mascotContent = (
-    <Animated.View
-      style={{
-        transform: reducedMotion
-          ? []
-          : [
-              { translateY: isQuiet ? 0 : Animated.add(floatAnim, bounceAnim) },
-              { scale: tapScale },
-              {
-                rotate: headTiltAnim.interpolate({
-                  inputRange: [-1, 0, 1],
-                  outputRange: ['-2.5deg', '0deg', '2.5deg'],
-                }),
-              },
-            ],
-      }}
-    >
-      <Svg width={effectiveSize} height={effectiveSize * 1.1} viewBox="0 0 160 176" fill="none">
-        <Defs>
-          <LinearGradient id="falconBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#007AFF" />
-            <Stop offset="60%" stopColor="#0055D4" />
-            <Stop offset="100%" stopColor="#1E3A8A" />
-          </LinearGradient>
-          <LinearGradient id="falconChestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#FFFFFF" />
-            <Stop offset="100%" stopColor="#E0F2FE" />
-          </LinearGradient>
-          <LinearGradient id="falconBeakGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#FBBF24" />
-            <Stop offset="100%" stopColor="#F59E0B" />
-          </LinearGradient>
-          <LinearGradient id="flameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-            <Stop offset="0%" stopColor="#EF4444" />
-            <Stop offset="50%" stopColor="#F97316" />
-            <Stop offset="100%" stopColor="#FBBF24" />
-          </LinearGradient>
-          <LinearGradient id="goldMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#FDE047" />
-            <Stop offset="50%" stopColor="#F59E0B" />
-            <Stop offset="100%" stopColor="#D97706" />
-          </LinearGradient>
-        </Defs>
+  const transform = reduced
+    ? [{ scale: tapScale }]
+    : [
+        { translateY: Animated.add(floatAnim, bounceAnim) },
+        { translateX: shiverAnim.interpolate({ inputRange: [-1, 1], outputRange: [-0.8, 0.8] }) },
+        { scale: tapScale },
+        { rotate: tiltAnim.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-2.4deg', '0deg', '2.4deg'] }) },
+      ];
 
-        {/* وضعية النيران المحيطة */}
-        {activeBehavior === 'streak_fire' && (
-          <G opacity={0.88}>
-            <Path
-              d="M40 85 C20 60 30 30 50 45 C45 20 70 10 80 30 C90 10 115 20 110 45 C130 30 140 60 120 85 C135 110 115 130 100 120 C90 145 70 145 60 120 C45 130 25 110 40 85 Z"
-              fill="url(#flameGrad)"
-              opacity={0.35}
-            />
-            <Path
-              d="M50 85 C35 65 45 40 60 52 C58 35 75 25 80 40 C85 25 102 35 100 52 C115 40 125 65 110 85 C120 105 105 118 95 112 C88 128 72 128 65 112 C55 118 40 105 50 85 Z"
-              fill="url(#flameGrad)"
-              opacity={0.65}
-            />
-          </G>
-        )}
-
-        {/* ظل ناعم */}
-        <Ellipse cx="80" cy="168" rx="42" ry="7" fill="rgba(15, 23, 42, 0.12)" />
-
-        {/* أرجل الصقر الذهبية */}
-        <G fill="#F59E0B">
-          <Path d="M62 148 L62 165 M54 165 L70 165" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" />
-          <Path d="M98 148 L98 165 M90 165 L106 165" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" />
-        </G>
-
-        {/* جسم الصقر الرئيسي */}
-        <Path
-          d="M80 30 C45 30 34 56 34 96 C34 135 52 154 80 154 C108 154 126 135 126 96 C126 56 115 30 80 30 Z"
-          fill="url(#falconBodyGrad)"
-        />
-
-        {/* عرف الصقر الأنيق */}
-        <Path
-          d="M74 30 C76 12 84 10 88 18 C92 10 100 12 96 30 Z"
-          fill={activeBehavior === 'alert' ? '#EA580C' : '#0055D4'}
-        />
-
-        {/* صدر الصقر الأبيض */}
-        <Path
-          d="M80 72 C62 72 52 88 52 118 C52 142 64 150 80 150 C96 150 108 142 108 118 C108 88 98 72 80 72 Z"
-          fill="url(#falconChestGrad)"
-        />
-
-        {/* ريشات الصدر */}
-        <Path d="M72 98 L80 106 L88 98" stroke="#93C5FD" strokeWidth="2.5" strokeLinecap="round" />
-        <Path d="M68 116 L80 126 L92 116" stroke="#93C5FD" strokeWidth="2.5" strokeLinecap="round" />
-
-        {/* الجناح الأيسر */}
-        <Path
-          d="M36 84 C28 96 26 122 42 136 C46 128 48 114 46 98 Z"
-          fill="#0055D4"
-        />
-
-        {/* الجناح الأيمن */}
-        {activeBehavior === 'welcome' ? (
-          <Path
-            d="M124 84 C138 72 152 74 150 92 C146 106 134 116 118 110 Z"
-            fill="#0055D4"
-          />
-        ) : activeBehavior === 'attention' ? (
-          <Path
-            d="M124 90 C138 98 148 114 142 126 C136 132 124 126 118 114 Z"
-            fill="#0055D4"
-          />
-        ) : activeBehavior === 'recovery' ? (
-          <G>
-            <Path
-              d="M124 90 C140 82 146 94 138 106 C132 114 122 116 116 108 Z"
-              fill="#0055D4"
-            />
-            <Path d="M142 84 L142 94" stroke="#F59E0B" strokeWidth="4" strokeLinecap="round" />
-          </G>
-        ) : activeBehavior === 'achievement' ? (
-          <Path
-            d="M124 80 C140 60 154 62 146 82 C138 98 126 108 116 98 Z"
-            fill="#0055D4"
-          />
-        ) : (
-          <Path
-            d="M124 84 C132 96 134 122 118 136 C114 128 112 114 114 98 Z"
-            fill="#0055D4"
-          />
-        )}
-
-        {/* نجوم وشرارات الاحتفال والتميز الذهبية */}
-        {(activeBehavior === 'achievement' || activeBehavior === 'streak_fire' || activeBehavior === 'success') && (
-          <G opacity={0.95}>
-            {/* نجمة علوية يمنى */}
-            <Polygon points="138,32 140,39 147,41 140,43 138,50 136,43 129,41 136,39" fill="#FBBF24" />
-            <Circle cx="138" cy="41" r="2" fill="#FFFFFF" />
-
-            {/* نجمة علوية يسرى */}
-            <Polygon points="22,38 24,44 30,46 24,48 22,54 20,48 14,46 20,44" fill="#FDE047" />
-            <Circle cx="22" cy="46" r="1.5" fill="#FFFFFF" />
-
-            {/* نجمة سفلية يمنى */}
-            <Polygon points="144,108 146,113 151,115 146,117 144,122 142,117 137,115 142,113" fill="#F59E0B" />
-
-            {/* نجمة سفلية يسرى */}
-            <Polygon points="18,105 20,109 24,111 20,113 18,117 16,113 12,111 16,109" fill="#FBBF24" />
-          </G>
-        )}
-
-        {/* العينان التعبيريتان الواسعتان (مميزة لكل حالة من الـ 12 حالة) */}
-        {activeBehavior === 'achievement' || activeBehavior === 'success' ? (
-          <G>
-            {/* عين يسرى مبتسمة ومبتهجة */}
-            <Path d="M52 70 Q64 56 76 70" stroke="#003580" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-            {/* عين يمنى مبتسمة ومبتهجة */}
-            <Path d="M84 70 Q96 56 108 70" stroke="#003580" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-          </G>
-        ) : activeBehavior === 'quiet' || activeBehavior === 'offline' ? (
-          <G>
-            {/* عينان هادئتان/مغمضتان */}
-            <Path d="M52 68 Q64 76 76 68" stroke="#0F172A" strokeWidth="4" strokeLinecap="round" fill="none" />
-            <Path d="M84 68 Q96 76 108 68" stroke="#0F172A" strokeWidth="4" strokeLinecap="round" fill="none" />
-          </G>
-        ) : (
-          <G>
-            <Circle cx="64" cy="68" r="16" fill="#FFFFFF" />
-            <Circle cx="66" cy="68" r="9" fill="#0F172A" />
-            <Circle cx="63" cy="64" r="3.5" fill="#FFFFFF" />
-            <Circle cx="68" cy="71" r="1.5" fill="#FFFFFF" />
-
-            <Circle cx="96" cy="68" r="16" fill="#FFFFFF" />
-            {activeBehavior === 'recovery' ? (
-              <Path d="M88 68 Q96 76 104 68" stroke="#0F172A" strokeWidth="4" strokeLinecap="round" fill="none" />
-            ) : (
-              <>
-                <Circle cx="94" cy="68" r="9" fill="#0F172A" />
-                <Circle cx="91" cy="64" r="3.5" fill="#FFFFFF" />
-                <Circle cx="96" cy="71" r="1.5" fill="#FFFFFF" />
-              </>
-            )}
-          </G>
-        )}
-
-        {/* وجنتان متوردتان */}
-        <Circle cx="48" cy="78" r="6" fill="#F472B6" opacity={0.4} />
-        <Circle cx="112" cy="78" r="6" fill="#F472B6" opacity={0.4} />
-
-        {/* منقار الصقر الذهبي */}
-        <Path
-          d="M74 76 Q80 72 86 76 Q88 88 80 94 Q72 88 74 76 Z"
-          fill="url(#falconBeakGrad)"
-        />
-        <Path d="M78 75 Q80 74 82 75" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
-
-        {/* إكسسوارات حسب الوضعية (12 حالة ثابتة وحركية) */}
-        {activeBehavior === 'streak_fire' && (
-          <G>
-            <Path d="M42 46 Q80 40 118 46" stroke="#EF4444" strokeWidth="8" strokeLinecap="round" fill="none" />
-            <Circle cx="80" cy="43" r="7" fill="#F59E0B" />
-            <Path d="M78 45 C77 42 79 40 80 39 C81 40 83 42 82 45 Z" fill="#EF4444" />
-          </G>
-        )}
-
-        {activeBehavior === 'achievement' && (
-          <G>
-            <Path d="M72 118 L80 132 L88 118" stroke="#DC2626" strokeWidth="3" strokeLinecap="round" fill="none" />
-            <Circle cx="80" cy="135" r="9" fill="url(#goldMedalGrad)" />
-            <Polygon points="80,129 82,133 86,134 83,137 84,141 80,139 76,141 77,137 74,134 78,133" fill="#FFFFFF" />
-          </G>
-        )}
-
-        {activeBehavior === 'ready' && (
-          <G>
-            <Circle cx="122" cy="44" r="10" fill="#22C55E" />
-            <Path d="M117 44 L121 48 L128 40" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          </G>
-        )}
-
-        {activeBehavior === 'alert' && (
-          <G>
-            <Circle cx="122" cy="44" r="10" fill="#F59E0B" />
-            <Path d="M122 39 L122 45 M122 49 L122 49.5" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-          </G>
-        )}
-
-        {activeBehavior === 'offline' && (
-          <G>
-            <Circle cx="122" cy="44" r="10" fill="#64748B" />
-            <Path d="M117 44 L127 44" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-          </G>
-        )}
-
-        {isScannerMode && (
-          <G>
-            <Circle cx="120" cy="100" r="14" stroke="#38BDF8" strokeWidth="4" fill="rgba(56, 189, 248, 0.2)" />
-            <Path d="M128 108 L142 122" stroke="#0284C7" strokeWidth="5" strokeLinecap="round" />
-            <Path d="M112 100 L128 100" stroke="#EF4444" strokeWidth="2" strokeDasharray="3,2" />
-          </G>
-        )}
-
-        {activeBehavior === 'working' && !isScannerMode && (
-          <G>
-            <Circle cx="80" cy="20" r="4" fill="#38BDF8" opacity={0.8} />
-            <Circle cx="94" cy="24" r="3" fill="#38BDF8" opacity={0.6} />
-            <Circle cx="106" cy="30" r="2.5" fill="#38BDF8" opacity={0.4} />
-          </G>
-        )}
-      </Svg>
+  const art = (
+    <Animated.View style={{ transform }}>
+      <FatenArt
+        size={effectiveSize}
+        pose={effectivePose}
+        palette={palette}
+        eyeMode={blinkFrames ?? undefined}
+      />
     </Animated.View>
   );
 
-  return (
-    <View style={[styles.wrapper, style]}>
-      {showSpeech && !hideFloatingBubble && (
-        <Animated.View style={[styles.speechBubble, { opacity: speechOpacity }]}>
-          <Txt variant="caption" color="#1E293B" align="center">
-            {currentPhrase}
-          </Txt>
-          <View style={styles.speechArrow} />
-        </Animated.View>
-      )}
+  const bubbleVisible = showSpeech && !hideFloatingBubble && Boolean(speech);
+  const bubble = bubbleVisible ? (
+    <Animated.View
+      style={[
+        styles.bubble,
+        bubblePlacement === 'top' ? styles.bubbleTop : styles.bubbleBottom,
+        {
+          backgroundColor: isDark ? 'rgba(24,28,38,0.96)' : 'rgba(255,255,255,0.98)',
+          borderColor: isDark ? 'rgba(251,191,36,0.4)' : 'rgba(217,119,6,0.28)',
+          shadowColor: isDark ? '#000' : '#0F172A',
+          opacity: bubbleAnim,
+          transform: [
+            { translateY: bubbleAnim.interpolate({ inputRange: [0, 1], outputRange: bubblePlacement === 'top' ? [10, 0] : [-10, 0] }) },
+            { scale: bubbleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) },
+          ],
+        },
+      ]}
+    >
+      <Txt
+        variant="caption"
+        color={isDark ? '#F8FAFC' : '#1E293B'}
+        align="center"
+        style={styles.bubbleText}
+      >
+        {speech}
+      </Txt>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.bubbleTail,
+          bubblePlacement === 'top' ? styles.tailDown : styles.tailUp,
+          { borderTopColor: isDark ? 'rgba(24,28,38,0.96)' : 'rgba(255,255,255,0.98)',
+            borderBottomColor: isDark ? 'rgba(24,28,38,0.96)' : 'rgba(255,255,255,0.98)' },
+        ]}
+      />
+    </Animated.View>
+  ) : null;
 
-      {interactive || onPress ? (
+  const label = a11yLabel ?? t('a11y.mascotImage');
+  const hint = interactive ? t('a11y.mascotInteract') : undefined;
+
+  if (interactive || onPress) {
+    return (
+      <View style={[styles.wrapper, style]}>
+        {bubble}
         <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('a11y.mascotInteract')}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={label}
+          accessibilityHint={hint}
           onPress={handlePress}
+          style={styles.pressable}
         >
-          {mascotContent}
+          {art}
         </Pressable>
-      ) : (
-        mascotContent
-      )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.wrapper, style]} accessible accessibilityRole="image" accessibilityLabel={label}>
+      {bubble}
+      {art}
     </View>
   );
 }
+
+export default React.memo(MasarMascot);
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -787,35 +513,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  speechBubble: {
+  pressable: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bubble: {
     position: 'absolute',
+    paddingHorizontal: spacing.s4,
+    paddingVertical: spacing.s3,
+    borderRadius: radii.xl,
+    borderWidth: borderWidth.thin,
+    zIndex: 40,
+    maxWidth: 250,
+    minWidth: 120,
+    ...shadows.sheet,
+  },
+  bubbleTop: {
     bottom: '100%',
     marginBottom: spacing.s2,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: spacing.s3,
-    paddingVertical: spacing.s2,
-    borderRadius: radii.lg,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
-    zIndex: 99,
-    maxWidth: 220,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 122, 255, 0.15)',
   },
-  speechArrow: {
+  bubbleBottom: {
+    top: '100%',
+    marginTop: spacing.s2,
+  },
+  bubbleText: {
+    lineHeight: 20,
+  },
+  bubbleTail: {
     position: 'absolute',
-    bottom: -6,
     alignSelf: 'center',
     width: 0,
     height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: '#FFFFFF',
+    borderStartWidth: 7,
+    borderEndWidth: 7,
+    borderStartColor: 'transparent',
+    borderEndColor: 'transparent',
+  },
+  tailDown: {
+    bottom: -7,
+    borderTopWidth: 8,
+  },
+  tailUp: {
+    top: -7,
+    borderBottomWidth: 8,
   },
 });
+
+/** معرّف سريع للمفاتيح المطلوبة خارجيًا (يُستخدم في الاختبارات والتوثيق) */
+export type FatenLineKey = DictKey;

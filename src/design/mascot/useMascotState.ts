@@ -1,10 +1,17 @@
 /**
  * design/mascot/useMascotState.ts — Rive-style State Machine Hook لتميمة مسار
- * يربط أحداث التطبيق بحالات التميمة والتأثيرات المصاحبة
- * بناءً على خريطة الأحداث في MASAR_ASSETS_RESEARCH.md
+ * يربط أحداث التطبيق بحالات التميمة والتأثيرات المصاحبة.
+ *
+ * تحديث 3.0: كل جملة تأتي من محرّك حديث فطن (`faten.lines`) والقواميس العربية
+ * والإنجليزية — حُذف كل نص مضمّن كان يعرض العربية لمستخدم إنجليزي.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { CloudMascotMode } from './CloudMascot';
+import { FatenBehaviorState } from './mascot.types';
+
+/** أوسع من CloudMascotMode: كل حالات فطن الـ14 متاحة لهذه الماكينة */
+export type MascotVmMode = CloudMascotMode | FatenBehaviorState;
+import { pickFatenLine } from './faten.lines';
 
 export interface MascotTriggerEvents {
   onCheckInSuccess: (points?: number) => void;
@@ -18,44 +25,46 @@ export interface MascotTriggerEvents {
   resetToIdle: () => void;
 }
 
-export function useMascotState(initialMode: CloudMascotMode = 'idle') {
-  const [mode, setMode] = useState<CloudMascotMode>(initialMode);
+export function useMascotState(initialMode: MascotVmMode = 'idle') {
+  const [mode, setMode] = useState<MascotVmMode>(initialMode);
   const [speechText, setSpeechText] = useState<string | undefined>(undefined);
+  const lastState = useRef<FatenBehaviorState>('idle');
+
+  /** يختار جملة جديدة من المحرّك ويضبط الحالة المرئية */
+  const say = useCallback((state: FatenBehaviorState, vars: Record<string, string | number> = {}) => {
+    lastState.current = state;
+    setMode(state);
+    setSpeechText(pickFatenLine(state, vars as never));
+  }, []);
 
   const onCheckInSuccess = useCallback((points = 10) => {
-    setMode('happy');
-    setSpeechText(`حضور موثق! +${points} نقطة أضيفت لرصيدك! 🎉`);
-  }, []);
+    say('success', { points });
+  }, [say]);
 
-  const onNewBadge = useCallback((badgeTitle = 'شارة جديدة') => {
-    setMode('celebrate');
-    setSpeechText(`وسام جديد يستحق الفخر: ${badgeTitle}! 🏆`);
-  }, []);
+  const onNewBadge = useCallback((badgeTitle?: string) => {
+    say('achievement', { badge: badgeTitle ?? '' });
+  }, [say]);
 
   const onLevelUp = useCallback(() => {
-    setMode('celebrate');
-    setSpeechText('ترقية مستحقة إلى فئة دوري جديدة! 👑');
-  }, []);
+    say('level_up');
+  }, [say]);
 
   const onStreakSurge = useCallback((weeks = 1) => {
-    setMode('streak_fire');
-    setSpeechText(`لهب الستريك يشتعل للأسبوع ${weeks}! 🔥`);
-  }, []);
+    say('streak_fire', { weeks });
+  }, [say]);
 
   const onStreakBroken = useCallback(() => {
-    setMode('sad');
-    setSpeechText('انقطع الستريك مؤقتاً.. لا تستسلم، يمكنك استعادته! 🌧️');
-  }, []);
+    say('recovery');
+  }, [say]);
 
   const onQRFailure = useCallback((reason?: string) => {
-    setMode('sad');
-    setSpeechText(reason ?? 'تعذر قراءة الرمز.. جرب الكود الاحتياطي 💙');
+    setMode('recovery');
+    setSpeechText(reason ?? pickFatenLine('recovery'));
   }, []);
 
   const onLoadingStart = useCallback(() => {
-    setMode('thinking');
-    setSpeechText('جاري المعالجة والتحقق بأمان.. ⏳');
-  }, []);
+    say('working');
+  }, [say]);
 
   const onLoadingEnd = useCallback(() => {
     setMode('idle');
@@ -67,21 +76,26 @@ export function useMascotState(initialMode: CloudMascotMode = 'idle') {
     setSpeechText(undefined);
   }, []);
 
+  const triggers = useMemo(() => ({
+    onCheckInSuccess,
+    onNewBadge,
+    onLevelUp,
+    onStreakSurge,
+    onStreakBroken,
+    onQRFailure,
+    onLoadingStart,
+    onLoadingEnd,
+    resetToIdle,
+  }), [
+    onCheckInSuccess, onNewBadge, onLevelUp, onStreakSurge,
+    onStreakBroken, onQRFailure, onLoadingStart, onLoadingEnd, resetToIdle,
+  ]);
+
   return {
     mode,
     setMode,
     speechText,
     setSpeechText,
-    triggers: {
-      onCheckInSuccess,
-      onNewBadge,
-      onLevelUp,
-      onStreakSurge,
-      onStreakBroken,
-      onQRFailure,
-      onLoadingStart,
-      onLoadingEnd,
-      resetToIdle,
-    },
+    triggers,
   };
 }

@@ -6,4 +6,8 @@ export * from './mascot.tokens';
 export * from './mascot.engine';
 export * from './useMascot';
 export * from './MascotProvider';
+export * from './FatenArt';
+export * from './faten.pose';
+export * from './faten.palette';
+export * from './faten.lines';
 

@@ -16,6 +16,7 @@ import { ThemeProvider, useTheme } from '../design/theme';
 import { A11yPreferencesProvider } from '../design/preferences';
 import { I18nProvider } from '../i18n';
 import { AppProvider, useApp } from '../data/store';
+import { FatenCompanion, MascotProvider } from '../design/mascot';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { installGlobalHandlers, setTelemetrySink } from '../shared/telemetry';
 import { logClientError } from '../data/actions';
@@ -394,6 +395,8 @@ function Shell() {
       {SUPABASE_ENABLED ? <RootNavigator /> : <SetupRequired />}
       <ToastHost />
       <GlobalBadgeCelebrationHost />
+      {/* فطن المساعد — رفيق المستخدم داخل الشاشات (يُوقف من الإعدادات) */}
+      <FatenCompanion />
     </Animated.View>
   );
 }
@@ -426,8 +429,11 @@ export default function App() {
           <A11yPreferencesProvider>
           <I18nProvider>
             <AppProvider>
-              <RNStatusBar barStyle="default" />
-              <Shell />
+              {/* M2: مثيل منطقي واحد لمحرّك شخصية «فطن» لكل التطبيق */}
+              <MascotProvider options={{ onReactionChange: undefined }}>
+                <RNStatusBar barStyle="default" />
+                <Shell />
+              </MascotProvider>
             </AppProvider>
           </I18nProvider>
           </A11yPreferencesProvider>

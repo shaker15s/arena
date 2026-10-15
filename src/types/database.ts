@@ -796,6 +796,8 @@ export interface Database {
   create_course: { Args: { p_title: string; p_code: string; p_desc: string; p_sessions_count: number; p_committee_id?: string | null }; Returns: Json };
   /** 0035_lecture_feedback_and_reports.sql */
   create_course_module: { Args: { p_course_id: string; p_title: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  delete_course_module: { Args: { p_module_id: string }; Returns: Json };
   /** 0008_account_deletion.sql */
   delete_my_account: { Args: { p_confirm: string }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -820,6 +822,8 @@ export interface Database {
   get_command: { Args: { p_command_id: string }; Returns: Json };
   /** 0032_wave_c_security_rpcs_indexes.sql */
   get_course_detail: { Args: { p_course_id: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  get_course_feedback: { Args: { p_course_id: string }; Returns: Json };
   /** 0012_domain_query_layer.sql */
   get_course_overview: { Args: { p_course_id: string }; Returns: Json };
   /** 0035_lecture_feedback_and_reports.sql */
@@ -900,6 +904,10 @@ export interface Database {
   reissue_certificate: { Args: { p_certificate_id: string }; Returns: Json };
   /** 0009_waitlist_promotion.sql */
   remove_from_batch: { Args: { p_batch_id: string; p_user_id: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  rename_course_module: { Args: { p_module_id: string; p_title: string }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  reorder_course_module: { Args: { p_module_id: string; p_direction: number }; Returns: Json };
   /** 0024_course_operating_system.sql */
   reschedule_training_session: { Args: { p_session_id: string; p_starts_at: string; p_reason?: string | null }; Returns: Json };
   /** 0031_functional_completeness.sql */
@@ -930,6 +938,8 @@ export interface Database {
   set_push_preferences: { Args: { p_prefs: Json }; Returns: Json };
   /** 0031_functional_completeness.sql */
   set_report_subscription: { Args: { p_cadence?: string | null; p_enabled?: boolean | null; p_day_of_week?: number | null; p_hour_local?: number | null }; Returns: Json };
+  /** 0036_course_organizer_authority.sql */
+  set_session_module: { Args: { p_session_id: string; p_module_id?: string | null }; Returns: Json };
   /** 0005_production_hardening.sql */
   start_training_session: { Args: { p_batch_id: string }; Returns: Json };
   /** 0031_functional_completeness.sql */

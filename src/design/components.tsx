@@ -592,7 +592,9 @@ export function Segmented<T extends string>({ options, value, onChange, scrollab
                     paddingHorizontal: 14,
                     minHeight: 38,
                     borderWidth: active ? borderWidth.hairline : 0,
-                    borderColor: active ? theme.glassBorder : 'transparent',
+                    // الرقاقة النشطة في المقطع (segmented control): حدود سطح عادية —
+                    // ألوان مادة الزجاج (glassBorder) محصورة في GlassSurface حسب السياسة.
+                    borderColor: active ? theme.line : 'transparent',
                     shadowColor: theme.glassShadow,
                     ...(active ? shadows.control : { shadowOpacity: 0, shadowRadius: 0 }),
                     opacity: pressed ? 0.75 : 1,
