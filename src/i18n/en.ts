@@ -1654,4 +1654,5 @@ export const en: Record<DictKey, string> = {
   'creport.noPermissionTitle': 'Not allowed',
   'creport.noPermissionBody': 'Writing course reports is for managers or supervisors.',
   'management.tabReport': 'Report',
+  'outline.progressTitle': 'Your course progress',
 };

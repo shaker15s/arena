@@ -211,6 +211,12 @@ for (const testCase of cases) {
     console.log(`❌ ${testCase.name}: انفجار — ${error.message.split('\n')[0]}`);
     continue;
   }
+  // لقطات HTML دائمة (لمكوّنات الواجهة، لا الرسم الكبير) لمراجعة بشرية سريعة
+  const snapshotName = testCase.name.split(' ')[0];
+  if (!testCase.name.includes('MasarMascot')) {
+    fs.mkdirSync(path.join(root, 'docs', 'design', 'smoke'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'docs', 'design', 'smoke', `${snapshotName}.html`), html, 'utf8');
+  }
   if (process.env.SMOKE_DUMP === '1') {
     fs.mkdirSync('/tmp/smoke', { recursive: true });
     fs.writeFileSync(`/tmp/smoke/${testCase.name.replace(/[^\w\u0600-\u06FF]+/g, '_')}.html`, html, 'utf8');

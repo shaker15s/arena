@@ -310,7 +310,7 @@ export function CourseOutline({ batchId, onOpenSession, onScan, onExcuse }: Cour
           liveliness="calm"
         />
         <View style={{ flex: 1, gap: 4 }}>
-          <Txt variant="caption" bold>{t('streak.title')}</Txt>
+          <Txt variant="caption" bold>{t('outline.progressTitle')}</Txt>
           <Txt variant="micro" color={theme.textSecondary}>
             {t('outline.unitProgress', { done: outline.completedSessions, total: outline.totalSessions })}
           </Txt>

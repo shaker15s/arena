@@ -1698,6 +1698,7 @@ export const ar = {
   'creport.noPermissionTitle': 'مش مسموح لك',
   'creport.noPermissionBody': 'كتابة تقارير الكورس للمنظّم أو المشرف.',
   'management.tabReport': 'التقرير',
+  'outline.progressTitle': 'تقدّمك في الكورس',
 };
 
 export type DictKey = keyof typeof ar;
