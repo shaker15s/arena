@@ -206,6 +206,8 @@ export async function fetchRemoteDb(): Promise<Db> {
     badges: badges.map((r): Badge => ({
       code: r.code, nameAr: r.name_ar, nameEn: r.name_en, descAr: r.desc_ar ?? '',
       descEn: r.desc_en ?? '', rarity: r.rarity, icon: r.icon, active: r.active !== false,
+      target: Number(r.target ?? 1) || 1,
+      metric: (r.metric ?? 'attendance') as Badge['metric'],
     })),
     userBadges: userBadges.map((r): UserBadge => ({
       userId: r.user_id, badgeCode: r.badge_code, awardedAt: tsOr(r.awarded_at),

@@ -7,10 +7,16 @@ import {
   rpcIssueCertificates, rpcManualMark, rpcReissueCertificate, rpcReviewExcuse, rpcRevokeCertificate,
   rpcStartSession, rpcSubmitExcuse, rpcSubmitSessionFeedback, rpcUpdateRule, settlePreviousMonthBonus, simulateWeekClose,
   streakSnapshot, courseOutline, sessionsOfBatch, courseFeedback, courseReportSummary,
+  badgeProgressDetail, nearestBadge, badgeBoard,
 } from '../src/data/engine';
+import {
+  agendaFor, nextAgendaItem, todayAgenda, daySummary,
+} from '../src/data/agenda';
 import { buildSeedDb, IDS } from './fixtures/seed';
 import { RULE_DEFS } from '../src/data/rules';
-import { weekStartOf } from '../src/shared/format';
+import {
+  weekStartOf, relativeDayLabel, startsIn, dayTimeLabel, formatDuration,
+} from '../src/shared/format';
 import { qrSignature } from '../src/shared/sha256';
 
 let passed = 0, failed = 0;
@@ -405,6 +411,123 @@ const MIN = 60_000;
     crs.attendance,
   );
   ok(crs.missingReports >= 0 && crs.students >= 0, 'ملخص التقرير: قيم غير سالبة');
+
+  // ═ 16) دقّة الأجندة (UX-G1): «إيه اللي جاي» لا يكذب في أي اتجاه ═
+  console.log('\n═ 16) دقّة الأجندة والمحاضرة القادمة ═');
+  const student = IDS.omar;
+  const nowMs = Date.now();
+
+  // (أ) الجلسة الملغاة/المغلقة لا تظهر أبدًا في الأجندة
+  const agenda = agendaFor(db, student, nowMs);
+  const hiddenStatuses = new Set(['cancelled', 'closed']);
+  ok(agenda.every((i) => !hiddenStatuses.has(i.session.status)), 'الأجندة: لا تعرض جلسة ملغاة أو مغلقة');
+
+  // (ب) الأجندة مرتّبة زمنيًا تصاعديًا
+  ok(agenda.every((i, i2) => i2 === 0 || agenda[i2 - 1].startsAt <= i.startsAt), 'الأجندة: مرتّبة زمنيًا');
+
+  // (ج) «القادمة» = الجارية أولًا ثم الأقرب زمنيًا — لا تُقفز فوق محاضرة بعد 10 دقائق
+  const next = nextAgendaItem(db, student, nowMs);
+  if (next) {
+    const sooner = agenda.find((i) => i.endsAt + 45 * MIN >= nowMs && i.startsAt < next.startsAt);
+    ok(!sooner, 'القادمة: لا توجد جلسة أقرب مُتجاهَلة', { picked: next.startsAt, sooner: sooner?.startsAt });
+    ok(next.session.status !== 'cancelled', 'القادمة: ليست ملغاة');
+    const liveItems = agenda.filter((i) => i.session.status === 'live' && !i.stale);
+    if (liveItems.length > 0) ok(next.session.id === liveItems[0].session.id, 'القادمة: الجلسة الجارية لها الأولوية المطلقة');
+  } else {
+    ok(agenda.length === 0, 'القادمة: لا توجد أجندة أصلًا هذا صحيح');
+  }
+
+  // (د) اختبار الحدّ الحرج: جلسة بعد 10 دقائق يجب أن تفوز على جلسة بعد 3 أيام
+  const probeDb = buildSeedDb();
+  const probeBatch = probeDb.batches.find((b) => probeDb.enrollments.some((e) => e.batchId === b.id && e.userId === student && e.status === 'active'));
+  ok(!!probeBatch, 'حدّ الدقّة: للمستخدم مجموعة نشطة');
+  const farStart = nowMs + 3 * 24 * 60 * MIN;
+  const nearStart = nowMs + 10 * MIN;
+  probeDb.sessions.push(
+    { id: 'probe-far', batchId: probeBatch!.id, seq: 900, title: 'بعيدة', startsAt: farStart, durationMin: 90, status: 'scheduled', createdBy: null } as never,
+    { id: 'probe-near', batchId: probeBatch!.id, seq: 901, title: 'قريبة', startsAt: nearStart, durationMin: 90, status: 'scheduled', createdBy: null } as never,
+  );
+  // نُبقي جلستَي الاختبار فقط لقياس ترتيب المحرّك بدقة (البذرة بها جلسة حية الآن).
+  const orderingDb = buildSeedDb();
+  orderingDb.sessions = orderingDb.sessions.filter((x) => x.id === 'probe-near' || x.id === 'probe-far');
+  orderingDb.sessions.push(probeDb.sessions.find((x) => x.id === 'probe-far')!, probeDb.sessions.find((x) => x.id === 'probe-near')!);
+  const probeNext = nextAgendaItem(orderingDb, student, nowMs);
+  ok(probeNext?.session.id === 'probe-near', 'حدّ الدقّة: محاضرة بعد 10 دقائق تتقدّم على محاضرة بعد 3 أيام', probeNext?.session.id);
+
+  // (هـ) ملخص اليوم: كل بنود اليوم بداخله فعلًا، والمحاضرة البعيدة خارج العدّ
+  const day = daySummary(probeDb, student, nowMs);
+  ok(day.today.items.every((i) => i.startsAt >= day.today.dayStart && i.startsAt < day.today.dayEnd), 'ملخص اليوم: كل البنود داخل اليوم');
+  ok(!day.today.items.some((i) => i.session.id === 'probe-far'), 'ملخص اليوم: المحاضرة بعد 3 أيام ليست «النهاردة»');
+  ok(day.laterCount >= 1, 'ملخص اليوم: عدد المحاضرات بعد اليوم محسوب');
+  ok(day.today.done <= day.today.total, 'ملخص اليوم: المحضور ≤ الإجمالي');
+  ok(day.today.minutesRemaining >= 0, 'ملخص اليوم: الدقائق المتبقية غير سالبة');
+  const todayOnly = todayAgenda(probeDb, student, nowMs);
+  ok(todayOnly.total === day.today.total, 'ملخص اليوم: قراءتان تعطيان نفس الرقم');
+
+  // ═ 17) دقّة الشارات (UX-G2): تقدّم حقيقي + لا شارة ميتة ═
+  console.log('\n═ 17) دقّة الشارات و«أقرب شارة» ═');
+  const activeBadges = db.badges.filter((b) => b.active);
+  ok(activeBadges.length >= 15, 'الشارات: 15 شارة نشطة على الأقل بعد الزيادة', activeBadges.length);
+
+  // كل شارة نشطة يجب أن يكون لها عدّاد حقيقي (قابل للحساب) لا نسبة مخترعة
+  const everyDetail = activeBadges.map((b) => ({ code: b.code, d: badgeProgressDetail(db, student, b.code) }));
+  ok(everyDetail.every((x) => x.d.progress >= 0 && x.d.progress <= 1), 'الشارات: كل التقدّمات داخل 0–1');
+  ok(everyDetail.every((x) => Number.isFinite(x.d.current) && Number.isFinite(x.d.target)), 'الشارات: كل عدّاد رقم صحيح');
+  ok(everyDetail.filter((x) => x.d.achievable).length >= 12, 'الشارات: 12 شارة قابلة للكسب على الأقل', everyDetail.filter((x) => x.d.achievable).length);
+
+  // الشارات الثلاث التي كانت «ميتة» يجب أن تُحسب الآن
+  for (const code of ['month_star', 'top_scorer', 'climber']) {
+    const d = badgeProgressDetail(db, student, code);
+    ok(d.achievable, `الشارات: «${code}» لم تعد ميتة`);
+  }
+
+  // `cert_hunter` = 0 تقدّم ما لم توجد شهادة واحدة (كان يرجع 1 قبل الكسب!)
+  const certCount = db.certificates.filter((c) => c.userId === student && c.status === 'active').length;
+  const certDetail = badgeProgressDetail(db, student, 'cert_hunter');
+  ok(certDetail.current === certCount, 'الشارات: عدّاد صائد الشهادات = عدد الشهادات الفعلي', { current: certDetail.current, certCount });
+  ok(certCount > 0 || certDetail.progress === 0, 'الشارات: بلا شهادة ⇒ تقدّم صفر (لا رقم مُخمَّن)');
+
+  // العدّاد لا يتجاوز الهدف أبدًا في العرض
+  const capped = badgeProgressDetail(db, student, 'first_step');
+  ok(capped.progress <= 1 && capped.current >= 0, 'الشارات: العدّاد مقصوص عند الهدف');
+
+  // «أقرب شارة» = أعلى تقدّم فعلًا بين غير المكتسبة، ولا تعرض شارة مكتسبة
+  const near = nearestBadge(db, student);
+  const earnedCodes = new Set(db.userBadges.filter((u) => u.userId === student).map((u) => u.badgeCode));
+  if (near) {
+    ok(!earnedCodes.has(near.badge.code), 'أقرب شارة: ليست مكتسبة بالفعل');
+    ok(near.progress < 1, 'أقرب شارة: ليست مكتملة');
+    const better = everyDetail
+      .filter((x) => x.d.achievable && x.d.progress < 1 && !earnedCodes.has(x.code))
+      .some((x) => x.d.progress > near.progress);
+    ok(!better, 'أقرب شارة: فعلًا الأعلى تقدّمًا', { picked: near.badge.code, progress: near.progress });
+    ok(near.remaining === near.target - near.current, 'أقرب شارة: «باقي» = الهدف − الحالي');
+  } else {
+    ok(earnedCodes.size >= activeBadges.length, 'أقرب شارة: لا توجد شارة قريبة لأن كل الشارات مكتسبة');
+  }
+
+  // لوحة الشارات: المكتسب أولًا ثم الأعلى تقدّمًا
+  const board = badgeBoard(db, student);
+  ok(board.length === activeBadges.length, 'لوحة الشارات: تعرض كل الشارات النشطة');
+  ok(board.filter((r) => r.earned).length === earnedCodes.size, 'لوحة الشارات: عدد المكتسب مطابق');
+
+  // ═ 18) صياغة الزمن (UX-G1): لا «بعد 4320 دقيقة» أبدًا ═
+  console.log('\n═ 18) صياغة الوقت النسبي ═');
+  const t0 = Date.UTC(2026, 8, 30, 16, 0, 0);
+  const tenMin = t0 + 10 * MIN;
+  const inHour = t0 + 60 * MIN;
+  const inThreeDays = t0 + 3 * 24 * 60 * MIN;
+  ok(startsIn(tenMin, 'ar', t0).includes('10'), 'الوقت: محاضرة بعد 10 دقائق تُقال بالدقائق', startsIn(tenMin, 'ar', t0));
+  ok(startsIn(tenMin, 'ar', t0).includes('دقيقة'), 'الوقت: وحدة الدقائق صحيحة');
+  ok(!startsIn(inHour, 'ar', t0).includes('60 دقيقة'), 'الوقت: بعد ساعة لا تُقال «60 دقيقة»', startsIn(inHour, 'ar', t0));
+  ok(startsIn(inThreeDays, 'ar', t0) === relativeDayLabel(inThreeDays, 'ar', t0), 'الوقت: البعيد يُقال بأيام', startsIn(inThreeDays, 'ar', t0));
+  ok(!/\d{3,}/.test(startsIn(inThreeDays, 'ar', t0).replace(/[٠-٩]/g, '')), 'الوقت: لا أرقام دقائق خام للبعيد', startsIn(inThreeDays, 'ar', t0));
+  ok(relativeDayLabel(t0, 'ar', t0).includes('النهاردة'), 'الوقت: اليوم = النهاردة');
+  ok(relativeDayLabel(t0 + 24 * 60 * MIN, 'ar', t0).includes('بكرة'), 'الوقت: غدًا = بكرة');
+  ok(relativeDayLabel(t0 + 7 * 24 * 60 * MIN, 'ar', t0).includes('7'), 'الوقت: بعد أسبوع = بعد 7 أيام');
+  ok(relativeDayLabel(t0 + 20 * 24 * 60 * MIN, 'ar', t0).includes('أسبوعين'), 'الوقت: البعيد جدًا لا يعدّ أيامًا');
+  ok(dayTimeLabel(tenMin, 'ar', t0).includes('·'), 'الوقت: سطر اليوم والوقت مكوّن من جزئين');
+  ok(formatDuration(90 * MIN, 'ar').includes('ساعة'), 'المدة: 90 دقيقة = ساعة و30 دقيقة', formatDuration(90 * MIN, 'ar'));
 
   console.log(`\n════ النتيجة: ${passed} ناجح، ${failed} فاشل ════`);
   if (failed > 0) process.exit(1);

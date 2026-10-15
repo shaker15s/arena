@@ -644,42 +644,224 @@ export function evaluateBadges(db: Db, userId: string): Array<{ userId: string; 
   return out;
 }
 
-/** تقدم نحو شارة لم تُكسب بعد (يعرض في «أقرب شارة») */
-export function badgeProgress(db: Db, userId: string, code: string): number {
-  const myAtt = db.attendance.filter((a) => a.userId === userId && a.status !== 'absent');
+/**
+ * تفصيل تقدّم الشارة — **أرقام حقيقية لا تقديرات** (UX-G2).
+ *
+ * كان العيب: `badgeProgress` كانت تُرجع نسبًا مخترعة (مثلًا `cert_hunter` = 0.4 ثابتة
+ * قبل أول شهادة!)، وبعض الشارات بلا حالة إطلاقًا فتُرجع 0% دائمًا. النتيجة: كرت
+ * «أقرب شارة» يقول رقمًا غير صحيح، وهو أسوأ من عدم إظهاره.
+ *
+ * الآن كل شارة تُرجع:
+ *   • `current` / `target` — العدّاد الفعلي والهدف (يُعرض «2 من 4»).
+ *   • `progress` = current/target مقصوصة داخل [0,1].
+ *   • `metric` — اسم المقياس (أسابيع/حضورات/محاضرات/شهادات…) لتعريب الوحدة.
+ * وشارات الدوري/الشهر تُحسب من ترتيبك الفعلي في مجموعتك (لا رقم عام).
+ */
+export type BadgeMetric = 'attendance' | 'weeks' | 'certificates' | 'ratings' | 'feedback' | 'kudos' | 'rank';
+
+export interface BadgeProgressDetail {
+  code: string;
+  current: number;
+  target: number;
+  progress: number;
+  metric: BadgeMetric;
+  /** هل الشارة قابلة للكسب فعلًا الآن (بعضها موسمي/دوري)؟ */
+  achievable: boolean;
+}
+
+/** أطول سلسلة محاضرات متتالية بحضور غير غياب (بأي مجموعة). */
+function bestCourseStreak(db: Db, userId: string): number {
+  const batchIds = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
+  return batchIds.reduce((best, bid) => Math.max(best, courseStreak(db, userId, bid)), 0);
+}
+
+/** عدد الحضورات المبكرة (قبل وقت البداية) — يُستخدم للشارة وللتقدّم معًا. */
+function earlyCheckIns(db: Db, userId: string): number {
+  return db.attendance.filter((a) => {
+    if (a.userId !== userId || a.status !== 'present' || a.checkedInAt == null) return false;
+    const s = db.sessions.find((x) => x.id === a.sessionId);
+    return Boolean(s && a.checkedInAt < s.startsAt);
+  }).length;
+}
+
+/** أفضل شهر من ناحية نسبة الحضور (≥4 محاضرات مغلقة) — مقياس شارة «الكمال». */
+function bestMonthProgress(db: Db, userId: string): { current: number; target: number; perfect: boolean } {
+  const batchIds = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
+  const byMonth = new Map<string, { total: number; honored: number }>();
+  for (const s of db.sessions) {
+    if (!batchIds.includes(s.batchId) || s.status !== 'closed') continue;
+    const key = monthKeyOf(s.startsAt);
+    const row = byMonth.get(key) ?? { total: 0, honored: 0 };
+    row.total += 1;
+    const att = attendanceOf(db, s.id, userId);
+    if (att && att.status !== 'absent') row.honored += 1;
+    byMonth.set(key, row);
+  }
+  let best = { current: 0, target: 4, perfect: false };
+  for (const row of byMonth.values()) {
+    if (row.total < 4) continue;
+    if (row.total - row.honored === 0) return { current: row.total, target: row.total, perfect: true };
+    // ليس شهرًا كاملًا: نعرض أفضل محاولة (المحاضرات المُحضورة من أصل محاضرات الشهر)
+    if (row.honored > best.current) best = { current: row.honored, target: Math.max(row.total, 4), perfect: false };
+  }
+  return best;
+}
+
+/** أفضل عدد محاضرات في أسبوع واحد (شارة الماراثون). */
+function bestWeekSessions(db: Db, userId: string): number {
+  const counts = new Map<number, number>();
+  for (const a of db.attendance) {
+    if (a.userId !== userId || a.status === 'absent') continue;
+    const s = db.sessions.find((x) => x.id === a.sessionId);
+    if (!s) continue;
+    const wk = weekStartOf(s.startsAt);
+    counts.set(wk, (counts.get(wk) ?? 0) + 1);
+  }
+  return counts.size === 0 ? 0 : Math.max(...counts.values());
+}
+
+/** أعذار مقبولة (شرارة المسؤولية): الحضور بعد فترة غياب طويلة ثم العودة. */
+function comebackSessions(db: Db, userId: string): number {
+  const mine = db.attendance
+    .filter((a) => a.userId === userId && a.status !== 'absent')
+    .map((a) => ({ a, s: db.sessions.find((x) => x.id === a.sessionId) }))
+    .filter((row): row is { a: Attendance; s: TrainingSession } => Boolean(row.s))
+    .sort((x, y) => x.s.startsAt - y.s.startsAt);
+  let best = 0;
+  for (let i = 1; i < mine.length; i++) {
+    const gap = mine[i].s.startsAt - mine[i - 1].s.startsAt;
+    if (gap >= 14 * 86_400_000) best = Math.max(best, 1);
+  }
+  return best;
+}
+
+/**
+ * ترتيب المستخدم في دوري فئته (1 = الأول) وحجم مجموعته.
+ * يُبنى على `getWeeklyLeague` نفسها (لا حساب موازٍ) حتى لا يختلف الترتيب في كرت
+ * «أقرب شارة» عن الترتيب المعروض في شاشة الدوري — نفس المجموعة، نفس القاعدة.
+ */
+function leagueStanding(db: Db, userId: string): { rank: number; size: number } {
+  const league = getWeeklyLeague(db, userId);
+  const size = Math.max(1, league.rows.length);
+  const me = league.rows.find((r) => r.isYou);
+  return { rank: me?.rank ?? size, size };
+}
+
+export function badgeProgressDetail(db: Db, userId: string, code: string): BadgeProgressDetail {
   const g = gamifGet(db, userId);
+  const myAtt = db.attendance.filter((a) => a.userId === userId && a.status !== 'absent');
+  const certs = db.certificates.filter((c) => c.userId === userId && c.status === 'active').length;
+  const ratings = db.ratings.filter((r) => r.userId === userId).length;
+  const feedbackCount = db.sessionFeedback.filter((f) => f.userId === userId).length;
+  const make = (current: number, target: number, metric: BadgeMetric, achievable = true): BadgeProgressDetail => ({
+    code,
+    current: Math.max(0, Math.round(current)),
+    target: Math.max(1, target),
+    progress: Math.max(0, Math.min(1, current / Math.max(1, target))),
+    metric,
+    achievable,
+  });
+
   switch (code) {
-    case 'first_step': return Math.min(1, myAtt.length);
-    case 'consistent': {
-      const batchIds = db.enrollments.filter((e) => e.userId === userId && e.status === 'active').map((e) => e.batchId);
-      const best = Math.max(0, ...batchIds.map((bid) => courseStreak(db, userId, bid)));
-      return Math.min(1, best / 4);
+    case 'first_step': return make(myAtt.length, 1, 'attendance');
+    case 'consistent': return make(bestCourseStreak(db, userId), 4, 'attendance');
+    case 'early_bird': return make(earlyCheckIns(db, userId), 10, 'attendance');
+    case 'perfection': {
+      const best = bestMonthProgress(db, userId);
+      return make(best.current, best.target, 'attendance');
     }
-    case 'early_bird': {
-      const early = myAtt.filter((a) => {
-        const s = db.sessions.find((x) => x.id === a.sessionId);
-        return s && a.status === 'present' && a.checkedInAt != null && a.checkedInAt < s.startsAt;
-      }).length;
-      return Math.min(1, early / 10);
+    case 'super_streak': return make(g.currentStreakWeeks, 8, 'weeks');
+    case 'streak_12': return make(g.currentStreakWeeks, 12, 'weeks');
+    case 'cert_hunter': return make(certs, 1, 'certificates');
+    case 'pro_expert': return make(certs, 3, 'certificates');
+    case 'honest_reviewer': return make(ratings, 3, 'ratings');
+    case 'feedback_star': return make(feedbackCount, 10, 'feedback');
+    case 'marathon': return make(bestWeekSessions(db, userId), 5, 'attendance');
+    case 'comeback': return make(comebackSessions(db, userId), 1, 'attendance');
+    case 'month_star': {
+      // نجم الشهر: أعلى نقاط شهر ميلادي في فرعك — نقيس الفارق عن المتصدّر الحالي.
+      const month = monthKeyOf(Date.now());
+      const branchId = profileOf(db, userId)?.branchId ?? null;
+      const rows = db.profiles
+        .filter((p) => p.role === 'student' && p.status === 'active' && (branchId == null || p.branchId === branchId))
+        .map((p) => ({
+          id: p.id,
+          xp: db.pointEvents.filter((e) => e.userId === p.id && monthKeyOf(e.createdAt) === month).reduce((sum, e) => sum + e.points, 0),
+        }))
+        .sort((a, b) => b.xp - a.xp);
+      const mine = rows.findIndex((r) => r.id === userId);
+      const rank = mine < 0 ? rows.length + 1 : mine + 1;
+      const top = rows[0]?.xp ?? 0;
+      const myXp = rows.find((r) => r.id === userId)?.xp ?? 0;
+      // التقدّم = اقترابي من متصدّر الشهر (1 عندما أتجاوزه/أعدله)
+      return make(rank === 1 ? 1 : myXp, Math.max(1, rank === 1 ? 1 : top), 'rank');
     }
-    case 'super_streak': return Math.min(1, g.currentStreakWeeks / 8);
-    case 'honest_reviewer': return Math.min(1, db.ratings.filter((r) => r.userId === userId).length / 3);
-    case 'pro_expert': return Math.min(1, db.certificates.filter((c) => c.userId === userId).length / 3);
-    case 'cert_hunter': return db.certificates.some((c) => c.userId === userId) ? 1 : 0.4;
-    default: return 0;
+    case 'top_scorer': {
+      const { rank } = leagueStanding(db, userId);
+      return make(rank === 1 ? 1 : 0, 1, 'rank');
+    }
+    case 'climber': {
+      // الصعود لفئة أعلى: التقدّم = موقعي داخل منطقة الترقية (نسبة عدد من هم فوقي).
+      const standing = leagueStanding(db, userId);
+      const promoSize = Math.max(1, Math.round(standing.size * (ruleValue(db, 'league.promotion_pct') / 100)));
+      const inside = standing.rank <= promoSize;
+      return make(inside ? 1 : 0, 1, 'rank');
+    }
+    default: return make(0, 1, 'attendance', false);
   }
 }
 
-/** أقرب شارة قابلة للكسب */
-export function nearestBadge(db: Db, userId: string): { badge: Badge; progress: number } | null {
-  const notEarned = db.badges.filter((b) => b.active && !db.userBadges.some((u) => u.userId === userId && u.badgeCode === b.code));
-  if (notEarned.length === 0) return null;
-  let best: { badge: Badge; progress: number } = { badge: notEarned[0], progress: badgeProgress(db, userId, notEarned[0].code) };
-  notEarned.forEach((b) => {
-    const p = badgeProgress(db, userId, b.code);
-    if (p > best.progress) best = { badge: b, progress: p };
+/** متوافق مع الاسم القديم — يعيد نسبة واحدة (مقصوصة) بلا أي تقدير. */
+export function badgeProgress(db: Db, userId: string, code: string): number {
+  return badgeProgressDetail(db, userId, code).progress;
+}
+
+export interface NearestBadge {
+  badge: Badge;
+  progress: number;
+  current: number;
+  target: number;
+  metric: BadgeMetric;
+  /** كم بقي للوصول (بوحدات المقياس) */
+  remaining: number;
+}
+
+/**
+ * أقرب شارة قابلة للكسب: الأعلى تقدّمًا، وكسر التعادل بالأقل متبقّيًا ثم بالأقدم تعريفًا.
+ * تُستبعد الشارات غير القابلة للكسب (موسمية/معطّلة) — بدل أن يُعرض 0% أبدي.
+ */
+export function nearestBadge(db: Db, userId: string): NearestBadge | null {
+  const earned = new Set(db.userBadges.filter((u) => u.userId === userId).map((u) => u.badgeCode));
+  const pool = db.badges
+    .filter((b) => b.active && !earned.has(b.code))
+    .map((b) => ({ badge: b, detail: badgeProgressDetail(db, userId, b.code) }))
+    .filter((row) => row.detail.achievable && row.detail.progress < 1);
+  if (pool.length === 0) return null;
+  pool.sort((a, b) => {
+    if (b.detail.progress !== a.detail.progress) return b.detail.progress - a.detail.progress;
+    const remainA = a.detail.target - a.detail.current;
+    const remainB = b.detail.target - b.detail.current;
+    if (remainA !== remainB) return remainA - remainB;
+    return a.badge.code.localeCompare(b.badge.code);
   });
-  return best;
+  const best = pool[0];
+  return {
+    badge: best.badge,
+    progress: best.detail.progress,
+    current: best.detail.current,
+    target: best.detail.target,
+    metric: best.detail.metric,
+    remaining: Math.max(0, best.detail.target - best.detail.current),
+  };
+}
+
+/** كل الشارات مع تقدّمها (لشاشة الإنجازات) — مرتّبة: المكتسبة ثم الأقرب. */
+export function badgeBoard(db: Db, userId: string): Array<{ badge: Badge; earned: boolean; detail: BadgeProgressDetail }> {
+  const earned = new Set(db.userBadges.filter((u) => u.userId === userId).map((u) => u.badgeCode));
+  return db.badges
+    .filter((b) => b.active)
+    .map((b) => ({ badge: b, earned: earned.has(b.code), detail: badgeProgressDetail(db, userId, b.code) }))
+    .sort((a, b) => Number(b.earned) - Number(a.earned) || b.detail.progress - a.detail.progress || a.badge.code.localeCompare(b.badge.code));
 }
 
 // ───────────────────────────── الدوري الأسبوعي ─────────────────────────────

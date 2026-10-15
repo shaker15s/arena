@@ -192,6 +192,9 @@ export interface GamificationProfile {
 
 export type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
+/** وحدة قياس تقدّم الشارة — تُعرَّب في الواجهة (حضور/أسابيع/شهادات/تقييمات…). */
+export type BadgeMetric = 'attendance' | 'weeks' | 'certificates' | 'ratings' | 'feedback' | 'kudos' | 'rank';
+
 export interface Badge {
   code: string;
   nameAr: string;
@@ -201,6 +204,10 @@ export interface Badge {
   rarity: BadgeRarity;
   icon: string; // ionicons name
   active: boolean;
+  /** عدد الوحدات المطلوب للوصول للشارة (للعرض الصادق: «باقي 3 محاضرات»). */
+  target: number;
+  /** نوع الوحدة التي يقيسها `target`. */
+  metric: BadgeMetric;
 }
 
 export interface UserBadge {

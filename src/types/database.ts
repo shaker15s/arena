@@ -890,6 +890,8 @@ export interface Database {
   manual_mark_attendance: { Args: { p_session_id: string; p_user_id: string; p_status: string; p_reason: string }; Returns: Json };
   /** 0014_critical_fixes.sql */
   mark_notifications_read: { Args: Record<string, never>; Returns: Json };
+  /** 0038_more_badges.sql */
+  my_badge_progress: { Args: Record<string, never>; Returns: Json };
   /** 0031_functional_completeness.sql */
   needs_attention: { Args: Record<string, never>; Returns: Json };
   /** 0023_course_lifecycle_truthfulness.sql */

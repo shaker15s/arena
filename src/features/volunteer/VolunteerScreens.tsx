@@ -12,6 +12,8 @@ import {
   attendanceOf, attendancePct, batchOf, batchStudents, courseOf, instructorBatches,
   seatCounts, sessionsOfBatch,
 } from '../../data/engine';
+// نفس مصدر «اللي جاي» المستخدم في شاشة الطالب — عشان الشاشتين ما يختلفوش أبدًا.
+import { nextAgendaItem, todayAgenda } from '../../data/agenda';
 import {
   awardKudos, getSessionReport, notifySessionAbsentees, savePrivateNote, type SessionReportData,
 } from '../../data/actions';
@@ -23,7 +25,7 @@ import {
   Row, Screen, Segmented, Sheet, SkeletonList, Spacer, Tag, Txt,
 } from '../../design/components';
 import { layout, spacing, radii, sizes, attendanceColors } from '../../design/tokens';
-import { formatDate, formatTime, monthKeyOf, sameDay, uid } from '../../shared/format';
+import { formatDate, formatTime, monthKeyOf, relativeDayLabel, sameDay, startsIn, uid } from '../../shared/format';
 import { useTabs } from '../../app/RootNavigator';
 import { BatchFormSheet } from '../org/AdminScreens';
 import { Icon } from '../../design/icons';
@@ -41,9 +43,17 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
   if (!user) return null;
 
   const batches = instructorBatches(db, user.id).filter((b) => b.status === 'active');
-  const todaySessions = db.sessions.filter((s) => batches.some((b) => b.id === s.batchId) && s.status !== 'closed');
-  const liveSession = todaySessions.find((s) => s.status === 'live');
-  const nextSession = [...todaySessions].filter((s) => s.status === 'scheduled').sort((a, b) => a.startsAt - b.startsAt)[0];
+  const batchIds = batches.map((b) => b.id);
+  // كان العيب: أي جلسة «مجدولة» تُسمّى «محاضرة اليوم» حتى لو بعد أسبوع، والجلسة
+  // الجارية تُستبعد من «القادمة» فتظهر الشاشة كأن اليوم فاضي.
+  const agendaToday = todayAgenda(db, user.id, Date.now(), batchIds);
+  const nextAgenda = nextAgendaItem(db, user.id, Date.now(), batchIds);
+  const liveSession = agendaToday.items.find((i) => i.session.status === 'live' && !i.stale)?.session
+    ?? (nextAgenda?.session.status === 'live' ? nextAgenda.session : undefined);
+  // «محاضرة اليوم» = جلسة اليوم فعلًا؛ لو مفيش، نعرض أقرب جلسة قادمة بوسم صريح.
+  const nextSession = agendaToday.items.find((i) => i.session.status === 'scheduled')?.session
+    ?? (nextAgenda && nextAgenda.session.status !== 'live' ? nextAgenda.session : undefined);
+  const nextIsToday = nextSession ? agendaToday.items.some((i) => i.session.id === nextSession.id) : false;
 
   const pendingExcuses = db.excuses.filter((e) => {
     const s = db.sessions.find((x) => x.id === e.sessionId);
@@ -93,6 +103,25 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
           </FadeIn>
         ) : null}
 
+        {/* بطاقة اليوم: عدّاد حقيقي لمحاضرات النهاردة */}
+        {batches.length > 0 ? (
+          <FadeIn index={0}>
+            <Card>
+              <Row between center>
+                <Txt variant="caption" color={theme.textMuted}>{t('day.title')}</Txt>
+                <Tag label={t('vtoday.todayCount', { n: String(agendaToday.total) })} color={theme.brand} bg={theme.brandSoft} icon="calendar" />
+              </Row>
+              {agendaToday.total === 0 ? (
+                <Txt variant="caption" color={theme.textSecondary} style={{ marginTop: spacing.s2 }}>
+                  {nextAgenda
+                    ? t('vtoday.nothingTodayHint', { when: relativeDayLabel(nextAgenda.startsAt, lang) })
+                    : t('vtoday.noSessionToday')}
+                </Txt>
+              ) : null}
+            </Card>
+          </FadeIn>
+        ) : null}
+
         {liveSession ? (
           <FadeIn index={0}>
             <Card color={theme.brand} style={{ borderColor: 'transparent' }}>
@@ -115,11 +144,16 @@ export function VolunteerTodayScreen({ navigation: propNav }: any) {
                   <Icon name="calendar" size={24} color={theme.brand} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Txt variant="caption" color={theme.brand}>{t('vtoday.sessionToday')}</Txt>
+                  <Txt variant="caption" color={theme.brand}>
+                    {nextIsToday ? t('vtoday.sessionToday') : t('vtoday.nextSession')}
+                  </Txt>
                   <Txt variant="h3">{nextSession.title}</Txt>
                   <Txt variant="micro" color={theme.textMuted}>
-                    {sameDay(nextSession.startsAt, Date.now()) ? t('common.today') : formatDate(nextSession.startsAt, lang)} · {formatTime(nextSession.startsAt, lang)} · {batchOf(db, nextSession.batchId)?.room}
+                    {/* «النهاردة/بكرة/بعد 3 أيام» — بدل تاريخ مجرّد يوهم أنه اليوم */}
+                    {relativeDayLabel(nextSession.startsAt, lang)} · {formatTime(nextSession.startsAt, lang)}
+                    {batchOf(db, nextSession.batchId)?.room ? ` · ${batchOf(db, nextSession.batchId)?.room}` : ''}
                   </Txt>
+                  <Txt variant="micro" color={theme.brand}>{startsIn(nextSession.startsAt, lang)}</Txt>
                 </View>
               </Row>
               <Spacer size={spacing.s3} />

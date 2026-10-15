@@ -152,6 +152,16 @@ const { CourseFeedbackTab } = require(path.join(build, 'src', 'features', 'cours
 const { CourseReportTab } = require(path.join(build, 'src', 'features', 'courses', 'management', 'CourseReportTab.js'));
 const { CourseBuildTab } = require(path.join(build, 'src', 'features', 'courses', 'management', 'CourseBuildTab.js'));
 const mascot = require(path.join(build, 'src', 'design', 'mascot', 'index.js'));
+const dayCards = require(path.join(build, 'src', 'features', 'today', 'DayCards.js'));
+const orgDash = require(path.join(build, 'src', 'features', 'org', 'DashboardScreen.js'));
+
+/** مُترجم بسيط للاستخدام خارج شجرة React (بطاقة لوحة المنظّم تطلب `t` كخاصية). */
+const i18nT = (key, params) => {
+  const dict = require(path.join(build, 'src', 'i18n', 'ar.js')).ar;
+  let text = dict[key] ?? String(key);
+  if (params) for (const [k, v] of Object.entries(params)) text = text.split(`{${k}}`).join(String(v));
+  return text;
+};
 
 const withProviders = (node) => renderToStaticMarkup(
   React.createElement(i18n.I18nProvider, null,
@@ -193,6 +203,38 @@ const cases = [
     expect: ['وحدة'],
   },
   {
+    name: 'DaySummaryCard (ملخص النهاردة — كروت الطالب)',
+    node: React.createElement(dayCards.DaySummaryCard, { db, userId: seed.IDS.omar, now: Date.now() }),
+    expect: ['ملخص النهاردة'],
+  },
+  {
+    name: 'NearestBadgeCard (أقرب شارة للكسب)',
+    node: React.createElement(dayCards.NearestBadgeCard, { db, userId: seed.IDS.omar }),
+    expect: ['أقرب شارة للكسب'],
+  },
+  {
+    // انحدار مباشر على شكوى المستخدم: «عندي محاضرة بعد ١٠ دقايق ويقولي القادمة بعد ٣ أيام»
+    name: 'DaySummaryCard — الحقيقة الزمنية (بعد 3 أيام ليست النهاردة)',
+    node: (() => {
+      const probe = { ...db, sessions: [] };
+      const batch = db.batches.find((b) => db.enrollments.some((e) => e.batchId === b.id && e.userId === seed.IDS.omar && e.status === 'active'));
+      const farStart = Date.now() + 3 * 24 * 60 * 60_000;
+      probe.sessions = [
+        { ...db.sessions.find((x) => x.batchId === batch.id), id: 'smoke-far', startsAt: farStart, status: 'scheduled' },
+      ];
+      return React.createElement(dayCards.DaySummaryCard, { db: probe, userId: seed.IDS.omar, now: Date.now() });
+    })(),
+    expect: ['مفيش محاضرات النهاردة', 'بعد 3 أيام'],
+  },
+  {
+    name: 'NextSessionCard (الجلسة القادمة للمنظّم)',
+    node: React.createElement(orgDash.NextSessionCard, {
+      db, userId: db.batches.find((b) => b.instructorId) ? db.batches.find((b) => b.instructorId).instructorId : seed.IDS.ahmed,
+      t: (k, p) => i18nT(k, p), navigation: { navigate: () => {} },
+    }),
+    expect: ['الجاية'],
+  },
+  {
     name: 'MasarMascot — كل الحالات (14)',
     node: React.createElement(React.Fragment, null,
       ...db.__mascotStates.map((state, i) => React.createElement(mascot.MasarMascot, { key: i, behavior: state, size: 90, hideFloatingBubble: true }))),
@@ -212,7 +254,15 @@ for (const testCase of cases) {
     continue;
   }
   // لقطات HTML دائمة (لمكوّنات الواجهة، لا الرسم الكبير) لمراجعة بشرية سريعة
-  const snapshotName = testCase.name.split(' ')[0];
+  // اسم اللقطة = الجزء قبل الأقواس + تمييز الحالات الخاصة، حتى لا تلغي لقطةٌ لقطةً
+  // أخرى (كانت حالتان بنفس الكلمة الأولى تُنتجان ملفًا واحدًا).
+  const snapshotBase = testCase.name.split('(')[0].trim().replace(/\s+/g, '_');
+  const snapshotVariant = testCase.name.includes('(')
+    ? testCase.name.slice(testCase.name.indexOf('(') + 1, testCase.name.lastIndexOf(')')).replace(/\s+/g, '_')
+    : '';
+  const snapshotName = snapshotBase === 'DaySummaryCard' && snapshotVariant.includes('الحقيقة')
+    ? `${snapshotBase}__${snapshotVariant}`
+    : snapshotBase;
   if (!testCase.name.includes('MasarMascot')) {
     fs.mkdirSync(path.join(root, 'docs', 'design', 'smoke'), { recursive: true });
     fs.writeFileSync(path.join(root, 'docs', 'design', 'smoke', `${snapshotName}.html`), html, 'utf8');

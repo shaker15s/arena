@@ -6,6 +6,9 @@ import { useApp } from '../../data/store';
 import {
   courseOf, dashboardStats, profileOf, seatCounts,
 } from '../../data/engine';
+// «الجلسة القادمة على مجموعاتك» — نفس مصدر الطالب والمدرّب بلا حساب موازي.
+import { nextAgendaItem } from '../../data/agenda';
+import { formatTime, relativeDayLabel, startsIn } from '../../shared/format';
 import { useTheme } from '../../design/theme';
 import { useI18n } from '../../i18n';
 import {
@@ -164,6 +167,9 @@ export function DashboardScreen({ navigation: propNav }: any) {
           <Txt variant="micro" color={theme.textMuted}>{t('common.lastSync')}</Txt>
         ) : null}
         <NeedsAttention db={db} t={t} navigation={navigation} />
+
+        {/* ── الجلسة القادمة على مجموعاتي (منظّم/مشرف) ── */}
+        <NextSessionCard db={db} userId={user.id} t={t} navigation={navigation} />
 
         {/* KPI Bento */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s3 }}>
@@ -344,6 +350,87 @@ export function DashboardScreen({ navigation: propNav }: any) {
         </FadeIn>
       </ScrollView>
     </Screen>
+  );
+}
+
+/**
+ * بطاقة «الجلسة القادمة» في لوحة المنظّم — كانت **مفقودة تمامًا**: المنظّم يرى
+ * أرقامًا إجمالية فقط، ولا يعرف إن كانت عنده محاضرة بعد عشر دقائق.
+ *
+ * تعرض بحسب علاقته بالجلسة:
+ *   • هو المدرّب ⇒ «محاضرتك الجاية» + زر «ابدأ الجلسة».
+ *   • هو منظّم الكورس ⇒ «الجلسة القادمة في كورساتك» + اسم المدرّب.
+ * وتستخدم نفس محرّك الأجندة المستخدم في شاشتي الطالب والمدرّب، فلا تتناقض
+ * الأرقام بين الشاشات أبدًا.
+ */
+export function NextSessionCard({ db, userId, t, navigation }: { db: Db; userId: string; t: (k: any, p?: any) => string; navigation: any }) {
+  const { theme } = useTheme();
+  const { lang } = useI18n();
+  const item = nextAgendaItem(db, userId);
+  if (!item) {
+    return (
+      <FadeIn index={1}>
+        <Card>
+          <Row center gap={spacing.s3}>
+            <Icon name="calendar-clear" size={22} color={theme.textMuted} />
+            <Txt variant="caption" color={theme.textSecondary} style={{ flex: 1 }}>{t('org.noUpcoming')}</Txt>
+          </Row>
+        </Card>
+      </FadeIn>
+    );
+  }
+  const isMine = item.batch.instructorId === userId;
+  const soon = item.msUntilStart >= 0 && item.msUntilStart < 60 * 60_000;
+  const live = item.session.status === 'live' && !item.stale;
+  const accent = live || soon ? theme.danger : theme.brand;
+  const instructor = profileOf(db, item.batch.instructorId);
+  return (
+    <FadeIn index={1}>
+      <Card
+        onPress={() => navigation.navigate(isMine ? 'SessionsHistory' : 'BatchesAdmin')}
+        accessibilityLabel={isMine ? t('org.nextSession') : t('org.courseNext')}
+        accessibilityHint={t('day.hint')}
+      >
+        <Row between center>
+          <Row center gap={spacing.s2}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: accent + '1A', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={live ? 'radio' : 'calendar'} size={13} color={accent} />
+            </View>
+            <Txt variant="caption" color={accent}>{isMine ? t('org.nextSession') : t('org.courseNext')}</Txt>
+          </Row>
+          <Tag
+            label={live ? t('day.liveBadge') : soon ? t('org.upcomingSoon') : startsIn(item.startsAt, lang)}
+            color={accent}
+            bg={accent + '1A'}
+            icon="time"
+          />
+        </Row>
+        <View style={{ marginTop: spacing.s3, gap: spacing.s2 }}>
+          <Txt variant="h3">{item.course?.title ?? item.session.title}</Txt>
+          <Txt variant="caption" color={theme.textSecondary}>{item.session.title}</Txt>
+          <Row wrap center gap={spacing.s3}>
+            <Row center gap={spacing.s1}>
+              <Icon name="calendar-outline" size={14} color={theme.textMuted} />
+              <Txt variant="micro" color={theme.textMuted}>
+                {relativeDayLabel(item.startsAt, lang)} · {formatTime(item.startsAt, lang)}
+              </Txt>
+            </Row>
+            {item.batch.room ? (
+              <Row center gap={spacing.s1}>
+                <Icon name="location-outline" size={14} color={theme.textMuted} />
+                <Txt variant="micro" color={theme.textMuted}>{item.batch.room}</Txt>
+              </Row>
+            ) : null}
+            {!isMine && instructor ? (
+              <Row center gap={spacing.s1}>
+                <Icon name="person-outline" size={14} color={theme.textMuted} />
+                <Txt variant="micro" color={theme.textMuted}>{instructor.fullName}</Txt>
+              </Row>
+            ) : null}
+          </Row>
+        </View>
+      </Card>
+    </FadeIn>
   );
 }
 

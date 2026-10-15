@@ -403,18 +403,22 @@ export function buildSeedDb(): Db {
 
   // ── الشارات ──
   const badges: Badge[] = [
-    { code: 'first_step', nameAr: 'البداية الصح', nameEn: 'Right Start', descAr: 'أول حضور في تاريخك على مسار', descEn: 'Your first ever attendance', rarity: 'common', icon: 'footsteps', active: true },
-    { code: 'consistent', nameAr: 'المواظب', nameEn: 'Consistent', descAr: '4 محاضرات متتالية في كورس واحد', descEn: '4 consecutive sessions in one course', rarity: 'common', icon: 'calendar', active: true },
-    { code: 'early_bird', nameAr: 'الطائر المبكر', nameEn: 'Early Bird', descAr: '10 حضورات قبل بدء الجلسة', descEn: '10 check-ins before session start', rarity: 'rare', icon: 'sunny', active: true },
-    { code: 'perfection', nameAr: 'الكمال', nameEn: 'Perfection', descAr: 'شهر ميلادي حضور 100% بلا غياب', descEn: 'A calendar month at 100% attendance', rarity: 'epic', icon: 'diamond', active: true },
-    { code: 'super_streak', nameAr: 'السوبر ستريك', nameEn: 'Super Streak', descAr: '8 أسابيع التزام متتالية', descEn: '8 consecutive committed weeks', rarity: 'epic', icon: 'flame', active: true },
-    { code: 'month_star', nameAr: 'نجم الشهر', nameEn: 'Star of the Month', descAr: 'أعلى نقاط شهر على مستوى فرعك', descEn: 'Top monthly points in your branch', rarity: 'epic', icon: 'star', active: true },
-    { code: 'top_scorer', nameAr: 'المتصدر', nameEn: 'Top Scorer', descAr: 'صدارة الدوري الأسبوعي في أي مرة', descEn: 'Topping a weekly league any time', rarity: 'common', icon: 'trophy', active: true },
-    { code: 'climber', nameAr: 'الصاعد', nameEn: 'Climber', descAr: 'الصعود لفئة دوري أعلى', descEn: 'Promoting to a higher league tier', rarity: 'rare', icon: 'trending-up', active: true },
-    { code: 'cert_hunter', nameAr: 'صائد الشهادات', nameEn: 'Certificate Hunter', descAr: 'أول شهادة مصدرة لك', descEn: 'Your first issued certificate', rarity: 'rare', icon: 'ribbon', active: true },
-    { code: 'pro_expert', nameAr: 'الخبير المحترف', nameEn: 'Pro Expert', descAr: '3 شهادات مكتملة', descEn: '3 completed certificates', rarity: 'epic', icon: 'medal', active: true },
-    { code: 'honest_reviewer', nameAr: 'المقيّم الأمين', nameEn: 'Honest Reviewer', descAr: 'تقييم 3 كورسات بعد إتمامها', descEn: 'Rating 3 completed courses', rarity: 'common', icon: 'chatbubble-ellipses', active: true },
-    { code: 'season_legend', nameAr: 'أسطورة الموسم', nameEn: 'Season Legend', descAr: 'إنهاء موسم (6 أشهر) بأعلى نقاط الفرع', descEn: 'Top branch points across a 6-month season', rarity: 'legendary', icon: 'crown', active: true },
+    { code: 'first_step', nameAr: 'البداية الصح', nameEn: 'Right Start', descAr: 'أول حضور في تاريخك على مسار', descEn: 'Your first ever attendance', rarity: 'common', icon: 'footsteps', active: true, target: 1, metric: 'attendance' },
+    { code: 'consistent', nameAr: 'المواظب', nameEn: 'Consistent', descAr: '4 محاضرات متتالية في كورس واحد', descEn: '4 consecutive sessions in one course', rarity: 'common', icon: 'calendar', active: true, target: 4, metric: 'attendance' },
+    { code: 'early_bird', nameAr: 'الطائر المبكر', nameEn: 'Early Bird', descAr: '10 حضورات قبل بدء الجلسة', descEn: '10 check-ins before session start', rarity: 'rare', icon: 'sunny', active: true, target: 10, metric: 'attendance' },
+    { code: 'perfection', nameAr: 'الكمال', nameEn: 'Perfection', descAr: 'شهر ميلادي حضور 100% بلا غياب', descEn: 'A calendar month at 100% attendance', rarity: 'epic', icon: 'diamond', active: true, target: 4, metric: 'attendance' },
+    { code: 'super_streak', nameAr: 'السوبر ستريك', nameEn: 'Super Streak', descAr: '8 أسابيع التزام متتالية', descEn: '8 consecutive committed weeks', rarity: 'epic', icon: 'flame', active: true, target: 8, metric: 'weeks' },
+    { code: 'streak_12', nameAr: 'الأسطورة الحيّة', nameEn: 'Living Legend', descAr: '12 أسبوع التزام متتالي', descEn: '12 consecutive committed weeks', rarity: 'legendary', icon: 'rocket', active: true, target: 12, metric: 'weeks' },
+    { code: 'month_star', nameAr: 'نجم الشهر', nameEn: 'Star of the Month', descAr: 'أعلى نقاط شهر على مستوى فرعك', descEn: 'Top monthly points in your branch', rarity: 'epic', icon: 'star', active: true, target: 1, metric: 'rank' },
+    { code: 'top_scorer', nameAr: 'المتصدر', nameEn: 'Top Scorer', descAr: 'صدارة الدوري الأسبوعي في أي مرة', descEn: 'Topping a weekly league any time', rarity: 'common', icon: 'trophy', active: true, target: 1, metric: 'rank' },
+    { code: 'climber', nameAr: 'الصاعد', nameEn: 'Climber', descAr: 'الصعود لفئة دوري أعلى', descEn: 'Promoting to a higher league tier', rarity: 'rare', icon: 'trending-up', active: true, target: 1, metric: 'rank' },
+    { code: 'cert_hunter', nameAr: 'صائد الشهادات', nameEn: 'Certificate Hunter', descAr: 'أول شهادة مصدرة لك', descEn: 'Your first issued certificate', rarity: 'rare', icon: 'ribbon', active: true, target: 1, metric: 'certificates' },
+    { code: 'pro_expert', nameAr: 'الخبير المحترف', nameEn: 'Pro Expert', descAr: '3 شهادات مكتملة', descEn: '3 completed certificates', rarity: 'epic', icon: 'medal', active: true, target: 3, metric: 'certificates' },
+    { code: 'honest_reviewer', nameAr: 'المقيّم الأمين', nameEn: 'Honest Reviewer', descAr: 'تقييم 3 كورسات بعد إتمامها', descEn: 'Rating 3 completed courses', rarity: 'common', icon: 'chatbubble-ellipses', active: true, target: 3, metric: 'ratings' },
+    { code: 'feedback_star', nameAr: 'نجم التغذية الراجعة', nameEn: 'Feedback Star', descAr: '10 تقييمات لمحاضراتك', descEn: '10 lecture feedbacks given', rarity: 'common', icon: 'create', active: true, target: 10, metric: 'feedback' },
+    { code: 'marathon', nameAr: 'الماراثون', nameEn: 'Marathon', descAr: '5 محاضرات في أسبوع واحد', descEn: '5 sessions in a single week', rarity: 'rare', icon: 'bicycle', active: true, target: 5, metric: 'attendance' },
+    { code: 'comeback', nameAr: 'العودة القوية', nameEn: 'Comeback', descAr: 'رجعت بعد انقطاع أسبوعين', descEn: 'Came back after a two-week gap', rarity: 'rare', icon: 'refresh', active: true, target: 1, metric: 'attendance' },
+    { code: 'season_legend', nameAr: 'أسطورة الموسم', nameEn: 'Season Legend', descAr: 'إنهاء موسم (6 أشهر) بأعلى نقاط الفرع', descEn: 'Top branch points across a 6-month season', rarity: 'legendary', icon: 'crown', active: false, target: 1, metric: 'rank' },
   ];
 
   const userBadges = [
